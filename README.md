@@ -26,6 +26,10 @@
 pip3 install -e ./wild_visual_navigation
 ```
 
+### Requirements
+#### data_preprocessing:
+- bagpy
+
 ## Usage
 TODO
 
