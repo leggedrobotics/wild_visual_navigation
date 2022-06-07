@@ -7,5 +7,6 @@ jobs:
       - name: Python
         uses: jose-lpa/python-black-check-action@master
         with:
+          line-length: '120'
           path: '.'
-          line-length: 120
+          include: '*'

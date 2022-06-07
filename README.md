@@ -1,5 +1,7 @@
 # Self-Supervised Visual Navigation in the Wild
 
+**Status**: ![Formatting](https://github.com/leggedrobotics/wild_visual_navigation/actions/workflows/formatting.yml/badge.svg)
+
 ## Useful links (internal)
 
 - [Main tasks (Kanban)](https://github.com/leggedrobotics/wild_visual_navigation/projects/1)
