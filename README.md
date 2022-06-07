@@ -9,17 +9,16 @@
 
 | &nbsp; &nbsp; &nbsp; &nbsp; Scripts &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; |
 | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [Data Preprocessing](./scripts/data_preprocessing.py) | Convert ROS Bag to Images |
 | [Baseline Method](./scripts/baselines/bayesian_clustering.py ) | Lee, H. et al. Bayesian Clustering: [](shorturl.at/mNUZ5) |
 |... | ... |
 
 | &nbsp; &nbsp; &nbsp; &nbsp; Modules &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; |
 | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [Data Preprocessing](./wild_visual_navigation/data_preprocessing) | Utilities for converting ROS Bag to Images, Trajectories ...|
-| [Clustering](./wild_visual_navigation/clustering) | Clustering, Feature Extraction, Descriptors, SLIC, STEGO ... |
-| [Trajectory](./wild_visual_navigation/trajectory) | Define Trajectory Class: Time, Distance, Other Properties, Projection into Image |
-| [Utils](./wild_visual_navigation/utils) | General Utilities |
-| [Visu](./wild_visual_navigation/visu) | Visualization Tools |
+| [Feature Extraction](./wild_visual_navigation/feature_extractor) | Input Image; Clustering, Feature Extraction, Descriptors, SLIC, STEGO |
+| [Image Projector](./wild_visual_navigation/image_projector) | Input Image, Pose, 3D object; Projection onto Image|
+| [Label Generator](./wild_visual_navigation/label_generator) | Define Trajectory Class: Time, Distance, Other Properties, Projection into Image |
+| [Traversability Estimator](./wild_visual_navigation/traversability_estimator) | General Utilities |
+| [Utils](./wild_visual_navigation/utils) | Visualization Tools |
 
 ## Setup
 ```
@@ -27,8 +26,6 @@ pip3 install -e ./wild_visual_navigation
 ```
 
 ### Requirements
-#### data_preprocessing:
-- bagpy
 
 ## Usage
 TODO

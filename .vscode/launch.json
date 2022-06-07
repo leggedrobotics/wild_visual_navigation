@@ -8,7 +8,7 @@
             "program": "/home/jonfrey/git/wild_visual_navigation/scripts/data_preprocessing.py",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "pythonPath": "/usr/bin/python3",
+            "python": "/usr/bin/python3",
         }
     ]
 }
