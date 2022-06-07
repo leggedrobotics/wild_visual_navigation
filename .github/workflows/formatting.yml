@@ -1,0 +1,11 @@
+name: Formatting
+on: [push]
+jobs:
+  check-formatting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Black Code Formatter
+        uses: lgeiger/black-action@master
+        with:
+          args: "--line-length 120 . --check"
