@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "data_preprocessing",
+            "type": "python",
+            "request": "launch",
+            "program": "/home/jonfrey/git/wild_visual_navigation/scripts/data_preprocessing.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "python": "/usr/bin/python3",
+        }
+    ]
+}

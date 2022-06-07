@@ -1,0 +1,11 @@
+name: Formatting
+on: [push]
+jobs:
+  check-formatting:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Python
+        uses: jose-lpa/python-black-check-action@master
+        with:
+          path: '.'
+          line-length: 120
