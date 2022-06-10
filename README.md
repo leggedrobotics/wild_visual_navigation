@@ -23,8 +23,15 @@
 | [Utils](./wild_visual_navigation/utils) | Visualization Tools |
 
 ## Setup
+
 ```shell
+git clone git@github.com:leggedrobotics/wild_visual_navigation.git
 pip3 install -e ./wild_visual_navigation
+```
+
+```shell
+git clone git@github.com:leggedrobotics/stego.git
+pip3 install -e ./stego
 ```
 
 ### Requirements
@@ -33,6 +40,8 @@ pip3 install -e ./wild_visual_navigation
 TODO
 
 ## Contribution
+
+### Code formatting
 ```shell
 # for formatting
 pip install black
@@ -41,3 +50,12 @@ black --line-length 120 .
 pip install flake8
 flake8 .
 ```
+Code format is checked on push.
+
+### Testing
+Introduction to ![pytest](https://github.com/pluralsight/intro-to-pytest).
+
+```shell
+pytest
+```
+Pytest is not checked on push.
