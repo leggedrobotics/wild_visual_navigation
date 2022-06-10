@@ -53,7 +53,7 @@ flake8 .
 Code format is checked on push.
 
 ### Testing
-Introduction to ![pytest](https://github.com/pluralsight/intro-to-pytest).
+Introduction to [pytest](https://github.com/pluralsight/intro-to-pytest).
 
 ```shell
 pytest
