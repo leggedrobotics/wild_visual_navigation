@@ -59,7 +59,7 @@ class StegoInterface:
         return linear_pred, cluster_pred
 
 
-def test_stego_interfacer():
+def run_stego_interfacer():
     """Performance inference using stego and stores result as an image."""
 
     from PIL import Image
@@ -93,4 +93,4 @@ def test_stego_interfacer():
 
 
 if __name__ == "__main__":
-    test_stego_interfacer()
+    run_stego_interfacer
