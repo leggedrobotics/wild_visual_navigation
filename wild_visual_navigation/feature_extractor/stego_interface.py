@@ -25,7 +25,7 @@ class StegoInterface:
         """
         model_path = join(WVN_ROOT_DIR, "assets", "stego", "cocostuff27_vit_base_5.ckpt")
         if not os.path.exists(model_path):
-            os.makedirs(join(WVN_ROOT_DIR, "assets", "stego"), exist_ok=True) 
+            os.makedirs(join(WVN_ROOT_DIR, "assets", "stego"), exist_ok=True)
             saved_model_url_root = "https://marhamilresearch4.blob.core.windows.net/stego-public/saved_models/"
             saved_model_name = "cocostuff27_vit_base_5.ckpt"
             wget.download(saved_model_url_root + saved_model_name, model_path)
