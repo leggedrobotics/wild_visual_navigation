@@ -10,21 +10,28 @@
 ## Overview
 
 | &nbsp; &nbsp; &nbsp; &nbsp; Scripts &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; |
-| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [Baseline Method](./scripts/baselines/bayesian_clustering.py ) | Lee, H. et al. Bayesian Clustering ![paper](shorturl.at/mNUZ5) |
+| - | - |
+| [Baseline Method](./scripts/baselines/bayesian_clustering.py ) | Lee, H. et al. Bayesian Clustering [[Paper](http://nmail.kaist.ac.kr/paper/auro2016.pdf)] |
 |... | ... |
 
-| &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Modules &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; |
-| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [Feature Extraction](./wild_visual_navigation/feature_extractor) | Input Image; Clustering, Feature Extraction, Descriptors, SLIC, STEGO |
-| [Image Projector](./wild_visual_navigation/image_projector) | Input Image, Pose, 3D object; Projection onto Image|
-| [Label Generator](./wild_visual_navigation/label_generator) | Define Trajectory Class: Time, Distance, Other Properties, Projection into Image |
-| [Traversability Estimator](./wild_visual_navigation/traversability_estimator) | General Utilities |
-| [Utils](./wild_visual_navigation/utils) | Visualization Tools |
+| &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Modules &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Input  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; | &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; Function &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; |
+| - | - |- |
+| [Feature Extraction](./wild_visual_navigation/feature_extractor) | Image | SLIC, STEGO |
+| [Image Projector](./wild_visual_navigation/image_projector) | Image, Pose, 3D Object | Projection onto Image |
+| [Label Generator](./wild_visual_navigation/label_generator) | Robot State | Generates Traversability Label |
+| [Traversability Estimator](./wild_visual_navigation/traversability_estimator) | TBD |  Traversability Estimator |
+| [Utils](./wild_visual_navigation/utils) | - | General Utilities |
 
 ## Setup
+
 ```shell
+git clone git@github.com:leggedrobotics/wild_visual_navigation.git
 pip3 install -e ./wild_visual_navigation
+```
+
+```shell
+git clone git@github.com:leggedrobotics/stego.git
+pip3 install -e ./stego
 ```
 
 ### Requirements
@@ -33,6 +40,8 @@ pip3 install -e ./wild_visual_navigation
 TODO
 
 ## Contribution
+
+### Code formatting
 ```shell
 # for formatting
 pip install black
@@ -41,3 +50,12 @@ black --line-length 120 .
 pip install flake8
 flake8 .
 ```
+Code format is checked on push.
+
+### Testing
+Introduction to [pytest](https://github.com/pluralsight/intro-to-pytest).
+
+```shell
+pytest
+```
+Pytest is not checked on push.
