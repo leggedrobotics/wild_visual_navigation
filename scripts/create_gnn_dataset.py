@@ -14,10 +14,10 @@ image_paths = [
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 fe = FeatureExtractor(device)
+
 for p in image_paths:
 
     img = K.io.load_image(p, desired_type=K.io.ImageLoadType.RGB8, device=device)
-    img = img.type(torch.float32) / 255
+    img = (img.type(torch.float32) / 255)[None]
 
-    linear_pred, cluster_pred = fe.stego(img)
-    print(linear_pred)
+    adjacency_list, features, seg = fe.dino_slic(img)
