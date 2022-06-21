@@ -1,3 +1,4 @@
+<img align="left" width="80" height="80" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino">
 # Self-Supervised Visual Navigation in the Wild
 
 **Status**: ![Formatting](https://github.com/leggedrobotics/wild_visual_navigation/actions/workflows/formatting.yml/badge.svg)
