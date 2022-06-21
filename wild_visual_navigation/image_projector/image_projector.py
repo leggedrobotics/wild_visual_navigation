@@ -2,23 +2,27 @@ from wild_visual_navigation import WVN_ROOT_DIR
 import os
 from os.path import join
 import torch
-from kornia.geometry.transform import transform
 from kornia.geometry.camera.pinhole import PinholeCamera
+from kornia.geometry.conversions import convert_points_from_homogeneous, convert_points_to_homogeneous
+from kornia.geometry.linalg import transform_points
+from kornia.utils.draw import draw_convex_polygon, draw_rectangle, _draw_pixel
+from scipy.spatial import ConvexHull
 
+from liegroups.torch import SE3, SO3
 
 class ImageProjector:
     r"""
     TODO
     """
 
-    def __init__(self, intrinsics, extrinsics, height, width, fixed_frame, camera_frame):
+    def __init__(self, K, T_WC, h, w, fixed_frame, camera_frame):
         """Initializes the projector for B cameras using the pinhole model, without distortion
 
         Args:
-            intrinsics: (torch.Tensor, dtype=torch.float32, shape=(B, 4, 4)): Camera matrices
-            extrinsics: (torch.Tensor, dtype=torch.float32, shape=(B, 4, 4)): Extrinsics SE(3) matrices
-            height: (torch.Tensor, dtype=torch.int64): Image height
-            width: (torch.Tensor, dtype=torch.int64):  Image width
+            K: (torch.Tensor, dtype=torch.float32, shape=(B, 4, 4)): Camera matrices
+            T_WC: (torch.Tensor, dtype=torch.float32, shape=(B, 4, 4)): Extrinsics SE(3) matrices
+            h: (torch.Tensor, dtype=torch.int64): Image height
+            w: (torch.Tensor, dtype=torch.int64):  Image width
             fixed_frame: (str):  Fixed frame name
             camera_frame: (str): Camera frame name
 
@@ -26,85 +30,181 @@ class ImageProjector:
             None
         """
 
-        # Get size of the batch
-        N = intrinsics.shape[0]
-        M = extrinsics.shape[0]
+        # Add shape checks
 
-        # Initialize pinhole model
-        self.camera = PinholeCamera(intrinsics, extrinsics, height.expand(N), width.expand(N))
+        # Initialize pinhole model (no extrinsics)
+        E = torch.eye(4).expand(K.shape)
+        self.camera = PinholeCamera(K, E, h, w)
+        # Extrinsics, handled independently
+        self.T_WC = T_WC
+        self.T_CW = T_WC.inverse()
+        # Frames
         self.fixed_frame = fixed_frame
-        self.camera_frame = camera_frame
+        self.cam_frame = camera_frame
+        self.image_frame = "image"
 
     def project(self, points, points_frame):
         """Applies the pinhole projection model to a batch of points
 
         Args:
-            points: (torch.Tensor, dtype=torch.float32, shape=(B, 1, 3)): Batch of input points on 3D space
+            points: (torch.Tensor, dtype=torch.float32, shape=(B, N, 3)): B batches of N input points in 3D space
             points_frame: (str): Frame used to express the input points
 
         Returns:
-            projected_points: (torch.Tensor, dtype=torch.float32, shape=(B, 1, 2)): Batch of input points on image space
-        """
+            projected_points: (torch.Tensor, dtype=torch.float32, shape=(B, N, 2)): B batches of N output points on image space
+        """         
 
-        if self.fixed_frame != points_frame:
-            print(f"Input points frame [{points_frame}] doesn't match the frame of the camera [{self.fixed_frame}]")
-            raise
+        # Adjust input points depending on the frame and determine chirality
+        if points_frame != self.cam_frame and points_frame != self.fixed_frame:
+            raise ValueError(f"""Input points frame [{points_frame}] doesn't match 
+                                 the camera frame [{self.cam_frame}] 
+                                 or the fixed frame [{self.fixed_frame}]""")
 
-        # Apply projection
+        elif points_frame == self.fixed_frame:
+            # convert from fixed to camera frame
+            points = transform_points(self.T_CW, points)
+        
+        # Project points to image
         projected_points = self.camera.project(points)
 
-        # projected frame
-        projected_frame = self.camera_frame
+        # Validity check (if points are out of the field of view)
+        valid_points = self.check_validity(points, projected_points)
 
-        return projected_points, projected_frame
+        # Return projected points and validity
+        return projected_points, valid_points
+    
+    def check_validity(self, points_3d, points_2d):
+        f"""Check that the points are valid after projecting them on the image
 
-    def project_and_render(self, points, points_frame):
+        Args:
+            points_3d: (torch.Tensor, dtype=torch.float32, shape=(B, N, 3)): B batches of N points in camera frame
+            points_2d: (torch.Tensor, dtype=torch.float32, shape=(B, N, 2)): B batches of N points on the image
+
+        Returns:
+            valid_points: (torch.Tensor, dtype=torch.bool, shape=(B, N, 1)): B batches of N bools
+        """
+
+        # Check cheirality (if points are behind the camera, i.e, negative z)
+        valid_z = points_3d[...,2] >= 0
+        # Check if projection is within image range
+        valid_xmin = points_2d[...,0] >= 0
+        valid_xmax = points_2d[...,0] <= self.camera.width
+        valid_ymin = points_2d[...,1] >= 0
+        valid_ymax = points_2d[...,1] <= self.camera.height
+        
+        # Return validity
+        return valid_z & valid_xmax & valid_xmin & valid_ymax & valid_ymin
+
+    def project_and_render(self, points, points_frame, colors, image=None):
         """Projects the points and returns an image with the projection
 
         Args:
-            points: (torch.Tensor, dtype=torch.float32, shape=(B, 1, 3)): Batch of input points on 3D space
+            points: (torch.Tensor, dtype=torch.float32, shape=(B, N, 3)): B batches, of N input points in 3D space
             points_frame: (str): Frame used to express the input points
+            colors: (torch.Tensor, rtype=torch.float32, shape=(B, 3))
 
         Returns:
             out_img (torch.tensor, dtype=torch.int64): Image with projected points
         """
-        # This should execute the function above to generate 2d points on the image plane
-        # then it should find a convex hull
-        # finally should inpaint the convex hull and generate a (B, 1, H, W) mask (1 channel)
-        pass
 
+        B = self.camera.batch_size
+        C = 3 # RGB channel output
+        H = self.camera.height.item()
+        W = self.camera.width.item()
+
+        # Create output mask
+        masks = torch.zeros((B, C, H, W), dtype=torch.float32)
+
+        # Project points
+        projected_points, valid_points = self.project(points, points_frame)
+        projected_points = projected_points.reshape(B, -1, 2)
+        np_projected_points = projected_points.squeeze(0).numpy()
+
+        # Get convex hull
+        hull = ConvexHull(np_projected_points)
+        
+        # Get subset of points that are part of the convex hull
+        indices = torch.LongTensor(hull.vertices)
+        projected_hull = projected_points[..., indices, :]
+
+        # Fill the mask
+        masks = draw_convex_polygon(masks, projected_hull, colors)
+
+        # Draw on image (if applies)
+        image_overlay = None
+        if image != None:
+            image_overlay = draw_convex_polygon(image, projected_hull, colors)
+        
+        # Return torch masks
+        return masks, image_overlay
 
 def run_image_projector():
     """Projects 3D points to example images and returns an image with the projection"""
 
-    # from PIL import Image
-    # from wild_visual_navigation.utils import get_img_from_fig
-    # import matplotlib.pyplot as plt
-    # from stego.src import unnorm, remove_axes
-    # import numpy as np
+    from wild_visual_navigation.utils import get_img_from_fig
+    from wild_visual_navigation.utils import make_box, make_ellipsoid
+    from PIL import Image
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import torch
+    import torchvision.transforms as transforms
+    from kornia.utils import image_to_tensor, tensor_to_image
+    from stego.src import unnorm, remove_axes
 
-    # # Create test directory
-    # os.makedirs(join(WVN_ROOT_DIR, "results", "test_image_projector"), exist_ok=True)
+    to_tensor = transforms.ToTensor()
 
-    # # Inference model
-    # si = StegoInterface(device="cuda")
-    # img = Image.open(join(WVN_ROOT_DIR, "assets/images/forest_clean.png"))
-    # linear_pred, cluster_pred = si.inference(img)
+    # Create test directory
+    os.makedirs(join(WVN_ROOT_DIR, "results", "test_image_projector"), exist_ok=True)
 
-    # # Plot result as in colab
-    # fig, ax = plt.subplots(1, 3, figsize=(5 * 3, 5))
+    # Prepare single pinhole model
+    # Camera is created 1m backward, and 1m upwards, 45deg towards the origin
+    # Intrinsics
+    K = torch.FloatTensor([[720, 0, 720, 0], [0, 720, 540, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+    K = K.unsqueeze(0)
+    # Extrisics
+    rho = torch.FloatTensor([-2, 0, 1]) # Translation vector (x, y, z)
+    phi = torch.FloatTensor([-2*torch.pi/4, 0.0, -torch.pi/2]) # roll-pitch-yaw
+    R_WC = SO3.from_rpy(phi) # Rotation matrix from roll-pitch-yaw
+    T_WC = SE3(R_WC, rho).as_matrix() # Pose matrix of camera in world frame
+    T_WC = T_WC.unsqueeze(0)
+    # Image size
+    H = torch.IntTensor([1080])
+    W = torch.IntTensor([1440])
+    fixed_frame = "world"
+    camera_frame = "camera"
 
-    # ax[0].imshow(unnorm(si.transform(img)).permute(1, 2, 0))
-    # ax[0].set_title("Image")
-    # ax[1].imshow(si.model.label_cmap[cluster_pred])
-    # ax[1].set_title("Cluster Predictions")
-    # ax[2].imshow(si.model.label_cmap[linear_pred])
-    # ax[2].set_title("Linear Probe Predictions")
-    # remove_axes(ax)
+    # Create projector
+    im = ImageProjector(K, T_WC, H, W, fixed_frame, camera_frame)
 
-    # # Store results to test directory
-    # img = get_img_from_fig(fig)
-    # img.save(join(WVN_ROOT_DIR, "results", "test_stego_interfacer", "forest_clean_stego.png"))
+    # Load image
+    pil_img = Image.open(join(WVN_ROOT_DIR, "assets/images/forest_clean.png"))
+    
+    # Convert to torch
+    k_img = to_tensor(pil_img)
+    k_img = k_img.unsqueeze(0)
+
+    # Create 3D points around origin
+    X = make_box(torch.eye(4), 0.2, 0.5, 0.0, grid_size=20, eps=0.3)
+    colors = torch.tensor([0, 1, 0]).expand(1, 3)
+
+    # Project points to image
+    k_mask, k_img_overlay = im.project_and_render(X, fixed_frame, colors, k_img)
+
+    # Plot result as in colab
+    fig, ax = plt.subplots(1, 3, figsize=(5 * 3, 5))
+
+    ax[0].imshow(pil_img)
+    ax[0].set_title("Image")
+    ax[1].imshow(tensor_to_image(k_mask))
+    ax[1].set_title("Labels")
+    ax[2].imshow(tensor_to_image(k_img_overlay))
+    ax[2].set_title("Overlay")
+    remove_axes(ax)
+    plt.tight_layout()
+
+    # Store results to test directory
+    img = get_img_from_fig(fig)
+    img.save(join(WVN_ROOT_DIR, "results", "test_image_projector", "forest_clean_image_projector.png"))
 
 
 if __name__ == "__main__":

@@ -1,1 +1,1 @@
-from .image_projector import ImageProjector
+from .image_projector import ImageProjector, run_image_projector
