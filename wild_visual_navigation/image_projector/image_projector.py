@@ -3,12 +3,12 @@ import os
 from os.path import join
 import torch
 from kornia.geometry.camera.pinhole import PinholeCamera
-from kornia.geometry.conversions import convert_points_from_homogeneous, convert_points_to_homogeneous
 from kornia.geometry.linalg import transform_points
-from kornia.utils.draw import draw_convex_polygon, draw_rectangle, _draw_pixel
+from kornia.utils.draw import draw_convex_polygon
 from scipy.spatial import ConvexHull
 
 from liegroups.torch import SE3, SO3
+
 
 class ImageProjector:
     r"""
@@ -52,18 +52,19 @@ class ImageProjector:
 
         Returns:
             projected_points: (torch.Tensor, dtype=torch.float32, shape=(B, N, 2)): B batches of N output points on image space
-        """         
+        """
 
         # Adjust input points depending on the frame and determine chirality
         if points_frame != self.cam_frame and points_frame != self.fixed_frame:
-            raise ValueError(f"""Input points frame [{points_frame}] doesn't match 
-                                 the camera frame [{self.cam_frame}] 
-                                 or the fixed frame [{self.fixed_frame}]""")
+            raise ValueError(
+                f"Input points frame [{points_frame}] doesn't match the camera frame \
+                [{self.cam_frame}] or the fixed frame [{self.fixed_frame}]"
+            )
 
         elif points_frame == self.fixed_frame:
             # convert from fixed to camera frame
             points = transform_points(self.T_CW, points)
-        
+
         # Project points to image
         projected_points = self.camera.project(points)
 
@@ -72,9 +73,9 @@ class ImageProjector:
 
         # Return projected points and validity
         return projected_points, valid_points
-    
+
     def check_validity(self, points_3d, points_2d):
-        f"""Check that the points are valid after projecting them on the image
+        """Check that the points are valid after projecting them on the image
 
         Args:
             points_3d: (torch.Tensor, dtype=torch.float32, shape=(B, N, 3)): B batches of N points in camera frame
@@ -85,13 +86,13 @@ class ImageProjector:
         """
 
         # Check cheirality (if points are behind the camera, i.e, negative z)
-        valid_z = points_3d[...,2] >= 0
+        valid_z = points_3d[..., 2] >= 0
         # Check if projection is within image range
-        valid_xmin = points_2d[...,0] >= 0
-        valid_xmax = points_2d[...,0] <= self.camera.width
-        valid_ymin = points_2d[...,1] >= 0
-        valid_ymax = points_2d[...,1] <= self.camera.height
-        
+        valid_xmin = points_2d[..., 0] >= 0
+        valid_xmax = points_2d[..., 0] <= self.camera.width
+        valid_ymin = points_2d[..., 1] >= 0
+        valid_ymax = points_2d[..., 1] <= self.camera.height
+
         # Return validity
         return valid_z & valid_xmax & valid_xmin & valid_ymax & valid_ymin
 
@@ -108,7 +109,7 @@ class ImageProjector:
         """
 
         B = self.camera.batch_size
-        C = 3 # RGB channel output
+        C = 3  # RGB channel output
         H = self.camera.height.item()
         W = self.camera.width.item()
 
@@ -122,7 +123,7 @@ class ImageProjector:
 
         # Get convex hull
         hull = ConvexHull(np_projected_points)
-        
+
         # Get subset of points that are part of the convex hull
         indices = torch.LongTensor(hull.vertices)
         projected_hull = projected_points[..., indices, :]
@@ -132,11 +133,12 @@ class ImageProjector:
 
         # Draw on image (if applies)
         image_overlay = None
-        if image != None:
+        if image is not None:
             image_overlay = draw_convex_polygon(image, projected_hull, colors)
-        
+
         # Return torch masks
         return masks, image_overlay
+
 
 def run_image_projector():
     """Projects 3D points to example images and returns an image with the projection"""
@@ -145,11 +147,10 @@ def run_image_projector():
     from wild_visual_navigation.utils import make_box, make_ellipsoid
     from PIL import Image
     import matplotlib.pyplot as plt
-    import numpy as np
     import torch
     import torchvision.transforms as transforms
-    from kornia.utils import image_to_tensor, tensor_to_image
-    from stego.src import unnorm, remove_axes
+    from kornia.utils import tensor_to_image
+    from stego.src import remove_axes
 
     to_tensor = transforms.ToTensor()
 
@@ -162,10 +163,10 @@ def run_image_projector():
     K = torch.FloatTensor([[720, 0, 720, 0], [0, 720, 540, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
     K = K.unsqueeze(0)
     # Extrisics
-    rho = torch.FloatTensor([-2, 0, 1]) # Translation vector (x, y, z)
-    phi = torch.FloatTensor([-2*torch.pi/4, 0.0, -torch.pi/2]) # roll-pitch-yaw
-    R_WC = SO3.from_rpy(phi) # Rotation matrix from roll-pitch-yaw
-    T_WC = SE3(R_WC, rho).as_matrix() # Pose matrix of camera in world frame
+    rho = torch.FloatTensor([-2, 0, 1])  # Translation vector (x, y, z)
+    phi = torch.FloatTensor([-2 * torch.pi / 4, 0.0, -torch.pi / 2])  # roll-pitch-yaw
+    R_WC = SO3.from_rpy(phi)  # Rotation matrix from roll-pitch-yaw
+    T_WC = SE3(R_WC, rho).as_matrix()  # Pose matrix of camera in world frame
     T_WC = T_WC.unsqueeze(0)
     # Image size
     H = torch.IntTensor([1080])
@@ -178,7 +179,7 @@ def run_image_projector():
 
     # Load image
     pil_img = Image.open(join(WVN_ROOT_DIR, "assets/images/forest_clean.png"))
-    
+
     # Convert to torch
     k_img = to_tensor(pil_img)
     k_img = k_img.unsqueeze(0)
