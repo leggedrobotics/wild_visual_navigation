@@ -16,11 +16,11 @@ class ImageProjector:
     """
 
     def __init__(self, K, T_WC, h, w, fixed_frame, camera_frame):
-        """Initializes the projector for B cameras using the pinhole model, without distortion
+        """Initializes the projector using the pinhole model, without distortion
 
         Args:
             K: (torch.Tensor, dtype=torch.float32, shape=(B, 4, 4)): Camera matrices
-            T_WC: (torch.Tensor, dtype=torch.float32, shape=(B, 4, 4)): Extrinsics SE(3) matrices
+            T_WC: (torch.Tensor, dtype=torch.float32, shape=(B, 4, 4)): Extrinsics SE(3) matrix
             h: (torch.Tensor, dtype=torch.int64): Image height
             w: (torch.Tensor, dtype=torch.int64):  Image width
             fixed_frame: (str):  Fixed frame name
@@ -30,7 +30,7 @@ class ImageProjector:
             None
         """
 
-        # Add shape checks
+        # TODO: Add shape checks
 
         # Initialize pinhole model (no extrinsics)
         E = torch.eye(4).expand(K.shape)
@@ -185,7 +185,7 @@ def run_image_projector():
     k_img = k_img.unsqueeze(0)
 
     # Create 3D points around origin
-    X = make_box(torch.eye(4), 0.2, 0.5, 0.0, grid_size=20, eps=0.3)
+    X = make_box(0.2, 0.5, 0.2, pose=torch.eye(4), grid_size=20)
     colors = torch.tensor([0, 1, 0]).expand(1, 3)
 
     # Project points to image
