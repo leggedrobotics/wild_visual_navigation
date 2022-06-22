@@ -1,0 +1,34 @@
+name: wvn
+channels:
+  - pytorch
+  - robostack
+  - robostack-experimental
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.8
+  - pip
+  - torchvision
+  - pytorch
+  - torchaudio
+  - cudatoolkit=11.3
+  - pytest
+  - scipy
+  - scikit-image
+  - scikit-learn
+  - ros-noetic-ros-base
+  - ros-noetic-cv-bridge
+  - compilers
+  - cmake
+  - pkg-config
+  - make
+  - ninja
+  - catkin_tools
+  - pip:
+    - wget
+    - hydra-core
+    - pytorch_lightning
+    - git+https://github.com/lucasb-eyer/pydensecrf.git#egg=pydensecrf
+    - git+https://github.com/kornia/kornia#egg=kornia
+    - git+https://github.com/mmattamala/liegroups#egg=liegroups
+    - git+https://github.com/leggedrobotics/stego.git#egg=stego
