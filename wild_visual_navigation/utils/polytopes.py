@@ -1,6 +1,7 @@
 import torch
 from kornia.geometry.linalg import transform_points
 
+
 def box_constraint(tensor, h_length, h_width, h_height, eps=0.1):
     l_pos = (tensor - h_length).abs() < eps
     l_neg = (tensor + h_length).abs() < eps
@@ -12,15 +13,18 @@ def box_constraint(tensor, h_length, h_width, h_height, eps=0.1):
 
 
 def ellipsoid_constraint(tensor, h_length, h_width, h_height, eps=0.1):
-    return (torch.pow(tensor[:,0]/(h_length + 1e-6), 2) +  
-            torch.pow(tensor[:,1]/(h_width + 1e-6), 2)  +  
-            torch.pow(tensor[:,2]/(h_height + 1e-6), 2) - 1).abs() < eps
+    return (
+        torch.pow(tensor[:, 0] / (h_length + 1e-6), 2)
+        + torch.pow(tensor[:, 1] / (h_width + 1e-6), 2)
+        + torch.pow(tensor[:, 2] / (h_height + 1e-6), 2)
+        - 1
+    ).abs() < eps
 
 
 def make_polytope(constraint, pose, x_size, y_size, z_size, grid_size=10, eps=1e-6):
-    half_x_size = x_size/2
-    half_y_size = y_size/2
-    half_z_size = z_size/2
+    half_x_size = x_size / 2
+    half_y_size = y_size / 2
+    half_z_size = z_size / 2
 
     xs = torch.linspace(-half_x_size, half_x_size, steps=grid_size)
     ys = torch.linspace(-half_y_size, half_y_size, steps=grid_size)
@@ -47,6 +51,7 @@ def make_box(pose, length, width, height, grid_size=10, eps=0.1):
 def make_ellipsoid(pose, length, width, height, grid_size=10, eps=0.1):
     return make_polytope(ellipsoid_constraint, pose, length, width, height, grid_size, eps)
 
+
 # def make_box(pose, length, width, height, grid_size=10):
 #     """Projects the points and returns an image with the projection
 
@@ -71,7 +76,7 @@ def make_ellipsoid(pose, length, width, height, grid_size=10, eps=0.1):
 #     # Get mask of all the points that satisfy the constraint
 #     mask = box_constraint(xyz)
 
-#     # Return only values that 
+#     # Return only values that
 #     return transform_points(pose, xyz[mask])
 
 
@@ -109,5 +114,5 @@ def make_ellipsoid(pose, length, width, height, grid_size=10, eps=0.1):
 #     # Get mask of all the points that satisfy the constraints
 #     mask = ellipse_constraint(xyz)
 
-#     # Return only values that 
+#     # Return only values that
 #     return transform_points(pose, xyz[mask])
