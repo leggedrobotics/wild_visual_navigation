@@ -28,6 +28,7 @@ dependencies:
     - wget
     - hydra-core
     - pytorch_lightning
+    - colorama
     - git+https://github.com/lucasb-eyer/pydensecrf.git#egg=pydensecrf
     - git+https://github.com/kornia/kornia#egg=kornia
     - git+https://github.com/mmattamala/liegroups#egg=liegroups
