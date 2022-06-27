@@ -10,7 +10,7 @@ dependencies:
   - libopencv
   - pip
   - torchvision
-  - pytorch
+  - pytorch=1.11.0
   - torchaudio
   - cudatoolkit=11.3
   - pytest
