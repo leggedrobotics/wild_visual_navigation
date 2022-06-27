@@ -1,6 +1,18 @@
+<img align="left" width="80" height="80" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/dev/main/assets/images/dino.png" alt="Dino"> 
+
 # Self-Supervised Visual Navigation in the Wild
 
-**Status**: ![Formatting](https://github.com/leggedrobotics/wild_visual_navigation/actions/workflows/formatting.yml/badge.svg)
+<p align="center">
+  <a href="#overview">Overview</a> •
+  <a href="#citation">Citation</a> •
+  <a href="#setup">Setup</a> •
+  <a href="#experiments">Experiments</a> •
+  <a href="#contribution">Contribution</a> •
+  <a href="#credits">Credits</a>
+</p>
+ 
+![Formatting](https://github.com/leggedrobotics/wild_visual_navigation/actions/workflows/formatting.yml/badge.svg)
+---
 
 ## Useful links (internal)
 
@@ -22,6 +34,8 @@
 | [Traversability Estimator](./wild_visual_navigation/traversability_estimator) | TBD |  Traversability Estimator |
 | [Utils](./wild_visual_navigation/utils) | - | General Utilities |
 
+## Citation
+
 ## Setup
 
 ```shell
@@ -36,10 +50,29 @@ pip3 install -e ./stego
 
 ### Requirements
 
-## Usage
+## Experiments
 TODO
 
 ## Contribution
+
+
+### Install conda environment
+
+1. Install mamba in base environment
+```shell
+conda activate base
+conda install mamba -n base -c conda-forge
+```
+
+2. Correct conda settings
+```shell
+conda config --set safety_checks enabled
+conda config --set channel_priority false
+```
+3. Install environment
+```shell
+mamba env create -f environment.yaml
+```
 
 ### Code formatting
 ```shell
@@ -59,3 +92,5 @@ Introduction to [pytest](https://github.com/pluralsight/intro-to-pytest).
 pytest
 ```
 Pytest is not checked on push.
+
+## Credits
