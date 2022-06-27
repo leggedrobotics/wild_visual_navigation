@@ -11,11 +11,7 @@ from liegroups.torch import SE3, SO3
 
 
 class ImageProjector:
-    r"""
-    TODO
-    """
-
-    def __init__(self, K, T_WC, h, w, fixed_frame, camera_frame):
+    def __init__(self, K, h, w):
         """Initializes the projector using the pinhole model, without distortion
 
         Args:
@@ -35,44 +31,6 @@ class ImageProjector:
         # Initialize pinhole model (no extrinsics)
         E = torch.eye(4).expand(K.shape)
         self.camera = PinholeCamera(K, E, h, w)
-        # Extrinsics, handled independently
-        self.T_WC = T_WC
-        self.T_CW = T_WC.inverse()
-        # Frames
-        self.fixed_frame = fixed_frame
-        self.cam_frame = camera_frame
-        self.image_frame = "image"
-
-    def project(self, points, points_frame):
-        """Applies the pinhole projection model to a batch of points
-
-        Args:
-            points: (torch.Tensor, dtype=torch.float32, shape=(B, N, 3)): B batches of N input points in 3D space
-            points_frame: (str): Frame used to express the input points
-
-        Returns:
-            projected_points: (torch.Tensor, dtype=torch.float32, shape=(B, N, 2)): B batches of N output points on image space
-        """
-
-        # Adjust input points depending on the frame and determine chirality
-        if points_frame != self.cam_frame and points_frame != self.fixed_frame:
-            raise ValueError(
-                f"Input points frame [{points_frame}] doesn't match the camera frame \
-                [{self.cam_frame}] or the fixed frame [{self.fixed_frame}]"
-            )
-
-        elif points_frame == self.fixed_frame:
-            # convert from fixed to camera frame
-            points = transform_points(self.T_CW, points)
-
-        # Project points to image
-        projected_points = self.camera.project(points)
-
-        # Validity check (if points are out of the field of view)
-        valid_points = self.check_validity(points, projected_points)
-
-        # Return projected points and validity
-        return projected_points, valid_points
 
     def check_validity(self, points_3d, points_2d):
         """Check that the points are valid after projecting them on the image
@@ -96,12 +54,35 @@ class ImageProjector:
         # Return validity
         return valid_z & valid_xmax & valid_xmin & valid_ymax & valid_ymin
 
-    def project_and_render(self, points, points_frame, colors, image=None):
+    def project(self, T_WC, points):
+        """Applies the pinhole projection model to a batch of points
+
+        Args:
+            points: (torch.Tensor, dtype=torch.float32, shape=(B, N, 3)): B batches of N input points in world frame
+
+        Returns:
+            projected_points: (torch.Tensor, dtype=torch.float32, shape=(B, N, 2)): B batches of N output points on image space
+        """
+
+        # Adjust input points depending on the extrinsics
+        T_CW = T_WC.inverse()
+        # convert from fixed to camera frame
+        points = transform_points(T_CW, points)
+
+        # Project points to image
+        projected_points = self.camera.project(points)
+
+        # Validity check (if points are out of the field of view)
+        valid_points = self.check_validity(points, projected_points)
+
+        # Return projected points and validity
+        return projected_points, valid_points
+
+    def project_and_render(self, T_WC, points, colors, image=None):
         """Projects the points and returns an image with the projection
 
         Args:
             points: (torch.Tensor, dtype=torch.float32, shape=(B, N, 3)): B batches, of N input points in 3D space
-            points_frame: (str): Frame used to express the input points
             colors: (torch.Tensor, rtype=torch.float32, shape=(B, 3))
 
         Returns:
@@ -117,7 +98,7 @@ class ImageProjector:
         masks = torch.zeros((B, C, H, W), dtype=torch.float32)
 
         # Project points
-        projected_points, valid_points = self.project(points, points_frame)
+        projected_points, valid_points = self.project(T_WC, points)
         projected_points = projected_points.reshape(B, -1, 2)
         np_projected_points = projected_points.squeeze(0).numpy()
 
@@ -171,11 +152,9 @@ def run_image_projector():
     # Image size
     H = torch.IntTensor([1080])
     W = torch.IntTensor([1440])
-    fixed_frame = "world"
-    camera_frame = "camera"
 
     # Create projector
-    im = ImageProjector(K, T_WC, H, W, fixed_frame, camera_frame)
+    im = ImageProjector(K, H, W)
 
     # Load image
     pil_img = Image.open(join(WVN_ROOT_DIR, "assets/images/forest_clean.png"))
@@ -189,7 +168,7 @@ def run_image_projector():
     colors = torch.tensor([0, 1, 0]).expand(1, 3)
 
     # Project points to image
-    k_mask, k_img_overlay = im.project_and_render(X, fixed_frame, colors, k_img)
+    k_mask, k_img_overlay = im.project_and_render(T_WC, X, colors, k_img)
 
     # Plot result as in colab
     fig, ax = plt.subplots(1, 3, figsize=(5 * 3, 5))
