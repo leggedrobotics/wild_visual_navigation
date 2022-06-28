@@ -14,5 +14,5 @@ catkin_package(
 )
 
 catkin_python_setup()
-catkin_install_python(PROGRAMS scripts/demo_ros_node.py
+catkin_install_python(PROGRAMS scripts/wild_visual_navigation_node.py
                       DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

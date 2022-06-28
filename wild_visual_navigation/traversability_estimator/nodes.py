@@ -1,6 +1,6 @@
 from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.image_projector import ImageProjector
-from wild_visual_navigation.utils import make_box, make_rounded_box
+from wild_visual_navigation.utils import make_box, make_rounded_box, make_plane
 from liegroups.torch import SE3, SO3
 import torch
 
@@ -25,13 +25,17 @@ class BaseNode:
     def __eq__(self, other):
         if other is None:
             return False
-        return self.name == other.name and self.timestamp == other.timestamp
+        return self.name == other.name and self.timestamp == other.timestamp and self.T_WB == other.T_WB
 
     def __lt__(self, other):
         self.timestamp < other.timestamp
 
+    @classmethod
+    def from_node(cls, instance):
+        return cls(timestamp=instance.get_timestamp(), T_WB=instance.get_pose_base_in_world())
+
     def is_valid(self):
-        return (self.traversability is not None) and (self.image is not None) and (self.traversability_mask is not None)
+        return True
 
     def pose_between(self, other):
         """Computes pose difference (SE(3)) between this state and other
@@ -80,22 +84,27 @@ class GlobalNode(BaseNode):
     def get_supervision_signal(self):
         return self.supervision_signal
 
+    def is_valid(self):
+        return isinstance(self.input_features, torch.Tensor) and isinstance(self.supervision_signal, torch.Tensor)
+
 
 class DebugNode(BaseNode):
     """Debug node stores images and full states for debugging"""
 
     name = "local_debug_node"
 
-    def __init__(
-        self, timestamp=0.0, T_WB=torch.eye(4), T_BC=torch.eye(4), T_BF=torch.eye(4), width=0.1, length=0.1, height=0.1
-    ):
+    def __init__(self, timestamp=0.0, T_WB=torch.eye(4), traversability_mask=None):
         super().__init__(timestamp, T_WB)
+        self.traversability_mask = traversability_mask
 
     def get_traversability_mask(self):
         return self.traversability_mask
 
     def set_traversability_mask(self, mask):
         self.traversability_mask = mask
+
+    def is_valid(self):
+        return isinstance(self.traversability_mask, torch.Tensor)
 
 
 class LocalProprioceptionNode(BaseNode):
@@ -109,8 +118,8 @@ class LocalProprioceptionNode(BaseNode):
         timestamp=0.0,
         T_WB=torch.eye(4),
         T_BF=torch.eye(4),
-        width=0.1,
         length=0.1,
+        width=0.1,
         height=0.1,
         proprioception=None,
     ):
@@ -120,16 +129,16 @@ class LocalProprioceptionNode(BaseNode):
 
         self.T_BF = T_BF
         self.T_WF = self.T_WB @ self.T_BF  # footprint in world
-        self.width = width
         self.length = length
+        self.width = width
         self.height = height
         self.proprioceptive_state = proprioception
 
     def get_bounding_box_points(self):
-        return make_rounded_box(self.length, self.width, self.height, pose=self.T_WB)
+        return make_box(self.length, self.width, self.height, pose=self.T_WB, grid_size=5)
 
     def get_footprint_points(self):
-        return make_rounded_box(self.length, self.width, 0.0, pose=self.T_WF)
+        return make_plane(x=self.length, y=self.width, pose=self.T_WF)
 
     def get_image(self):
         return self.image
@@ -143,6 +152,9 @@ class LocalProprioceptionNode(BaseNode):
     def get_propropioceptive_state(self):
         return self.proprioceptive_state
 
+    def is_valid(self):
+        return isinstance(self.proprioceptive_state, torch.Tensor)
+
 
 class LocalImageNode(BaseNode):
     """Local node stores all the information required for traversability estimation and debugging
@@ -152,10 +164,11 @@ class LocalImageNode(BaseNode):
 
     def __init__(self, timestamp=0.0, T_WB=torch.eye(4), T_BC=torch.eye(4), image=None, projector=None):
         assert isinstance(T_WB, torch.Tensor)
-        assert isinstance(T_BF, torch.Tensor)
+        assert isinstance(T_BC, torch.Tensor)
+        super().__init__(timestamp, T_WB)
 
         self.T_BC = T_BC
-        self.T_WC = self.T_WB @ self.T_BC  # footprint in world
+        self.T_WC = self.T_WB @ self.T_BC  # camera in world
         self.image = image
         self.projector = projector
 
@@ -167,6 +180,9 @@ class LocalImageNode(BaseNode):
 
     def get_image_projector(self):
         return self.projector
+
+    def is_valid(self):
+        return isinstance(self.image, torch.Tensor) and isinstance(self.projector, ImageProjector)
 
 
 def run_base_state():
@@ -185,6 +201,10 @@ def run_base_state():
 
     # Check that timestamps are 1 second apart
     assert rs2.get_timestamp() - rs1.get_timestamp() == 1.0
+
+    # Create node from another one
+    rs3 = BaseNode(rs1)
+    assert rs3 == rs1
 
 
 if __name__ == "__main__":
