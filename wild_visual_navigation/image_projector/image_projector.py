@@ -54,7 +54,7 @@ class ImageProjector:
         # Return validity
         return valid_z & valid_xmax & valid_xmin & valid_ymax & valid_ymin
 
-    def project(self, T_WC, points):
+    def project(self, T_WC, points_W):
         """Applies the pinhole projection model to a batch of points
 
         Args:
@@ -67,13 +67,13 @@ class ImageProjector:
         # Adjust input points depending on the extrinsics
         T_CW = T_WC.inverse()
         # convert from fixed to camera frame
-        points = transform_points(T_CW, points)
+        points_C = transform_points(T_CW, points_W)
 
         # Project points to image
-        projected_points = self.camera.project(points)
+        projected_points = self.camera.project(points_C)
 
         # Validity check (if points are out of the field of view)
-        valid_points = self.check_validity(points, projected_points)
+        valid_points = self.check_validity(points_C, projected_points)
 
         # Return projected points and validity
         return projected_points, valid_points
@@ -115,7 +115,12 @@ class ImageProjector:
         # Draw on image (if applies)
         image_overlay = None
         if image is not None:
+            if len(image.shape) != 4:
+                image = image.unsqueeze(0)
             image_overlay = draw_convex_polygon(image, projected_hull, colors)
+
+            if len(image_overlay.shape) == 4:
+                image_overlay = image_overlay.squeeze(0)
 
         # Return torch masks
         return masks, image_overlay

@@ -1,8 +1,9 @@
 from wild_visual_navigation import WVN_ROOT_DIR
 import os
 from os.path import join
-import torch
 import networkx as nx
+import torch
+from threading import Lock
 
 
 class BaseGraph:
@@ -12,6 +13,9 @@ class BaseGraph:
         # Initialize graph
         self.graph = nx.Graph()
         self.last_added_node = None
+
+        # Mutex
+        self.lock = Lock()
 
     def __str__(self):
         return str(self.graph)
@@ -23,47 +27,67 @@ class BaseGraph:
             model (type): Description
         """
         # Add node
-        self.graph.add_node(state, timestamp=state.get_timestamp())
+        with self.lock:
+            self.graph.add_node(state, timestamp=state.get_timestamp())
 
-        # Add edge to latest
-        if self.last_added_node is not None:
-            self.graph.add_edge(state, self.last_added_node, distance=state.distance_to(self.last_added_node))
-        else:
-            self.first_node = state
+            # Add edge to latest
+            if self.last_added_node is not None:
+                self.graph.add_edge(state, self.last_added_node, distance=state.distance_to(self.last_added_node))
+            else:
+                self.first_node = state
 
         # Update last added node
         self.last_added_node = state
 
     def add_edge(self, state1, state2):
-        self.graph.add_edge(state1, state2, distance=state1.distance_to(state2))
+        with self.lock:
+            self.graph.add_edge(state1, state2, distance=state1.distance_to(state2))
 
     def clear(self):
-        self.graph.clear()
+        with self.lock:
+            self.graph.clear()
 
     def get_first_node(self):
-        return self.get_nodes()[0]
+        if self.get_num_nodes() > 0:
+            return self.get_nodes()[0]
 
     def get_last_node(self):
-        return self.last_added_node
+        if self.get_num_nodes() > 0:
+            return self.get_nodes()[-1]
 
     def get_num_nodes(self):
-        return len(self.graph.nodes)
+        with self.lock:
+            return len(self.graph.nodes)
 
     def get_num_edges(self):
-        return len(self.graph.edges)
+        with self.lock:
+            return len(self.graph.edges)
+
+    def get_nodes(self):
+        with self.lock:
+            nodes = sorted(self.graph.nodes)
+        return nodes
 
     def get_node_with_timestamp(self, timestamp, eps=1e-12):
         def approximate_timestamp_filter(node):
             return abs(node.get_timestamp() - timestamp) < eps
 
-        return sorted(nx.subgraph_view(self.graph, filter_node=approximate_timestamp_filter).nodes)
-
-    def get_nodes(self):
-        return sorted(self.graph.nodes)
+        with self.lock:
+            nodes = sorted(nx.subgraph_view(self.graph, filter_node=approximate_timestamp_filter).nodes)
+        return nodes
 
     def get_nodes_within_radius(self, node, radius):
-        length, path = nx.single_source_dijkstra(self.graph, node, cutoff=radius, weight="distance")
-        nodes = list(length)[1:]  # first node is the query node
+        # Find closest node in the graph. This is useful when we are finding nodes correrponding to another graph
+        closest_nodes = self.get_node_with_timestamp(node.get_timestamp(), eps=1e-2)
+
+        nodes = []
+        try:
+            closest_node = closest_nodes[0]
+            with self.lock:
+                length, path = nx.single_source_dijkstra(self.graph, closest_node, cutoff=radius, weight="distance")
+            nodes = list(length)[1:]  # first node is the query node
+        except Exception as e:
+            pass
         return nodes
 
     def get_nodes_within_timespan(self, t_ini, t_end, open_interval=False):
@@ -79,10 +103,13 @@ class BaseGraph:
             else:
                 return node.get_timestamp() >= t_ini and node.get_timestamp() <= t_end
 
-        return list(nx.subgraph_view(self.graph, filter_node=temporal_filter).nodes)
+        with self.lock:
+            nodes = list(nx.subgraph_view(self.graph, filter_node=temporal_filter).nodes)
+        return nodes
 
     def remove_nodes(self, nodes):
-        self.graph.remove_nodes_from(nodes)
+        with self.lock:
+            self.graph.remove_nodes_from(nodes)
 
     def remove_nodes_within_radius(self, node, radius):
         nodes_to_remove = self.get_nodes_within_radius(node, radius)
@@ -94,7 +121,7 @@ class BaseGraph:
 
 
 class GlobalGraph(BaseGraph):
-    def __init__():
+    def __init__(self):
         super().__init__()
 
 
@@ -110,6 +137,12 @@ class LocalGraph(BaseGraph):
 
         # Remove all nodes from the beginning of time till right before the time window
         t_end = state.get_timestamp() - self.time_window
+        self.remove_nodes_within_timestamp(0, t_end)
+
+    def remove_old_nodes(state):
+        """Adds a node to the graph and removes old nodes"""
+        # Remove all nodes from the beginning of time till right before the time window
+        t_end = self.get_last_node().get_timestamp() - self.time_window
         self.remove_nodes_within_timestamp(0, t_end)
 
 
@@ -131,7 +164,7 @@ def run_base_graph():
         graph.add_node(s)
 
     # Check graph as list
-    assert nodes_list == graph.get_nodes()
+    assert nodes_list == graph.get_all_nodes()
 
     # Check number of nodes
     assert graph.get_num_nodes() == N

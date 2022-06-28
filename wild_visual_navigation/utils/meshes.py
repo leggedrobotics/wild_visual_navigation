@@ -52,18 +52,34 @@ def make_box(length, width, height, pose=torch.eye(4), grid_size=11):
     r = 0.01
     s = 0.01
     t = 0.01
-    return make_superquadric(length, width, height, r, s, t, pose=pose, grid_size=grid_size)
+    return make_superquadric(length/2, width/2, height/2, r, s, t, pose=pose, grid_size=grid_size)
 
 
 def make_rounded_box(length, width, height, pose=torch.eye(4), grid_size=11):
     r = 0.2
     s = 0.2
     t = 0.2
-    return make_superquadric(length, width, height, r, s, t, pose=pose, grid_size=grid_size)
+    return make_superquadric(length/2, width/2, height/2, r, s, t, pose=pose, grid_size=grid_size)
 
 
 def make_ellipsoid(length, width, height, pose=torch.eye(4), grid_size=11):
     r = 1
     s = 1
     t = 1
-    return make_superquadric(length, width, height, r, s, t, pose=pose, grid_size=grid_size)
+    return make_superquadric(length/2, width/2, height/2, r, s, t, pose=pose, grid_size=grid_size)
+
+def make_plane(x=None, y=None, z=None, pose=torch.eye(4)):
+    if x is None:
+        points = torch.FloatTensor([[0.0, y/2, z/2],[0.0, -y/2, z/2],[0.0, -y/2, -z/2],[0.0, y/2, -z/2]])
+    elif y is None:
+        points = torch.FloatTensor([[x/2, 0.0, z/2],[x/2, 0.0, -z/2],[-x/2, 0.0, -z/2],[-x/2, 0.0, z/2]])
+    elif z is None:
+        points = torch.FloatTensor([[x/2, y/2, 0.0],[x/2, -y/2, 0.0],[-x/2, -y/2, 0.0],[-x/2, y/2, 0.0]])
+    else:
+        raise "make_plane requires just 2 inputs to be set"
+    points = points.unsqueeze(0)
+
+    if len(pose.shape) == 2:
+        pose = pose.unsqueeze(0)
+
+    return transform_points(pose, points)
