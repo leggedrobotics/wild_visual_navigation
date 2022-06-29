@@ -15,11 +15,11 @@ TO_PIL_IMAGE = transforms.ToPILImage()
 BASE_DIM = 7 + 6  # pose + twist
 
 
-def robot_state_to_torch(robot_state):
+def robot_state_to_torch(robot_state, device="cpu"):
     assert isinstance(robot_state, Odometry)
 
     # preallocate torch state
-    torch_state = torch.zeros(BASE_DIM, dtype=torch.float32)
+    torch_state = torch.zeros(BASE_DIM, dtype=torch.float32).to(device)
     state_labels = []
 
     # Base
@@ -45,13 +45,13 @@ def robot_state_to_torch(robot_state):
     return torch_state, state_labels
 
 
-def anymal_state_to_torch(anymal_state):
+def anymal_state_to_torch(anymal_state, device="cpu"):
     assert isinstance(anymal_state, AnymalState)
     LEG_DIM = 12
     ANYMAL_DIM = LEG_DIM * 4
 
     # preallocate torch state
-    torch_state = torch.zeros(BASE_DIM + ANYMAL_DIM, dtype=torch.float32)
+    torch_state = torch.zeros(BASE_DIM + ANYMAL_DIM, dtype=torch.float32).to(device)
     state_labels = []
 
     # Base
@@ -95,35 +95,35 @@ def anymal_state_to_torch(anymal_state):
     return torch_state, state_labels
 
 
-def ros_cam_info_to_tensors(caminfo_msg):
+def ros_cam_info_to_tensors(caminfo_msg, device="cpu"):
     K = torch.eye(4, dtype=torch.float32)
-    K[:3, :3] = torch.FloatTensor(caminfo_msg.K).reshape(3, 3)
+    K[:3, :3] = torch.FloatTensor(caminfo_msg.K).reshape(3, 3).to(device)
     K = K.unsqueeze(0)
-    H = torch.IntTensor([caminfo_msg.height])
-    W = torch.IntTensor([caminfo_msg.width])
+    H = torch.IntTensor([caminfo_msg.height]).to(device)
+    W = torch.IntTensor([caminfo_msg.width]).to(device)
     return K, H, W
 
 
-def ros_pose_to_torch(ros_pose):
+def ros_pose_to_torch(ros_pose, device="cpu"):
     q = torch.FloatTensor(
         [ros_pose.orientation.x, ros_pose.orientation.y, ros_pose.orientation.z, ros_pose.orientation.w]
-    )
-    t = torch.FloatTensor([ros_pose.position.x, ros_pose.position.y, ros_pose.position.z])
+    ).to(device)
+    t = torch.FloatTensor([ros_pose.position.x, ros_pose.position.y, ros_pose.position.z]).to(device)
     return SE3(SO3.from_quaternion(q, ordering="xyzw"), t).as_matrix()
 
 
-def ros_tf_to_torch(tf_pose):
+def ros_tf_to_torch(tf_pose, device="cpu"):
     assert len(tf_pose) == 2
     assert isinstance(tf_pose, tuple)
 
-    t = torch.FloatTensor(tf_pose[0])
-    q = torch.FloatTensor(tf_pose[1])
+    t = torch.FloatTensor(tf_pose[0]).to(device)
+    q = torch.FloatTensor(tf_pose[1]).to(device)
     return SE3(SO3.from_quaternion(q, ordering="xyzw"), t).as_matrix()
 
 
-def ros_image_to_torch(ros_img, desired_encoding="bgr8"):
+def ros_image_to_torch(ros_img, desired_encoding="bgr8", device="cpu"):
     np_image = CV_BRIDGE.imgmsg_to_cv2(ros_img, desired_encoding=desired_encoding)
-    return TO_TENSOR(np_image)
+    return TO_TENSOR(np_image).to(device)
 
 
 def torch_to_ros_image(torch_img, desired_encoding="bgr8"):

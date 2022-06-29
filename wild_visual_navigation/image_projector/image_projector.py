@@ -96,31 +96,29 @@ class ImageProjector:
 
         # Create output mask
         masks = torch.zeros((B, C, H, W), dtype=torch.float32)
+        image_overlay = image
 
         # Project points
         projected_points, valid_points = self.project(T_WC, points)
-        projected_points = projected_points.reshape(B, -1, 2)
+        projected_points = projected_points[valid_points].reshape(B, -1, 2)
         np_projected_points = projected_points.squeeze(0).numpy()
 
         # Get convex hull
-        hull = ConvexHull(np_projected_points)
+        if valid_points.any():
+            hull = ConvexHull(np_projected_points, qhull_options="QJ")
 
-        # Get subset of points that are part of the convex hull
-        indices = torch.LongTensor(hull.vertices)
-        projected_hull = projected_points[..., indices, :]
+            # Get subset of points that are part of the convex hull
+            indices = torch.LongTensor(hull.vertices)
+            projected_hull = projected_points[..., indices, :]
 
-        # Fill the mask
-        masks = draw_convex_polygon(masks, projected_hull, colors)
+            # Fill the mask
+            masks = draw_convex_polygon(masks, projected_hull, colors)
 
-        # Draw on image (if applies)
-        image_overlay = None
-        if image is not None:
-            if len(image.shape) != 4:
-                image = image.unsqueeze(0)
-            image_overlay = draw_convex_polygon(image, projected_hull, colors)
-
-            if len(image_overlay.shape) == 4:
-                image_overlay = image_overlay.squeeze(0)
+            # Draw on image (if applies)
+            if image is not None:
+                if len(image.shape) != 4:
+                    image = image.unsqueeze(0)
+                image_overlay = draw_convex_polygon(image, projected_hull, colors)
 
         # Return torch masks
         return masks, image_overlay
@@ -130,7 +128,7 @@ def run_image_projector():
     """Projects 3D points to example images and returns an image with the projection"""
 
     from wild_visual_navigation.utils import get_img_from_fig
-    from wild_visual_navigation.utils import make_box, make_ellipsoid
+    from wild_visual_navigation.utils import make_box, make_ellipsoid, make_plane
     from PIL import Image
     import matplotlib.pyplot as plt
     import torch
@@ -144,12 +142,12 @@ def run_image_projector():
     os.makedirs(join(WVN_ROOT_DIR, "results", "test_image_projector"), exist_ok=True)
 
     # Prepare single pinhole model
-    # Camera is created 1m backward, and 1m upwards, 45deg towards the origin
+    # Camera is created 1.5m backward, and 1m upwards, 0deg towards the origin
     # Intrinsics
     K = torch.FloatTensor([[720, 0, 720, 0], [0, 720, 540, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
     K = K.unsqueeze(0)
     # Extrisics
-    rho = torch.FloatTensor([-2, 0, 1])  # Translation vector (x, y, z)
+    rho = torch.FloatTensor([-1.5, 0, 1])  # Translation vector (x, y, z)
     phi = torch.FloatTensor([-2 * torch.pi / 4, 0.0, -torch.pi / 2])  # roll-pitch-yaw
     R_WC = SO3.from_rpy(phi)  # Rotation matrix from roll-pitch-yaw
     T_WC = SE3(R_WC, rho).as_matrix()  # Pose matrix of camera in world frame
@@ -169,7 +167,7 @@ def run_image_projector():
     k_img = k_img.unsqueeze(0)
 
     # Create 3D points around origin
-    X = make_box(0.2, 0.5, 0.2, pose=torch.eye(4), grid_size=20)
+    X = make_plane(x=0.8, y=0.5, pose=torch.eye(4)).unsqueeze(0)
     colors = torch.tensor([0, 1, 0]).expand(1, 3)
 
     # Project points to image

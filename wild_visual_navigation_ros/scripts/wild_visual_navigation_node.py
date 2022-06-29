@@ -22,7 +22,9 @@ class WvnRosInterface:
         self.read_params()
 
         # Initialize traversability estimator
-        self.traversability_estimator = TraversabilityEstimator(self.time_window)
+        self.traversability_estimator = TraversabilityEstimator(
+            self.time_window, image_distance_thr=0.4, proprio_distance_thr=0.4
+        )
 
         # Setup ros
         self.setup_ros()
@@ -37,7 +39,7 @@ class WvnRosInterface:
         # Frames
         self.fixed_frame = rospy.get_param("fixed_frame", "msf_body_imu_map")
         self.base_frame = rospy.get_param("base_frame", "base")
-        self.camera_frame = rospy.get_param("camera_frame", "/cam4_sensor_frame_helper")
+        self.camera_frame = rospy.get_param("camera_frame", "cam4_sensor_frame_helper")
         self.footprint_frame = rospy.get_param("footprint_frame", "footprint")
 
         # Robot size
@@ -48,9 +50,10 @@ class WvnRosInterface:
         # Time window
         self.time_window = rospy.get_param("time_window", 5)
         self.learning_timer_freq = rospy.get_param("learning_timer_freq", 1)  # hertz
+        self.vis_timer_freq = rospy.get_param("visualization_timer_freq", 1)  # hertz
 
         # Traversability estimation params
-        self.traversability_radius = rospy.get_param("traversability_radius", 1.0)
+        self.traversability_radius = rospy.get_param("traversability_radius", 5.0)
 
     def setup_ros(self):
         # Initialize TF listener
@@ -70,14 +73,20 @@ class WvnRosInterface:
         # Learning callback
         rospy.Timer(rospy.Duration(1.0 / self.learning_timer_freq), self.learning_callback)
         # Visualization callback
-        rospy.Timer(rospy.Duration(1.0 / self.learning_timer_freq), self.visualization_callback)
+        rospy.Timer(rospy.Duration(1.0 / self.vis_timer_freq), self.visualization_callback)
 
         # Publishers
-        self.pub_debug_labels = rospy.Publisher(
-            "/wild_visual_navigation_node/debug/last_frame_labels", Image, queue_size=10
+        self.pub_debug_image_labels = rospy.Publisher(
+            "/wild_visual_navigation_node/debug/last_node_image_labeled", Image, queue_size=10
         )
-        self.pub_debug_local_graph = rospy.Publisher(
-            "/wild_visual_navigation_node/debug/local_graph", Path, queue_size=10
+        self.pub_debug_labels = rospy.Publisher(
+            "/wild_visual_navigation_node/debug/last_node_labels", Image, queue_size=10
+        )
+        self.pub_debug_local_proprio_graph = rospy.Publisher(
+            "/wild_visual_navigation_node/debug/local_proprioceptive_graph", Path, queue_size=10
+        )
+        self.pub_debug_local_image_graph = rospy.Publisher(
+            "/wild_visual_navigation_node/debug/local_image_graph", Path, queue_size=10
         )
         self.pub_debug_local_graph_footprints = rospy.Publisher(
             "/wild_visual_navigation_node/debug/local_graph_footprints", Marker, queue_size=10
@@ -144,7 +153,6 @@ class WvnRosInterface:
         self.traversability_estimator.add_local_image_node(image_node)
 
     def learning_callback(self, event):
-        print("learning callback", event.current_real.to_sec())
         # Update reprojections
         self.traversability_estimator.update_labels(search_radius=self.traversability_radius)
 
@@ -152,22 +160,26 @@ class WvnRosInterface:
         self.traversability_estimator.train(iter=10)
 
         # publish traversability
-        print("end learning callback")
+        return
 
     def visualization_callback(self, event):
         now = rospy.Time.now()
-        print("visualization callback", event.current_real.to_sec(), now.to_sec())
         # publish reprojections of last node in graph
-        if len(self.traversability_estimator.get_local_debug_nodes()):
+        if len(self.traversability_estimator.get_local_debug_nodes()) > 0:
             last_node = self.traversability_estimator.get_local_debug_nodes()[0]
-            torch_mask = last_node.get_traversability_mask()
-            ros_mask = rc.torch_to_ros_image(torch_mask)
+            ros_mask = rc.torch_to_ros_image(last_node.get_traversability_mask())
+            ros_image_labeled = rc.torch_to_ros_image(last_node.get_labeled_image())
             self.pub_debug_labels.publish(ros_mask)
+            self.pub_debug_image_labels.publish(ros_image_labeled)
 
         # Publish local graph
-        local_graph_msg = Path()
-        local_graph_msg.header.frame_id = self.fixed_frame
-        local_graph_msg.header.stamp = now
+        local_proprio_graph_msg = Path()
+        local_proprio_graph_msg.header.frame_id = self.fixed_frame
+        local_proprio_graph_msg.header.stamp = now
+
+        local_image_graph_msg = Path()
+        local_image_graph_msg.header.frame_id = self.fixed_frame
+        local_image_graph_msg.header.stamp = now
         # Footprints
         footprints_marker = Marker()
         footprints_marker.id = 0
@@ -179,7 +191,7 @@ class WvnRosInterface:
         footprints_marker.scale.x = 1
         footprints_marker.scale.y = 1
         footprints_marker.scale.z = 1
-        footprints_marker.color.a = 0.1
+        footprints_marker.color.a = 0.5
         footprints_marker.color.r = 0.0
         footprints_marker.color.g = 1.0
         footprints_marker.color.b = 0.0
@@ -194,21 +206,29 @@ class WvnRosInterface:
             pose.header.stamp = now
             pose.header.frame_id = self.fixed_frame
             pose.pose = rc.torch_to_ros_pose(node.get_pose_base_in_world())
-            local_graph_msg.poses.append(pose)
+            local_proprio_graph_msg.poses.append(pose)
 
             # Footprints
-            footprint_points = node.get_footprint_points()
+            footprint_points = node.get_footprint_points().unsqueeze(0)
             B, N, D = footprint_points.shape
-            for n in [0,2,1,2,0,3]:
+            for n in [0, 2, 1, 2, 0, 3]:  # this is a hack to show the triangles correctly
                 p = Point()
                 p.x = footprint_points[0, n, 0]
                 p.y = footprint_points[0, n, 1]
                 p.z = footprint_points[0, n, 2]
                 footprints_marker.points.append(p)
 
-        self.pub_debug_local_graph.publish(local_graph_msg)
+        for node in self.traversability_estimator.get_local_image_nodes():
+            # Path
+            pose = PoseStamped()
+            pose.header.stamp = now
+            pose.header.frame_id = self.fixed_frame
+            pose.pose = rc.torch_to_ros_pose(node.get_pose_cam_in_world())
+            local_image_graph_msg.poses.append(pose)
+
+        self.pub_debug_local_proprio_graph.publish(local_proprio_graph_msg)
+        self.pub_debug_local_image_graph.publish(local_image_graph_msg)
         self.pub_debug_local_graph_footprints.publish(footprints_marker)
-        print("visualization callback")
 
 
 if __name__ == "__main__":

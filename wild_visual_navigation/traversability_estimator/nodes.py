@@ -25,10 +25,10 @@ class BaseNode:
     def __eq__(self, other):
         if other is None:
             return False
-        return self.name == other.name and self.timestamp == other.timestamp and self.T_WB == other.T_WB
+        return self.name == other.name and self.timestamp == other.timestamp and torch.equal(self.T_WB, other.T_WB)
 
     def __lt__(self, other):
-        self.timestamp < other.timestamp
+        return self.timestamp < other.timestamp
 
     @classmethod
     def from_node(cls, instance):
@@ -66,6 +66,12 @@ class BaseNode:
     def get_timestamp(self):
         return self.timestamp
 
+    def set_pose_base_in_world(self, T_WB):
+        self.T_WB = T_WB
+
+    def set_timestamp(self, timestamp):
+        self.timestamp = timestamp
+
 
 class GlobalNode(BaseNode):
     """Global node stores the minimum information required for traversability estimation
@@ -74,7 +80,7 @@ class GlobalNode(BaseNode):
     name = "global_node"
 
     def __init__(self, timestamp=0.0, T_WB=torch.eye(4), features=None, supervision_signal=None):
-        super().__init__(timestamp, T_WB)
+        super().__init__(timestamp=timestamp, T_WB=T_WB)
         self.input_features = features
         self.supervision_signal = supervision_signal
 
@@ -93,15 +99,22 @@ class DebugNode(BaseNode):
 
     name = "local_debug_node"
 
-    def __init__(self, timestamp=0.0, T_WB=torch.eye(4), traversability_mask=None):
-        super().__init__(timestamp, T_WB)
+    def __init__(self, timestamp=0.0, T_WB=torch.eye(4), traversability_mask=None, labeled_image=None):
+        super().__init__(timestamp=timestamp, T_WB=T_WB)
         self.traversability_mask = traversability_mask
+        self.labeled_image = labeled_image
+
+    def get_labeled_image(self):
+        return self.labeled_image
 
     def get_traversability_mask(self):
         return self.traversability_mask
 
     def set_traversability_mask(self, mask):
         self.traversability_mask = mask
+
+    def set_labeled_image(self, image):
+        self.labeled_image = image
 
     def is_valid(self):
         return isinstance(self.traversability_mask, torch.Tensor)
@@ -125,7 +138,7 @@ class LocalProprioceptionNode(BaseNode):
     ):
         assert isinstance(T_WB, torch.Tensor)
         assert isinstance(T_BF, torch.Tensor)
-        super().__init__(timestamp, T_WB)
+        super().__init__(timestamp=timestamp, T_WB=T_WB)
 
         self.T_BF = T_BF
         self.T_WF = self.T_WB @ self.T_BF  # footprint in world
@@ -203,7 +216,7 @@ def run_base_state():
     assert rs2.get_timestamp() - rs1.get_timestamp() == 1.0
 
     # Create node from another one
-    rs3 = BaseNode(rs1)
+    rs3 = BaseNode.from_node(rs1)
     assert rs3 == rs1
 
 

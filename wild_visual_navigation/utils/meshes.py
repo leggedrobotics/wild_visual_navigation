@@ -45,41 +45,62 @@ def make_superquadric(A, B, C, r, s, t, pose=torch.eye(4), grid_size=10):
     if len(pose.shape) == 2:
         pose = pose.unsqueeze(0)
 
-    return transform_points(pose, points)
+    return transform_points(pose, points).squeeze(0)
 
 
 def make_box(length, width, height, pose=torch.eye(4), grid_size=11):
     r = 0.01
     s = 0.01
     t = 0.01
-    return make_superquadric(length/2, width/2, height/2, r, s, t, pose=pose, grid_size=grid_size)
+    return make_superquadric(length / 2, width / 2, height / 2, r, s, t, pose=pose, grid_size=grid_size)
 
 
 def make_rounded_box(length, width, height, pose=torch.eye(4), grid_size=11):
     r = 0.2
     s = 0.2
     t = 0.2
-    return make_superquadric(length/2, width/2, height/2, r, s, t, pose=pose, grid_size=grid_size)
+    return make_superquadric(length / 2, width / 2, height / 2, r, s, t, pose=pose, grid_size=grid_size)
 
 
 def make_ellipsoid(length, width, height, pose=torch.eye(4), grid_size=11):
     r = 1
     s = 1
     t = 1
-    return make_superquadric(length/2, width/2, height/2, r, s, t, pose=pose, grid_size=grid_size)
+    return make_superquadric(length / 2, width / 2, height / 2, r, s, t, pose=pose, grid_size=grid_size)
 
-def make_plane(x=None, y=None, z=None, pose=torch.eye(4)):
+
+def make_plane(x=None, y=None, z=None, pose=torch.eye(4), grid_size=10):
     if x is None:
-        points = torch.FloatTensor([[0.0, y/2, z/2],[0.0, -y/2, z/2],[0.0, -y/2, -z/2],[0.0, y/2, -z/2]])
+        points = torch.FloatTensor(
+            [[0.0, y / 2, z / 2], [0.0, -y / 2, z / 2], [0.0, -y / 2, -z / 2], [0.0, y / 2, -z / 2]]
+        )
     elif y is None:
-        points = torch.FloatTensor([[x/2, 0.0, z/2],[x/2, 0.0, -z/2],[-x/2, 0.0, -z/2],[-x/2, 0.0, z/2]])
+        points = torch.FloatTensor(
+            [[x / 2, 0.0, z / 2], [x / 2, 0.0, -z / 2], [-x / 2, 0.0, -z / 2], [-x / 2, 0.0, z / 2]]
+        )
     elif z is None:
-        points = torch.FloatTensor([[x/2, y/2, 0.0],[x/2, -y/2, 0.0],[-x/2, -y/2, 0.0],[-x/2, y/2, 0.0]])
+        points = torch.FloatTensor(
+            [[x / 2, y / 2, 0.0], [x / 2, -y / 2, 0.0], [-x / 2, -y / 2, 0.0], [-x / 2, y / 2, 0.0]]
+        )
     else:
         raise "make_plane requires just 2 inputs to be set"
-    points = points.unsqueeze(0)
+
+    # interpolate according to the gridsize
+    finer_points = [points]
+    if grid_size > 0:
+        w_steps = torch.linspace(0, 1, steps=grid_size)
+        for i in range(4):
+            for w in w_steps:
+                interp = torch.lerp(points[i], points[(i + 1) % 4], w).unsqueeze(0)
+                finer_points.append(interp)
+    # To torch
+    finer_points = torch.cat(finer_points).unsqueeze(0)
 
     if len(pose.shape) == 2:
         pose = pose.unsqueeze(0)
 
-    return transform_points(pose, points)
+    return transform_points(pose, finer_points).squeeze(0)
+
+
+if __name__ == "__main__":
+    points = make_plane(x=0.8, y=0.4, grid_size=10)
