@@ -29,7 +29,7 @@ class ImageProjector:
         # TODO: Add shape checks
 
         # Initialize pinhole model (no extrinsics)
-        E = torch.eye(4).expand(K.shape)
+        E = torch.eye(4).expand(K.shape).to(K.device)
         self.camera = PinholeCamera(K, E, h, w)
 
     def check_validity(self, points_3d, points_2d):
@@ -101,7 +101,7 @@ class ImageProjector:
         # Project points
         projected_points, valid_points = self.project(T_WC, points)
         projected_points = projected_points[valid_points].reshape(B, -1, 2)
-        np_projected_points = projected_points.squeeze(0).numpy()
+        np_projected_points = projected_points.squeeze(0).cpu().numpy()
 
         # Get convex hull
         if valid_points.any():
@@ -112,13 +112,13 @@ class ImageProjector:
             projected_hull = projected_points[..., indices, :]
 
             # Fill the mask
-            masks = draw_convex_polygon(masks, projected_hull, colors)
+            masks = draw_convex_polygon(masks, projected_hull.to(masks.device), colors.to(masks.device))
 
             # Draw on image (if applies)
             if image is not None:
                 if len(image.shape) != 4:
                     image = image.unsqueeze(0)
-                image_overlay = draw_convex_polygon(image, projected_hull, colors)
+                image_overlay = draw_convex_polygon(image, projected_hull.to(image.device), colors.to(image.device))
 
         # Return torch masks
         return masks, image_overlay

@@ -96,8 +96,8 @@ def anymal_state_to_torch(anymal_state, device="cpu"):
 
 
 def ros_cam_info_to_tensors(caminfo_msg, device="cpu"):
-    K = torch.eye(4, dtype=torch.float32)
-    K[:3, :3] = torch.FloatTensor(caminfo_msg.K).reshape(3, 3).to(device)
+    K = torch.eye(4, dtype=torch.float32).to(device)
+    K[:3, :3] = torch.FloatTensor(caminfo_msg.K).reshape(3, 3)
     K = K.unsqueeze(0)
     H = torch.IntTensor([caminfo_msg.height]).to(device)
     W = torch.IntTensor([caminfo_msg.width]).to(device)
@@ -107,34 +107,34 @@ def ros_cam_info_to_tensors(caminfo_msg, device="cpu"):
 def ros_pose_to_torch(ros_pose, device="cpu"):
     q = torch.FloatTensor(
         [ros_pose.orientation.x, ros_pose.orientation.y, ros_pose.orientation.z, ros_pose.orientation.w]
-    ).to(device)
-    t = torch.FloatTensor([ros_pose.position.x, ros_pose.position.y, ros_pose.position.z]).to(device)
-    return SE3(SO3.from_quaternion(q, ordering="xyzw"), t).as_matrix()
+    )
+    t = torch.FloatTensor([ros_pose.position.x, ros_pose.position.y, ros_pose.position.z])
+    return SE3(SO3.from_quaternion(q, ordering="xyzw"), t).as_matrix().to(device)
 
 
 def ros_tf_to_torch(tf_pose, device="cpu"):
     assert len(tf_pose) == 2
     assert isinstance(tf_pose, tuple)
 
-    t = torch.FloatTensor(tf_pose[0]).to(device)
-    q = torch.FloatTensor(tf_pose[1]).to(device)
-    return SE3(SO3.from_quaternion(q, ordering="xyzw"), t).as_matrix()
+    t = torch.FloatTensor(tf_pose[0])
+    q = torch.FloatTensor(tf_pose[1])
+    return SE3(SO3.from_quaternion(q, ordering="xyzw"), t).as_matrix().to(device)
 
 
-def ros_image_to_torch(ros_img, desired_encoding="bgr8", device="cpu"):
+def ros_image_to_torch(ros_img, desired_encoding="rgb8", device="cpu"):
     np_image = CV_BRIDGE.imgmsg_to_cv2(ros_img, desired_encoding=desired_encoding)
     return TO_TENSOR(np_image).to(device)
 
 
-def torch_to_ros_image(torch_img, desired_encoding="bgr8"):
-    np_image = np.array(TO_PIL_IMAGE(torch_img))
+def torch_to_ros_image(torch_img, desired_encoding="rgb8"):
+    np_image = np.array(TO_PIL_IMAGE(torch_img.cpu()))
     ros_image = CV_BRIDGE.cv2_to_imgmsg(np_image, encoding=desired_encoding)
     return ros_image
 
 
 def torch_to_ros_pose(torch_pose):
-    q = SO3.from_matrix(torch_pose[:3, :3]).to_quaternion(ordering="xyzw")
-    t = torch_pose[:3, 3]
+    q = SO3.from_matrix(torch_pose[:3, :3].cpu()).to_quaternion(ordering="xyzw")
+    t = torch_pose[:3, 3].cpu()
     pose = Pose()
     pose.orientation.x = q[0]
     pose.orientation.y = q[1]

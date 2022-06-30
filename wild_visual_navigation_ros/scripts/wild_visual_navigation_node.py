@@ -23,11 +23,13 @@ class WvnRosInterface:
 
         # Initialize traversability estimator
         self.traversability_estimator = TraversabilityEstimator(
-            self.time_window, image_distance_thr=0.4, proprio_distance_thr=0.4
+            device=self.device, time_window=self.time_window, image_distance_thr=0.4, proprio_distance_thr=0.4
         )
 
         # Setup ros
         self.setup_ros()
+
+        rospy.loginfo("[WVN] System ready")
         rospy.spin()
 
     def read_params(self):
@@ -49,11 +51,14 @@ class WvnRosInterface:
 
         # Time window
         self.time_window = rospy.get_param("time_window", 5)
-        self.learning_timer_freq = rospy.get_param("learning_timer_freq", 1)  # hertz
+        self.learning_timer_freq = rospy.get_param("learning_timer_freq", 0.5)  # hertz
         self.vis_timer_freq = rospy.get_param("visualization_timer_freq", 1)  # hertz
 
         # Traversability estimation params
         self.traversability_radius = rospy.get_param("traversability_radius", 5.0)
+
+        # Torch device
+        self.device = rospy.get_param("device", "cuda")
 
     def setup_ros(self):
         # Initialize TF listener
@@ -76,11 +81,14 @@ class WvnRosInterface:
         rospy.Timer(rospy.Duration(1.0 / self.vis_timer_freq), self.visualization_callback)
 
         # Publishers
-        self.pub_debug_image_labels = rospy.Publisher(
+        self.pub_debug_image_labeled = rospy.Publisher(
             "/wild_visual_navigation_node/debug/last_node_image_labeled", Image, queue_size=10
         )
-        self.pub_debug_labels = rospy.Publisher(
-            "/wild_visual_navigation_node/debug/last_node_labels", Image, queue_size=10
+        self.pub_debug_image_mask = rospy.Publisher(
+            "/wild_visual_navigation_node/debug/last_node_image_mask", Image, queue_size=10
+        )
+        self.pub_debug_image_features = rospy.Publisher(
+            "/wild_visual_navigation_node/debug/last_node_image_features", Image, queue_size=10
         )
         self.pub_debug_local_proprio_graph = rospy.Publisher(
             "/wild_visual_navigation_node/debug/local_proprioceptive_graph", Path, queue_size=10
@@ -91,6 +99,7 @@ class WvnRosInterface:
         self.pub_debug_local_graph_footprints = rospy.Publisher(
             "/wild_visual_navigation_node/debug/local_graph_footprints", Marker, queue_size=10
         )
+        
 
         # Services
         # Like, reset graph or the like
@@ -109,14 +118,14 @@ class WvnRosInterface:
         ts = msg.header.stamp.to_sec()
 
         # Query transforms from TF
-        T_WB = rc.ros_tf_to_torch(self.query_tf(self.fixed_frame, self.base_frame))
-        T_BF = rc.ros_tf_to_torch(self.query_tf(self.base_frame, self.footprint_frame))
+        T_WB = rc.ros_tf_to_torch(self.query_tf(self.fixed_frame, self.base_frame), device=self.device)
+        T_BF = rc.ros_tf_to_torch(self.query_tf(self.base_frame, self.footprint_frame), device=self.device)
 
         # The footprint requires a correction: we use the same orientation as the base
-        T_BF[:3, :3] = torch.eye(3)
+        T_BF[:3, :3] = torch.eye(3, device=self.device)
 
         # Convert state to tensor
-        proprio_tensor, proprio_labels = rc.anymal_state_to_torch(msg)
+        proprio_tensor, proprio_labels = rc.anymal_state_to_torch(msg, device=self.device)
 
         # Create proprioceptive node for the graph
         proprio_node = LocalProprioceptionNode(
@@ -135,16 +144,16 @@ class WvnRosInterface:
         ts = image_msg.header.stamp.to_sec()
 
         # Query transforms from TF
-        T_WB = rc.ros_tf_to_torch(self.query_tf(self.fixed_frame, self.base_frame))
-        T_BC = rc.ros_tf_to_torch(self.query_tf(self.base_frame, self.camera_frame))
+        T_WB = rc.ros_tf_to_torch(self.query_tf(self.fixed_frame, self.base_frame), device=self.device)
+        T_BC = rc.ros_tf_to_torch(self.query_tf(self.base_frame, self.camera_frame), device=self.device)
 
         # Prepare image projector
-        K, H, W = rc.ros_cam_info_to_tensors(info_msg)
+        K, H, W = rc.ros_cam_info_to_tensors(info_msg, device=self.device)
         image_projector = ImageProjector(K, H, W)
 
         # Add image to base node
         # convert image message to torch image
-        torch_image = rc.ros_image_to_torch(image_msg)
+        torch_image = rc.ros_image_to_torch(image_msg, device=self.device)
 
         # Create image node for the graph
         image_node = LocalImageNode(timestamp=ts, T_WB=T_WB, T_BC=T_BC, image=torch_image, projector=image_projector)
@@ -154,7 +163,7 @@ class WvnRosInterface:
 
     def learning_callback(self, event):
         # Update reprojections
-        self.traversability_estimator.update_labels(search_radius=self.traversability_radius)
+        self.traversability_estimator.update_labels_and_features(search_radius=self.traversability_radius)
 
         # Train traversability
         self.traversability_estimator.train(iter=10)
@@ -167,10 +176,15 @@ class WvnRosInterface:
         # publish reprojections of last node in graph
         if len(self.traversability_estimator.get_local_debug_nodes()) > 0:
             last_node = self.traversability_estimator.get_local_debug_nodes()[0]
-            ros_mask = rc.torch_to_ros_image(last_node.get_traversability_mask())
-            ros_image_labeled = rc.torch_to_ros_image(last_node.get_labeled_image())
-            self.pub_debug_labels.publish(ros_mask)
-            self.pub_debug_image_labels.publish(ros_image_labeled)
+            ros_mask = last_node.get_traversability_mask()
+            ros_labeled_image = last_node.get_labeled_image()
+            ros_features_image = last_node.get_features_image()
+            if ros_mask is not None:
+                self.pub_debug_image_mask.publish(rc.torch_to_ros_image(ros_mask))
+            if ros_labeled_image is not None:
+                self.pub_debug_image_labeled.publish(rc.torch_to_ros_image(ros_labeled_image))
+            if ros_features_image is not None:
+                self.pub_debug_image_features.publish(rc.torch_to_ros_image(ros_features_image))
 
         # Publish local graph
         local_proprio_graph_msg = Path()
