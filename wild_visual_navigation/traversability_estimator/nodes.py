@@ -164,7 +164,7 @@ class LocalProprioceptionNode(BaseNode):
         return make_box(self.length, self.width, self.height, pose=self.T_WB, grid_size=5).to(self.T_WB.device)
 
     def get_footprint_points(self):
-        return make_plane(x=self.length, y=self.width, pose=self.T_WF).to(self.T_WF.device)
+        return make_plane(x=self.length, y=self.width, pose=self.T_WF, grid_size=25).to(self.T_WF.device)
 
     def get_image(self):
         return self.image

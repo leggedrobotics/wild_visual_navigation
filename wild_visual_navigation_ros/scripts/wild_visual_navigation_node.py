@@ -50,8 +50,8 @@ class WvnRosInterface:
         self.robot_height = rospy.get_param("robot_height", 0.3)
 
         # Time window
-        self.time_window = rospy.get_param("time_window", 5)
-        self.learning_timer_freq = rospy.get_param("learning_timer_freq", 0.5)  # hertz
+        self.time_window = rospy.get_param("time_window", 10)
+        self.learning_timer_freq = rospy.get_param("learning_timer_freq", 0.2)  # hertz
         self.vis_timer_freq = rospy.get_param("visualization_timer_freq", 1)  # hertz
 
         # Traversability estimation params
@@ -75,10 +75,10 @@ class WvnRosInterface:
         self.ts = message_filters.ApproximateTimeSynchronizer([self.image_sub, self.info_sub], 1, slop=1.0 / 10)
         self.ts.registerCallback(self.image_callback)
 
-        # Learning callback
-        rospy.Timer(rospy.Duration(1.0 / self.learning_timer_freq), self.learning_callback)
-        # Visualization callback
-        rospy.Timer(rospy.Duration(1.0 / self.vis_timer_freq), self.visualization_callback)
+        # # Learning callback
+        # rospy.Timer(rospy.Duration(1.0 / self.learning_timer_freq), self.learn)
+        # # Visualization callback
+        # rospy.Timer(rospy.Duration(1.0 / self.vis_timer_freq), self.visualize)
 
         # Publishers
         self.pub_debug_image_labeled = rospy.Publisher(
@@ -99,7 +99,6 @@ class WvnRosInterface:
         self.pub_debug_local_graph_footprints = rospy.Publisher(
             "/wild_visual_navigation_node/debug/local_graph_footprints", Marker, queue_size=10
         )
-        
 
         # Services
         # Like, reset graph or the like
@@ -161,7 +160,10 @@ class WvnRosInterface:
         # Add node to graph
         self.traversability_estimator.add_local_image_node(image_node)
 
-    def learning_callback(self, event):
+        self.learn(None)
+        self.visualize(None)
+
+    def learn(self, event):
         # Update reprojections
         self.traversability_estimator.update_labels_and_features(search_radius=self.traversability_radius)
 
@@ -169,13 +171,13 @@ class WvnRosInterface:
         self.traversability_estimator.train(iter=10)
 
         # publish traversability
-        return
 
-    def visualization_callback(self, event):
+    def visualize(self, event):
         now = rospy.Time.now()
         # publish reprojections of last node in graph
         if len(self.traversability_estimator.get_local_debug_nodes()) > 0:
             last_node = self.traversability_estimator.get_local_debug_nodes()[0]
+
             ros_mask = last_node.get_traversability_mask()
             ros_labeled_image = last_node.get_labeled_image()
             ros_features_image = last_node.get_features_image()
