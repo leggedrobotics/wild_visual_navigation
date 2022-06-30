@@ -41,13 +41,15 @@ class StegoInterface:
     def inference(self, img):
         """Performance inference using stego
         Args:
-            img (torch.tensor, dtype=type.torch.float32): Input image
+            img (torch.tensor, dtype=type.torch.float32, BS,3,H.W): Input image
 
         Returns:
             linear_probs (torch.tensor, dtype=torch.float32): Linear prediction
             cluster_probs (torch.tensor, dtype=torch.float32): Cluster prediction
         """
-        img = self.transform(img).unsqueeze(0).to(self.device)
+        assert 1 == img.shape[0] 
+        
+        img = self.transform(img).to(self.device)
         code1 = self.model(img)
         code2 = self.model(img.flip(dims=[3]))
         code = (code1 + code2.flip(dims=[3])) / 2
