@@ -62,7 +62,10 @@ class PlotHelper:
             axis = [axis]
 
         for i, (data, tag) in enumerate(zip(self.data, self.tag)):
-            axis[i].imshow(data)
+            if len(data.shape) == 3 and data.shape[2] == 1:
+                axis[i].imshow(data.squeeze(2))
+            else:
+                axis[i].imshow(data)
             axis[i].set_title(tag)
         return figure
 
