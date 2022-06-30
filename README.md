@@ -1,4 +1,4 @@
-<img align="left" width="80" height="80" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/dev/gnn_prototype/assets/images/dino.png" alt="Dino"> 
+<img align="left" width="80" height="80" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
 # Self-Supervised Visual Navigation in the Wild
 
@@ -54,6 +54,25 @@ pip3 install -e ./stego
 TODO
 
 ## Contribution
+
+
+### Install conda environment
+
+1. Install mamba in base environment
+```shell
+conda activate base
+conda install mamba -n base -c conda-forge
+```
+
+2. Correct conda settings
+```shell
+conda config --set safety_checks enabled
+conda config --set channel_priority false
+```
+3. Install environment
+```shell
+mamba env create -f environment.yaml
+```
 
 ### Code formatting
 ```shell
