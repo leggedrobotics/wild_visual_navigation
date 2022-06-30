@@ -14,6 +14,7 @@ from os.path import join
 import torch
 import networkx as nx
 import torchvision.transforms as transforms
+
 to_tensor = transforms.ToTensor()
 
 # debug
@@ -110,18 +111,11 @@ class TraversabilityEstimator:
 
                 # Project and render mask
                 mask, labeled_image = image_projector.project_and_render(T_WC, footprint, color, image=labeled_image)
-                if len(labeled_image.shape) == 4:
-                    traversability_mask = traversability_mask.squeeze(0)
-                if len(mask.shape) == 4:
-                    mask = mask.squeeze(0)
+                mask = mask.squeeze(0)
+                labeled_image = labeled_image.squeeze(0)
 
                 # Update traversability mask
                 traversability_mask = torch.maximum(traversability_mask, mask.to(traversability_mask.device))
-
-            if len(labeled_image.shape) == 4:
-                labeled_image = labeled_image.squeeze(0)
-            if len(traversability_mask.shape) == 4:
-                traversability_mask = traversability_mask.squeeze(0)
 
             # Save traversability mask and labeled image in debug node
             with self.local_debug_graph.lock:
