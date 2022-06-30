@@ -21,8 +21,8 @@ def make_superquadric(A, B, C, r, s, t, pose=torch.eye(4), grid_size=10):
     """
 
     # Prepare meshgrid
-    eta_s = torch.linspace(-torch.pi / 2, torch.pi / 2, steps=grid_size)
-    w_s = torch.linspace(-torch.pi, torch.pi, steps=grid_size)
+    eta_s = torch.linspace(-torch.pi / 2, torch.pi / 2, steps=grid_size).to(pose.device)
+    w_s = torch.linspace(-torch.pi, torch.pi, steps=grid_size).to(pose.device)
     eta, w = torch.meshgrid(eta_s, w_s, indexing="xy")
 
     # Compute coordinates
@@ -73,22 +73,22 @@ def make_plane(x=None, y=None, z=None, pose=torch.eye(4), grid_size=10):
     if x is None:
         points = torch.FloatTensor(
             [[0.0, y / 2, z / 2], [0.0, -y / 2, z / 2], [0.0, -y / 2, -z / 2], [0.0, y / 2, -z / 2]]
-        )
+        ).to(pose.device)
     elif y is None:
         points = torch.FloatTensor(
             [[x / 2, 0.0, z / 2], [x / 2, 0.0, -z / 2], [-x / 2, 0.0, -z / 2], [-x / 2, 0.0, z / 2]]
-        )
+        ).to(pose.device)
     elif z is None:
         points = torch.FloatTensor(
             [[x / 2, y / 2, 0.0], [x / 2, -y / 2, 0.0], [-x / 2, -y / 2, 0.0], [-x / 2, y / 2, 0.0]]
-        )
+        ).to(pose.device)
     else:
         raise "make_plane requires just 2 inputs to be set"
 
     # interpolate according to the gridsize
     finer_points = [points]
     if grid_size > 0:
-        w_steps = torch.linspace(0, 1, steps=grid_size)
+        w_steps = torch.linspace(0, 1, steps=grid_size).to(pose.device)
         for i in range(4):
             for w in w_steps:
                 interp = torch.lerp(points[i], points[(i + 1) % 4], w).unsqueeze(0)

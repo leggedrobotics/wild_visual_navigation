@@ -90,6 +90,12 @@ class GlobalNode(BaseNode):
     def get_supervision_signal(self):
         return self.supervision_signal
 
+    def set_features(self, features):
+        self.input_features = features
+
+    def set_supervision_signal(self, signal):
+        self.supervision_signal = signal
+
     def is_valid(self):
         return isinstance(self.input_features, torch.Tensor) and isinstance(self.supervision_signal, torch.Tensor)
 
@@ -101,8 +107,12 @@ class DebugNode(BaseNode):
 
     def __init__(self, timestamp=0.0, T_WB=torch.eye(4), traversability_mask=None, labeled_image=None):
         super().__init__(timestamp=timestamp, T_WB=T_WB)
-        self.traversability_mask = traversability_mask
-        self.labeled_image = labeled_image
+        self.traversability_mask = None
+        self.labeled_image = None
+        self.features_image = None
+
+    def get_features_image(self):
+        return self.features_image
 
     def get_labeled_image(self):
         return self.labeled_image
@@ -110,11 +120,14 @@ class DebugNode(BaseNode):
     def get_traversability_mask(self):
         return self.traversability_mask
 
-    def set_traversability_mask(self, mask):
-        self.traversability_mask = mask
-
     def set_labeled_image(self, image):
         self.labeled_image = image
+
+    def set_features_image(self, image):
+        self.features_image = image
+
+    def set_traversability_mask(self, mask):
+        self.traversability_mask = mask
 
     def is_valid(self):
         return isinstance(self.traversability_mask, torch.Tensor)
@@ -148,10 +161,10 @@ class LocalProprioceptionNode(BaseNode):
         self.proprioceptive_state = proprioception
 
     def get_bounding_box_points(self):
-        return make_box(self.length, self.width, self.height, pose=self.T_WB, grid_size=5)
+        return make_box(self.length, self.width, self.height, pose=self.T_WB, grid_size=5).to(self.T_WB.device)
 
     def get_footprint_points(self):
-        return make_plane(x=self.length, y=self.width, pose=self.T_WF)
+        return make_plane(x=self.length, y=self.width, pose=self.T_WF).to(self.T_WF.device)
 
     def get_image(self):
         return self.image
