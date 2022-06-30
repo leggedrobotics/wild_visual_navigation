@@ -1,4 +1,6 @@
 from wild_visual_navigation.feature_extractor import StegoInterface
+from wild_visual_navigation.utils import PlotHelper
+
 import torch.nn.functional as F
 import skimage
 import torch
@@ -8,73 +10,36 @@ import cv2
 from torchvision import transforms as T
 from PIL import Image, ImageDraw
 
-import matplotlib.pyplot as plt
-
-
-class PlotHelper:
-    def __init__(self):
-        self.data = []
-        self.tag = []
-
-    def add(self, img, tag="nan"):
-        if torch.is_tensor(img):
-            data = img.clone().cpu().numpy()
-        else:
-            data = np.copy(img)
-
-        if len(data.shape) == 4:
-            data = data[0]
-
-        if data.shape[0] == 1 or data.shape[0] == 3:
-            data = data.transpose((1, 2, 0))
-
-        if data.dtype != np.uint8:
-            if data.max() <= 1.0:
-                data = np.uint8(data * 255)
-            else:
-                data = np.uint8(data)
-        self.data.append(data)
-        self.tag.append(tag)
-
-    def show(self):
-        figure, axis = plt.subplots(1, len(self.data))
-        if len(self.data) == 1:
-            axis = [axis]
-
-        for i, (data, tag) in enumerate(zip(self.data, self.tag)):
-            axis[i].imshow(data)
-            axis[i].set_title(tag)
-        plt.show()
-
 
 class SegmentExtractor(torch.nn.Module):
+    @torch.no_grad()
     def __init__(self):
         super().__init__()
-        with torch.no_grad():
-            # Use Convolutional Filter to Extract Edges
-            self.f1 = torch.nn.Conv2d(1, 4, (3, 3), padding_mode="replicate", padding=(3, 3), bias=False)
-            self.f1.weight[:, :, :, :] = 0
-            # 0  0  0
-            # 0  1 -1
-            # 0  0  0
-            self.f1.weight[0, 0, 1, 1] = 1
-            self.f1.weight[0, 0, 1, 2] = -1
-            # 0  0  0
-            # 1 -1  0
-            # 0  0  0
-            self.f1.weight[1, 0, 1, 0] = 1
-            self.f1.weight[1, 0, 1, 1] = -1
-            # 0  0  0
-            # 0  1  0
-            # 0 -1  0
-            self.f1.weight[2, 0, 1, 1] = 1
-            self.f1.weight[2, 0, 2, 1] = -1
-            # 0  0  0
-            # 0 -1  0
-            # 0  1  0
-            self.f1.weight[3, 0, 0, 1] = 1
-            self.f1.weight[3, 0, 1, 1] = -1
+        # Use Convolutional Filter to Extract Edges
+        self.f1 = torch.nn.Conv2d(1, 4, (3, 3), padding_mode="replicate", padding=(3, 3), bias=False)
+        self.f1.weight[:, :, :, :] = 0
+        # 0  0  0
+        # 0  1 -1
+        # 0  0  0
+        self.f1.weight[0, 0, 1, 1] = 1
+        self.f1.weight[0, 0, 1, 2] = -1
+        # 0  0  0
+        # 1 -1  0
+        # 0  0  0
+        self.f1.weight[1, 0, 1, 0] = 1
+        self.f1.weight[1, 0, 1, 1] = -1
+        # 0  0  0
+        # 0  1  0
+        # 0 -1  0
+        self.f1.weight[2, 0, 1, 1] = 1
+        self.f1.weight[2, 0, 2, 1] = -1
+        # 0  0  0
+        # 0 -1  0
+        # 0  1  0
+        self.f1.weight[3, 0, 0, 1] = 1
+        self.f1.weight[3, 0, 1, 1] = -1
 
+    @torch.no_grad()
     def adjacency_list(self, seg):
         assert seg.shape[0] == 1 and len(seg.shape) == 4
 
@@ -96,6 +61,7 @@ class SegmentExtractor(torch.nn.Module):
 
         return adjacency_list[None]
 
+    @torch.no_grad()
     def centers(self, seg):
         assert seg.shape[0] == 1 and len(seg.shape) == 4
 
@@ -123,7 +89,8 @@ class FeatureExtractor:
     def extract(self, key, img, **kwargs):
         return getattr(self, key)(img, **kwargs)
 
-    def dino_slic(self, img, n_segments=100, compactness=100.0, visu=False):
+    @torch.no_grad()
+    def dino_slic(self, img, n_segments=100, compactness=100.0, return_centers=False, visu=False):
         # currently on BS=1 supported
         assert img.shape[0] == 1 and len(img.shape) == 4
 
@@ -162,7 +129,7 @@ class FeatureExtractor:
             img_draw = ImageDraw.Draw(img_pil)
             seg_draw = ImageDraw.Draw(seg_pil)
 
-            centers = self.se.centers(seg)
+            
 
             for i in range(adjacency_list.shape[1]):
                 a, b = adjacency_list[0, i, 0], adjacency_list[0, i, 1]
@@ -179,8 +146,13 @@ class FeatureExtractor:
             ph.add(np.array(img_pil), "Image Feature-Graph")
             ph.add(np.array(seg_pil), "SLIC Feature-Graph")
             ph.show()
-
-        return adjacency_list, torch.stack(features, dim=1)[None], seg
+            
+        ret = (adjacency_list, torch.stack(features, dim=1)[None], seg)
+        
+        if return_centers:
+            ret += (self.se.centers(seg),)
+            
+        return ret
 
     def stego(self, img):
         return self.si.inference(img)
