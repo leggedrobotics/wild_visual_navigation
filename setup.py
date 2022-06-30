@@ -9,5 +9,5 @@ setup(
     packages=find_packages(),
     python_requires=">=3.6",
     description="A small example package",
-    install_requires=["bagpy"],
+    install_requires=["kornia>=0.6.5", "kornia_rs"],
 )

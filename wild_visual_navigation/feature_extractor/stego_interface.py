@@ -4,10 +4,12 @@ from os.path import join
 import torch.nn.functional as F
 import torch
 import wget
-
+from torchvision import transforms as T
 from stego.src import LitUnsupervisedSegmenter
-from stego.src import get_transform
+
+# from stego.src import get_transform
 from stego.src import dense_crf
+from PIL import Image
 
 
 class StegoInterface:
@@ -15,7 +17,9 @@ class StegoInterface:
         self.model = self.load()
         self.model.to(device)
         self.device = device
-        self.transform = get_transform(448, False, "center")
+        self.transform = T.Compose(
+            [T.Resize(448, Image.NEAREST), T.CenterCrop(448), T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]
+        )
 
     def load(self):
         """Loads model.
@@ -36,27 +40,41 @@ class StegoInterface:
     @torch.no_grad()
     def inference(self, img):
         """Performance inference using stego
-
         Args:
-            img (np.array, dtype=np.uint8 or PIL.Image.Image): Input image
+            img (torch.tensor, dtype=type.torch.float32, shape=(BS,3,H.W)): Input image
+
+        Returns:
+            linear_probs (torch.tensor, dtype=torch.float32, shape=(BS,C,H,W)): Linear prediction
+            cluster_probs (torch.tensor, dtype=torch.float32, shape=(BS,C,H,W)): Cluster prediction
+        """
+        assert 1 == img.shape[0]
+
+        img = self.transform(img).to(self.device)
+        code1 = self.model(img)
+        code2 = self.model(img.flip(dims=[3]))
+        code = (code1 + code2.flip(dims=[3])) / 2
+        code = F.interpolate(code, img.shape[-2:], mode="bilinear", align_corners=False)
+        linear_probs = torch.log_softmax(self.model.linear_probe(code), dim=1)
+
+        cluster_probs = self.model.cluster_probe(code, 2, log_probs=True)
+
+        return linear_probs, cluster_probs
+
+    @torch.no_grad()
+    def inference_crf(self, img):
+        """
+        Args:
+            img (torch.tensor, dtype=type.torch.float32): Input image
 
         Returns:
             linear_pred (torch.tensor, dtype=torch.int64): Linear prediction
             cluster_pred (torch.tensor, dtype=torch.int64): Cluster prediction
         """
-        img = self.transform(img).unsqueeze(0).to(self.device)
-        code1 = self.model(img)
-        code2 = self.model(img.flip(dims=[3]))
-        code = (code1 + code2.flip(dims=[3])) / 2
-        code = F.interpolate(code, img.shape[-2:], mode="bilinear", align_corners=False)
-        linear_probs = torch.log_softmax(self.model.linear_probe(code), dim=1).cpu()
 
-        cluster_probs = self.model.cluster_probe(code, 2, log_probs=True).cpu()
-
+        linear_probs, cluster_probs = self.inference(img)
         single_img = img[0].cpu()
         linear_pred = dense_crf(single_img, linear_probs[0]).argmax(0)
         cluster_pred = dense_crf(single_img, cluster_probs[0]).argmax(0)
-
         return linear_pred, cluster_pred
 
 
@@ -68,19 +86,23 @@ def run_stego_interfacer():
     import matplotlib.pyplot as plt
     from stego.src import unnorm, remove_axes
     import numpy as np
+    import kornia as K
 
     # Create test directory
     os.makedirs(join(WVN_ROOT_DIR, "results", "test_stego_interfacer"), exist_ok=True)
 
     # Inference model
-    si = StegoInterface(device="cuda")
-    img = Image.open(join(WVN_ROOT_DIR, "assets/images/forest_clean.png"))
-    linear_pred, cluster_pred = si.inference(img)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    si = StegoInterface(device=device)
+    p = join(WVN_ROOT_DIR, "assets/images/forest_clean.png")
+    img = K.io.load_image(p, desired_type=K.io.ImageLoadType.RGB8, device=device)
+    img = (img.type(torch.float32) / 255)[None]
 
+    linear_pred, cluster_pred = si.inference_crf(si.transform(img))
     # Plot result as in colab
     fig, ax = plt.subplots(1, 3, figsize=(5 * 3, 5))
 
-    ax[0].imshow(unnorm(si.transform(img)).permute(1, 2, 0))
+    ax[0].imshow(unnorm(si.transform(img)).permute(0, 2, 3, 1)[0].cpu())
     ax[0].set_title("Image")
     ax[1].imshow(si.model.label_cmap[cluster_pred])
     ax[1].set_title("Cluster Predictions")
