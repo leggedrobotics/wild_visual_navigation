@@ -53,11 +53,18 @@ class PlotHelper:
         self.tag.append(tag)
 
     def show(self):
-        figure, axis = plt.subplots(1, len(self.data))
+        figure = self.create_figure()
+        plt.show()
+
+    def create_figure(self):
+        figure, axis = plt.subplots(1, len(self.data), figsize=(5 * len(self.data), 5))
         if len(self.data) == 1:
             axis = [axis]
 
         for i, (data, tag) in enumerate(zip(self.data, self.tag)):
             axis[i].imshow(data)
             axis[i].set_title(tag)
-        plt.show()
+        return figure
+
+    def get_img(self):
+        return get_img_from_fig(self.create_figure())

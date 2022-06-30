@@ -41,14 +41,14 @@ class StegoInterface:
     def inference(self, img):
         """Performance inference using stego
         Args:
-            img (torch.tensor, dtype=type.torch.float32, BS,3,H.W): Input image
+            img (torch.tensor, dtype=type.torch.float32, shape=(BS,3,H.W)): Input image
 
         Returns:
-            linear_probs (torch.tensor, dtype=torch.float32): Linear prediction
-            cluster_probs (torch.tensor, dtype=torch.float32): Cluster prediction
+            linear_probs (torch.tensor, dtype=torch.float32, shape=(BS,C,H,W)): Linear prediction
+            cluster_probs (torch.tensor, dtype=torch.float32, shape=(BS,C,H,W)): Cluster prediction
         """
-        assert 1 == img.shape[0] 
-        
+        assert 1 == img.shape[0]
+
         img = self.transform(img).to(self.device)
         code1 = self.model(img)
         code2 = self.model(img.flip(dims=[3]))
@@ -86,19 +86,23 @@ def run_stego_interfacer():
     import matplotlib.pyplot as plt
     from stego.src import unnorm, remove_axes
     import numpy as np
+    import kornia as K
 
     # Create test directory
     os.makedirs(join(WVN_ROOT_DIR, "results", "test_stego_interfacer"), exist_ok=True)
 
     # Inference model
-    si = StegoInterface(device="cuda")
-    img = Image.open(join(WVN_ROOT_DIR, "assets/images/forest_clean.png"))
-    linear_pred, cluster_pred = si.inference_crf(img)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    si = StegoInterface(device=device)
+    p = join(WVN_ROOT_DIR, "assets/images/forest_clean.png")
+    img = K.io.load_image(p, desired_type=K.io.ImageLoadType.RGB8, device=device)
+    img = (img.type(torch.float32) / 255)[None]
 
+    linear_pred, cluster_pred = si.inference_crf(si.transform(img))
     # Plot result as in colab
     fig, ax = plt.subplots(1, 3, figsize=(5 * 3, 5))
 
-    ax[0].imshow(unnorm(si.transform(img)).permute(1, 2, 0))
+    ax[0].imshow(unnorm(si.transform(img)).permute(0, 2, 3, 1)[0].cpu())
     ax[0].set_title("Image")
     ax[1].imshow(si.model.label_cmap[cluster_pred])
     ax[1].set_title("Cluster Predictions")

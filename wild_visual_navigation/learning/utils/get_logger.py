@@ -11,7 +11,7 @@ def get_neptune_logger(exp, env, exp_p, env_p, project_name):
     """Returns NeptuneLogger
 
     Args:
-        exp (dict): Content of environment file 
+        exp (dict): Content of environment file
         env (dict): Content of experiment file
         exp_p (str): Path to experiment file
         env_p (str): Path to environment file
@@ -42,39 +42,41 @@ def get_neptune_logger(exp, env, exp_p, env_p, project_name):
         tags=[os.environ["ENV_WORKSTATION_NAME"], name_full.split("/")[-2], name_full.split("/")[-1]],
     )
 
-def get_wandb_logger(exp, env, exp_p, env_p,  project_name, save_dir):
+
+def get_wandb_logger(exp, env, exp_p, env_p, project_name, save_dir):
     """Returns NeptuneLogger
 
     Args:
-        exp (dict): Content of environment file 
+        exp (dict): Content of environment file
         env (dict): Content of experiment file
         exp_p (str): Path to experiment file
         env_p (str): Path to environment file
         project_name (str): W&B project_name
         save_dir (str): File path to save directory
-        
+
     Returns:
         (logger): Logger
     """
     params = flatten_dict(exp)
     name_full = exp["general"]["name"]
     name_short = "__".join(name_full.split("/")[-2:])
-    return WandbLogger( 
+    return WandbLogger(
         name=name_short,
         project=project_name,
-        entity= exp["logger"]["wandb_entity"],
+        entity=exp["logger"]["wandb_entity"],
         save_dir=save_dir,
     )
+
 
 def get_tensorboard_logger(exp, env, exp_p, env_p):
     """Returns TensorboardLoggers
 
     Args:
-        exp (dict): Content of environment file 
+        exp (dict): Content of environment file
         env (dict): Content of experiment file
         exp_p (str): Path to experiment file
         env_p (str): Path to environment file
-        
+
     Returns:
         (logger): Logger
     """

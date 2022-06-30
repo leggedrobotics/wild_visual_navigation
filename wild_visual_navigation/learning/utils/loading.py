@@ -1,6 +1,7 @@
 import os
 import yaml
 from wild_visual_navigation import WVN_ROOT_DIR
+
 __all__ = ["file_path", "load_yaml"]
 
 
@@ -16,7 +17,7 @@ def file_path(string):
     Returns:
         (str): Returns the file path
     """
-    
+
     if os.path.isfile(string):
         return string
     else:
@@ -36,9 +37,10 @@ def load_yaml(path):
         res = yaml.load(file, Loader=yaml.FullLoader)
     return res
 
+
 def load_env():
-    """ Uses ENV_WORKSTATION_NAME variable to load specified environment yaml file.
-    
+    """Uses ENV_WORKSTATION_NAME variable to load specified environment yaml file.
+
     Returns:
         (dict): Returns content of environment file
     """

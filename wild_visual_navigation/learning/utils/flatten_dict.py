@@ -7,7 +7,7 @@ def flatten_dict(d, parent_key="", sep="_"):
     """Generates flattened dict
 
     Args:
-        d (dict): Input dict 
+        d (dict): Input dict
         parent_key (str, optional): Parent key seperater . Defaults to "".
         sep (str, optional): Seperator for output dict. Defaults to "_".
 
