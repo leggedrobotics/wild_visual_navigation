@@ -41,6 +41,14 @@ class SegmentExtractor(torch.nn.Module):
 
     @torch.no_grad()
     def adjacency_list(self, seg):
+        """Extracts a adjacency list based on neigbooring classes.
+
+        Args:
+            seg (torch.Tensor, dtype=torch.long, shape=(BS, 1, H, W)): Segmentation
+
+        Returns:
+            adjacency_list (torch.Tensor, dtype=torch.long, shape=(BS, N, 2): Adjacency list of undirected graph
+        """
         assert seg.shape[0] == 1 and len(seg.shape) == 4
 
         res = self.f1(seg.type(torch.float32))
@@ -63,21 +71,36 @@ class SegmentExtractor(torch.nn.Module):
 
     @torch.no_grad()
     def centers(self, seg):
+        """Extracts a center position in image plane of clusters.
+
+        Args:
+            seg (torch.Tensor, dtype=torch.long, shape=(BS, 1, H, W)): Segmentation
+
+        Returns:
+            centers (torch.Tensor, dtype=torch.long, shape=(BS, N, 2): Center position in image plane of clusters.
+        """
+
         assert seg.shape[0] == 1 and len(seg.shape) == 4
 
         centers = []
         tmp_seg = seg.T
         for s in range(seg.max() + 1):
-            indices = torch.nonzero(s == tmp_seg[0, 0])
+            indices = torch.nonzero((s == tmp_seg)[:, :, 0, 0])
             res = indices.type(torch.float32).mean(dim=0)
             centers.append(res)
         centers = torch.stack(centers)
 
-        return centers
+        return centers[None]
 
 
 class FeatureExtractor:
     def __init__(self, device):
+        """Feature extraction from image
+
+        Args:
+            device (str): Compute device
+        """
+
         self.device = device
         self.si = StegoInterface(device=device)
 
@@ -90,7 +113,24 @@ class FeatureExtractor:
         return getattr(self, key)(img, **kwargs)
 
     @torch.no_grad()
-    def dino_slic(self, img, n_segments=100, compactness=100.0, return_centers=False, visu=False):
+    def dino_slic(self, img, n_segments=100, compactness=100.0, return_centers=False, return_image=False, show=False):
+        """Extract dino feature form image
+
+        Args:
+            img (torch.Tensor, dtype=torch.float32, shape=(BS, C, H, W)): Image
+            n_segments (int, optional): Defaults to 100.
+            compactness (float, optional): Defaults to 100.0.
+            return_centers (bool, optional): Defaults to False.
+            return_image (bool, optional): Defaults to False.
+            show (bool, optional): Defaults to False.
+
+        Returns:
+            adj (torch.Tensor, dtype=torch.uint32, shape=(N,2)): Graph Structure
+            feat (torch.Tensor, dtype=torch.float32, shape=(N, C)): Features
+            seg (torch.Tensor, dtype=torch.uint32, shape=(BS, 1, H, W)): Segmentation
+            center (torch.Tensor, dtype=torch.float32, shape=(N,2)): Center of custer in image plane
+        """
+
         # currently on BS=1 supported
         assert img.shape[0] == 1 and len(img.shape) == 4
 
@@ -119,43 +159,45 @@ class FeatureExtractor:
             feat = feat_dino[0, :, x, y].mean(dim=1)
             features.append(feat)
 
-        if visu:
+        ret = (adjacency_list, torch.stack(features, dim=1)[None], seg)
+
+        if return_centers:
+            ret += (self.se.centers(seg),)
+
+        if show or return_image:
             ph = PlotHelper()
             ph.add(img_np, "Input Image Cropped")
             ph.add(seg, "SLIC Segmentation")
 
             img_pil = Image.fromarray(np.uint8(img_np * 255))
-            seg_pil = Image.fromarray(np.uint8(seg.cpu().numpy()))
+            seg_pil = Image.fromarray(np.uint8(seg.cpu().numpy()[0, 0]))
             img_draw = ImageDraw.Draw(img_pil)
             seg_draw = ImageDraw.Draw(seg_pil)
 
-            
-
+            centers = self.se.centers(seg)[0]
+            fil_col = (seg.max() + 5).item()
             for i in range(adjacency_list.shape[1]):
                 a, b = adjacency_list[0, i, 0], adjacency_list[0, i, 1]
                 line_params = centers[a].tolist() + centers[b].tolist()
-                img_draw.line(line_params, fill=40)
-                seg_draw.line(line_params, fill=40)
+                img_draw.line(line_params, fill=fil_col)
+                seg_draw.line(line_params, fill=fil_col)
 
             for i in range(centers.shape[0]):
                 params = centers[i].tolist()
                 params = [p - 2 for p in params] + [p + 2 for p in params]
-                img_draw.ellipse(params, width=10, fill=41)
-                seg_draw.ellipse(params, width=10, fill=41)
+                img_draw.ellipse(params, width=10, fill=fil_col + 1)
+                seg_draw.ellipse(params, width=10, fill=fil_col + 1)
 
             ph.add(np.array(img_pil), "Image Feature-Graph")
             ph.add(np.array(seg_pil), "SLIC Feature-Graph")
-            ph.show()
-            
-        ret = (adjacency_list, torch.stack(features, dim=1)[None], seg)
-        
-        if return_centers:
-            ret += (self.se.centers(seg),)
-            
+
+            if show:
+                ph.show()
+
+            if return_image:
+                ret += (ph.get_img(),)
+
         return ret
 
     def stego(self, img):
         return self.si.inference(img)
-
-    def slic(self, img, n_segments=100, compactness=10.0):
-        return
