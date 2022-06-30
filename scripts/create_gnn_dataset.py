@@ -67,7 +67,7 @@ if __name__ == "__main__":
         edge_index = adj[0].T
         x = feat[0].T
 
-        data = Data(x=x, edge_index=edge_index, y=y)
+        graph_data = Data(x=x, edge_index=edge_index, y=y)
 
         if args.store:
             for data, key in zip([adj, feat, seg, img, center], keys):
@@ -76,7 +76,7 @@ if __name__ == "__main__":
 
         if args.store_graph:
             path = os.path.join(base_dir, "graph", f"graph_{j:06d}.pt")
-            torch.save(data.cpu(), path)
+            torch.save(graph_data, path)
 
     print(f"Created GNN dataset! Store Individual {args.store}, Store Graph: {args.store_graph}")
     print(f"Output can be found in: {base_dir}!")
