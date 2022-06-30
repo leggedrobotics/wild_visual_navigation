@@ -4,6 +4,7 @@ channels:
   - robostack
   - robostack-experimental
   - conda-forge
+  - pyg
   - defaults
 dependencies:
   - python=3.8
@@ -25,11 +26,13 @@ dependencies:
   - make
   - ninja
   - catkin_tools
+  - pyg
   - pip:
     - wget
     - hydra-core
     - pytorch_lightning
     - colorama
+    - kornia_rs
     - git+https://github.com/lucasb-eyer/pydensecrf.git#egg=pydensecrf
     - git+https://github.com/kornia/kornia#egg=kornia
     - git+https://github.com/mmattamala/liegroups#egg=liegroups
