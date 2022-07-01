@@ -19,7 +19,7 @@ def get_neptune_logger(exp, env, exp_p, env_p):
     Returns:
         (logger): Logger
     """
-    project_name = exp["project_name"]  # Neptune AI project_name "username/project"
+    project_name = exp["logger"]["neptune_project_name"]  # Neptune AI project_name "username/project"
 
     params = flatten_dict(exp)
 
@@ -44,20 +44,17 @@ def get_neptune_logger(exp, env, exp_p, env_p):
     )
 
 
-def get_wandb_logger(exp, env, exp_p, env_p):
+def get_wandb_logger(exp, env):
     """Returns NeptuneLogger
 
     Args:
         exp (dict): Content of environment file
-        env (dict): Content of experiment file
-        exp_p (str): Path to experiment file
-        env_p (str): Path to environment file
 
     Returns:
         (logger): Logger
     """
-    project_name = exp["project_name"]  # project_name (str): W&B project_name
-    save_dir = os.path.join(env["base"], exp["model"])  # save_dir (str): File path to save directory
+    project_name = exp["logger"]["wandb_project_name"]  # project_name (str): W&B project_name
+    save_dir = os.path.join(env["base"], exp["general"]["name"])  # save_dir (str): File path to save directory
     params = flatten_dict(exp)
     name_full = exp["general"]["name"]
     name_short = "__".join(name_full.split("/")[-2:])
@@ -69,14 +66,11 @@ def get_wandb_logger(exp, env, exp_p, env_p):
     )
 
 
-def get_tensorboard_logger(exp, env, exp_p, env_p):
+def get_tensorboard_logger(exp, env):
     """Returns TensorboardLoggers
 
     Args:
         exp (dict): Content of environment file
-        env (dict): Content of experiment file
-        exp_p (str): Path to experiment file
-        env_p (str): Path to environment file
 
     Returns:
         (logger): Logger
@@ -85,6 +79,8 @@ def get_tensorboard_logger(exp, env, exp_p, env_p):
     return TensorBoardLogger(save_dir=exp["name"], name="tensorboard", default_hp_metric=params)
 
 
-def get_logger(name, exp, env, exp_p, env_p):
+def get_logger(exp, env):
+    name = exp["logger"]["name"]
+    save_dir = os.path.join(env["base"], exp["general"]["name"])
     register = {k: v for k, v in globals().items() if inspect.isfunction(v)}
-    return register[f"get_{name}_logger"](exp, env, exp_p, env_p, *kwargs)
+    return register[f"get_{name}_logger"](exp, env)

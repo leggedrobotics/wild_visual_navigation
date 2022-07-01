@@ -1,4 +1,4 @@
-from wild_visual_navigation.learning.network import *
+from wild_visual_navigation.learning.model import *
 import inspect
 
 
@@ -6,7 +6,7 @@ def create_registery():
     """Creates register of avialble classes to instantiate based on global scope.
 
     Returns:
-        register (str: class): Contains all avialble classes from network module
+        register (str: class): Contains all avialble classes from model module
         cfg_keys (str: str): Converts the classnames to lower_case to get correct cfg parameters.
     """
 
@@ -14,7 +14,7 @@ def create_registery():
     register = {k: v for k, v in globals().items() if inspect.isclass(v)}
 
     # Changes the keys to access the configuration parameters
-    # SomeNetworkNAME -> some_network_name_cfg
+    # SomeModelNAME -> some_model_name_cfg
     cfg_keys = {}
     for key in register.keys():
         previous_large = False
@@ -36,8 +36,8 @@ def create_registery():
     return register, cfg_keys
 
 
-def get_network(model_cfg):
-    """Returns the instantiated network
+def get_model(model_cfg):
+    """Returns the instantiated model
 
     Args:
         model_cfg (dict): Contains "name": (str) ClassName; "class_name_cfg": (Dict).
@@ -46,8 +46,8 @@ def get_network(model_cfg):
     """
     name = model_cfg["name"]
     register, cfg_keys = create_registery()
-    network = register[name](**model_cfg[cfg_keys[name]])
-    return network
+    model = register[name](**model_cfg[cfg_keys[name]])
+    return model
 
 
 if __name__ == "__main__":
@@ -56,4 +56,4 @@ if __name__ == "__main__":
     from os.path import join
 
     exp = load_yaml(join(WVN_ROOT_DIR, "cfg/exp/exp.yaml"))
-    get_network(exp["model"])
+    get_model(exp["model"])
