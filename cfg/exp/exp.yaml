@@ -1,0 +1,37 @@
+name: simple_gcn/debug
+timestamp: false
+tag_list:
+  - debug
+  - tag2
+
+optimizer:
+  name: ADAMW
+  adamw_cfg:
+    momentum: 0.9
+    weight_decay: 4.0e-05
+
+trainer:
+  precision: 16
+  accumulate_grad_batches: 1
+  fast_dev_run: false
+  limit_train_batches: 1.0
+  limit_val_batches: 1.0
+  limit_test_batches: 1.0
+  max_epochs: 1000
+  gpus: -1
+  profiler: false
+  num_sanity_val_steps: 0
+  check_val_every_n_epoch: 10
+
+data_module:
+  loader:
+    pin_memory: true
+    batch_size: 8
+    shuffle: true
+    num_workers: 16
+
+model:
+  name: SimpleGCN
+  simple_gcn_cfg:
+    num_node_features: 99
+    num_classes: 99
