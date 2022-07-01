@@ -32,7 +32,7 @@ if __name__ == "__main__":
     parser.add_argument("--store-graph", type=bool, default=True, help="Store data")
 
     args = parser.parse_args()
-    image_paths = [str(s) for s in Path(args.img_folder).rglob("*.png")]
+    image_paths = [   str(s) for s in Path(args.img_folder).rglob("*.png")]
     image_paths.sort()
 
     base_dir = os.path.join(WVN_ROOT_DIR, "results", args.dataset)
