@@ -75,11 +75,9 @@ def train(exp_cfg_path):
 
     ddp_plugin = DDPSpawnPlugin(find_unused_parameters=exp["trainer"].get("find_unused_parameters", False))
     exp["trainer"]["plugins"] = ddp_plugin
-    
+
     datamodule = get_pl_graph_trav_module(**exp["data_module"])
-    trainer = Trainer(
-        **exp["trainer"], default_root_dir=model_path, callbacks=cb_ls, logger=logger
-    )
+    trainer = Trainer(**exp["trainer"], default_root_dir=model_path, callbacks=cb_ls, logger=logger)
     res = trainer.fit(model=model, datamodule=datamodule)
 
 
