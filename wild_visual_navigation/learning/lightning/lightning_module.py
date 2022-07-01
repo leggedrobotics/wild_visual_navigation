@@ -5,7 +5,8 @@ import torch
 import torch.nn.functional as F
 import os
 from torchmetrics import Accuracy
-from torch.nn.functional import cross_entropy 
+from torch.nn.functional import cross_entropy
+
 
 class LightningTrav(pl.LightningModule):
     def __init__(self, exp, env):
@@ -41,7 +42,8 @@ class LightningTrav(pl.LightningModule):
 
     def training_epoch_end(self, outputs):
         # Log epoch metric
-        self.log(f"{self._mode}_acc_epoch", self._acc[self._mode], on_epoch=True, prog_bar=True)
+        self._mode = "train"
+        self.log(f"{self._mode}_acc_epoch", self._acc[self._mode].compute().item(), on_epoch=True, prog_bar=True)
 
     # VALIDATION
     def on_validation_epoch_start(self):
@@ -54,7 +56,8 @@ class LightningTrav(pl.LightningModule):
         return self.training_step(batch, batch_idx)
 
     def validation_epoch_end(self, outputs):
-        self.training_epoch_end(outputs)
+
+        self.log(f"{self._mode}_acc_epoch", self._acc[self._mode].compute().item(), on_epoch=True, prog_bar=True)
 
     # TESTING
     def on_test_epoch_start(self):
