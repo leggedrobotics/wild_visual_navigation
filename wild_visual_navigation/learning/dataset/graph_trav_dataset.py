@@ -1,4 +1,6 @@
 from torch_geometric.data import InMemoryDataset, DataLoader, DataListLoader
+from torch_geometric.data import LightningDataset
+
 from wild_visual_navigation import WVN_ROOT_DIR
 import os
 import torch
@@ -12,9 +14,6 @@ class GraphTravDataset(InMemoryDataset):
         paths.sort()
         data_list = [torch.load(p) for p in paths]
         self.data, self.slices = self.collate(data_list)
-
-
-from torch_geometric.data import LightningDataset
 
 
 def get_pl_graph_trav_module(batch_size=8, num_workers=1, **kwargs):

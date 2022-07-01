@@ -1,14 +1,22 @@
-name: simple_gcn/debug
-timestamp: false
-tag_list:
-  - debug
-  - tag2
+general:
+  name: simple_gcn/debug
+  timestamp: false
+  tag_list:
+    - debug
+    - tag2
+
+logger:
+  name: wandb
+  wandb_entity: wild_visual_navigation
+  wandb_project_name: wild_visual_navigation
+  neptune_project_name: jonasfrey96/WVN
 
 optimizer:
   name: ADAMW
   adamw_cfg:
     momentum: 0.9
     weight_decay: 4.0e-05
+  lr: 0.001
 
 trainer:
   precision: 16
@@ -35,3 +43,9 @@ model:
   simple_gcn_cfg:
     num_node_features: 99
     num_classes: 99
+
+lr_monitor:
+  logging_interval: "step"
+
+cb_early_stopping:
+  active: False
