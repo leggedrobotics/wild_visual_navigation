@@ -60,19 +60,25 @@ def train(exp_cfg_path):
         early_stop_callback = EarlyStopping(**exp["cb_early_stopping"]["cfg"])
         cb_ls.appned(early_stop_callback)
 
+    gpus = list(range(torch.cuda.device_count())) if torch.cuda.is_available() else None
+    exp["trainer"]["gpus"] = gpus
     # add distributed plugin
-    if exp["trainer"]["gpus"] > 1:
-        if exp["trainer"]["accelerator"] == "ddp" or exp["trainer"]["accelerator"] is None:
-            ddp_plugin = DDPPlugin(find_unused_parameters=exp["trainer"].get("find_unused_parameters", False))
-        elif exp["trainer"]["accelerator"] == "ddp_spawn":
-            ddp_plugin = DDPSpawnPlugin(find_unused_parameters=exp["trainer"].get("find_unused_parameters", False))
-        elif exp["trainer"]["accelerator"] == "ddp2":
-            ddp_plugin = DDP2Plugin(find_unused_parameters=exp["trainer"].get("find_unused_parameters", False))
-        exp["trainer"]["plugins"] = [ddp_plugin]
+    if torch.cuda.is_available():
+        if len(gpus) > 1:
+            if exp["trainer"]["accelerator"] == "ddp" or exp["trainer"]["accelerator"] is None:
+                ddp_plugin = DDPPlugin(find_unused_parameters=exp["trainer"].get("find_unused_parameters", False))
+            elif exp["trainer"]["accelerator"] == "ddp_spawn":
+                ddp_plugin = DDPSpawnPlugin(find_unused_parameters=exp["trainer"].get("find_unused_parameters", False))
+            elif exp["trainer"]["accelerator"] == "ddp2":
+                ddp_plugin = DDP2Plugin(find_unused_parameters=exp["trainer"].get("find_unused_parameters", False))
+            exp["trainer"]["plugins"] = [ddp_plugin]
 
-    datamodule = get_pl_graph_trav_module()
+    ddp_plugin = DDPSpawnPlugin(find_unused_parameters=exp["trainer"].get("find_unused_parameters", False))
+    exp["trainer"]["plugins"] = ddp_plugin
+    
+    datamodule = get_pl_graph_trav_module(**exp["data_module"])
     trainer = Trainer(
-        **exp["trainer"], strategy=DDPSpawnPlugin(), default_root_dir=model_path, callbacks=cb_ls, logger=logger
+        **exp["trainer"], default_root_dir=model_path, callbacks=cb_ls, logger=logger
     )
     res = trainer.fit(model=model, datamodule=datamodule)
 

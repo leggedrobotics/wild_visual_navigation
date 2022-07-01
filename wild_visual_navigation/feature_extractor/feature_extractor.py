@@ -153,7 +153,7 @@ class FeatureExtractor:
 
         # get mean dino features for each cluster
         features = []
-        for i in range(seg.max()):
+        for i in range(seg.max()+1):
             m = seg[0, 0] == i
             x, y = torch.where(m)
             feat = feat_dino[0, :, x, y].mean(dim=1)

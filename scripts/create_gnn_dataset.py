@@ -48,16 +48,16 @@ if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
     fe = FeatureExtractor(device)
 
-    for j, p in enumerate(image_paths[::88]):
+    for j, p in enumerate(image_paths):
         img = K.io.load_image(p, desired_type=K.io.ImageLoadType.RGB8, device=device)
         img = (img.type(torch.float32) / 255)[None]
-        adj, feat, seg, center = fe.dino_slic(img.clone(), return_centers=True)
+        adj,  feat, seg, center = fe.dino_slic(img.clone(), return_centers=True)
 
         linear_probs, cluster_probs = fe.stego(img)
         stego_label = linear_probs.argmax(dim=1)[0]
 
         ys = []
-        for s in range(seg.max()):
+        for s in range(seg.max()+1):
             m = (seg == s)[0, 0]
             idx, counts = torch.unique(stego_label[m], return_counts=True)
             ys.append(idx[torch.argmax(counts)])
