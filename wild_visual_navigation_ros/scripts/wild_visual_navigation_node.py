@@ -14,7 +14,7 @@ import message_filters
 import rospy
 import tf
 import torch
-
+torch.cuda.empty_cache()
 
 class WvnRosInterface:
     def __init__(self):
@@ -39,7 +39,7 @@ class WvnRosInterface:
         self.info_topic = rospy.get_param("anymal_state_topic", "/alphasense_driver_ros/cam4/camera_info")
 
         # Frames
-        self.fixed_frame = rospy.get_param("fixed_frame", "msf_body_imu_map")
+        self.fixed_frame = rospy.get_param("fixed_frame", "odom") #"msf_body_imu_map")
         self.base_frame = rospy.get_param("base_frame", "base")
         self.camera_frame = rospy.get_param("camera_frame", "cam4_sensor_frame_helper")
         self.footprint_frame = rospy.get_param("footprint_frame", "footprint")
