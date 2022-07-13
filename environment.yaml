@@ -27,13 +27,15 @@ dependencies:
   - ninja
   - catkin_tools
   - pyg
+  - neptune-client
   - pip:
+    - wandb
     - wget
     - hydra-core
-    - pytorch_lightning
+    - pytorch_lightning==1.6.4
     - colorama
     - kornia_rs
     - git+https://github.com/lucasb-eyer/pydensecrf.git#egg=pydensecrf
     - git+https://github.com/kornia/kornia#egg=kornia
     - git+https://github.com/mmattamala/liegroups#egg=liegroups
-    - git+https://github.com/leggedrobotics/stego.git#egg=stego
+    - --editable git+https://github.com/leggedrobotics/stego.git#egg=stego==0.0.1
