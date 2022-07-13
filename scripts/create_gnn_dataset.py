@@ -48,7 +48,7 @@ if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
     fe = FeatureExtractor(device)
 
-    for j, p in enumerate(image_paths[::88]):
+    for j, p in enumerate(image_paths):
         img = K.io.load_image(p, desired_type=K.io.ImageLoadType.RGB8, device=device)
         img = (img.type(torch.float32) / 255)[None]
         adj, feat, seg, center = fe.dino_slic(img.clone(), return_centers=True)
@@ -57,7 +57,7 @@ if __name__ == "__main__":
         stego_label = linear_probs.argmax(dim=1)[0]
 
         ys = []
-        for s in range(seg.max()):
+        for s in range(seg.max() + 1):
             m = (seg == s)[0, 0]
             idx, counts = torch.unique(stego_label[m], return_counts=True)
             ys.append(idx[torch.argmax(counts)])
@@ -67,7 +67,7 @@ if __name__ == "__main__":
         edge_index = adj[0].T
         x = feat[0].T
 
-        data = Data(x=x, edge_index=edge_index, y=y)
+        graph_data = Data(x=x, edge_index=edge_index, y=y)
 
         if args.store:
             for data, key in zip([adj, feat, seg, img, center], keys):
@@ -76,7 +76,7 @@ if __name__ == "__main__":
 
         if args.store_graph:
             path = os.path.join(base_dir, "graph", f"graph_{j:06d}.pt")
-            torch.save(data.cpu(), path)
+            torch.save(graph_data, path)
 
     print(f"Created GNN dataset! Store Individual {args.store}, Store Graph: {args.store_graph}")
     print(f"Output can be found in: {base_dir}!")
