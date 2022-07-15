@@ -144,6 +144,7 @@ class LocalProprioceptionNode(BaseNode):
         timestamp=0.0,
         T_WB=torch.eye(4),
         T_BF=torch.eye(4),
+        T_WF=None,
         length=0.1,
         width=0.1,
         height=0.1,
@@ -154,7 +155,8 @@ class LocalProprioceptionNode(BaseNode):
         super().__init__(timestamp=timestamp, T_WB=T_WB)
 
         self.T_BF = T_BF
-        self.T_WF = self.T_WB @ self.T_BF  # footprint in world
+        # footprint in world
+        self.T_WF = self.T_WB @ self.T_BF if T_WF is None else T_WF
         self.length = length
         self.width = width
         self.height = height
@@ -188,13 +190,13 @@ class LocalImageNode(BaseNode):
 
     name = "local_image_node"
 
-    def __init__(self, timestamp=0.0, T_WB=torch.eye(4), T_BC=torch.eye(4), image=None, projector=None):
+    def __init__(self, timestamp=0.0, T_WB=torch.eye(4), T_BC=torch.eye(4), T_WC=None, image=None, projector=None):
         assert isinstance(T_WB, torch.Tensor)
         assert isinstance(T_BC, torch.Tensor)
         super().__init__(timestamp, T_WB)
 
         self.T_BC = T_BC
-        self.T_WC = self.T_WB @ self.T_BC  # camera in world
+        self.T_WC = self.T_WB @ self.T_BC if T_WC is None else T_WC
         self.image = image
         self.projector = projector
 
