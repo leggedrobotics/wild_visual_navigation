@@ -34,28 +34,28 @@ class WvnRosInterface:
 
     def read_params(self):
         # Topics
-        self.anymal_state_topic = rospy.get_param("anymal_state_topic", "/state_estimator/anymal_state")
-        self.image_topic = rospy.get_param("anymal_state_topic", "/alphasense_driver_ros/cam4/debayered")
-        self.info_topic = rospy.get_param("anymal_state_topic", "/alphasense_driver_ros/cam4/camera_info")
+        self.anymal_state_topic = rospy.get_param("~anymal_state_topic", "/state_estimator/anymal_state")
+        self.image_topic = rospy.get_param("~anymal_state_topic", "/alphasense_driver_ros/cam4/debayered")
+        self.info_topic = rospy.get_param("~anymal_state_topic", "/alphasense_driver_ros/cam4/camera_info")
 
         # Frames
-        self.fixed_frame = rospy.get_param("fixed_frame", "odom") #"msf_body_imu_map")
-        self.base_frame = rospy.get_param("base_frame", "base")
-        self.camera_frame = rospy.get_param("camera_frame", "cam4_sensor_frame_helper")
-        self.footprint_frame = rospy.get_param("footprint_frame", "footprint")
+        self.fixed_frame = rospy.get_param("~fixed_frame", "odom")
+        self.base_frame = rospy.get_param("~base_frame", "base")
+        self.camera_frame = rospy.get_param("~camera_frame", "cam4_sensor_frame_helper")
+        self.footprint_frame = rospy.get_param("~footprint_frame", "footprint")
 
         # Robot size
-        self.robot_length = rospy.get_param("robot_length", 1.0)
-        self.robot_width = rospy.get_param("robot_width", 0.6)
-        self.robot_height = rospy.get_param("robot_height", 0.3)
+        self.robot_length = rospy.get_param("~robot_length", 1.0)
+        self.robot_width = rospy.get_param("~robot_width", 0.6)
+        self.robot_height = rospy.get_param("~robot_height", 0.3)
 
         # Time window
-        self.time_window = rospy.get_param("time_window", 10)
-        self.learning_timer_freq = rospy.get_param("learning_timer_freq", 0.2)  # hertz
-        self.vis_timer_freq = rospy.get_param("visualization_timer_freq", 1)  # hertz
+        self.time_window = rospy.get_param("~time_window", 10)
+        self.learning_timer_freq = rospy.get_param("~learning_timer_freq", 0.2)  # hertz
+        self.vis_timer_freq = rospy.get_param("~visualization_timer_freq", 1)  # hertz
 
         # Traversability estimation params
-        self.traversability_radius = rospy.get_param("traversability_radius", 5.0)
+        self.traversability_radius = rospy.get_param("~traversability_radius", 5.0)
 
         # Torch device
         self.device = rospy.get_param("device", "cuda")
@@ -74,11 +74,6 @@ class WvnRosInterface:
         self.info_sub = message_filters.Subscriber(self.info_topic, CameraInfo)
         self.ts = message_filters.ApproximateTimeSynchronizer([self.image_sub, self.info_sub], 1, slop=1.0 / 10)
         self.ts.registerCallback(self.image_callback)
-
-        # # Learning callback
-        # rospy.Timer(rospy.Duration(1.0 / self.learning_timer_freq), self.learn)
-        # # Visualization callback
-        # rospy.Timer(rospy.Duration(1.0 / self.vis_timer_freq), self.visualize)
 
         # Publishers
         self.pub_debug_image_labeled = rospy.Publisher(
