@@ -4,8 +4,10 @@ import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
 import os
+from os.path import join
 from torchmetrics import Accuracy
 from torch.nn.functional import cross_entropy
+from wild_visual_navigation.learning.visu import LearningVisualizer
 
 
 class LightningTrav(pl.LightningModule):
@@ -19,7 +21,9 @@ class LightningTrav(pl.LightningModule):
         self._acc = {"val": self.acc_val, "test": self.acc_test, "train": self.acc_train}
 
         self._visu_count = {"val": 0, "test": 0, "train": 0}
-
+        self._visualizer = LearningVisualizer(
+            p_visu=join(exp["general"]["model_path"], "visu"), store=True, pl_model=self
+        )
         self._exp = exp
         self._env = env
         self._mode = "train"
@@ -33,12 +37,34 @@ class LightningTrav(pl.LightningModule):
         self._visu_count[self._mode] = 0
 
     def training_step(self, batch, batch_idx):
-        res = self._model(batch)
-        loss = cross_entropy(res, batch.y, reduction="mean")
+        fast = type(batch) != list
+        if fast:
+            graph = batch
+        else:
+            graph = batch[0]
+            center = batch[1]
+            img = batch[2]
+            seg = batch[3]
+
+        res = self._model(graph)
+        loss = cross_entropy(res, graph.y, reduction="mean")
         self.log(f"{self._mode}_loss", loss.item())
         preds = torch.argmax(res, dim=1)
-        self._acc[self._mode](preds, batch.y)
+        self._acc[self._mode](preds, graph.y)
+
+        if not fast:
+            self.visu(graph, center, img, seg, res)
+
         return loss
+
+    def visu(self, graph, center, img, seg, res):
+        if self._visu_count[self._mode] < self._exp["visu"][self._mode]:
+            self._visu_count[self._mode] += 1
+            r = torch.argmax(res, 1)
+            for b in range(img.shape[0]):
+                n = int(res.shape[0] / img.shape[0])
+                pred = r[int(n * b) : int(n * (b + 1))]
+                self._visualizer.plot_graph_result(graph[b], center[b], img[b], seg[b], pred)
 
     def training_epoch_end(self, outputs):
         # Log epoch metric

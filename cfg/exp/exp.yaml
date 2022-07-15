@@ -31,6 +31,7 @@ trainer:
   check_val_every_n_epoch: 1
 
 data_module:
+  visu: True
   batch_size: 8
   num_workers: 0
 
@@ -45,3 +46,8 @@ lr_monitor:
 
 cb_early_stopping:
   active: False
+
+visu:
+  train: 2
+  val: 2
+  test: 2
