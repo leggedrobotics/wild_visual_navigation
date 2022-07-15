@@ -1,8 +1,10 @@
 import os
 import sys
-
+from simple_parsing import ArgumentParser
 import argparse
 import shutil
+import yaml
+import dataclasses
 
 # Frameworks
 import torch
@@ -22,17 +24,22 @@ from wild_visual_navigation.learning.utils import get_logger
 from wild_visual_navigation.learning.lightning import LightningTrav
 from wild_visual_navigation.learning.utils import load_yaml, load_env, create_experiment_folder
 from wild_visual_navigation.learning.dataset import get_pl_graph_trav_module
+from wild_visual_navigation.learning.utils import ExperimentParams
 
 __all__ = ["train"]
 
 
-def train(exp_cfg_path):
+def train(experiment: ExperimentParams):
     seed_everything(42)
-    exp = load_yaml(exp_cfg_path)
+    exp = dataclasses.asdict(experiment) 
     env = load_env()
 
-    model_path = create_experiment_folder(exp, env, exp_cfg_path)
+    model_path = create_experiment_folder(exp, env)
     exp["general"]["name"] = os.path.relpath(model_path, env["base"])
+    exp["general"]["model_path"] = model_path
+    
+    with open(os.path.join(model_path,"experiment_params.yaml"), "w") as f:
+        yaml.dump(exp, f, default_flow_style=False)
 
     logger = get_logger(exp, env)
 
@@ -82,21 +89,10 @@ def train(exp_cfg_path):
 
 
 if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--exp",
-        default="exp.yaml",
-        help="Experiment yaml file.",
-    )
-
+    parser = ArgumentParser()
+    
+    parser.add_arguments(ExperimentParams, dest="experiment")
     args = parser.parse_args()
-
-    exp_cfg_path = args.exp
-    print(WVN_ROOT_DIR, args.exp)
-    if not os.path.isabs(exp_cfg_path):
-        exp_cfg_path = os.path.join(WVN_ROOT_DIR, "cfg/exp", args.exp)
-    print(exp_cfg_path)
-
-    train(exp_cfg_path)
+    
+    train(args.experiment)
     torch.cuda.empty_cache()

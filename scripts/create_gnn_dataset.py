@@ -1,3 +1,4 @@
+# TODO: Jonas fix stroing to avoid leading empty [1,1] in data
 from wild_visual_navigation.feature_extractor import FeatureExtractor
 from wild_visual_navigation import WVN_ROOT_DIR
 from pathlib import Path
@@ -48,7 +49,7 @@ if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
     fe = FeatureExtractor(device)
 
-    for j, p in enumerate(image_paths):
+    for j, p in enumerate(image_paths[::20]):
         img = K.io.load_image(p, desired_type=K.io.ImageLoadType.RGB8, device=device)
         img = (img.type(torch.float32) / 255)[None]
         adj, feat, seg, center = fe.dino_slic(img.clone(), return_centers=True)
