@@ -14,7 +14,9 @@ import message_filters
 import rospy
 import tf
 import torch
+
 torch.cuda.empty_cache()
+
 
 class WvnRosInterface:
     def __init__(self):
