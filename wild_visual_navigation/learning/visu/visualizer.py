@@ -1,4 +1,4 @@
-# TODO: Jonas doc strings
+# TODO: Jonas doc strings, rework visualiation functions
 
 import os
 import numpy as np

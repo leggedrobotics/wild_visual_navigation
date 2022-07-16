@@ -2,6 +2,7 @@
 import os
 import imageio
 import cv2
+import numpy as np
 
 
 def image_functionality(func):
@@ -54,7 +55,7 @@ def image_functionality(func):
                             # logger == wandb
                             import wandb
 
-                            args[0]._pl_model.logger.experiment.log({tag: [wandb.Image(ds, caption=tag)]}, commit=False)
+                            args[0]._pl_model.logger.experiment.log({tag: [wandb.Image(ds, caption=tag)]}, commit=True)
                         except:
                             try:
                                 # logger == tensorboard

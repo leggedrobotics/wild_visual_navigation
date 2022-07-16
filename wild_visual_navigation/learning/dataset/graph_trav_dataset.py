@@ -1,4 +1,4 @@
-# TODO: Jonas adapt GraphTravVisuDataset when storing fixed in create_gnn_dataset 
+# TODO: Jonas adapt GraphTravVisuDataset when storing fixed in create_gnn_dataset
 
 from torch_geometric.data import InMemoryDataset, DataLoader, DataListLoader
 from torch_geometric.data import LightningDataset

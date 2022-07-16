@@ -8,14 +8,12 @@ import os
 __all__ = ["get_neptune_logger", "get_wandb_logger", "get_tensorboard_logger"]
 
 
-def get_neptune_logger(exp, env, exp_p, env_p):
+def get_neptune_logger(exp, env):
     """Returns NeptuneLogger
 
     Args:
         exp (dict): Content of environment file
         env (dict): Content of experiment file
-        exp_p (str): Path to experiment file
-        env_p (str): Path to environment file
     Returns:
         (logger): Logger
     """
@@ -54,15 +52,12 @@ def get_wandb_logger(exp, env):
         (logger): Logger
     """
     project_name = exp["logger"]["wandb_project_name"]  # project_name (str): W&B project_name
-    save_dir = os.path.join(env["base"], exp["general"]["name"])  # save_dir (str): File path to save directory
+    save_dir = os.path.join(exp["general"]["model_path"])  # save_dir (str): File path to save directory
     params = flatten_dict(exp)
     name_full = exp["general"]["name"]
     name_short = "__".join(name_full.split("/")[-2:])
     return WandbLogger(
-        name=name_short,
-        project=project_name,
-        entity=exp["logger"]["wandb_entity"],
-        save_dir=save_dir,
+        name=name_short, project=project_name, entity=exp["logger"]["wandb_entity"], save_dir=save_dir, offline=False
     )
 
 
