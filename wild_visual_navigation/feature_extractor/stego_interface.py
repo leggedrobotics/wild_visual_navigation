@@ -27,11 +27,12 @@ class StegoInterface:
         Returns:
             model (stego.src.train_segmentation.LitUnsupervisedSegmenter): Pretrained model
         """
-        model_path = join(WVN_ROOT_DIR, "assets", "stego", "cocostuff27_vit_base_5.ckpt")
+        model_name = "cocostuff27_vit_base_5.ckpt"
+        model_path = join(WVN_ROOT_DIR, "assets", "stego", model_name)
         if not os.path.exists(model_path):
             os.makedirs(join(WVN_ROOT_DIR, "assets", "stego"), exist_ok=True)
             saved_model_url_root = "https://marhamilresearch4.blob.core.windows.net/stego-public/saved_models/"
-            saved_model_name = "cocostuff27_vit_base_5.ckpt"
+            saved_model_name = model_name
             wget.download(saved_model_url_root + saved_model_name, model_path)
 
         model = LitUnsupervisedSegmenter.load_from_checkpoint(model_path)
