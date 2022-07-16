@@ -14,7 +14,6 @@ class LightningTrav(pl.LightningModule):
     def __init__(self, exp, env):
         super().__init__()
         self._model = get_model(exp["model"])
-
         self.acc_val = Accuracy()
         self.acc_test = Accuracy()
         self.acc_train = Accuracy()
@@ -35,6 +34,7 @@ class LightningTrav(pl.LightningModule):
     def on_train_epoch_start(self):
         self._mode = "train"
         self._visu_count[self._mode] = 0
+        self._visualizer.epoch = self.current_epoch
 
     def training_step(self, batch, batch_idx):
         fast = type(batch) != list
@@ -58,13 +58,21 @@ class LightningTrav(pl.LightningModule):
         return loss
 
     def visu(self, graph, center, img, seg, res):
-        if self._visu_count[self._mode] < self._exp["visu"][self._mode]:
-            self._visu_count[self._mode] += 1
+        if (
+            self._visu_count[self._mode] < self._exp["visu"][self._mode]
+            and self.current_epoch % self._exp["visu"]["log_every_n_epochs"] == 0
+        ):
+
             r = torch.argmax(res, 1)
             for b in range(img.shape[0]):
+                self._visu_count[self._mode] += 1
                 n = int(res.shape[0] / img.shape[0])
                 pred = r[int(n * b) : int(n * (b + 1))]
-                self._visualizer.plot_graph_result(graph[b], center[b], img[b], seg[b], pred)
+                c = self._visu_count[self._mode]
+                e = self.current_epoch
+                self._visualizer.plot_graph_result(
+                    graph[b], center[b], img[b], seg[b], pred, tag=f"C{c}_{self._mode}_graph"
+                )
 
     def training_epoch_end(self, outputs):
         # Log epoch metric

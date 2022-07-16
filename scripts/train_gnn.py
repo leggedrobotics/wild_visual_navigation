@@ -31,14 +31,14 @@ __all__ = ["train"]
 
 def train(experiment: ExperimentParams):
     seed_everything(42)
-    exp = dataclasses.asdict(experiment) 
+    exp = dataclasses.asdict(experiment)
     env = load_env()
 
     model_path = create_experiment_folder(exp, env)
     exp["general"]["name"] = os.path.relpath(model_path, env["base"])
     exp["general"]["model_path"] = model_path
-    
-    with open(os.path.join(model_path,"experiment_params.yaml"), "w") as f:
+
+    with open(os.path.join(model_path, "experiment_params.yaml"), "w") as f:
         yaml.dump(exp, f, default_flow_style=False)
 
     logger = get_logger(exp, env)
@@ -90,9 +90,9 @@ def train(experiment: ExperimentParams):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    
+
     parser.add_arguments(ExperimentParams, dest="experiment")
     args = parser.parse_args()
-    
+
     train(args.experiment)
     torch.cuda.empty_cache()

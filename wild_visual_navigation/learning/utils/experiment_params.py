@@ -15,7 +15,7 @@ class ExperimentParams(Serializable):
 
     @dataclass
     class LoggerParams:
-        name: str = "wandb"
+        name: str = "neptune"
         wandb_entity: str = "wild_visual_navigation"
         wandb_project_name: str = "wild_visual_navigation"
         neptune_project_name: str = "jonasfrey96/WVN"
@@ -43,7 +43,7 @@ class ExperimentParams(Serializable):
         limit_train_batches: float = 1.0
         limit_val_batches: float = 1.0
         limit_test_batches: float = 1.0
-        max_epochs: int = 10000
+        max_epochs: int = 1000
         profiler: bool = False
         num_sanity_val_steps: int = 0
         check_val_every_n_epoch: int = 1
@@ -88,5 +88,6 @@ class ExperimentParams(Serializable):
         train: int = 2
         val: int = 2
         test: int = 2
+        log_every_n_epochs: int = 2
 
     visu: VisuParams = VisuParams()
