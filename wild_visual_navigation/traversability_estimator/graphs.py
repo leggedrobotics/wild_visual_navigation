@@ -1,4 +1,5 @@
 from wild_visual_navigation import WVN_ROOT_DIR
+from .nodes import BaseNode
 import os
 from os.path import join
 import networkx as nx
@@ -20,7 +21,7 @@ class BaseGraph:
     def __str__(self):
         return str(self.graph)
 
-    def add_node(self, node):
+    def add_node(self, node: BaseNode):
         """Adds a node to the graph and creates edge to the latest node
 
         Returns:
@@ -40,7 +41,7 @@ class BaseGraph:
         self.last_added_node = node
         return True
 
-    def add_edge(self, node1, node2):
+    def add_edge(self, node1: BaseNode, node2: BaseNode):
         with self.lock:
             self.graph.add_edge(node1, node2, distance=node1.distance_to(node2))
         return True
@@ -70,7 +71,7 @@ class BaseGraph:
             nodes = sorted(self.graph.nodes)
         return nodes
 
-    def get_node_with_timestamp(self, timestamp, eps=1e-12):
+    def get_node_with_timestamp(self, timestamp: float, eps: float = 1e-12):
         def approximate_timestamp_filter(node):
             return abs(node.get_timestamp() - timestamp) < eps
 
@@ -78,7 +79,7 @@ class BaseGraph:
             nodes = sorted(nx.subgraph_view(self.graph, filter_node=approximate_timestamp_filter).nodes)
         return nodes
 
-    def get_nodes_within_radius(self, node, radius, time_eps=1):
+    def get_nodes_within_radius(self, node: BaseNode, radius: float, time_eps: float = 1):
         # Find closest node in the graph (timestamp). This is useful when we are finding nodes corresponding to another graph
         closest_nodes = self.get_node_with_timestamp(node.get_timestamp(), eps=time_eps)
 
@@ -92,14 +93,14 @@ class BaseGraph:
             pass
         return sorted(nodes)
 
-    def get_nodes_within_timespan(self, t_ini, t_end, open_interval=False):
+    def get_nodes_within_timespan(self, t_ini: float, t_end: float, open_interval: bool = False):
         """Returns all nodes in (t_ini, t_end)
 
         Returns:
             model (type): Description
         """
 
-        def temporal_filter(node):
+        def temporal_filter(node: BaseNode):
             if open_interval:
                 return node.get_timestamp() > t_ini and node.get_timestamp() < t_end
             else:
@@ -109,15 +110,15 @@ class BaseGraph:
             nodes = list(nx.subgraph_view(self.graph, filter_node=temporal_filter).nodes)
         return nodes
 
-    def remove_nodes(self, nodes):
+    def remove_nodes(self, nodes: list):
         with self.lock:
             self.graph.remove_nodes_from(nodes)
 
-    def remove_nodes_within_radius(self, node, radius):
+    def remove_nodes_within_radius(self, node: BaseNode, radius: float):
         nodes_to_remove = self.get_nodes_within_radius(node, radius)
         self.remove_nodes(nodes_to_remove)
 
-    def remove_nodes_within_timestamp(self, t_ini, t_end):
+    def remove_nodes_within_timestamp(self, t_ini: float, t_end: float):
         nodes_to_remove = self.get_nodes_within_timespan(t_ini, t_end, open_interval=False)
         self.remove_nodes(nodes_to_remove)
 
@@ -128,12 +129,12 @@ class GlobalGraph(BaseGraph):
 
 
 class LocalGraph(BaseGraph):
-    def __init__(self, time_window, edge_distance=None):
+    def __init__(self, time_window: float, edge_distance: float = None):
         super().__init__()
         self.time_window = time_window
         self.edge_distance = edge_distance
 
-    def add_node(self, node):
+    def add_node(self, node: BaseNode):
         """Adds a node to the graph and removes old nodes"""
         if self.edge_distance is not None and self.get_last_node() is not None:
             # compute distance to last node and do not add the node if it's too close

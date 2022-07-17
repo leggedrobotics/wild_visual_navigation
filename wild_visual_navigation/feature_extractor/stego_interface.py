@@ -13,7 +13,7 @@ from PIL import Image
 
 
 class StegoInterface:
-    def __init__(self, device):
+    def __init__(self, device: str):
         self.model = self.load()
         self.model.to(device)
         self.device = device
@@ -39,7 +39,7 @@ class StegoInterface:
         return model
 
     @torch.no_grad()
-    def inference(self, img):
+    def inference(self, img: torch.tensor):
         """Performance inference using stego
         Args:
             img (torch.tensor, dtype=type.torch.float32, shape=(BS,3,H.W)): Input image
@@ -62,7 +62,7 @@ class StegoInterface:
         return linear_probs, cluster_probs
 
     @torch.no_grad()
-    def inference_crf(self, img):
+    def inference_crf(self, img: torch.tensor):
         """
         Args:
             img (torch.tensor, dtype=type.torch.float32): Input image

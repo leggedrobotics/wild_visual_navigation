@@ -25,7 +25,10 @@ class WvnRosInterface:
 
         # Initialize traversability estimator
         self.traversability_estimator = TraversabilityEstimator(
-            device=self.device, time_window=self.time_window, image_distance_thr=0.4, proprio_distance_thr=0.4
+            device=self.device,
+            time_window=self.time_window,
+            image_distance_thr=self.image_graph_dist_thr,
+            proprio_distance_thr=self.proprio_graph_dist_thr,
         )
 
         # Setup ros
@@ -58,6 +61,8 @@ class WvnRosInterface:
 
         # Traversability estimation params
         self.traversability_radius = rospy.get_param("~traversability_radius", 5.0)
+        self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr", 0.4)
+        self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.4)
 
         # Torch device
         self.device = rospy.get_param("device", "cuda")
@@ -176,14 +181,11 @@ class WvnRosInterface:
             last_node = self.traversability_estimator.get_local_debug_nodes()[0]
 
             ros_mask = last_node.get_traversability_mask()
-            ros_labeled_image = last_node.get_labeled_image()
-            ros_features_image = last_node.get_features_image()
+            ros_labeled_image = last_node.get_training_image()
             if ros_mask is not None:
                 self.pub_debug_image_mask.publish(rc.torch_to_ros_image(ros_mask))
             if ros_labeled_image is not None:
                 self.pub_debug_image_labeled.publish(rc.torch_to_ros_image(ros_labeled_image))
-            if ros_features_image is not None:
-                self.pub_debug_image_features.publish(rc.torch_to_ros_image(ros_features_image))
 
         # Publish local graph
         local_proprio_graph_msg = Path()
