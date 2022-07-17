@@ -11,7 +11,7 @@ from liegroups.torch import SE3, SO3
 
 
 class ImageProjector:
-    def __init__(self, K, h, w):
+    def __init__(self, K: torch.tensor, h: torch.tensor, w: torch.tensor):
         """Initializes the projector using the pinhole model, without distortion
 
         Args:
@@ -32,7 +32,7 @@ class ImageProjector:
         E = torch.eye(4).expand(K.shape).to(K.device)
         self.camera = PinholeCamera(K, E, h, w)
 
-    def check_validity(self, points_3d, points_2d):
+    def check_validity(self, points_3d: torch.tensor, points_2d: torch.tensor) -> torch.tensor:
         """Check that the points are valid after projecting them on the image
 
         Args:
@@ -54,7 +54,7 @@ class ImageProjector:
         # Return validity
         return valid_z & valid_xmax & valid_xmin & valid_ymax & valid_ymin
 
-    def project(self, T_WC, points_W):
+    def project(self, T_WC: torch.tensor, points_W: torch.tensor):
         """Applies the pinhole projection model to a batch of points
 
         Args:
@@ -78,7 +78,9 @@ class ImageProjector:
         # Return projected points and validity
         return projected_points, valid_points
 
-    def project_and_render(self, T_WC, points, colors, image=None):
+    def project_and_render(
+        self, T_WC: torch.tensor, points: torch.tensor, colors: torch.tensor, image: torch.tensor = None
+    ):
         """Projects the points and returns an image with the projection
 
         Args:

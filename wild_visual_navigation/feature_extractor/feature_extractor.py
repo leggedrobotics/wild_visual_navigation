@@ -1,4 +1,5 @@
-from wild_visual_navigation.feature_extractor import StegoInterface
+from wild_visual_navigation import WVN_ROOT_DIR
+from wild_visual_navigation.feature_extractor import StegoInterface, DinoInterface
 from wild_visual_navigation.utils import PlotHelper
 
 import torch.nn.functional as F
@@ -41,7 +42,7 @@ class SegmentExtractor(torch.nn.Module):
 
     @torch.no_grad()
     def adjacency_list(self, seg):
-        """Extracts a adjacency list based on neigbooring classes.
+        """Extracts a adjacency list based on neigboring classes.
 
         Args:
             seg (torch.Tensor, dtype=torch.long, shape=(BS, 1, H, W)): Segmentation
@@ -58,7 +59,7 @@ class SegmentExtractor(torch.nn.Module):
         left_idx = torch.cat([seg[0, 0, boundary_mask[0]], seg[0, 0, boundary_mask[2]]])
         right_idx = torch.cat([seg[0, 0, boundary_mask[1]], seg[0, 0, boundary_mask[3]]])
 
-        # Create adjeceney_list based on the given pairs (crucial to use float64 here)
+        # Create adjacency_list based on the given pairs (crucial to use float64 here)
         div = seg.max() + 1
         unique_key = (left_idx + (right_idx * (div))).type(torch.float64)
         m = torch.unique(unique_key)
@@ -94,23 +95,35 @@ class SegmentExtractor(torch.nn.Module):
 
 
 class FeatureExtractor:
-    def __init__(self, device):
+    def __init__(self, device: str, extractor_type: str = "dino_slic"):
         """Feature extraction from image
 
         Args:
             device (str): Compute device
+            extractor (str): Extractor model: stego, dino_slic
         """
 
         self.device = device
-        self.si = StegoInterface(device=device)
+        self.extractor_type = extractor_type
+
+        # Prepare extractor depending on the type
+        if self.extractor_type == "stego":
+            self.extractor = StegoInterface(device=device)
+        elif self.extractor_type == "dino_slic":
+            self.extractor = DinoInterface(device=device)
+        else:
+            raise f"Extractor[{self.extractor_type}] not supported!"
 
         self.crop = T.Compose([T.Resize(448, Image.NEAREST), T.CenterCrop(448)])
         self.norm = T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         self.se = SegmentExtractor()
         self.se.to(self.device)
 
-    def extract(self, key, img, **kwargs):
-        return getattr(self, key)(img, **kwargs)
+    def extract(self, img, **kwargs):
+        return getattr(self, self.extractor_type)(img, **kwargs)
+
+    def get_type(self):
+        return self.extractor_type
 
     @torch.no_grad()
     def dino_slic(self, img, n_segments=100, compactness=100.0, return_centers=False, return_image=False, show=False):
@@ -131,20 +144,26 @@ class FeatureExtractor:
             center (torch.Tensor, dtype=torch.float32, shape=(N,2)): Center of custer in image plane
         """
 
-        # currently on BS=1 supported
+        # Currently on BS=1 supported
         assert img.shape[0] == 1 and len(img.shape) == 4
 
-        # prepare input image
-        img = self.crop(img.to(self.device))
-        img_store = img.clone()
-        img = self.norm(img)
+        # Prepare input image
+        img_internal = img.clone()
+        img_internal = self.crop(img_internal.to(self.device))
+        img_internal = self.norm(img_internal)
 
-        # extract dino features
-        feat_dino = self.si.model.net(img)[1]
-        feat_dino = F.interpolate(feat_dino, img.shape[-2:], mode="bilinear", align_corners=False)
+        # Extract dino features
+        feat_dino = self.extractor.inference(img_internal, interpolate=False)
 
-        # get slic clusters
-        img_np = kornia.utils.tensor_to_image(img_store)
+        # Fix size of DINO features to match input image's size
+        B, D, H, W = img.shape
+        new_size = (H, H)
+        pad = int((W - H) / 2)
+        feat_dino = F.interpolate(feat_dino, new_size, mode="bilinear", align_corners=True)
+        feat_dino = F.pad(feat_dino, pad=[pad, pad, 0, 0])
+
+        # Get slic clusters
+        img_np = kornia.utils.tensor_to_image(img)
         seg = skimage.segmentation.slic(img_np, n_segments=n_segments, compactness=compactness, start_label=0)
 
         # extract adjacency_list based on clusters
@@ -200,4 +219,12 @@ class FeatureExtractor:
         return ret
 
     def stego(self, img):
-        return self.si.inference(img)
+        # currently on BS=1 supported
+        assert img.shape[0] == 1 and len(img.shape) == 4
+
+        # Prepare input image
+        img_internal = img.clone()
+        img_internal = self.crop(img_internal.to(self.device))
+        img_internal = self.norm(img_internal)
+
+        return self.extractor.inference(img_internal)

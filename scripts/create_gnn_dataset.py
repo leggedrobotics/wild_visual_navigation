@@ -25,7 +25,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--img_folder",
         type=str,
-        default="/media/Data/Datasets/Perugia/preprocessing_test/2022-05-12T11:44:56_mission_0_day_3/alphasense/cam4_undist",
+        default="/home/matias/rosbags/2022-07-07-arche/2022-07-07T16-19-41_mission/arche-2022/2022-05-12T11:44:56_mission_0_day_3/alphasense",
+        # default="/media/Data/Datasets/Perugia/preprocessing_test/2022-05-12T11:44:56_mission_0_day_3/alphasense/cam4_undist",
         help="Folder containing images.",
     )
     parser.add_argument("--dataset", type=str, default="perugia_forest", help="Dataset name.")
@@ -47,14 +48,15 @@ if __name__ == "__main__":
         os.makedirs(os.path.join(base_dir, "graph"), exist_ok=True)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    fe = FeatureExtractor(device)
+    dino = FeatureExtractor(device, extractor_type="dino_slic")
+    stego = FeatureExtractor(device, extractor_type="stego")
 
     for j, p in enumerate(image_paths[::20]):
         img = K.io.load_image(p, desired_type=K.io.ImageLoadType.RGB8, device=device)
         img = (img.type(torch.float32) / 255)[None]
-        adj, feat, seg, center = fe.dino_slic(img.clone(), return_centers=True)
+        adj, feat, seg, center = dino.dino_slic(img.clone(), return_centers=True)
 
-        linear_probs, cluster_probs = fe.stego(img)
+        linear_probs, cluster_probs = stego.stego(img)
         stego_label = linear_probs.argmax(dim=1)[0]
 
         ys = []

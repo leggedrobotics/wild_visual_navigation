@@ -1,0 +1,20 @@
+# Relevant rames
+fixed_frame: odom
+base_frame: base
+camera_frame: cam4_sensor_frame_helper
+footprint_frame: footprint"
+
+# Robot size
+robot_length: 1.0
+robot_width: 0.6
+robot_height: 0.3
+
+# Time window for reprojection integration
+time_window: 10
+
+# Traversability estimation params
+traversability_radius: 5.0
+
+# The valoues below are to make a sparser graph
+image_graph_dist_thr: 0.4
+proprio_graph_dist_thr: 0.4
