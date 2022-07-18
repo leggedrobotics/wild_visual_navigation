@@ -84,7 +84,9 @@ class SegmentExtractor(torch.nn.Module):
         assert seg.shape[0] == 1 and len(seg.shape) == 4
 
         centers = []
-        tmp_seg = seg.T
+        tmp_seg = seg.permute(
+            *torch.arange(seg.ndim - 1, -1, -1)
+        )  # complicated command because seg.T will be deprecated
         for s in range(seg.max() + 1):
             indices = torch.nonzero((s == tmp_seg)[:, :, 0, 0])
             res = indices.type(torch.float32).mean(dim=0)
@@ -114,7 +116,7 @@ class FeatureExtractor:
         else:
             raise f"Extractor[{self.extractor_type}] not supported!"
 
-        self.crop = T.Compose([T.Resize(448, Image.NEAREST), T.CenterCrop(448)])
+        self.crop = T.Compose([T.Resize(448, T.InterpolationMode.NEAREST), T.CenterCrop(448)])
         self.norm = T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         self.se = SegmentExtractor()
         self.se.to(self.device)

@@ -42,7 +42,7 @@ class GraphTravVisuDataset(Dataset):
 
         self.paths = paths
 
-        self.crop = T.Compose([T.Resize(448, Image.NEAREST), T.CenterCrop(448)])
+        self.crop = T.Compose([T.Resize(448, T.InterpolationMode.NEAREST), T.CenterCrop(448)])
 
     def len(self):
         return len(self.paths)
