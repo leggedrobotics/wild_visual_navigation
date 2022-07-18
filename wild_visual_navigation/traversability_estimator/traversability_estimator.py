@@ -102,8 +102,7 @@ class TraversabilityEstimator:
         # Get all the current nodes
         global_nodes = self.global_graph.get_nodes()
         for node, index in zip(global_nodes, range(len(global_nodes))):
-            node.save(mission_path, index)        
-        
+            node.save(mission_path, index)
 
     def train(self, iter=10):
         pass
@@ -160,7 +159,6 @@ class TraversabilityEstimator:
 
                 # Update traversability mask
                 traversability_mask = torch.maximum(traversability_mask, mask.to(traversability_mask.device))
-
 
             # Save traversability in global node to store supervision signal
             gnode.set_supervision_signal(traversability_mask, is_image=True)
