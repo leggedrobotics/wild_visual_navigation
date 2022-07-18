@@ -185,7 +185,7 @@ class DebugNode(BaseNode):
         return self.traversability_mask
 
     def get_training_image(self):
-        if self.image is None:
+        if self.image is None or self.traversability_mask is None:
             return None
         img_np = kornia.utils.tensor_to_image(self.image)
         img_pil = Image.fromarray(np.uint8(img_np * 255))

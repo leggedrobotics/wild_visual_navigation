@@ -61,8 +61,8 @@ class WvnRosInterface:
 
         # Traversability estimation params
         self.traversability_radius = rospy.get_param("~traversability_radius", 5.0)
-        self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr", 0.4)
-        self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.4)
+        self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr", 0.1)
+        self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.1)
 
         # Torch device
         self.device = rospy.get_param("device", "cuda")

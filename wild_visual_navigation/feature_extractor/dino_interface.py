@@ -18,7 +18,7 @@ class DinoInterface:
             {
                 "dino_patch_size": 8,
                 "dino_feat_type": "feat",
-                "model_type": "vit_base",  # vit_small
+                "model_type": "vit_small",  # vit_small
                 "projection_type": "nonlinear",
                 "pretrained_weights": None,
                 "dropout": True,
@@ -33,7 +33,11 @@ class DinoInterface:
         self.device = device
 
         self.transform = T.Compose(
-            [T.Resize(448, Image.NEAREST), T.CenterCrop(448), T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]
+            [
+                T.Resize(448, T.InterpolationMode.NEAREST),
+                T.CenterCrop(448),
+                T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+            ]
         )
 
     def download_pretrained_model(self, cfg: DictConfig):

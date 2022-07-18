@@ -157,18 +157,6 @@ Visualization Manager:
           Value: false
         bottom_shell:
           Value: false
-        bpearl_front:
-          Value: false
-        bpearl_front_beam_origin:
-          Value: false
-        bpearl_front_protection_bars:
-          Value: false
-        bpearl_rear:
-          Value: false
-        bpearl_rear_beam_origin:
-          Value: false
-        bpearl_rear_protection_bars:
-          Value: false
         cam0_sensor_frame:
           Value: false
         cam1_sensor_frame:
@@ -201,10 +189,76 @@ Visualization Manager:
           Value: false
         camera_init_GRAVITY_ALIGNED:
           Value: false
-        control:
-          Value: false
+        depth_camera_front_camera:
+          Value: true
+        depth_camera_front_camera_parent:
+          Value: true
+        depth_camera_front_depth_frame:
+          Value: true
+        depth_camera_front_depth_optical_frame:
+          Value: true
+        depth_camera_front_infra1_frame:
+          Value: true
+        depth_camera_front_infra1_optical_frame:
+          Value: true
+        depth_camera_front_infra2_frame:
+          Value: true
+        depth_camera_front_infra2_optical_frame:
+          Value: true
+        depth_camera_left_camera:
+          Value: true
+        depth_camera_left_camera_parent:
+          Value: true
+        depth_camera_left_depth_frame:
+          Value: true
+        depth_camera_left_depth_optical_frame:
+          Value: true
+        depth_camera_left_infra1_frame:
+          Value: true
+        depth_camera_left_infra1_optical_frame:
+          Value: true
+        depth_camera_left_infra2_frame:
+          Value: true
+        depth_camera_left_infra2_optical_frame:
+          Value: true
+        depth_camera_rear_camera:
+          Value: true
+        depth_camera_rear_camera_parent:
+          Value: true
+        depth_camera_rear_depth_frame:
+          Value: true
+        depth_camera_rear_depth_optical_frame:
+          Value: true
+        depth_camera_rear_infra1_frame:
+          Value: true
+        depth_camera_rear_infra1_optical_frame:
+          Value: true
+        depth_camera_rear_infra2_frame:
+          Value: true
+        depth_camera_rear_infra2_optical_frame:
+          Value: true
+        depth_camera_right_camera:
+          Value: true
+        depth_camera_right_camera_parent:
+          Value: true
+        depth_camera_right_depth_frame:
+          Value: true
+        depth_camera_right_depth_optical_frame:
+          Value: true
+        depth_camera_right_infra1_frame:
+          Value: true
+        depth_camera_right_infra1_optical_frame:
+          Value: true
+        depth_camera_right_infra2_frame:
+          Value: true
+        depth_camera_right_infra2_optical_frame:
+          Value: true
         docking_hatch_cover:
           Value: false
+        face_front:
+          Value: true
+        face_rear:
+          Value: true
         feetcenter:
           Value: true
         footprint:
@@ -227,10 +281,12 @@ Visualization Manager:
           Value: false
         lidar:
           Value: false
-        loco_footprint:
-          Value: false
+        lidar_rotated:
+          Value: true
         map:
           Value: false
+        mira_spectrometer:
+          Value: true
         msf_body_imu_map:
           Value: true
         odom:
@@ -243,6 +299,14 @@ Visualization Manager:
           Value: true
         top_shell:
           Value: false
+        wide_angle_camera_front_camera:
+          Value: true
+        wide_angle_camera_front_camera_parent:
+          Value: true
+        wide_angle_camera_rear_camera:
+          Value: true
+        wide_angle_camera_rear_camera_parent:
+          Value: true
       Marker Alpha: 1
       Marker Scale: 0.5
       Name: TF
@@ -306,18 +370,60 @@ Visualization Manager:
               {}
             bottom_shell:
               {}
-            bpearl_front:
-              bpearl_front_beam_origin:
-                {}
-            bpearl_front_protection_bars:
-              {}
-            bpearl_rear:
-              bpearl_rear_beam_origin:
-                {}
-            bpearl_rear_protection_bars:
-              {}
+            depth_camera_left_camera:
+              depth_camera_left_camera_parent:
+                depth_camera_left_depth_frame:
+                  depth_camera_left_depth_optical_frame:
+                    {}
+                depth_camera_left_infra1_frame:
+                  depth_camera_left_infra1_optical_frame:
+                    {}
+                depth_camera_left_infra2_frame:
+                  depth_camera_left_infra2_optical_frame:
+                    {}
+            depth_camera_right_camera:
+              depth_camera_right_camera_parent:
+                depth_camera_right_depth_frame:
+                  depth_camera_right_depth_optical_frame:
+                    {}
+                depth_camera_right_infra1_frame:
+                  depth_camera_right_infra1_optical_frame:
+                    {}
+                depth_camera_right_infra2_frame:
+                  depth_camera_right_infra2_optical_frame:
+                    {}
             docking_hatch_cover:
               {}
+            face_front:
+              depth_camera_front_camera:
+                depth_camera_front_camera_parent:
+                  depth_camera_front_depth_frame:
+                    depth_camera_front_depth_optical_frame:
+                      {}
+                  depth_camera_front_infra1_frame:
+                    depth_camera_front_infra1_optical_frame:
+                      {}
+                  depth_camera_front_infra2_frame:
+                    depth_camera_front_infra2_optical_frame:
+                      {}
+              wide_angle_camera_front_camera:
+                wide_angle_camera_front_camera_parent:
+                  {}
+            face_rear:
+              depth_camera_rear_camera:
+                depth_camera_rear_camera_parent:
+                  depth_camera_rear_depth_frame:
+                    depth_camera_rear_depth_optical_frame:
+                      {}
+                  depth_camera_rear_infra1_frame:
+                    depth_camera_rear_infra1_optical_frame:
+                      {}
+                  depth_camera_rear_infra2_frame:
+                    depth_camera_rear_infra2_optical_frame:
+                      {}
+              wide_angle_camera_rear_camera:
+                wide_angle_camera_rear_camera_parent:
+                  {}
             front_handle:
               {}
             handle:
@@ -327,6 +433,8 @@ Visualization Manager:
             interface_hatch:
               hatch:
                 {}
+            mira_spectrometer:
+              {}
             perception_head_cage:
               lidar:
                 imu_sensor_frame:
@@ -348,17 +456,15 @@ Visualization Manager:
                   cam6_sensor_frame_helper:
                     cam6_sensor_frame:
                       {}
+                lidar_rotated:
+                  {}
             remote:
               {}
             top_shell:
               {}
-          control:
-            {}
           feetcenter:
             {}
           footprint:
-            {}
-          loco_footprint:
             {}
           map:
             camera_init_CORRECTED:
@@ -578,7 +684,7 @@ Visualization Manager:
       Unreliable: false
       Value: true
     - Class: rviz/Image
-      Enabled: true
+      Enabled: false
       Image Topic: /wild_visual_navigation_node/debug/last_node_image_features
       Max Value: 1
       Median window: 5
@@ -588,12 +694,12 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: raw
       Unreliable: false
-      Value: true
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
     Default Light: true
-    Fixed Frame: msf_body_imu_map
+    Fixed Frame: odom
     Frame Rate: 30
   Name: root
   Tools:
@@ -617,7 +723,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 2.7332229614257812
+      Distance: 6.767359256744385
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -633,9 +739,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.6953982710838318
+      Pitch: 0.6003981828689575
       Target Frame: base
-      Yaw: 0.4053984582424164
+      Yaw: 1.1953980922698975
     Saved: ~
 Window Geometry:
   Displays:
@@ -651,7 +757,7 @@ Window Geometry:
     collapsed: false
   Input Image:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd000000040000000000000189000002eefc0200000009fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c0061007900730100000165000002ee000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000c00430061006d00650072006100000002ea000000c80000000000000000000000010000010f0000020efc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007300000001560000020e000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000000000020000073800000122fc0100000005fb000000160049006e00700075007400200049006d0061006700650100000000000001490000008600fffffffb0000001c0049006d006100670065002000460065006100740075007200650073010000014f000003690000009d00fffffffb0000001a0049006d0061006700650020004c006100620065006c0065006401000004be000001650000009800fffffffb000000140049006d0061006700650020004d00610073006b01000006290000010f0000008500fffffffb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007800000003efc0100000002fb0000000800540069006d0065000000000000000780000004f300fffffffb0000000800540069006d00650100000000000004500000000000000000000005a9000002ee00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd000000040000000000000189000002eefc0200000009fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c0061007900730100000165000002ee000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000c00430061006d00650072006100000002ea000000c80000000000000000000000010000010f0000020efc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007300000001560000020e000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000000000020000073800000122fc0100000005fb000000160049006e00700075007400200049006d0061006700650100000000000002770000008600fffffffb0000001c0049006d006100670065002000460065006100740075007200650073000000014f000003690000009d00fffffffb0000001a0049006d0061006700650020004c006100620065006c00650064010000027d000002ad0000009800fffffffb000000140049006d0061006700650020004d00610073006b0100000530000002080000008500fffffffb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007800000003efc0100000002fb0000000800540069006d0065000000000000000780000004f300fffffffb0000000800540069006d00650100000000000004500000000000000000000005a9000002ee00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:

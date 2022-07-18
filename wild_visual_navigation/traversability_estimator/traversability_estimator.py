@@ -147,7 +147,10 @@ class TraversabilityEstimator:
                 mask = mask.squeeze(0)
 
                 # Update traversability mask
-                traversability_mask = torch.maximum(traversability_mask, mask.to(traversability_mask.device))
+                try:
+                    traversability_mask = torch.maximum(traversability_mask, mask.to(traversability_mask.device))
+                except Exception as e:
+                    pass
 
             # Save traversability in global node to store supervision signal
             gnode.set_supervision_signal(traversability_mask, is_image=True)
