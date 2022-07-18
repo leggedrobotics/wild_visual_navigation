@@ -10,8 +10,10 @@ from wild_visual_navigation.traversability_estimator import (
     LocalImageNode,
     LocalProprioceptionNode,
 )
+
+from threading import Thread
+
 import os
-from os.path import join
 import torch
 import networkx as nx
 import torchvision.transforms as transforms
@@ -44,7 +46,7 @@ class TraversabilityEstimator:
         # TODO: fix feature extractor type
         self.feature_extractor = FeatureExtractor(device, extractor_type=feature_extractor)
         # For debugging
-        os.makedirs(join(WVN_ROOT_DIR, "results", "test_traversability_estimator"), exist_ok=True)
+        os.makedirs(os.path.join(WVN_ROOT_DIR, "results", "test_traversability_estimator"), exist_ok=True)
 
     def add_local_image_node(self, node: BaseNode):
         """Adds a node to the local graph to store images
@@ -92,6 +94,16 @@ class TraversabilityEstimator:
 
     def get_local_proprio_nodes(self):
         return self.local_proprio_graph.get_nodes()
+
+    def save_graph(self, mission_path: str, export_debug: bool = False):
+        # Make folder if it doesn't exist
+        os.makedirs(mission_path, exist_ok=True)
+
+        # Get all the current nodes
+        global_nodes = self.global_graph.get_nodes()
+        for node, index in zip(global_nodes, range(len(global_nodes))):
+            node.save(mission_path, index)        
+        
 
     def train(self, iter=10):
         pass
@@ -147,10 +159,8 @@ class TraversabilityEstimator:
                 mask = mask.squeeze(0)
 
                 # Update traversability mask
-                try:
-                    traversability_mask = torch.maximum(traversability_mask, mask.to(traversability_mask.device))
-                except Exception as e:
-                    pass
+                traversability_mask = torch.maximum(traversability_mask, mask.to(traversability_mask.device))
+
 
             # Save traversability in global node to store supervision signal
             gnode.set_supervision_signal(traversability_mask, is_image=True)

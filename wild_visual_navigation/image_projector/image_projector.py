@@ -106,7 +106,7 @@ class ImageProjector:
         np_projected_points = projected_points.squeeze(0).cpu().numpy()
 
         # Get convex hull
-        if valid_points.any():
+        if valid_points.sum() > 3:
             hull = ConvexHull(np_projected_points, qhull_options="QJ")
 
             # Get subset of points that are part of the convex hull

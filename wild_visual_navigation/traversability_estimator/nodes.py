@@ -6,6 +6,7 @@ from PIL import Image, ImageDraw
 from torch_geometric.data import Data
 import kornia
 import numpy as np
+import os
 import torch
 
 
@@ -109,16 +110,21 @@ class GlobalNode(BaseNode):
         return self.feature_type
 
     def get_feature_edges(self):
-        return self.edges
+        return self.feature_edges
 
     def get_feature_segments(self):
-        return self.segments
+        return self.feature_segments
 
     def get_feature_positions(self):
-        return self.positions
+        return self.feature_positions
 
     def get_supervision_signal(self):
         return self.supervision_signal
+
+    def save(self, output_path: str, index: int):
+        graph_data = self.as_pyg_data()
+        path = os.path.join(output_path, f"graph_{index:06d}.pt")
+        torch.save(graph_data, path)
 
     def set_features(
         self,
@@ -130,9 +136,9 @@ class GlobalNode(BaseNode):
     ):
         self.feature_type = feature_type
         self.features = features
-        self.edges = edges
-        self.segments = segments
-        self.positions = positions
+        self.feature_edges = edges
+        self.feature_segments = segments
+        self.feature_positions = positions
 
     def set_supervision_signal(self, signal: torch.tensor, is_image: bool = True):
         if not is_image:
@@ -143,9 +149,9 @@ class GlobalNode(BaseNode):
 
             # Query feature positions and get labels
             labels_per_segment = []
-            for s in range(self.segments.max() + 1):
+            for s in range(self.feature_segments.max() + 1):
                 # Get a mask indices for the segment
-                m = (self.segments == s)[0, 0]
+                m = (self.feature_segments == s)[0, 0]
                 # Count the labels
                 idx, counts = torch.unique(signal[m], return_counts=True)
                 # append the labels
@@ -158,7 +164,7 @@ class GlobalNode(BaseNode):
         return isinstance(self.features, torch.Tensor) and isinstance(self.supervision_signal, torch.Tensor)
 
     def as_pyg_data(self):
-        return Data(x=self.features, edge_index=self.edges, y=self.supervision_signal)
+        return Data(x=self.features, edge_index=self.feature_edges, y=self.supervision_signal)
 
 
 class DebugNode(BaseNode):
@@ -194,13 +200,13 @@ class DebugNode(BaseNode):
         trav_np = kornia.utils.tensor_to_image(self.traversability_mask)
         trav_pil = Image.fromarray(np.uint8(trav_np * 255))
 
-        for i in range(self.node.edges.shape[1]):
-            a, b = self.node.edges[0, i, 0], self.node.edges[0, i, 1]
-            line_params = self.node.positions[0][a].tolist() + self.node.positions[0][b].tolist()
+        for i in range(self.node.feature_edges.shape[1]):
+            a, b = self.node.feature_edges[0, i, 0], self.node.feature_edges[0, i, 1]
+            line_params = self.node.feature_positions[0][a].tolist() + self.node.feature_positions[0][b].tolist()
             img_draw.line(line_params, fill=(255, 255, 255, 100), width=2)
 
-        for i in range(self.node.positions.shape[1]):
-            params = self.node.positions[0][i].tolist()
+        for i in range(self.node.feature_positions.shape[1]):
+            params = self.node.feature_positions[0][i].tolist()
             color = trav_pil.getpixel((params[0], params[1]))
             r = 10
             params = [p - r for p in params] + [p + r for p in params]
