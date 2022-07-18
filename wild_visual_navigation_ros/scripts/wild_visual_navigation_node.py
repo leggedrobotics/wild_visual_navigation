@@ -7,10 +7,13 @@ import wild_visual_navigation_ros.ros_converter as rc
 
 from anymal_msgs.msg import AnymalState
 from geometry_msgs.msg import Pose, PoseStamped, Point
-from sensor_msgs.msg import Image, CameraInfo
 from nav_msgs.msg import Path
+from sensor_msgs.msg import Image, CameraInfo
+from std_srvs.srv import Trigger, TriggerResponse
+from threading import Thread
 from visualization_msgs.msg import MarkerArray, Marker
 import message_filters
+import os
 import rospy
 import tf
 import torch
@@ -64,6 +67,13 @@ class WvnRosInterface:
         self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr", 0.1)
         self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.1)
 
+        # Data storage
+        out_path = os.path.join(WVN_ROOT_DIR, "results")
+        self.output_path = rospy.get_param("~output_path", out_path)
+        self.mission_name = rospy.get_param(
+            "~mission_name", "default_mission"
+        )  # Note: We may want to send this in the service call
+
         # Torch device
         self.device = rospy.get_param("device", "cuda")
 
@@ -89,9 +99,6 @@ class WvnRosInterface:
         self.pub_debug_image_mask = rospy.Publisher(
             "/wild_visual_navigation_node/debug/last_node_image_mask", Image, queue_size=10
         )
-        self.pub_debug_image_features = rospy.Publisher(
-            "/wild_visual_navigation_node/debug/last_node_image_features", Image, queue_size=10
-        )
         self.pub_debug_local_proprio_graph = rospy.Publisher(
             "/wild_visual_navigation_node/debug/local_proprioceptive_graph", Path, queue_size=10
         )
@@ -104,6 +111,14 @@ class WvnRosInterface:
 
         # Services
         # Like, reset graph or the like
+        self.save_graph_service = rospy.Service("~save_graph", Trigger, self.save_graph_callback)
+
+    def save_graph_callback(self, req):
+        mission_path = os.path.join(self.output_path, self.mission_name)
+        t = Thread(target=self.traversability_estimator.save_graph, args=(mission_path,))
+        t.start()
+        t.join()
+        return TriggerResponse(success=True, message="Graph saved!")
 
     def query_tf(self, parent_frame, child_frame):
         self.tf_listener.waitForTransform(parent_frame, child_frame, rospy.Time(), rospy.Duration(1.0))
@@ -150,7 +165,7 @@ class WvnRosInterface:
 
         # Prepare image projector
         K, H, W = rc.ros_cam_info_to_tensors(info_msg, device=self.device)
-        image_projector = ImageProjector(K, H, W)
+        image_projector = ImageProjector(K=K, h=H, w=W)
 
         # Add image to base node
         # convert image message to torch image
@@ -162,6 +177,7 @@ class WvnRosInterface:
         # Add node to graph
         self.traversability_estimator.add_local_image_node(image_node)
 
+        # TODO: move the stuff below to a different thread
         self.learn(None)
         self.visualize(None)
 

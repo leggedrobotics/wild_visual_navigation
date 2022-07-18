@@ -41,7 +41,7 @@ class SegmentExtractor(torch.nn.Module):
         self.f1.weight[3, 0, 1, 1] = -1
 
     @torch.no_grad()
-    def adjacency_list(self, seg):
+    def adjacency_list(self, seg: torch.tensor):
         """Extracts a adjacency list based on neigboring classes.
 
         Args:
@@ -71,7 +71,7 @@ class SegmentExtractor(torch.nn.Module):
         return adjacency_list[None]
 
     @torch.no_grad()
-    def centers(self, seg):
+    def centers(self, seg: torch.tensor):
         """Extracts a center position in image plane of clusters.
 
         Args:
@@ -128,7 +128,15 @@ class FeatureExtractor:
         return self.extractor_type
 
     @torch.no_grad()
-    def dino_slic(self, img, n_segments=100, compactness=100.0, return_centers=False, return_image=False, show=False):
+    def dino_slic(
+        self,
+        img: torch.tensor,
+        n_segments: int = 100,
+        compactness: float = 100.0,
+        return_centers: bool = False,
+        return_image: bool = False,
+        show: bool = False,
+    ):
         """Extract dino feature form image
 
         Args:
@@ -220,7 +228,7 @@ class FeatureExtractor:
 
         return ret
 
-    def stego(self, img):
+    def stego(self, img: torch.tensor):
         # currently on BS=1 supported
         assert img.shape[0] == 1 and len(img.shape) == 4
 
