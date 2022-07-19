@@ -28,6 +28,7 @@ dependencies:
   - catkin_tools
   - pyg
   - neptune-client
+  - simple-parsing
   - pip:
     - wandb
     - wget

@@ -25,8 +25,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--img_folder",
         type=str,
-        default="/home/matias/rosbags/2022-07-07-arche/2022-07-07T16-19-41_mission/arche-2022/2022-05-12T11:44:56_mission_0_day_3/alphasense",
-        # default="/media/Data/Datasets/Perugia/preprocessing_test/2022-05-12T11:44:56_mission_0_day_3/alphasense/cam4_undist",
+        default="/media/Data/Datasets/Perugia/preprocessing_test/2022-05-12T11:44:56_mission_0_day_3/alphasense/cam4_undist",
         help="Folder containing images.",
     )
     parser.add_argument("--dataset", type=str, default="perugia_forest", help="Dataset name.")
