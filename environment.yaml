@@ -29,10 +29,11 @@ dependencies:
   - pyg
   - neptune-client
   - pip:
+    - neptune-client[optuna]
     - wandb
     - wget
     - hydra-core
-    - pytorch_lightning==1.6.4
+    - pytorch_lightning==1.6.5
     - colorama
     - kornia_rs
     - git+https://github.com/lucasb-eyer/pydensecrf.git#egg=pydensecrf
