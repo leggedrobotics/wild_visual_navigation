@@ -15,12 +15,12 @@ class ImageProjector:
         """Initializes the projector using the pinhole model, without distortion
 
         Args:
-            K: (torch.Tensor, dtype=torch.float32, shape=(B, 4, 4)): Camera matrices
-            T_WC: (torch.Tensor, dtype=torch.float32, shape=(B, 4, 4)): Extrinsics SE(3) matrix
-            h: (torch.Tensor, dtype=torch.int64): Image height
-            w: (torch.Tensor, dtype=torch.int64):  Image width
-            fixed_frame: (str):  Fixed frame name
-            camera_frame: (str): Camera frame name
+            K (torch.Tensor, dtype=torch.float32, shape=(B, 4, 4)): Camera matrices
+            T_WC (torch.Tensor, dtype=torch.float32, shape=(B, 4, 4)): Extrinsics SE(3) matrix
+            h (torch.Tensor, dtype=torch.int64): Image height
+            w (torch.Tensor, dtype=torch.int64):  Image width
+            fixed_frame (str):  Fixed frame name
+            camera_frame (str): Camera frame name
 
         Returns:
             None

@@ -9,7 +9,14 @@ from threading import Lock
 
 class BaseGraph:
     def __init__(self):
-        """Initializes the graph"""
+        """Initializes a graph with basic functionalities
+
+        Args:
+            None
+
+        Returns:
+            A BaseGraph object
+        """
 
         # Initialize graph
         self.graph = nx.Graph()
@@ -77,20 +84,33 @@ class BaseGraph:
 
         with self.lock:
             nodes = sorted(nx.subgraph_view(self.graph, filter_node=approximate_timestamp_filter).nodes)
-        return nodes
 
-    def get_nodes_within_radius(self, node: BaseNode, radius: float, time_eps: float = 1):
+        return nodes[0] if len(nodes) > 0 else None
+
+    def get_nodes_within_radius_range(
+        self, node: BaseNode, min_radius: float, max_radius: float, time_eps: float = 1, metric: str = "dijkstra"
+    ):
         # Find closest node in the graph (timestamp). This is useful when we are finding nodes corresponding to another graph
-        closest_nodes = self.get_node_with_timestamp(node.get_timestamp(), eps=time_eps)
+        closest_node = self.get_node_with_timestamp(node.get_timestamp(), eps=time_eps)
 
         nodes = []
         try:
-            closest_node = closest_nodes[0]
             with self.lock:
-                length, path = nx.single_source_dijkstra(self.graph, closest_node, cutoff=radius, weight="distance")
-            nodes = list(length)[1:]  # first node is the query node
+                if metric == "dijkstra":
+                    length, path = nx.single_source_dijkstra(
+                        self.graph, closest_node, cutoff=max_radius, weight="distance"
+                    )
+                    nodes = list(length)[1:]  # first node is the query node
+                elif metric == "pose":
+
+                    def pose_distance_filter(other):
+                        d = abs(other.distance_to(node))
+                        return d >= min_radius and d < max_radius
+
+                    nodes = sorted(nx.subgraph_view(self.graph, filter_node=pose_distance_filter).nodes)
+
         except Exception as e:
-            pass
+            print(f"[get_nodes_within_radius_range] Exception: {e}")
         return sorted(nodes)
 
     def get_nodes_within_timespan(self, t_ini: float, t_end: float, open_interval: bool = False):
@@ -114,8 +134,12 @@ class BaseGraph:
         with self.lock:
             self.graph.remove_nodes_from(nodes)
 
-    def remove_nodes_within_radius(self, node: BaseNode, radius: float):
-        nodes_to_remove = self.get_nodes_within_radius(node, radius)
+    def remove_nodes_within_radius_range(
+        self, node: BaseNode, min_radius: float = 0, max_radius: float = float("inf"), metric: str = "dijkstra"
+    ):
+        nodes_to_remove = self.get_nodes_within_radius_range(
+            node, min_radius=min_radius, max_radius=max_radius, metric=metric
+        )
         self.remove_nodes(nodes_to_remove)
 
     def remove_nodes_within_timestamp(self, t_ini: float, t_end: float):
@@ -123,13 +147,17 @@ class BaseGraph:
         self.remove_nodes(nodes_to_remove)
 
 
-class GlobalGraph(BaseGraph):
-    def __init__(self):
-        super().__init__()
-
-
-class LocalGraph(BaseGraph):
+class TemporalWindowGraph(BaseGraph):
     def __init__(self, time_window: float, edge_distance: float = None):
+        """Initializes a graph that keeps nodes within a time window
+
+        Args:
+            time_window (float): maximum time to keep nodes (counting from the last added node)
+            edge_distance (float): threshold to avoid adding nodes that are too close
+
+        Returns:
+            A TemporalWindowGraph
+        """
         super().__init__()
         self.time_window = time_window
         self.edge_distance = edge_distance
@@ -150,11 +178,39 @@ class LocalGraph(BaseGraph):
         self.remove_nodes_within_timestamp(0, t_end)
         return out
 
-    def remove_old_nodes(self):
-        """Adds a node to the graph and removes old nodes"""
-        # Remove all nodes from the beginning of time till right before the time window
-        t_end = self.get_last_node().get_timestamp() - self.time_window
-        self.remove_nodes_within_timestamp(0, t_end)
+
+class DistanceWindowGraph(BaseGraph):
+    def __init__(self, max_distance: float, edge_distance: float = None):
+        super().__init__()
+        """Initializes a graph that keeps nodes within a max distance
+
+        Args:
+            max_distance (float): maximum distance to keep nodes (measured from last added node)
+            edge_distance (float): threshold to avoid adding nodes that are too close
+
+        Returns:
+            A DistanceWindowGraph
+        """
+
+        self.max_distance = max_distance
+        self.edge_distance = edge_distance
+
+    def add_node(self, node: BaseNode):
+        """Adds a node to the graph and removes far nodes"""
+        if self.edge_distance is not None and self.get_last_node() is not None:
+            # compute distance to last node and do not add the node if it's too close
+            d = node.distance_to(self.get_last_node())
+            if d < self.edge_distance:
+                return False
+
+        # Add node
+        out = super().add_node(node)
+
+        # Remove all nodes farther than self.max_distance
+        self.remove_nodes_within_radius_range(
+            node, min_radius=self.max_distance, max_radius=float("inf"), metric="pose"
+        )
+        return out
 
 
 def run_base_graph():
@@ -185,7 +241,7 @@ def run_base_graph():
 
     # Get nodes within radius
     radius = 0.2
-    query_node = graph.get_node_with_timestamp(5.0)[0]
+    query_node = graph.get_node_with_timestamp(5.0)
     nodes = graph.get_nodes_within_radius(query_node, radius)
     for n in nodes:
         d = query_node.distance_to(n)
@@ -210,7 +266,7 @@ def run_base_graph():
         assert orig_ts != n.get_timestamp()
 
 
-def run_local_graph():
+def run_temporal_window_graph():
     from wild_visual_navigation.traversability_estimator import BaseNode
     import torch
     from liegroups.torch import SO3, SE3
@@ -219,7 +275,7 @@ def run_local_graph():
     # Create graph
     W = 25
     N = 50
-    graph = LocalGraph(time_window=W)
+    graph = TemporalWindowGraph(time_window=W)
 
     nodes_list = []
     for i in range(N):

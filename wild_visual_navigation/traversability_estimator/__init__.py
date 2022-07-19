@@ -1,3 +1,3 @@
-from .graphs import LocalGraph, GlobalGraph, run_base_graph, run_local_graph
-from .nodes import BaseNode, DebugNode, LocalImageNode, LocalProprioceptionNode, GlobalNode, run_base_state
+from .graphs import BaseGraph, TemporalWindowGraph, DistanceWindowGraph, run_base_graph, run_temporal_window_graph
+from .nodes import BaseNode, ImageNode, ProprioceptionNode, GlobalNode, run_base_state
 from .traversability_estimator import TraversabilityEstimator
