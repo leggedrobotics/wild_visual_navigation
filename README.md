@@ -38,41 +38,48 @@
 
 ## Setup
 
+1. Install mamba to quickly install the conda environment.
 ```shell
+conda activate base
+conda install -c conda-forge mamba
+
+# Set correct conda settings (should be correct by default)
+conda config --set safety_checks enabled
+conda config --set channel_priority false
+```
+
+2. Clone the repository.
+```shell
+mkdir ~/git && cd ~/git 
 git clone git@github.com:leggedrobotics/wild_visual_navigation.git
+```
+
+3. Install the conda environment using mamba.
+```shell
+# Make sure to be in the base conda environment
+cd ~/git/wild_visual_navigation
+mamba env create -f environment.yaml 
+```
+
+4. Install the wild_visual_navigation package.
+```shell
+conda activate wvn
+cd ~/git
 pip3 install -e ./wild_visual_navigation
 ```
 
+5. (optional) Activate your W&B account for logging.
 ```shell
-git clone git@github.com:leggedrobotics/stego.git
-pip3 install -e ./stego
-```
-
+conda activate wvn
+# Input your login token from W&B
+wandb login 
+``` 
 ### Requirements
 
 ## Experiments
 TODO
 
 ## Contribution
-
-
-### Install conda environment
-
-1. Install mamba in base environment
-```shell
-conda activate base
-conda install mamba -n base -c conda-forge
-```
-
-2. Correct conda settings
-```shell
-conda config --set safety_checks enabled
-conda config --set channel_priority false
-```
-3. Install environment
-```shell
-mamba env create -f environment.yaml
-```
 
 ### Code formatting
 ```shell

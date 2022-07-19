@@ -44,7 +44,7 @@ def load_env():
     Returns:
         (dict): Returns content of environment file
     """
-    env_cfg_path = os.path.join(WVN_ROOT_DIR, "cfg/env", os.environ["ENV_WORKSTATION_NAME"] + ".yml")
+    env_cfg_path = os.path.join(WVN_ROOT_DIR, "cfg/env", os.environ["ENV_WORKSTATION_NAME"] + ".yaml")
     env = load_yaml(env_cfg_path)
     for k in env.keys():
         if k == "workstation":
