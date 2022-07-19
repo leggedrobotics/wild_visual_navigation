@@ -1,1 +1,1 @@
-from .lightning_module import *
+from .lightning_module import LightningTrav

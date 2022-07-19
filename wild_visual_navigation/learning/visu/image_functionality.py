@@ -42,9 +42,9 @@ def image_functionality(func):
                 imageio.imwrite(p, img)
 
             if log_exp:
-                H, W, C = img.shape
-                ds = cv2.resize(img, dsize=(int(W / 2), int(H / 2)), interpolation=cv2.INTER_CUBIC)
                 if args[0]._pl_model.logger is not None:
+                    H, W, C = img.shape
+                    ds = cv2.resize(img, dsize=(int(W / 2), int(H / 2)), interpolation=cv2.INTER_CUBIC)
                     try:
                         # logger == neptuneai
                         from neptune.new.types import File

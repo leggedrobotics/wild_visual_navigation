@@ -18,7 +18,7 @@ class ExperimentParams(Serializable):
         name: str = "neptune"
         wandb_entity: str = "wild_visual_navigation"
         wandb_project_name: str = "wild_visual_navigation"
-        neptune_project_name: str = "jonasfrey96/WVN"
+        neptune_project_name: str = "ASL/WVN"
 
     logger: LoggerParams = LoggerParams()
 
@@ -52,7 +52,7 @@ class ExperimentParams(Serializable):
 
     @dataclass
     class DataModuleParams:
-        visu: bool = True
+        visu: bool = False
         batch_size: int = 8
         num_workers: int = 0
 
