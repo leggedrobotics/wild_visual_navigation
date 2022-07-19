@@ -102,7 +102,7 @@ class LightningTrav(pl.LightningModule):
         return self.training_step(batch, batch_idx)
 
     def test_epoch_end(self, outputs):
-        self.training_epoch_end(outputs)
+        self.log(f"{self._mode}_acc_epoch", self._acc[self._mode].compute().item(), on_epoch=True, prog_bar=True)
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
         return torch.optim.Adam(self._model.parameters(), lr=self._exp["optimizer"]["lr"])

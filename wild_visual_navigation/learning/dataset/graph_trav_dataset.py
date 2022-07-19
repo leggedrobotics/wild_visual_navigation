@@ -69,6 +69,7 @@ def get_pl_graph_trav_module(batch_size=1, num_workers=0, visu=False, **kwargs):
     return LightningDataset(
         train_dataset=train_dataset,
         val_dataset=val_dataset,
+        test_dataset=val_dataset,
         batch_size=batch_size,
         num_workers=num_workers,
         pin_memory=False,
