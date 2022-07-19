@@ -69,25 +69,27 @@ def train(experiment: ExperimentParams):
 
     gpus = list(range(torch.cuda.device_count())) if torch.cuda.is_available() else None
     exp["trainer"]["gpus"] = gpus
-    
+
     # Add distributed plugin if multiple GPUs are available
     if torch.cuda.is_available():
         if len(gpus) > 1:
             if exp["trainer"]["accelerator"] == "ddp" or exp["trainer"]["accelerator"] is None:
                 training_plugin = DDPPlugin(find_unused_parameters=exp["trainer"].get("find_unused_parameters", False))
             elif exp["trainer"]["accelerator"] == "ddp_spawn":
-                training_plugin = DDPSpawnPlugin(find_unused_parameters=exp["trainer"].get("find_unused_parameters", False))
+                training_plugin = DDPSpawnPlugin(
+                    find_unused_parameters=exp["trainer"].get("find_unused_parameters", False)
+                )
             elif exp["trainer"]["accelerator"] == "ddp2":
                 training_plugin = DDP2Plugin(find_unused_parameters=exp["trainer"].get("find_unused_parameters", False))
             exp["trainer"]["plugins"] = [ddp_plugin]
         else:
             # Otherwise, just add a single GPU
-            training_plugin = SingleDevicePlugin(device="cuda:0") # Note: this needs to be parametrized
+            training_plugin = SingleDevicePlugin(device="cuda:0")  # Note: this needs to be parametrized
     else:
         # Last case in which we don't have GPUs at all - just CPU
         print("Warning: Did not find any CUDA device!")
         training_plugin = SingleDevicePlugin(device="cpu")
-    
+
     # Add training plugin
     exp["trainer"]["plugins"] = training_plugin
 
