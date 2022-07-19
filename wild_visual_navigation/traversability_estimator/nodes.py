@@ -88,20 +88,22 @@ class GlobalNode(BaseNode):
         self,
         timestamp: float = 0.0,
         T_WB: torch.tensor = torch.eye(4),
-        features: torch.tensor = None,
-        feature_type: torch.tensor = None,
-        feature_edges: torch.tensor = None,
-        feature_segments: torch.tensor = None,
-        feature_positions: torch.tensor = None,
-        supervision_signal: torch.tensor = None,
     ):
         super().__init__(timestamp=timestamp, T_WB=T_WB)
-        self.features = features
-        self.feature_type = feature_type
-        self.feature_edges = feature_edges
-        self.feature_segments = feature_segments
-        self.feature_positions = feature_positions
-        self.supervision_signal = supervision_signal
+        self.features = None
+        self.feature_type = None
+        self.feature_edges = None
+        self.feature_segments = None
+        self.feature_positions = None
+        self.image = None
+        self.supervision_mask = None
+        self.supervision_signal = None
+
+    def as_pyg_data(self):
+        return Data(x=self.features, edge_index=self.feature_edges, y=self.supervision_signal)
+
+    def is_valid(self):
+        return isinstance(self.features, torch.Tensor) and isinstance(self.supervision_signal, torch.Tensor)
 
     def get_features(self):
         return self.features
@@ -118,13 +120,47 @@ class GlobalNode(BaseNode):
     def get_feature_positions(self):
         return self.feature_positions
 
+    def get_image(self):
+        return self.image
+
     def get_supervision_signal(self):
         return self.supervision_signal
+
+    def get_supervision_mask(self):
+        return self.supervision_mask
+
+    def get_training_image(self):
+        if self.image is None or self.supervision_mask is None:
+            return None
+        img_np = kornia.utils.tensor_to_image(self.image)
+        img_pil = Image.fromarray(np.uint8(img_np * 255))
+        img_draw = ImageDraw.Draw(img_pil)
+
+        trav_np = kornia.utils.tensor_to_image(self.supervision_mask)
+        trav_pil = Image.fromarray(np.uint8(trav_np * 255))
+
+        for i in range(self.feature_edges.shape[1]):
+            a, b = self.feature_edges[0, i, 0], self.feature_edges[0, i, 1]
+            line_params = self.feature_positions[0][a].tolist() + self.feature_positions[0][b].tolist()
+            img_draw.line(line_params, fill=(255, 255, 255, 100), width=2)
+
+        for i in range(self.feature_positions.shape[1]):
+            params = self.feature_positions[0][i].tolist()
+            color = trav_pil.getpixel((params[0], params[1]))
+            r = 10
+            params = [p - r for p in params] + [p + r for p in params]
+            img_draw.ellipse(params, fill=color)
+
+        np_draw = np.array(img_pil)
+        return kornia.utils.image_to_tensor(np_draw.copy()).to(self.image.device)
 
     def save(self, output_path: str, index: int):
         graph_data = self.as_pyg_data()
         path = os.path.join(output_path, f"graph_{index:06d}.pt")
         torch.save(graph_data, path)
+
+    def set_image(self, image: torch.tensor):
+        self.image = image
 
     def set_features(
         self,
@@ -140,95 +176,36 @@ class GlobalNode(BaseNode):
         self.feature_segments = segments
         self.feature_positions = positions
 
-    def set_supervision_signal(self, signal: torch.tensor, is_image: bool = True):
-        if not is_image:
-            self.supervision_signal = signal
-        else:
-            if len(signal.shape) == 3:
-                signal = signal.mean(axis=0)
+    def set_supervision_mask(self, mask: torch.tensor):
+        self.supervision_mask = mask
 
-            # Query feature positions and get labels
-            labels_per_segment = []
-            for s in range(self.feature_segments.max() + 1):
-                # Get a mask indices for the segment
-                m = (self.feature_segments == s)[0, 0]
-                # Count the labels
-                idx, counts = torch.unique(signal[m], return_counts=True)
-                # append the labels
-                labels_per_segment.append(idx[torch.argmax(counts)])
+    def set_supervision_signal(self, signal: torch.tensor):
+        self.supervision_mask = signal
 
-            # Prepare supervision signal
+        if len(signal.shape) == 3:
+            signal = signal.mean(axis=0)
+
+        # If we don't have features, return
+        if self.features is None:
+            return
+
+        # If we have features, update supervision signal
+        labels_per_segment = []
+        for s in range(self.feature_segments.max() + 1):
+            # Get a mask indices for the segment
+            m = (self.feature_segments == s)[0, 0]
+            # Count the labels
+            idx, counts = torch.unique(signal[m], return_counts=True)
+            # append the labels
+            labels_per_segment.append(idx[torch.argmax(counts)])
+
+        # Prepare supervision signal
+        torch_labels = torch.stack(labels_per_segment)
+        if torch_labels.sum() > 0:
             self.supervision_signal = torch.stack(labels_per_segment)
 
-    def is_valid(self):
-        return isinstance(self.features, torch.Tensor) and isinstance(self.supervision_signal, torch.Tensor)
 
-    def as_pyg_data(self):
-        return Data(x=self.features, edge_index=self.feature_edges, y=self.supervision_signal)
-
-
-class DebugNode(BaseNode):
-    """Debug node stores images and full states for debugging"""
-
-    name = "local_debug_node"
-
-    def __init__(
-        self,
-        timestamp: float = 0.0,
-        T_WB: torch.tensor = torch.eye(4),
-        traversability_mask: torch.tensor = None,
-        labeled_image: torch.tensor = None,
-    ):
-        super().__init__(timestamp=timestamp, T_WB=T_WB)
-        self.traversability_mask = None
-        self.image = None
-        self.node = None
-
-    def get_image(self):
-        return self.image
-
-    def get_traversability_mask(self):
-        return self.traversability_mask
-
-    def get_training_image(self):
-        if self.image is None or self.traversability_mask is None:
-            return None
-        img_np = kornia.utils.tensor_to_image(self.image)
-        img_pil = Image.fromarray(np.uint8(img_np * 255))
-        img_draw = ImageDraw.Draw(img_pil)
-
-        trav_np = kornia.utils.tensor_to_image(self.traversability_mask)
-        trav_pil = Image.fromarray(np.uint8(trav_np * 255))
-
-        for i in range(self.node.feature_edges.shape[1]):
-            a, b = self.node.feature_edges[0, i, 0], self.node.feature_edges[0, i, 1]
-            line_params = self.node.feature_positions[0][a].tolist() + self.node.feature_positions[0][b].tolist()
-            img_draw.line(line_params, fill=(255, 255, 255, 100), width=2)
-
-        for i in range(self.node.feature_positions.shape[1]):
-            params = self.node.feature_positions[0][i].tolist()
-            color = trav_pil.getpixel((params[0], params[1]))
-            r = 10
-            params = [p - r for p in params] + [p + r for p in params]
-            img_draw.ellipse(params, fill=color)
-
-        np_draw = np.array(img_pil)
-        return kornia.utils.image_to_tensor(np_draw.copy()).to(self.image.device)
-
-    def set_image(self, image: torch.tensor):
-        self.image = image
-
-    def set_training_node(self, node):
-        self.node = node
-
-    def set_traversability_mask(self, mask: torch.tensor):
-        self.traversability_mask = mask
-
-    def is_valid(self):
-        return isinstance(self.traversability_mask, torch.Tensor)
-
-
-class LocalProprioceptionNode(BaseNode):
+class ProprioceptionNode(BaseNode):
     """Local node stores all the information required for traversability estimation and debugging
     All the information matches a real frame that must be respected to keep consistency"""
 
@@ -263,9 +240,6 @@ class LocalProprioceptionNode(BaseNode):
     def get_footprint_points(self):
         return make_plane(x=self.length, y=self.width, pose=self.T_WF, grid_size=25).to(self.T_WF.device)
 
-    def get_image(self):
-        return self.image
-
     def get_pose_cam_in_world(self):
         return self.T_WC
 
@@ -279,7 +253,7 @@ class LocalProprioceptionNode(BaseNode):
         return isinstance(self.proprioceptive_state, torch.Tensor)
 
 
-class LocalImageNode(BaseNode):
+class ImageNode(BaseNode):
     """Local node stores all the information required for traversability estimation and debugging
     All the information matches a real frame that must be respected to keep consistency"""
 
