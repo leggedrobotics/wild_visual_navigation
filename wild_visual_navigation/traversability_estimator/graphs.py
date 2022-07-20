@@ -242,7 +242,7 @@ def run_base_graph():
     # Get nodes within radius
     radius = 0.2
     query_node = graph.get_node_with_timestamp(5.0)
-    nodes = graph.get_nodes_within_radius(query_node, radius)
+    nodes = graph.get_nodes_within_radius_range(query_node, min_radius=0, max_radius=radius)
     for n in nodes:
         d = query_node.distance_to(n)
         assert d <= radius

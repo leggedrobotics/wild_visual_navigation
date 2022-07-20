@@ -105,7 +105,7 @@ def run_dino_interfacer():
     import matplotlib.pyplot as plt
     from stego.src import unnorm, remove_axes
     import numpy as np
-    import kornia as K
+    import cv2
 
     # Create test directory
     os.makedirs(join(WVN_ROOT_DIR, "results", "test_dino_interfacer"), exist_ok=True)
@@ -114,7 +114,9 @@ def run_dino_interfacer():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     di = DinoInterface(device=device)
     p = join(WVN_ROOT_DIR, "assets/images/forest_clean.png")
-    img = K.io.load_image(p, desired_type=K.io.ImageLoadType.RGB8, device=device)
+    np_img = cv2.imread(p)
+    img = torch.from_numpy(cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB)).to(device)
+    img = img.permute(2,0,1)
     img = (img.type(torch.float32) / 255)[None]
 
     # Inference with DINO
