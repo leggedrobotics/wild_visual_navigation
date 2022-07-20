@@ -58,27 +58,28 @@ class TraversabilityEstimator:
 
         if node.is_valid():
             # Add image node
-            self.image_graph.add_node(node)
-            # Add global node
-            global_node = GlobalNode.from_node(node)
-            global_node.set_image(node.get_image())
-            global_node.set_supervision_mask(node.get_image() * 0)
-            self.experience_graph.add_node(global_node)
+            if self.image_graph.add_node(node):
+                # Add global node
+                global_node = GlobalNode.from_node(node)
+                global_node.set_image(node.get_image())
+                self.experience_graph.add_node(global_node)
+                print(f"Adding new node {global_node}")
 
-            # Project past footprints on current image
-            image_projector = node.get_image_projector()
-            T_WC = node.get_pose_cam_in_world().unsqueeze(0)
-            supervision_mask = global_node.get_supervision_mask()
+                # Project past footprints on current image
+                image_projector = node.get_image_projector()
+                T_WC = node.get_pose_cam_in_world().unsqueeze(0)
+                supervision_mask = node.get_image() * 0
 
-            for pnode in self.proprio_graph.get_nodes():
-                footprint = pnode.get_footprint_points().unsqueeze(0)
-                color = torch.FloatTensor([1.0, 1.0, 1.0])
-                # Project and render mask
-                mask, _ = image_projector.project_and_render(T_WC, footprint, color)
-                mask = mask.squeeze(0)
-                # Update supervision mask
-                supervision_mask = torch.maximum(supervision_mask, mask.to(supervision_mask.device))
-                global_node.set_supervision_signal(supervision_mask)
+                for pnode in self.proprio_graph.get_nodes():
+                    footprint = pnode.get_footprint_points().unsqueeze(0)
+                    color = torch.FloatTensor([1.0, 1.0, 1.0])
+                    # Project and render mask
+                    mask, _ = image_projector.project_and_render(T_WC, footprint, color)
+                    mask = mask.squeeze(0)
+                    # Update supervision mask
+                    supervision_mask = torch.maximum(supervision_mask, mask.to(supervision_mask.device))
+
+                global_node.set_supervision_mask(supervision_mask)
 
     def add_proprio_node(self, node: BaseNode):
         """Adds a node to the local graph to store proprioception
@@ -89,35 +90,42 @@ class TraversabilityEstimator:
         if not node.is_valid():
             return False
 
-        # Get proprioceptive information
-        footprint = node.get_footprint_points().unsqueeze(0)
-        color = torch.FloatTensor([1.0, 1.0, 1.0])
+        if not self.proprio_graph.add_node(node):
+            return False
+        
+        else:
+            # Get proprioceptive information
+            footprint = node.get_footprint_points().unsqueeze(0)
+            color = torch.FloatTensor([1.0, 1.0, 1.0])
 
-        # Project footprint onto all the image nodes
-        for inode in self.image_graph.get_nodes():
-            # Get global node
-            global_node = self.experience_graph.get_node_with_timestamp(inode.get_timestamp())
-            if global_node is None:
-                continue
+            # Project footprint onto all the image nodes
+            for inode in self.image_graph.get_nodes():
+                # Get global node
+                global_node = self.experience_graph.get_node_with_timestamp(inode.get_timestamp())
+                if global_node is None:
+                    continue
 
-            # Get stuff from image node
-            image_projector = inode.get_image_projector()
-            T_WC = inode.get_pose_cam_in_world().unsqueeze(0)
-            # Get stuff from global node
-            supervision_mask = global_node.get_supervision_mask()
+                # Get stuff from image node
+                image_projector = inode.get_image_projector()
+                T_WC = inode.get_pose_cam_in_world().unsqueeze(0)
+                # Get stuff from global node
+                supervision_mask = global_node.get_supervision_mask()
 
-            # Project and render mask
-            mask, _ = image_projector.project_and_render(T_WC, footprint, color)
-            mask = mask.squeeze(0)
+                # Project and render mask
+                mask, _ = image_projector.project_and_render(T_WC, footprint, color)
 
-            # Update traversability mask
-            supervision_mask = torch.maximum(supervision_mask, mask.to(supervision_mask.device))
+                if mask is None or supervision_mask is None:
+                    continue
 
-            # Get global node and update supervision signal
-            global_node.set_supervision_signal(supervision_mask)
+                # Update traversability mask
+                mask = mask.squeeze(0)
+                supervision_mask = torch.maximum(supervision_mask, mask.to(supervision_mask.device))
 
-        # Add node to graph and return
-        return self.proprio_graph.add_node(node)
+                # Get global node and update supervision signal
+                global_node.set_supervision_mask(supervision_mask)
+
+            return True
+
 
     def get_image_nodes(self):
         return self.image_graph.get_nodes()
@@ -133,8 +141,6 @@ class TraversabilityEstimator:
         for node in self.experience_graph.get_nodes():
             if node.is_valid():
                 last_valid_node = node
-            else:
-                break
         return last_valid_node
 
     def save_graph(self, mission_path: str, export_debug: bool = False):
@@ -151,8 +157,9 @@ class TraversabilityEstimator:
 
     def update_features(self):
         for node in self.experience_graph.get_nodes():
+            # Update features
             if node.get_features() is None:
-                print(f"Updating node {str(node)}")
+                print(f"updating node {node}")
                 # Run feature extractor
                 edges, feat, seg, center = self.feature_extractor.extract(
                     img=node.get_image().clone().unsqueeze(0), return_centers=True
@@ -166,6 +173,9 @@ class TraversabilityEstimator:
                     segments=seg,
                     positions=center,
                 )
+            
+                # Update supervision signal
+                node.update_supervision_signal()
 
     # def update_labels_and_features(self, search_radius: float = None):
     #     """Iterates the nodes and projects their information from their neighbors

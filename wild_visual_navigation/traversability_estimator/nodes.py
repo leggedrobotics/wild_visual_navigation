@@ -179,11 +179,12 @@ class GlobalNode(BaseNode):
     def set_supervision_mask(self, mask: torch.tensor):
         self.supervision_mask = mask
 
-    def set_supervision_signal(self, signal: torch.tensor):
-        self.supervision_mask = signal
+    def update_supervision_signal(self):
+        if self.supervision_mask is None:
+            return
 
-        if len(signal.shape) == 3:
-            signal = signal.mean(axis=0)
+        if len(self.supervision_mask.shape) == 3:
+            signal = self.supervision_mask.mean(axis=0)
 
         # If we don't have features, return
         if self.features is None:

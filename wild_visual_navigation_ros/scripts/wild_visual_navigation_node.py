@@ -69,7 +69,7 @@ class WvnRosInterface:
         self.robot_height = rospy.get_param("~robot_height", 0.3)
 
         # Traversability estimation params
-        self.traversability_radius = rospy.get_param("~traversability_radius", 5.0)
+        self.traversability_radius = rospy.get_param("~traversability_radius", 3.0)
         self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr", 0.5)
         self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.2)
 
@@ -198,7 +198,7 @@ class WvnRosInterface:
 
         # Main loop
         while not rospy.is_shutdown():
-            # Update features
+            # # Update features
             self.traversability_estimator.update_features()
 
             # Optimize model
