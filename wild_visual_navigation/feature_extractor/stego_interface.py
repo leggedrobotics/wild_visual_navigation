@@ -13,12 +13,16 @@ from PIL import Image
 
 
 class StegoInterface:
-    def __init__(self, device):
+    def __init__(self, device: str):
         self.model = self.load()
         self.model.to(device)
         self.device = device
         self.transform = T.Compose(
-            [T.Resize(448, Image.NEAREST), T.CenterCrop(448), T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]
+            [
+                T.Resize(448, T.InterpolationMode.NEAREST),
+                T.CenterCrop(448),
+                T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+            ]
         )
 
     def load(self):
@@ -27,18 +31,19 @@ class StegoInterface:
         Returns:
             model (stego.src.train_segmentation.LitUnsupervisedSegmenter): Pretrained model
         """
-        model_path = join(WVN_ROOT_DIR, "assets", "stego", "cocostuff27_vit_base_5.ckpt")
+        model_name = "cocostuff27_vit_base_5.ckpt"
+        model_path = join(WVN_ROOT_DIR, "assets", "stego", model_name)
         if not os.path.exists(model_path):
             os.makedirs(join(WVN_ROOT_DIR, "assets", "stego"), exist_ok=True)
             saved_model_url_root = "https://marhamilresearch4.blob.core.windows.net/stego-public/saved_models/"
-            saved_model_name = "cocostuff27_vit_base_5.ckpt"
+            saved_model_name = model_name
             wget.download(saved_model_url_root + saved_model_name, model_path)
 
         model = LitUnsupervisedSegmenter.load_from_checkpoint(model_path)
         return model
 
     @torch.no_grad()
-    def inference(self, img):
+    def inference(self, img: torch.tensor):
         """Performance inference using stego
         Args:
             img (torch.tensor, dtype=type.torch.float32, shape=(BS,3,H.W)): Input image
@@ -61,7 +66,7 @@ class StegoInterface:
         return linear_probs, cluster_probs
 
     @torch.no_grad()
-    def inference_crf(self, img):
+    def inference_crf(self, img: torch.tensor):
         """
         Args:
             img (torch.tensor, dtype=type.torch.float32): Input image
@@ -86,7 +91,7 @@ def run_stego_interfacer():
     import matplotlib.pyplot as plt
     from stego.src import unnorm, remove_axes
     import numpy as np
-    import kornia as K
+    import cv2
 
     # Create test directory
     os.makedirs(join(WVN_ROOT_DIR, "results", "test_stego_interfacer"), exist_ok=True)
@@ -95,7 +100,9 @@ def run_stego_interfacer():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     si = StegoInterface(device=device)
     p = join(WVN_ROOT_DIR, "assets/images/forest_clean.png")
-    img = K.io.load_image(p, desired_type=K.io.ImageLoadType.RGB8, device=device)
+    np_img = cv2.imread(os.path.join(WVN_ROOT_DIR, "assets/images/forest_clean.png"))
+    img = torch.from_numpy(cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB)).to(device)
+    img = img.permute(2, 0, 1)
     img = (img.type(torch.float32) / 255)[None]
 
     linear_pred, cluster_pred = si.inference_crf(si.transform(img))

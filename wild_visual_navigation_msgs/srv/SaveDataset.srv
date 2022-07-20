@@ -1,0 +1,11 @@
+# Path to save the dataset, otherwise it uses the default
+string path
+
+# Name of the mission to store the dataset
+string mission_name
+
+---
+# Indicate if the operation was successful
+bool success
+# Show some info from the server
+string message
