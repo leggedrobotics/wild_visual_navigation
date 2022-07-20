@@ -102,7 +102,7 @@ def run_stego_interfacer():
     p = join(WVN_ROOT_DIR, "assets/images/forest_clean.png")
     np_img = cv2.imread(os.path.join(WVN_ROOT_DIR, "assets/images/forest_clean.png"))
     img = torch.from_numpy(cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB)).to(device)
-    img = img.permute(2,0,1)
+    img = img.permute(2, 0, 1)
     img = (img.type(torch.float32) / 255)[None]
 
     linear_pred, cluster_pred = si.inference_crf(si.transform(img))

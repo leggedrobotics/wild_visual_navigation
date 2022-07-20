@@ -14,7 +14,7 @@ def test_feature_extractor():
 
     np_img = cv2.imread(os.path.join(WVN_ROOT_DIR, "assets/images/forest_clean.png"))
     img = torch.from_numpy(cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB)).to(device)
-    img = img.permute(2,0,1)
+    img = img.permute(2, 0, 1)
 
     img = (img.type(torch.float32) / 255)[None]
     adj, feat, seg, center, img = fe.dino_slic(img.clone(), return_centers=True, return_image=True)
