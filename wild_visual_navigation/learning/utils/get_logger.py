@@ -3,9 +3,31 @@ from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from wild_visual_navigation.learning.utils import flatten_dict
 import inspect
 import os
+import neptune.new as neptune
+
+__all__ = ["get_neptune_logger", "get_wandb_logger", "get_tensorboard_logger", "get_neptune_run"]
+
+PROXIES = {"http": "http://proxy.ethz.ch:3128", "https": "http://proxy.ethz.ch:3128"}
 
 
-__all__ = ["get_neptune_logger", "get_wandb_logger", "get_tensorboard_logger"]
+def get_neptune_run(neptune_project_name, tags):
+    """Get neptune run
+
+    Args:
+        neptune_project_name (str): Neptune project name
+        tags (list of str): Tags to identify the project
+    """
+    proxies = None
+    if os.environ["ENV_WORKSTATION_NAME"] == "euler":
+        proxies = PROXIES
+
+    run = neptune.init(
+        api_token=os.environ["NEPTUNE_API_TOKEN"],
+        project=neptune_project_name,
+        tags=[os.environ["ENV_WORKSTATION_NAME"]] + tags,
+        proxies=proxies,
+    )
+    return run
 
 
 def get_neptune_logger(exp, env):
@@ -24,21 +46,16 @@ def get_neptune_logger(exp, env):
     name_full = exp["general"]["name"]
     name_short = "__".join(name_full.split("/")[-2:])
 
+    proxies = None
     if os.environ["ENV_WORKSTATION_NAME"] == "euler":
-        proxies = {"http": "http://proxy.ethz.ch:3128", "https": "http://proxy.ethz.ch:3128"}
-        return NeptuneLogger(
-            api_key=os.environ["NEPTUNE_API_TOKEN"],
-            project=project_name,
-            name=name_short,
-            tags=[os.environ["ENV_WORKSTATION_NAME"], name_full.split("/")[-2], name_full.split("/")[-1]],
-            proxies=proxies,
-        )
+        proxies = PROXIES
 
     return NeptuneLogger(
         api_key=os.environ["NEPTUNE_API_TOKEN"],
         project=project_name,
         name=name_short,
         tags=[os.environ["ENV_WORKSTATION_NAME"], name_full.split("/")[-2], name_full.split("/")[-1]],
+        proxies=proxies,
     )
 
 
@@ -72,6 +89,18 @@ def get_tensorboard_logger(exp, env):
     """
     params = flatten_dict(exp)
     return TensorBoardLogger(save_dir=exp["name"], name="tensorboard", default_hp_metric=params)
+
+
+def get_skip_logger(exp, env):
+    """Returns None
+
+    Args:
+        exp (dict): Content of environment file
+
+    Returns:
+        (logger): Logger
+    """
+    return None
 
 
 def get_logger(exp, env):
