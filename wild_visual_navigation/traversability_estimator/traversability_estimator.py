@@ -92,7 +92,7 @@ class TraversabilityEstimator:
 
         if not self.proprio_graph.add_node(node):
             return False
-        
+
         else:
             # Get proprioceptive information
             footprint = node.get_footprint_points().unsqueeze(0)
@@ -125,7 +125,6 @@ class TraversabilityEstimator:
                 global_node.set_supervision_mask(supervision_mask)
 
             return True
-
 
     def get_image_nodes(self):
         return self.image_graph.get_nodes()
@@ -173,7 +172,7 @@ class TraversabilityEstimator:
                     segments=seg,
                     positions=center,
                 )
-            
+
                 # Update supervision signal
                 node.update_supervision_signal()
 
