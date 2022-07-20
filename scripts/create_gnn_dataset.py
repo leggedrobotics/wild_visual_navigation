@@ -3,9 +3,9 @@ from wild_visual_navigation.feature_extractor import FeatureExtractor
 from wild_visual_navigation import WVN_ROOT_DIR
 from pathlib import Path
 import os
-import kornia as K
 import torch
 import argparse
+import cv2
 
 
 from torch_geometric.data import Data
@@ -47,14 +47,17 @@ if __name__ == "__main__":
         os.makedirs(os.path.join(base_dir, "graph"), exist_ok=True)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    fe = FeatureExtractor(device)
+    dino = FeatureExtractor(device, extractor_type="dino_slic")
+    stego = FeatureExtractor(device, extractor_type="stego")
 
     for j, p in enumerate(image_paths[::20]):
-        img = K.io.load_image(p, desired_type=K.io.ImageLoadType.RGB8, device=device)
+        np_img = cv2.imread(p)
+        img = torch.from_numpy(cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB)).to(device)
+        img = img.permute(2, 0, 1)
         img = (img.type(torch.float32) / 255)[None]
-        adj, feat, seg, center = fe.dino_slic(img.clone(), return_centers=True)
+        adj, feat, seg, center = dino.dino_slic(img.clone(), return_centers=True)
 
-        linear_probs, cluster_probs = fe.stego(img)
+        linear_probs, cluster_probs = stego.stego(img)
         stego_label = linear_probs.argmax(dim=1)[0]
 
         ys = []

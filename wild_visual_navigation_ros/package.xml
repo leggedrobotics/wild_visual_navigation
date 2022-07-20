@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>wild_visual_navigation_ros</name>
+  <version>0.0.1</version>
+  <description>ROS interface for wild_visual_navigation</description>
+  <maintainer email="matias@robots.ox.ac.uk">Matias Mattamala</maintainer>
+  <maintainer email="jonfrey@ethz.ch">Jonas Frey</maintainer>
+  <author email="matias@robots.ox.ac.uk">Matias Mattamala</author>
+  <author email="jonfrey@ethz.ch">Jonas Frey</author>
+
+  <license>Proprietary</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>rospy</depend>
+  <depend>nav_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>wild_visual_navigation_msgs</depend>
+</package>
