@@ -116,7 +116,7 @@ def run_dino_interfacer():
     p = join(WVN_ROOT_DIR, "assets/images/forest_clean.png")
     np_img = cv2.imread(p)
     img = torch.from_numpy(cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB)).to(device)
-    img = img.permute(2,0,1)
+    img = img.permute(2, 0, 1)
     img = (img.type(torch.float32) / 255)[None]
 
     # Inference with DINO
