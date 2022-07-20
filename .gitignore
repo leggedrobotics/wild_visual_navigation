@@ -6,6 +6,9 @@ assets/stego/cocostuff27_vit_base_5.ckpt
 .pytest_cache/**
 .vscode/**
 
+# Pip editable repos
+src/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
