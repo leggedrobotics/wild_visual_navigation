@@ -3,9 +3,9 @@ from wild_visual_navigation.feature_extractor import FeatureExtractor
 from wild_visual_navigation import WVN_ROOT_DIR
 from pathlib import Path
 import os
-import kornia as K
 import torch
 import argparse
+import cv2
 
 
 from torch_geometric.data import Data
@@ -51,7 +51,9 @@ if __name__ == "__main__":
     stego = FeatureExtractor(device, extractor_type="stego")
 
     for j, p in enumerate(image_paths[::20]):
-        img = K.io.load_image(p, desired_type=K.io.ImageLoadType.RGB8, device=device)
+        np_img = cv2.imread(p)
+        img = torch.from_numpy(cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB)).to(device)
+        img = img.permute(2,0,1)
         img = (img.type(torch.float32) / 255)[None]
         adj, feat, seg, center = dino.dino_slic(img.clone(), return_centers=True)
 

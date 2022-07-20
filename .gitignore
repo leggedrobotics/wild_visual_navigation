@@ -1,6 +1,7 @@
 .neptune*
 wild_visual_navigation/.neptune*
 results/*
+assets/dino/*
 assets/stego/cocostuff27_vit_base_5.ckpt
 .pytest_cache/**
 .vscode/**
