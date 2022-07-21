@@ -14,7 +14,7 @@ class Timer:
     def __exit__(self, exc_type, exc_value, exc_tb):
         self.end.record()
         torch.cuda.synchronize()
-        print(f"Time {self.name}: ", self.start.elapsed_time(self.end),"ms")
+        print(f"Time {self.name}: ", self.start.elapsed_time(self.end), "ms")
 
 
 if __name__ == "__main__":
