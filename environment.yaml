@@ -8,6 +8,7 @@ channels:
   - defaults
 dependencies:
   - python=3.8
+  - kornia=0.6.6
   - libopencv
   - pip
   - torchvision
