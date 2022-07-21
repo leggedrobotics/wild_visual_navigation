@@ -37,7 +37,7 @@ class BaseGraph:
         """
         # Add node
         with self._lock:
-            self._graph.add_node(node, timestamp=node.get_timestamp())
+            self._graph.add_node(node, timestamp=node.timestamp)
 
             # Add edge to latest
             if self._last_added_node is not None:
@@ -96,7 +96,7 @@ class BaseGraph:
         self, node: BaseNode, min_radius: float, max_radius: float, time_eps: float = 1, metric: str = "dijkstra"
     ):
         # Find closest node in the graph (timestamp). This is useful when we are finding nodes corresponding to another graph
-        closest_node = self.get_node_with_timestamp(node.get_timestamp(), eps=time_eps)
+        closest_node = self.get_node_with_timestamp(node.timestamp, eps=time_eps)
 
         nodes = []
         try:

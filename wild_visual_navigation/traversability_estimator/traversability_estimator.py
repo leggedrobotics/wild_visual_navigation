@@ -72,7 +72,7 @@ class TraversabilityEstimator:
                 print(f"updating features in {node}")
                 # Run feature extractor
                 edges, feat, seg, center = self.feature_extractor.extract(
-                    img=node.get_image().clone().unsqueeze(0), return_centers=True
+                    img=node.image.clone()[None], return_centers=True
                 )
 
                 # Set features in global graph
@@ -86,7 +86,7 @@ class TraversabilityEstimator:
 
                 # Project past footprints on current image
                 image_projector = node.image_projector
-                pose_camera_in_world = node.pose_cam_in_world.unsqueeze(0)
+                pose_camera_in_world = node.pose_cam_in_world[None]
                 supervision_mask = node.image * 0
 
                 for pnode in self.proprio_graph.get_nodes():
@@ -114,19 +114,19 @@ class TraversabilityEstimator:
 
         else:
             # Get proprioceptive information
-            footprint = node.get_footprint_points().unsqueeze(0)
+            footprint = node.get_footprint_points()[None]
             color = torch.FloatTensor([1.0, 1.0, 1.0])
 
             # Project footprint onto all the image nodes
             for inode in self.image_graph.get_nodes():
                 # Get global node
-                mission_node = self.mission_graph.get_node_with_timestamp(inode.get_timestamp())
+                mission_node = self.mission_graph.get_node_with_timestamp(inode.timestamp)
                 if mission_node is None:
                     continue
 
                 # Get stuff from image node
                 image_projector = inode.image_projector
-                pose_camera_in_world = inode.get_pose_cam_in_world().unsqueeze(0)
+                pose_camera_in_world = inode.pose_cam_in_world[None]
                 # Get stuff from global node
                 supervision_mask = mission_node.supervision_mask
 
@@ -169,8 +169,11 @@ class TraversabilityEstimator:
 
         # Get all the current nodes
         mission_nodes = self.mission_graph.get_nodes()
-        for index, node in enumerate(mission_nodes):
-            node.save(mission_path, index)
+        i = 0
+        for node in mission_nodes:
+            if node.is_valid():
+                node.save(mission_path, i)
+                i += 1
 
     def make_online_dataset(self):
         # Prepare online dataset

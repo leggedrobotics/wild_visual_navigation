@@ -52,7 +52,7 @@ class ExperimentParams(Serializable):
 
     @dataclass
     class DataModuleParams:
-        visu: bool = False
+        visu: bool = True
         batch_size: int = 8
         num_workers: int = 0
 
@@ -65,7 +65,7 @@ class ExperimentParams(Serializable):
         @dataclass
         class SimpleGcnCfgParams:
             num_node_features: int = 90
-            num_classes: int = 30
+            num_classes: int = 1
 
         simple_gcn_cfg: SimpleGcnCfgParams = SimpleGcnCfgParams()
 
