@@ -56,6 +56,23 @@ class GraphTravVisuDataset(Dataset):
         return graph, center, img, seg
 
 
+class GraphTravOnlineDataset(InMemoryDataset):
+    def __init__(self, root, transform=None, pre_transform=None, pre_filter=None, mode="train", percentage=0.8):
+        super().__init__(root, transform)
+        self.data_list = []
+
+    def add(self, data):
+        # Add new data point to the list
+        self.data_list.append(data)
+
+    def clear(self):
+        self.data_list.clear()
+    
+    def process(self):
+        # Collate the data
+        self.data, self.slices = self.collate(data_list)
+
+
 def get_pl_graph_trav_module(batch_size=1, num_workers=0, visu=False, **kwargs):
     root = str(os.path.join(WVN_ROOT_DIR, "results/perugia_forest"))
 
