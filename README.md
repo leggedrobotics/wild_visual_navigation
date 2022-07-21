@@ -100,4 +100,14 @@ pytest
 ```
 Pytest is not checked on push.
 
+# Extract Dataset
+```
+cd /home/jonfrey/git/wild_visual_navigation/wild_visual_navigation_ros/scripts && python wild_visual_navigation_node.py
+```
+
+```
+roslaunch image_proc_cuda_ros image_proc_cuda_node.launch cam0:=false cam1:=false cam2:=false cam3:=false cam4:=true cam5:=false cam6:=false run_gamma_correction:=false run_white_balance:=true run_vignetting_correction:=false run_color_enhancer:=false run_color_calibration:=false run_undistortion:=true run_clahe:=false dump_images:=false needs_rotation_cam4:=true debayer_option:=bayer_gbrg8
+```
+
+
 ## Credits
