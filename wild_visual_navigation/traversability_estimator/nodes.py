@@ -145,8 +145,8 @@ class GlobalNode(BaseNode):
         trav_pil = Image.fromarray(np.uint8(trav_np * 255))
 
         # Draw graph
-        for i in range(self.feature_edges.shape[0]):
-            a, b = self.feature_edges[i, 0], self.feature_edges[ i, 1]
+        for i in range(self.feature_edges.shape[1]):
+            a, b = self.feature_edges[0,i], self.feature_edges[1, i]
             line_params = self.feature_positions[a].tolist() + self.feature_positions[b].tolist()
             img_draw.line(line_params, fill=(255, 255, 255, 100), width=2)
 
