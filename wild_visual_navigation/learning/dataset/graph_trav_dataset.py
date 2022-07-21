@@ -60,17 +60,18 @@ class GraphTravOnlineDataset(InMemoryDataset):
     def __init__(self, root, transform=None, pre_transform=None, pre_filter=None, mode="train", percentage=0.8):
         super().__init__(root, transform)
         self.data_list = []
+        self.paths = []
 
-    def add(self, data):
+    def add(self, data, index):
         # Add new data point to the list
         self.data_list.append(data)
 
     def clear(self):
         self.data_list.clear()
-    
-    def process(self):
+
+    def set_ready(self):
         # Collate the data
-        self.data, self.slices = self.collate(data_list)
+        self.data, self.slices = self.collate(self.data_list)
 
 
 def get_pl_graph_trav_module(batch_size=1, num_workers=0, visu=False, **kwargs):

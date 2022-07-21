@@ -1,7 +1,7 @@
 from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation.feature_extractor import FeatureExtractor
-from wild_visual_navigation.learning import GraphTravOnlineDataset
+from wild_visual_navigation.learning.dataset import GraphTravOnlineDataset
 from wild_visual_navigation.traversability_estimator import (
     BaseNode,
     BaseGraph,
@@ -34,13 +34,16 @@ class TraversabilityEstimator:
         image_distance_thr: float = None,
         proprio_distance_thr: float = None,
         feature_extractor: str = "dino_slic",
+        min_samples_for_training: int = 10,
     ):
         self.device = device
+        self.min_samples_for_training = min_samples_for_training
+
         # Local graphs
         self.image_graph = DistanceWindowGraph(max_distance=max_distance, edge_distance=image_distance_thr)
         self.proprio_graph = DistanceWindowGraph(max_distance=max_distance, edge_distance=proprio_distance_thr)
         # Experience graph
-        self.experience_graph = BaseGraph()
+        self.mission_graph = BaseGraph()
 
         # TODO: fix feature extractor type
         self.feature_extractor = FeatureExtractor(device, extractor_type=feature_extractor)
@@ -61,10 +64,25 @@ class TraversabilityEstimator:
             # Add image node
             if self.image_graph.add_node(node):
                 # Add global node
-                global_node = GlobalNode.from_node(node)
-                global_node.set_image(node.get_image())
-                self.experience_graph.add_node(global_node)
-                print(f"Adding new node {global_node}")
+                mission_node = GlobalNode.from_node(node)
+                mission_node.set_image(node.get_image())
+                self.mission_graph.add_node(mission_node)
+
+                # Update image features
+                print(f"updating features in {node}")
+                # Run feature extractor
+                edges, feat, seg, center = self.feature_extractor.extract(
+                    img=node.get_image().clone().unsqueeze(0), return_centers=True
+                )
+
+                # Set features in global graph
+                mission_node.set_features(
+                    feature_type=self.feature_extractor.get_type(),
+                    features=feat,
+                    edges=edges,
+                    segments=seg,
+                    positions=center,
+                )
 
                 # Project past footprints on current image
                 image_projector = node.get_image_projector()
@@ -80,7 +98,7 @@ class TraversabilityEstimator:
                     # Update supervision mask
                     supervision_mask = torch.maximum(supervision_mask, mask.to(supervision_mask.device))
 
-                global_node.set_supervision_mask(supervision_mask)
+                mission_node.set_supervision_mask(supervision_mask)
 
     def add_proprio_node(self, node: BaseNode):
         """Adds a node to the local graph to store proprioception
@@ -102,15 +120,15 @@ class TraversabilityEstimator:
             # Project footprint onto all the image nodes
             for inode in self.image_graph.get_nodes():
                 # Get global node
-                global_node = self.experience_graph.get_node_with_timestamp(inode.get_timestamp())
-                if global_node is None:
+                mission_node = self.mission_graph.get_node_with_timestamp(inode.get_timestamp())
+                if mission_node is None:
                     continue
 
                 # Get stuff from image node
                 image_projector = inode.get_image_projector()
                 T_WC = inode.get_pose_cam_in_world().unsqueeze(0)
                 # Get stuff from global node
-                supervision_mask = global_node.get_supervision_mask()
+                supervision_mask = mission_node.get_supervision_mask()
 
                 # Project and render mask
                 mask, _ = image_projector.project_and_render(T_WC, footprint, color)
@@ -123,7 +141,8 @@ class TraversabilityEstimator:
                 supervision_mask = torch.maximum(supervision_mask, mask.to(supervision_mask.device))
 
                 # Get global node and update supervision signal
-                global_node.set_supervision_mask(supervision_mask)
+                mission_node.set_supervision_mask(supervision_mask)
+                mission_node.update_supervision_signal()
 
             return True
 
@@ -133,12 +152,9 @@ class TraversabilityEstimator:
     def get_proprio_nodes(self):
         return self.proprio_graph.get_nodes()
 
-    def get_last_valid_global_node(self):
-        # last_image_node = self.image_graph.get_nodes()[0]
-        # last_global_node = self.experience_graph.get_node_with_timestamp(last_image_node.get_timestamp())
-        # return last_global_node if last_global_node.is_valid() else None
+    def get_last_valid_mission_node(self):
         last_valid_node = None
-        for node in self.experience_graph.get_nodes():
+        for node in self.mission_graph.get_nodes():
             if node.is_valid():
                 last_valid_node = node
         return last_valid_node
@@ -148,53 +164,54 @@ class TraversabilityEstimator:
         os.makedirs(mission_path, exist_ok=True)
 
         # Get all the current nodes
-        global_nodes = self.experience_graph.get_nodes()
-        for node, index in zip(global_nodes, range(len(global_nodes))):
+        mission_nodes = self.mission_graph.get_nodes()
+        for node, index in zip(mission_nodes, range(len(mission_nodes))):
             node.save(mission_path, index)
-    
+
     def make_online_dataset(self):
         # Prepare online dataset
         dataset = GraphTravOnlineDataset("/tmp")
 
         # Get all the current nodes
-        global_nodes = self.experience_graph.get_nodes()
-        for node, index in zip(global_nodes, range(len(global_nodes))):
-            dataset.add(node.as_pyg_data())
-        
-        dataset.process()
+        mission_nodes = self.mission_graph.get_nodes()
+        for index, node in enumerate(mission_nodes):
+            if node.is_valid():
+                dataset.add(node.as_pyg_data(), index)
+
+        dataset.set_ready()
         return dataset
 
     def train(self, iter=10):
-        # Prepare dataset
-        dataset = self.make_online_dataset()
+        if self.mission_graph.get_num_valid_nodes() > self.min_samples_for_training:
+            # Prepare dataset
+            dataset = self.make_online_dataset()
 
         # Train model
-        
 
-    def update_features(self):
-        for node in self.experience_graph.get_nodes():
-            # print(f"updating node {node}")
+    # def update_features(self):
+    #     for node in self.mission_graph.get_nodes():
+    #         # print(f"updating node {node}")
 
-            # Update features
-            if node.get_features() is None:
-                print(f"updating features in {node}")
-                # Run feature extractor
-                edges, feat, seg, center = self.feature_extractor.extract(
-                    img=node.get_image().clone().unsqueeze(0), return_centers=True
-                )
+    #         # Update features
+    #         if node.get_features() is None:
+    #             print(f"updating features in {node}")
+    #             # Run feature extractor
+    #             edges, feat, seg, center = self.feature_extractor.extract(
+    #                 img=node.get_image().clone().unsqueeze(0), return_centers=True
+    #             )
 
-                # Set features in global graph
-                node.set_features(
-                    feature_type=self.feature_extractor.get_type(),
-                    features=feat,
-                    edges=edges,
-                    segments=seg,
-                    positions=center,
-                )
+    #             # Set features in global graph
+    #             node.set_features(
+    #                 feature_type=self.feature_extractor.get_type(),
+    #                 features=feat,
+    #                 edges=edges,
+    #                 segments=seg,
+    #                 positions=center,
+    #             )
 
-            # Update supervision signal
-            # print(f"updating supervision in {node}")
-            node.update_supervision_signal()
+    #         # Update supervision signal
+    #         # print(f"updating supervision in {node}")
+    #         node.update_supervision_signal()
 
     # def update_labels_and_features(self, search_radius: float = None):
     #     """Iterates the nodes and projects their information from their neighbors
@@ -205,7 +222,7 @@ class TraversabilityEstimator:
     #     """
     #     # Iterate all nodes in the local graph
     #     for node, dnode, gnode in zip(
-    #         self.image_graph.get_nodes(), self.debug_graph.get_nodes(), self.experience_graph.get_nodes()
+    #         self.image_graph.get_nodes(), self.debug_graph.get_nodes(), self.mission_graph.get_nodes()
     #     ):
     #         # Get neighbors
     #         proprio_nodes = self.proprio_graph.get_nodes_within_radius_range(node, min_radius = 0.01, max_radius=search_radius, time_eps=5)
