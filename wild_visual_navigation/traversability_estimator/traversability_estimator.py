@@ -1,6 +1,7 @@
 from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation.feature_extractor import FeatureExtractor
+from wild_visual_navigation.learning import GraphTravOnlineDataset
 from wild_visual_navigation.traversability_estimator import (
     BaseNode,
     BaseGraph,
@@ -150,9 +151,25 @@ class TraversabilityEstimator:
         global_nodes = self.experience_graph.get_nodes()
         for node, index in zip(global_nodes, range(len(global_nodes))):
             node.save(mission_path, index)
+    
+    def make_online_dataset(self):
+        # Prepare online dataset
+        dataset = GraphTravOnlineDataset("/tmp")
+
+        # Get all the current nodes
+        global_nodes = self.experience_graph.get_nodes()
+        for node, index in zip(global_nodes, range(len(global_nodes))):
+            dataset.add(node.as_pyg_data())
+        
+        dataset.process()
+        return dataset
 
     def train(self, iter=10):
-        pass
+        # Prepare dataset
+        dataset = self.make_online_dataset()
+
+        # Train model
+        
 
     def update_features(self):
         for node in self.experience_graph.get_nodes():

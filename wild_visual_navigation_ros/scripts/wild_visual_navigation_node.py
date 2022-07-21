@@ -201,7 +201,6 @@ class WvnRosInterface:
             self.traversability_estimator.update_features()
 
             # Optimize model
-            # rospy.loginfo("[learning thread] updating model")
             self.traversability_estimator.train(iter=10)
             rate.sleep()
 
