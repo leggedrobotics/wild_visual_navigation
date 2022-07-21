@@ -18,11 +18,18 @@ def test_dino_interfacer():
         im = img + torch.rand(img.shape, device=img.device)/100
         di.inference(di.transform( im )) 
     
-    with Timer("Dino Inference: "):
+    with Timer("BS1 Dino Inference: "):
         for i in range(30):
             im = img + torch.rand(img.shape, device=img.device)/100
-            with Timer("Dino Single: "):
+            with Timer("BS1 Dino Single: "):
                 res = di.inference(di.transform( im ))
-
+    
+    img = img.repeat(4,1,1,1)
+    with Timer("BS4 Dino Inference: "):
+        for i in range(15):
+            im = img + torch.rand(img.shape, device=img.device)/100
+            with Timer("BS4 Dino Single: "):
+                res = di.inference(di.transform( im ))
+                
 if __name__ == "__main__":
     test_dino_interfacer()
