@@ -72,14 +72,13 @@ class LearningVisualizer:
             seg_pil = Image.fromarray(seg)
             seg_draw = ImageDraw.Draw(seg_pil)
 
-        center = center[0]
         adjacency_list = graph.edge_index
 
         colormap = "viridis"
         viridis = cm.get_cmap(colormap, 255)
-        col_map = np.uint8(viridis(np.linspace(0, 1, 255))[:, :3] * 255)
+        col_map = np.uint8(viridis(np.linspace(0, 1, 256))[:, :3] * 255)
 
-        fil_col = (seg.max() + 5).item()
+
         for i in range(adjacency_list.shape[1]):
             a, b = adjacency_list[0, i], adjacency_list[1, i]
             line_params = center[a].tolist() + center[b].tolist()
