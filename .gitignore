@@ -6,6 +6,10 @@ assets/stego/cocostuff27_vit_base_5.ckpt
 .pytest_cache/**
 .vscode/**
 
+# DrawIO
+**.dtmp
+**.bkp 
+
 # Pip editable repos
 src/
 
