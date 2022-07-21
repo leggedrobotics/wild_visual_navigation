@@ -69,9 +69,9 @@ class WvnRosInterface:
         self.robot_height = rospy.get_param("~robot_height", 0.3)
 
         # Traversability estimation params
-        self.traversability_radius = rospy.get_param("~traversability_radius", 3.0)
+        self.traversability_radius = rospy.get_param("~traversability_radius", 5.0)
         self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr", 0.5)
-        self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.2)
+        self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.1)
         self.network_input_image_size = rospy.get_param("~network_input_image_size", 448)
 
         # Threads

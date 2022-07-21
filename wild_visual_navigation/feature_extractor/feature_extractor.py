@@ -48,7 +48,7 @@ class SegmentExtractor(torch.nn.Module):
             seg (torch.Tensor, dtype=torch.long, shape=(BS, 1, H, W)): Segmentation
 
         Returns:
-            adjacency_list (torch.Tensor, dtype=torch.long, shape=(BS, N, 2): Adjacency list of undirected graph
+            adjacency_list (torch.Tensor, dtype=torch.long, shape=(N, 2): Adjacency list of undirected graph
         """
         assert seg.shape[0] == 1 and len(seg.shape) == 4
 
@@ -68,7 +68,7 @@ class SegmentExtractor(torch.nn.Module):
         ri_idx = torch.floor(m / div).type(torch.long)
         adjacency_list = torch.stack([le_idx, ri_idx], dim=1)
 
-        return adjacency_list[None]
+        return adjacency_list
 
     @torch.no_grad()
     def centers(self, seg: torch.tensor):
@@ -78,7 +78,7 @@ class SegmentExtractor(torch.nn.Module):
             seg (torch.Tensor, dtype=torch.long, shape=(BS, 1, H, W)): Segmentation
 
         Returns:
-            centers (torch.Tensor, dtype=torch.long, shape=(BS, N, 2): Center position in image plane of clusters.
+            centers (torch.Tensor, dtype=torch.long, shape=(N, 2): Center position in image plane of clusters.
         """
 
         assert seg.shape[0] == 1 and len(seg.shape) == 4
@@ -93,7 +93,7 @@ class SegmentExtractor(torch.nn.Module):
             centers.append(res)
         centers = torch.stack(centers)
 
-        return centers[None]
+        return centers
 
 
 class FeatureExtractor:
@@ -132,7 +132,7 @@ class FeatureExtractor:
         self,
         img: torch.tensor,
         n_segments: int = 100,
-        compactness: float = 10.0,
+        compactness: float = 100.0,
         return_centers: bool = False,
         return_image: bool = False,
         show: bool = False,
@@ -150,7 +150,7 @@ class FeatureExtractor:
         Returns:
             adj (torch.Tensor, dtype=torch.uint32, shape=(N,2)): Graph Structure
             feat (torch.Tensor, dtype=torch.float32, shape=(N, C)): Features
-            seg (torch.Tensor, dtype=torch.uint32, shape=(BS, 1, H, W)): Segmentation
+            seg (torch.Tensor, dtype=torch.uint32, shape=(H, W)): Segmentation
             center (torch.Tensor, dtype=torch.float32, shape=(N,2)): Center of custer in image plane
         """
 
@@ -179,13 +179,13 @@ class FeatureExtractor:
         )
 
         # extract adjacency_list based on clusters
-        seg = torch.from_numpy(seg).to(self.device)[None, None]
-        adjacency_list = self.se.adjacency_list(seg)
+        seg = torch.from_numpy(seg).to(self.device)
+        adjacency_list = self.se.adjacency_list(seg[None, None])
 
         # get mean dino features for each cluster
         features = []
         for i in range(seg.max() + 1):
-            m = seg[0, 0] == i
+            m = seg == i
             x, y = torch.where(m)
             feat = feat_dino[0, :, x, y].mean(dim=1)
             features.append(feat)
@@ -193,7 +193,7 @@ class FeatureExtractor:
         ret = (adjacency_list, torch.stack(features, dim=1)[None], seg)
 
         if return_centers:
-            ret += (self.se.centers(seg),)
+            ret += (self.se.centers(seg[None,None]),)
 
         if show or return_image:
             ph = PlotHelper()
@@ -205,10 +205,10 @@ class FeatureExtractor:
             img_draw = ImageDraw.Draw(img_pil)
             seg_draw = ImageDraw.Draw(seg_pil)
 
-            centers = self.se.centers(seg)[0]
+            centers = self.se.centers(seg)
             fil_col = (seg.max() + 5).item()
-            for i in range(adjacency_list.shape[1]):
-                a, b = adjacency_list[0, i, 0], adjacency_list[0, i, 1]
+            for i in range(adjacency_list.shape[0]):
+                a, b = adjacency_list[i, 0], adjacency_list[i, 1]
                 line_params = centers[a].tolist() + centers[b].tolist()
                 img_draw.line(line_params, fill=fil_col)
                 seg_draw.line(line_params, fill=fil_col)
