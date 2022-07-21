@@ -3,6 +3,7 @@ from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation.utils import make_box, make_rounded_box, make_plane
 from liegroups.torch import SE3, SO3
 from PIL import Image, ImageDraw
+from skimage import segmentation
 from torch_geometric.data import Data
 import kornia
 import numpy as np
@@ -133,12 +134,17 @@ class GlobalNode(BaseNode):
         if self.image is None or self.supervision_mask is None:
             return None
         img_np = kornia.utils.tensor_to_image(self.image)
+        trav_np = kornia.utils.tensor_to_image(self.supervision_mask)
+
+        # Draw segments
+        # trav_np = segmentation.mark_boundaries(trav_np, self.feature_segments.cpu().numpy()[0,0])
+        img_np = segmentation.mark_boundaries(img_np, self.feature_segments.cpu().numpy()[0, 0])
+
         img_pil = Image.fromarray(np.uint8(img_np * 255))
         img_draw = ImageDraw.Draw(img_pil)
-
-        trav_np = kornia.utils.tensor_to_image(self.supervision_mask)
         trav_pil = Image.fromarray(np.uint8(trav_np * 255))
 
+        # Draw graph
         for i in range(self.feature_edges.shape[1]):
             a, b = self.feature_edges[0, i, 0], self.feature_edges[0, i, 1]
             line_params = self.feature_positions[0][a].tolist() + self.feature_positions[0][b].tolist()
