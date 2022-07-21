@@ -148,10 +148,10 @@ class FeatureExtractor:
             show (bool, optional): Defaults to False.
 
         Returns:
-            adj (torch.Tensor, dtype=torch.uint32, shape=(N,2)): Graph Structure
+            adj (torch.Tensor, dtype=torch.uint32, shape=(2,N)): Graph Structure
             feat (torch.Tensor, dtype=torch.float32, shape=(N, C)): Features
             seg (torch.Tensor, dtype=torch.uint32, shape=(H, W)): Segmentation
-            center (torch.Tensor, dtype=torch.float32, shape=(N,2)): Center of custer in image plane
+            center (torch.Tensor, dtype=torch.float32, shape=(2,N)): Center of custer in image plane
         """
 
         # Currently on BS=1 supported
@@ -190,7 +190,7 @@ class FeatureExtractor:
             feat = feat_dino[0, :, x, y].mean(dim=1)
             features.append(feat)
 
-        ret = (adjacency_list, torch.stack(features, dim=1).T , seg)
+        ret = (adjacency_list.T, torch.stack(features, dim=1).T , seg)
 
         if return_centers:
             ret += (self.se.centers(seg[None,None]),)
@@ -207,8 +207,8 @@ class FeatureExtractor:
 
             centers = self.se.centers(seg)
             fil_col = (seg.max() + 5).item()
-            for i in range(adjacency_list.shape[0]):
-                a, b = adjacency_list[i, 0], adjacency_list[i, 1]
+            for i in range(adjacency_list.shape[1]):
+                a, b = adjacency_list[0,i], adjacency_list[1, i]
                 line_params = centers[a].tolist() + centers[b].tolist()
                 img_draw.line(line_params, fill=fil_col)
                 seg_draw.line(line_params, fill=fil_col)

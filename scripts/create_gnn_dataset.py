@@ -62,16 +62,12 @@ if __name__ == "__main__":
 
         ys = []
         for s in range(seg.max() + 1):
-            m = (seg == s)[0, 0]
+            m = (seg == s)
             idx, counts = torch.unique(stego_label[m], return_counts=True)
             ys.append(idx[torch.argmax(counts)])
 
         y = torch.stack(ys)
-
-        edge_index = adj[0].T
-        x = feat[0].T
-
-        graph_data = Data(x=x, edge_index=edge_index, y=y)
+        graph_data = Data(x=feat, edge_index=adj, y=y)
 
         if args.store:
             for data, key in zip([adj, feat, seg, img, center], keys):
