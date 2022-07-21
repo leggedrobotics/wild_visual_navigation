@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
         ys = []
         for s in range(seg.max() + 1):
-            m = (seg == s)
+            m = seg == s
             idx, counts = torch.unique(stego_label[m], return_counts=True)
             ys.append(idx[torch.argmax(counts)])
 
