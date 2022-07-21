@@ -197,7 +197,7 @@ class WvnRosInterface:
             pose_base_in_world=pose_base_in_world,
             pose_camera_in_base=pose_camera_in_base,
             image=torch_image,
-            projector=image_projector,
+            image_projector=image_projector,
         )
 
         # Add node to graph
@@ -226,7 +226,7 @@ class WvnRosInterface:
             mission_node = self.traversability_estimator.get_last_valid_mission_node()
 
             if mission_node is not None:
-                ros_mask = mission_node.get_supervision_mask()
+                ros_mask = mission_node.supervision_mask
                 ros_labeled_image = mission_node.get_training_image()
                 self.pub_debug_image_mask.publish(rc.torch_to_ros_image(ros_mask))
                 self.pub_debug_image_labeled.publish(rc.torch_to_ros_image(ros_labeled_image))
@@ -264,11 +264,11 @@ class WvnRosInterface:
             pose = PoseStamped()
             pose.header.stamp = now
             pose.header.frame_id = self.fixed_frame
-            pose.pose = rc.torch_to_ros_pose(node.get_pose_base_in_world())
+            pose.pose = rc.torch_to_ros_pose(node.pose_base_in_world)
             proprio_graph_msg.poses.append(pose)
 
             # Footprints
-            footprint_points = node.get_footprint_points().unsqueeze(0)
+            footprint_points = node.get_footprint_points()[None]
             B, N, D = footprint_points.shape
             for n in [0, 2, 1, 2, 0, 3]:  # this is a hack to show the triangles correctly
                 p = Point()
@@ -282,7 +282,7 @@ class WvnRosInterface:
             pose = PoseStamped()
             pose.header.stamp = now
             pose.header.frame_id = self.fixed_frame
-            pose.pose = rc.torch_to_ros_pose(node.get_pose_cam_in_world())
+            pose.pose = rc.torch_to_ros_pose(node.pose_cam_in_world)
             image_graph_msg.poses.append(pose)
 
         self.pub_debug_proprio_graph.publish(proprio_graph_msg)

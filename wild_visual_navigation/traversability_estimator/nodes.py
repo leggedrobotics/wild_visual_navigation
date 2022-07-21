@@ -165,7 +165,6 @@ class MissionNode(BaseNode):
         trav_np = kornia.utils.tensor_to_image(self._supervision_mask)
 
         # Draw segments
-        # trav_np = segmentation.mark_boundaries(trav_np, self.feature_segments.cpu().numpy()[0,0])
         img_np = segmentation.mark_boundaries(img_np, self._feature_segments.cpu().numpy())
 
         img_pil = Image.fromarray(np.uint8(img_np * 255))
@@ -173,8 +172,8 @@ class MissionNode(BaseNode):
         trav_pil = Image.fromarray(np.uint8(trav_np * 255))
 
         # Draw graph
-        for i in range(self._feature_edges.shape[0]):
-            a, b = self._feature_edges[i, 0], self._feature_edges[i, 1]
+        for i in range(self._feature_edges.shape[1]):
+            a, b = self._feature_edges[0, i], self._feature_edges[1, i]
             line_params = self._feature_positions[a].tolist() + self._feature_positions[b].tolist()
             img_draw.line(line_params, fill=(255, 255, 255, 100), width=2)
 
@@ -233,6 +232,7 @@ class MissionNode(BaseNode):
         for s in range(self._feature_segments.max() + 1):
             # Get a mask indices for the segment
             m = self._feature_segments == s
+
             # Count the labels
             idx, counts = torch.unique(signal[m], return_counts=True)
             # append the labels
@@ -339,7 +339,7 @@ class ImageNode(BaseNode):
         return self._image_projector
 
     def is_valid(self):
-        return isinstance(self._image, torch.Tensor) and isinstance(self._projector, ImageProjector)
+        return isinstance(self._image, torch.Tensor) and isinstance(self._image_projector, ImageProjector)
 
 
 def run_base_state():
