@@ -15,8 +15,8 @@ def test_pinhole_camera():
     K = torch.FloatTensor([[720, 0, 720, 0], [0, 720, 540, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
     # Extrinsics
     xi = torch.FloatTensor([0, 0, 0, 0, 0, 0])  # (x, y, z, rx, ry, rz)
-    T_WC = SE3.exp(xi).as_matrix()
-    T_CW = T_WC.inverse()
+    pose_camera_in_world = SE3.exp(xi).as_matrix()
+    T_CW = pose_camera_in_world.inverse()
     T_CW = T_CW.unsqueeze(0)
     # Image size
     H = torch.IntTensor([1080])

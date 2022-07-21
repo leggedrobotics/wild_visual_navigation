@@ -85,7 +85,7 @@ class DinoInterface:
         Returns:
             features (torch.tensor, dtype=torch.float32, shape=(BS,D,H,W)): per-pixel D-dimensional features
         """
-        assert 1 == img.shape[0]
+        # assert 1 == img.shape[0]
         assert img.device.type == self.device
 
         # Extract features
