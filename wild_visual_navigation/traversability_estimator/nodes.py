@@ -114,7 +114,7 @@ class GlobalNode(BaseNode):
 
     def get_feature_edges(self):
         return self.feature_edges
-
+    
     def get_feature_segments(self):
         return self.feature_segments
 
@@ -138,20 +138,20 @@ class GlobalNode(BaseNode):
 
         # Draw segments
         # trav_np = segmentation.mark_boundaries(trav_np, self.feature_segments.cpu().numpy()[0,0])
-        img_np = segmentation.mark_boundaries(img_np, self.feature_segments.cpu().numpy()[0, 0])
+        img_np = segmentation.mark_boundaries(img_np, self.feature_segments.cpu().numpy())
 
         img_pil = Image.fromarray(np.uint8(img_np * 255))
         img_draw = ImageDraw.Draw(img_pil)
         trav_pil = Image.fromarray(np.uint8(trav_np * 255))
 
         # Draw graph
-        for i in range(self.feature_edges.shape[1]):
-            a, b = self.feature_edges[0, i, 0], self.feature_edges[0, i, 1]
-            line_params = self.feature_positions[0][a].tolist() + self.feature_positions[0][b].tolist()
+        for i in range(self.feature_edges.shape[0]):
+            a, b = self.feature_edges[i, 0], self.feature_edges[ i, 1]
+            line_params = self.feature_positions[a].tolist() + self.feature_positions[b].tolist()
             img_draw.line(line_params, fill=(255, 255, 255, 100), width=2)
 
         for i in range(self.feature_positions.shape[1]):
-            params = self.feature_positions[0][i].tolist()
+            params = self.feature_positions[i].tolist()
             color = trav_pil.getpixel((params[0], params[1]))
             r = 10
             params = [p - r for p in params] + [p + r for p in params]
@@ -160,11 +160,22 @@ class GlobalNode(BaseNode):
         np_draw = np.array(img_pil)
         return kornia.utils.image_to_tensor(np_draw.copy()).to(self.image.device)
 
-    def save(self, output_path: str, index: int):
-        graph_data = self.as_pyg_data()
-        path = os.path.join(output_path, f"graph_{index:06d}.pt")
-        torch.save(graph_data, path)
-
+    def save(self, output_path: str, index: int, graph_only: bool=False):
+        if self.feature_positions is not None:
+            graph_data = self.as_pyg_data()
+            path = os.path.join(output_path, "graph", f"graph_{index:06d}.pt")
+            torch.save(graph_data, path)
+            if not graph_only:                
+                p = path.replace("graph","img")
+                torch.save(self.image.cpu(), p)
+                
+                p = path.replace("graph","center")
+                torch.save(self.feature_positions.cpu(), p)
+                
+                p = path.replace("graph","seg")
+                torch.save(self.feature_segments.cpu(), p)
+            
+        
     def set_image(self, image: torch.tensor):
         self.image = image
 
@@ -200,7 +211,7 @@ class GlobalNode(BaseNode):
         labels_per_segment = []
         for s in range(self.feature_segments.max() + 1):
             # Get a mask indices for the segment
-            m = (self.feature_segments == s)[0, 0]
+            m = (self.feature_segments == s)
             # Count the labels
             idx, counts = torch.unique(signal[m], return_counts=True)
             # append the labels

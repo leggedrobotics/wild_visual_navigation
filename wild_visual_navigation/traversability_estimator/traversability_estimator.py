@@ -145,10 +145,14 @@ class TraversabilityEstimator:
     def save_graph(self, mission_path: str, export_debug: bool = False):
         # Make folder if it doesn't exist
         os.makedirs(mission_path, exist_ok=True)
+        os.makedirs( os.path.join(mission_path, "graph"), exist_ok=True)
+        os.makedirs( os.path.join(mission_path, "seg"), exist_ok=True)
+        os.makedirs( os.path.join(mission_path, "center"), exist_ok=True)
+        os.makedirs( os.path.join(mission_path, "img"), exist_ok=True)
 
         # Get all the current nodes
         global_nodes = self.experience_graph.get_nodes()
-        for node, index in zip(global_nodes, range(len(global_nodes))):
+        for index, node in enumerate(global_nodes): 
             node.save(mission_path, index)
 
     def train(self, iter=10):
@@ -163,7 +167,7 @@ class TraversabilityEstimator:
                 print(f"updating features in {node}")
                 # Run feature extractor
                 edges, feat, seg, center = self.feature_extractor.extract(
-                    img=node.get_image().clone().unsqueeze(0), return_centers=True
+                    img=node.get_image().clone()[None], return_centers=True
                 )
 
                 # Set features in global graph
