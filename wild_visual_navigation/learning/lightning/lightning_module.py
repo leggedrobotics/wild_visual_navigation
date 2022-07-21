@@ -44,6 +44,8 @@ class LightningTrav(pl.LightningModule):
 
         res = self._model(graph)
         loss = F.mse_loss(res, graph.y)
+        
+        
         self.log(f"{self._mode}_loss", loss.item(), on_epoch=True, prog_bar=True)
 
         if not fast:

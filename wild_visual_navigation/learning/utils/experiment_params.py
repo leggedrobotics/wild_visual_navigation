@@ -30,7 +30,7 @@ class ExperimentParams(Serializable):
             weight_decay: float = 4.0e-05
 
         name: str = "ADAMW"
-        lr: float = 0.001
+        lr: float = 0.0001
         adamw_cfg: AdamwCfgParams = AdamwCfgParams()
 
     optimizer: OptimizerParams = OptimizerParams()
@@ -52,7 +52,7 @@ class ExperimentParams(Serializable):
 
     @dataclass
     class DataModuleParams:
-        visu: bool = True
+        visu: bool = False
         batch_size: int = 8
         num_workers: int = 0
 
