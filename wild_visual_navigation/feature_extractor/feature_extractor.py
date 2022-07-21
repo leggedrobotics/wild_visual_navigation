@@ -132,7 +132,7 @@ class FeatureExtractor:
         self,
         img: torch.tensor,
         n_segments: int = 100,
-        compactness: float = 10.0,
+        compactness: float = 100.0,
         return_centers: bool = False,
         return_image: bool = False,
         show: bool = False,

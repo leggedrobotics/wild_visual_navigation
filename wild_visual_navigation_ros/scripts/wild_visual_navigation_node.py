@@ -23,6 +23,8 @@ torch.cuda.empty_cache()
 
 class WvnRosInterface:
     def __init__(self):
+        self.last_ts = rospy.get_time()
+
         # Read params
         self.read_params()
 
@@ -75,6 +77,7 @@ class WvnRosInterface:
         self.network_input_image_size = rospy.get_param("~network_input_image_size", 448)
 
         # Threads
+        self.image_callback_rate = rospy.get_param("~image_callback_rate", 3)  # hertz
         self.learning_thread_rate = rospy.get_param("~learning_thread_rate", 10)  # hertz
 
         # Data storage
@@ -167,7 +170,11 @@ class WvnRosInterface:
         self.traversability_estimator.add_proprio_node(proprio_node)
 
     def image_callback(self, image_msg, info_msg):
+        # Run the callback so as to match the desired rate
         ts = image_msg.header.stamp.to_sec()
+        if abs(ts - self.last_ts) < 1.0 / self.image_callback_rate:
+            return
+        self.last_ts = ts
 
         # Query transforms from TF
         T_WB = rc.ros_tf_to_torch(self.query_tf(self.fixed_frame, self.base_frame), device=self.device)
@@ -197,9 +204,6 @@ class WvnRosInterface:
 
         # Main loop
         while not rospy.is_shutdown():
-            # # Update features
-            self.traversability_estimator.update_features()
-
             # Optimize model
             self.traversability_estimator.train(iter=10)
             rate.sleep()
@@ -211,11 +215,11 @@ class WvnRosInterface:
         # Publish reprojections of last node in graph
         # TODO: change visualization for a better node
         if len(self.traversability_estimator.get_image_nodes()) > 0:
-            global_node = self.traversability_estimator.get_last_valid_global_node()
+            mission_node = self.traversability_estimator.get_last_valid_mission_node()
 
-            if global_node is not None:
-                ros_mask = global_node.get_supervision_mask()
-                ros_labeled_image = global_node.get_training_image()
+            if mission_node is not None:
+                ros_mask = mission_node.get_supervision_mask()
+                ros_labeled_image = mission_node.get_training_image()
                 self.pub_debug_image_mask.publish(rc.torch_to_ros_image(ros_mask))
                 self.pub_debug_image_labeled.publish(rc.torch_to_ros_image(ros_labeled_image))
 
