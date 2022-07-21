@@ -55,7 +55,7 @@ class LearningVisualizer:
         Returns:
             img (np.Array,  dtype=np.uint8, shape=(3, H, W)): Left prediction, right ground truth
         """
-        max_seg = 30
+        max_seg = 1.0
         elipse_size = 5
 
         y = (graph.y.type(torch.float32) / max_seg * 255).type(torch.uint8)
