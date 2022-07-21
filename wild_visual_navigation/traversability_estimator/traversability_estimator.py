@@ -152,8 +152,11 @@ class TraversabilityEstimator:
 
         # Get all the current nodes
         global_nodes = self.experience_graph.get_nodes()
-        for index, node in enumerate(global_nodes): 
-            node.save(mission_path, index)
+        i = 0
+        for node in global_nodes: 
+            if node.is_valid():
+                node.save(mission_path, i)
+                i += 1
 
     def train(self, iter=10):
         pass

@@ -161,19 +161,18 @@ class GlobalNode(BaseNode):
         return kornia.utils.image_to_tensor(np_draw.copy()).to(self.image.device)
 
     def save(self, output_path: str, index: int, graph_only: bool=False):
-        if self.feature_positions is not None:
-            graph_data = self.as_pyg_data()
-            path = os.path.join(output_path, "graph", f"graph_{index:06d}.pt")
-            torch.save(graph_data, path)
-            if not graph_only:                
-                p = path.replace("graph","img")
-                torch.save(self.image.cpu(), p)
-                
-                p = path.replace("graph","center")
-                torch.save(self.feature_positions.cpu(), p)
-                
-                p = path.replace("graph","seg")
-                torch.save(self.feature_segments.cpu(), p)
+        graph_data = self.as_pyg_data()
+        path = os.path.join(output_path, "graph", f"graph_{index:06d}.pt")
+        torch.save(graph_data, path)
+        if not graph_only:                
+            p = path.replace("graph","img")
+            torch.save(self.image.cpu(), p)
+            
+            p = path.replace("graph","center")
+            torch.save(self.feature_positions.cpu(), p)
+            
+            p = path.replace("graph","seg")
+            torch.save(self.feature_segments.cpu(), p)
             
         
     def set_image(self, image: torch.tensor):

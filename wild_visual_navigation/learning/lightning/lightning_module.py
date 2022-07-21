@@ -9,16 +9,11 @@ from torchmetrics import Accuracy
 from torch.nn.functional import cross_entropy
 from wild_visual_navigation.learning.visu import LearningVisualizer
 
-
 class LightningTrav(pl.LightningModule):
     def __init__(self, exp, env):
         super().__init__()
         self._model = get_model(exp["model"])
-        self.acc_val = Accuracy()
-        self.acc_test = Accuracy()
-        self.acc_train = Accuracy()
-        self._acc = {"val": self.acc_val, "test": self.acc_test, "train": self.acc_train}
-
+        
         self._visu_count = {"val": 0, "test": 0, "train": 0}
         self._visualizer = LearningVisualizer(
             p_visu=join(exp["general"]["model_path"], "visu"), store=True, pl_model=self
@@ -47,11 +42,9 @@ class LightningTrav(pl.LightningModule):
             seg = batch[3]
 
         res = self._model(graph)
-        loss = cross_entropy(res, graph.y, reduction="mean")
-        self.log(f"{self._mode}_loss", loss.item())
-        preds = torch.argmax(res, dim=1)
-        self._acc[self._mode](preds, graph.y)
-
+        loss =F.mse_loss(res, graph.y)
+        self.log(f"{self._mode}_loss", loss.item(), on_epoch=True, prog_bar=True)
+        
         if not fast:
             self.visu(graph, center, img, seg, res)
 
@@ -77,7 +70,6 @@ class LightningTrav(pl.LightningModule):
     def training_epoch_end(self, outputs):
         # Log epoch metric
         self._mode = "train"
-        self.log(f"{self._mode}_acc_epoch", self._acc[self._mode].compute().item(), on_epoch=True, prog_bar=True)
 
     # VALIDATION
     def on_validation_epoch_start(self):
@@ -90,9 +82,8 @@ class LightningTrav(pl.LightningModule):
         return self.training_step(batch, batch_idx)
 
     def validation_epoch_end(self, outputs):
-
-        self.log(f"{self._mode}_acc_epoch", self._acc[self._mode].compute().item(), on_epoch=True, prog_bar=True)
-
+        pass
+    
     # TESTING
     def on_test_epoch_start(self):
         self._mode = "test"
@@ -102,7 +93,7 @@ class LightningTrav(pl.LightningModule):
         return self.training_step(batch, batch_idx)
 
     def test_epoch_end(self, outputs):
-        self.log(f"{self._mode}_acc_epoch", self._acc[self._mode].compute().item(), on_epoch=True, prog_bar=True)
+        pass
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
         return torch.optim.Adam(self._model.parameters(), lr=self._exp["optimizer"]["lr"])
