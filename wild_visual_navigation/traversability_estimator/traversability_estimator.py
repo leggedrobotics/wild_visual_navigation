@@ -6,7 +6,7 @@ from wild_visual_navigation.traversability_estimator import (
     BaseNode,
     BaseGraph,
     DistanceWindowGraph,
-    GlobalNode,
+    MissionNode,
     ImageNode,
     ProprioceptionNode,
 )
@@ -64,8 +64,8 @@ class TraversabilityEstimator:
             # Add image node
             if self.image_graph.add_node(node):
                 # Add global node
-                mission_node = GlobalNode.from_node(node)
-                mission_node.set_image(node.get_image())
+                mission_node = MissionNode.from_node(node)
+                mission_node.image = node.image
                 self.mission_graph.add_node(mission_node)
 
                 # Update image features
@@ -85,20 +85,20 @@ class TraversabilityEstimator:
                 )
 
                 # Project past footprints on current image
-                image_projector = node.get_image_projector()
-                T_WC = node.get_pose_cam_in_world().unsqueeze(0)
-                supervision_mask = node.get_image() * 0
+                image_projector = node.image_projector
+                pose_camera_in_world = node.pose_cam_in_world.unsqueeze(0)
+                supervision_mask = node.image * 0
 
                 for pnode in self.proprio_graph.get_nodes():
                     footprint = pnode.get_footprint_points().unsqueeze(0)
                     color = torch.FloatTensor([1.0, 1.0, 1.0])
                     # Project and render mask
-                    mask, _ = image_projector.project_and_render(T_WC, footprint, color)
+                    mask, _ = image_projector.project_and_render(pose_camera_in_world, footprint, color)
                     mask = mask.squeeze(0)
                     # Update supervision mask
                     supervision_mask = torch.maximum(supervision_mask, mask.to(supervision_mask.device))
 
-                mission_node.set_supervision_mask(supervision_mask)
+                mission_node.supervision_mask = supervision_mask
 
     def add_proprio_node(self, node: BaseNode):
         """Adds a node to the local graph to store proprioception
@@ -125,13 +125,13 @@ class TraversabilityEstimator:
                     continue
 
                 # Get stuff from image node
-                image_projector = inode.get_image_projector()
-                T_WC = inode.get_pose_cam_in_world().unsqueeze(0)
+                image_projector = inode.image_projector
+                pose_camera_in_world = inode.get_pose_cam_in_world().unsqueeze(0)
                 # Get stuff from global node
-                supervision_mask = mission_node.get_supervision_mask()
+                supervision_mask = mission_node.supervision_mask
 
                 # Project and render mask
-                mask, _ = image_projector.project_and_render(T_WC, footprint, color)
+                mask, _ = image_projector.project_and_render(pose_camera_in_world, footprint, color)
 
                 if mask is None or supervision_mask is None:
                     continue
@@ -141,7 +141,7 @@ class TraversabilityEstimator:
                 supervision_mask = torch.maximum(supervision_mask, mask.to(supervision_mask.device))
 
                 # Get global node and update supervision signal
-                mission_node.set_supervision_mask(supervision_mask)
+                mission_node.supervision_mask = supervision_mask
                 mission_node.update_supervision_signal()
 
             return True
@@ -162,10 +162,14 @@ class TraversabilityEstimator:
     def save_graph(self, mission_path: str, export_debug: bool = False):
         # Make folder if it doesn't exist
         os.makedirs(mission_path, exist_ok=True)
+        os.makedirs(os.path.join(mission_path, "graph"), exist_ok=True)
+        os.makedirs(os.path.join(mission_path, "seg"), exist_ok=True)
+        os.makedirs(os.path.join(mission_path, "center"), exist_ok=True)
+        os.makedirs(os.path.join(mission_path, "img"), exist_ok=True)
 
         # Get all the current nodes
         mission_nodes = self.mission_graph.get_nodes()
-        for node, index in zip(mission_nodes, range(len(mission_nodes))):
+        for index, node in enumerate(mission_nodes):
             node.save(mission_path, index)
 
     def make_online_dataset(self):
@@ -229,8 +233,8 @@ class TraversabilityEstimator:
 
     #         # Get image projector
     #         image_projector = node.get_image_projector()
-    #         # T_WC
-    #         T_WC = node.get_pose_cam_in_world().unsqueeze(0)
+    #         # pose_camera_in_world
+    #         pose_camera_in_world = node.get_pose_cam_in_world().unsqueeze(0)
     #         # Get debug image
     #         image = node.get_image()
     #         supervision_mask = dnode.get_supervision_mask()
@@ -260,7 +264,7 @@ class TraversabilityEstimator:
     #             color = torch.FloatTensor([1.0, 1.0, 1.0])
 
     #             # Project and render mask
-    #             mask, _ = image_projector.project_and_render(T_WC, footprint, color)
+    #             mask, _ = image_projector.project_and_render(pose_camera_in_world, footprint, color)
     #             mask = mask.squeeze(0)
 
     #             # Update traversability mask

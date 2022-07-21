@@ -51,8 +51,8 @@ class GraphTravVisuDataset(Dataset):
         # TODO update the dataset generation to avoid 0,0 and the cropping operation
         graph = torch.load(self.paths[idx])
         center = torch.load(self.paths[idx].replace("graph", "center"))
-        img = self.crop(torch.load(self.paths[idx].replace("graph", "img"))[0])
-        seg = torch.load(self.paths[idx].replace("graph", "seg"))[0, 0]
+        img = self.crop(torch.load(self.paths[idx].replace("graph", "img")))
+        seg = torch.load(self.paths[idx].replace("graph", "seg"))
         return graph, center, img, seg
 
 
@@ -75,7 +75,7 @@ class GraphTravOnlineDataset(InMemoryDataset):
 
 
 def get_pl_graph_trav_module(batch_size=1, num_workers=0, visu=False, **kwargs):
-    root = str(os.path.join(WVN_ROOT_DIR, "results/perugia_forest"))
+    root = str(os.path.join(WVN_ROOT_DIR, "results/default_mission"))
 
     if visu:
         train_dataset = GraphTravVisuDataset(root=root, mode="train")

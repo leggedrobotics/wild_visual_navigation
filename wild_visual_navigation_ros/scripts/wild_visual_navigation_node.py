@@ -71,9 +71,9 @@ class WvnRosInterface:
         self.robot_height = rospy.get_param("~robot_height", 0.3)
 
         # Traversability estimation params
-        self.traversability_radius = rospy.get_param("~traversability_radius", 3.0)
+        self.traversability_radius = rospy.get_param("~traversability_radius", 5.0)
         self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr", 0.5)
-        self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.2)
+        self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.1)
         self.network_input_image_size = rospy.get_param("~network_input_image_size", 448)
 
         # Threads
@@ -147,11 +147,13 @@ class WvnRosInterface:
         ts = msg.header.stamp.to_sec()
 
         # Query transforms from TF
-        T_WB = rc.ros_tf_to_torch(self.query_tf(self.fixed_frame, self.base_frame), device=self.device)
-        T_BF = rc.ros_tf_to_torch(self.query_tf(self.base_frame, self.footprint_frame), device=self.device)
+        pose_base_in_world = rc.ros_tf_to_torch(self.query_tf(self.fixed_frame, self.base_frame), device=self.device)
+        pose_footprint_in_base = rc.ros_tf_to_torch(
+            self.query_tf(self.base_frame, self.footprint_frame), device=self.device
+        )
 
         # The footprint requires a correction: we use the same orientation as the base
-        T_BF[:3, :3] = torch.eye(3, device=self.device)
+        pose_footprint_in_base[:3, :3] = torch.eye(3, device=self.device)
 
         # Convert state to tensor
         proprio_tensor, proprio_labels = rc.anymal_state_to_torch(msg, device=self.device)
@@ -159,8 +161,8 @@ class WvnRosInterface:
         # Create proprioceptive node for the graph
         proprio_node = ProprioceptionNode(
             timestamp=ts,
-            T_WB=T_WB,
-            T_BF=T_BF,
+            pose_base_in_world=pose_base_in_world,
+            pose_footprint_in_base=pose_footprint_in_base,
             width=self.robot_width,
             length=self.robot_length,
             height=self.robot_width,
@@ -177,8 +179,8 @@ class WvnRosInterface:
         self.last_ts = ts
 
         # Query transforms from TF
-        T_WB = rc.ros_tf_to_torch(self.query_tf(self.fixed_frame, self.base_frame), device=self.device)
-        T_BC = rc.ros_tf_to_torch(self.query_tf(self.base_frame, self.camera_frame), device=self.device)
+        pose_base_in_world = rc.ros_tf_to_torch(self.query_tf(self.fixed_frame, self.base_frame), device=self.device)
+        pose_camera_in_base = rc.ros_tf_to_torch(self.query_tf(self.base_frame, self.camera_frame), device=self.device)
 
         # Prepare image projector
         K, H, W = rc.ros_cam_info_to_tensors(info_msg, device=self.device)
@@ -190,7 +192,13 @@ class WvnRosInterface:
         torch_image = image_projector.resize_image(torch_image)
 
         # Create image node for the graph
-        image_node = ImageNode(timestamp=ts, T_WB=T_WB, T_BC=T_BC, image=torch_image, projector=image_projector)
+        image_node = ImageNode(
+            timestamp=ts,
+            pose_base_in_world=pose_base_in_world,
+            pose_camera_in_base=pose_camera_in_base,
+            image=torch_image,
+            projector=image_projector,
+        )
 
         # Add node to graph
         self.traversability_estimator.add_image_node(image_node)
