@@ -72,9 +72,10 @@ class WvnRosInterface:
         self.traversability_radius = rospy.get_param("~traversability_radius", 3.0)
         self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr", 0.5)
         self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.2)
+        self.network_input_image_size = rospy.get_param("~network_input_image_size", 448)
 
         # Threads
-        self.learning_thread_rate = rospy.get_param("~learning_thread_rate", 1)  # hertz
+        self.learning_thread_rate = rospy.get_param("~learning_thread_rate", 10)  # hertz
 
         # Data storage
         out_path = os.path.join(WVN_ROOT_DIR, "results")
@@ -174,20 +175,18 @@ class WvnRosInterface:
 
         # Prepare image projector
         K, H, W = rc.ros_cam_info_to_tensors(info_msg, device=self.device)
-        image_projector = ImageProjector(K=K, h=H, w=W)
+        image_projector = ImageProjector(K=K, h=H, w=W, new_h=self.network_input_image_size)
 
         # Add image to base node
         # convert image message to torch image
         torch_image = rc.ros_image_to_torch(image_msg, device=self.device)
+        torch_image = image_projector.resize_image(torch_image)
 
         # Create image node for the graph
         image_node = ImageNode(timestamp=ts, T_WB=T_WB, T_BC=T_BC, image=torch_image, projector=image_projector)
 
         # Add node to graph
         self.traversability_estimator.add_image_node(image_node)
-
-        # # rospy.loginfo("[main thread] updating labels")
-        # self.traversability_estimator.update_labels_and_features(search_radius=self.traversability_radius)
 
         # rospy.loginfo("[main thread] update visualizations")
         self.visualize()

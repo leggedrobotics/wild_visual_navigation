@@ -99,8 +99,8 @@ def ros_cam_info_to_tensors(caminfo_msg, device="cpu"):
     K = torch.eye(4, dtype=torch.float32).to(device)
     K[:3, :3] = torch.FloatTensor(caminfo_msg.K).reshape(3, 3)
     K = K.unsqueeze(0)
-    H = torch.IntTensor([caminfo_msg.height]).to(device)
-    W = torch.IntTensor([caminfo_msg.width]).to(device)
+    H = caminfo_msg.height #torch.IntTensor([caminfo_msg.height]).to(device)
+    W = caminfo_msg.width  #torch.IntTensor([caminfo_msg.width]).to(device)
     return K, H, W
 
 

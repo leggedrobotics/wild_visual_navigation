@@ -156,9 +156,11 @@ class TraversabilityEstimator:
 
     def update_features(self):
         for node in self.experience_graph.get_nodes():
+            # print(f"updating node {node}")
+
             # Update features
             if node.get_features() is None:
-                print(f"updating node {node}")
+                print(f"updating features in {node}")
                 # Run feature extractor
                 edges, feat, seg, center = self.feature_extractor.extract(
                     img=node.get_image().clone().unsqueeze(0), return_centers=True
@@ -173,8 +175,9 @@ class TraversabilityEstimator:
                     positions=center,
                 )
 
-                # Update supervision signal
-                node.update_supervision_signal()
+            # Update supervision signal
+            # print(f"updating supervision in {node}")
+            node.update_supervision_signal()
 
     # def update_labels_and_features(self, search_radius: float = None):
     #     """Iterates the nodes and projects their information from their neighbors

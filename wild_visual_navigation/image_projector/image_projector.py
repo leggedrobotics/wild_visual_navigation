@@ -2,6 +2,7 @@ from wild_visual_navigation import WVN_ROOT_DIR
 import os
 from os.path import join
 import torch
+from torchvision import transforms as T
 from kornia.geometry.camera.pinhole import PinholeCamera
 from kornia.geometry.linalg import transform_points
 from kornia.utils.draw import draw_convex_polygon
@@ -11,16 +12,16 @@ from liegroups.torch import SE3, SO3
 
 
 class ImageProjector:
-    def __init__(self, K: torch.tensor, h: torch.tensor, w: torch.tensor):
+    def __init__(self, K: torch.tensor, h: int, w: int, new_h: int = 448, new_w: int = None):
         """Initializes the projector using the pinhole model, without distortion
 
         Args:
             K (torch.Tensor, dtype=torch.float32, shape=(B, 4, 4)): Camera matrices
             T_WC (torch.Tensor, dtype=torch.float32, shape=(B, 4, 4)): Extrinsics SE(3) matrix
             h (torch.Tensor, dtype=torch.int64): Image height
-            w (torch.Tensor, dtype=torch.int64):  Image width
-            fixed_frame (str):  Fixed frame name
-            camera_frame (str): Camera frame name
+            w (torch.Tensor, dtype=torch.int64): Image width
+            new_h (int): New height size
+            new_w (int): New width size
 
         Returns:
             None
@@ -28,9 +29,40 @@ class ImageProjector:
 
         # TODO: Add shape checks
 
+        # Get device for later
+        device = K.device
+
         # Initialize pinhole model (no extrinsics)
-        E = torch.eye(4).expand(K.shape).to(K.device)
-        self.camera = PinholeCamera(K, E, h, w)
+        E = torch.eye(4).expand(K.shape).to(device)
+
+        # Store original parameters
+        self.K = K
+        self.height = h
+        self.width = w
+
+        # Compute scale
+        sy = new_h / h
+        sx = (new_w / w) if (new_w is not None) else sy
+
+        # Compute scaled parameters
+        sh = new_h
+        sw = new_w if new_w is not None else sh
+
+        # Prepare image cropper
+        self.image_crop = T.Compose([T.Resize(new_h, T.InterpolationMode.NEAREST), T.CenterCrop(new_h)])
+
+        # Adjust camera matrix
+        # Fill values
+        sK = K.clone()
+        sK[-1, 0, 0] = K[-1, 1, 1] * sy
+        sK[-1, 0, 2] = K[-1, 1, 2] * sy
+        sK[-1, 1, 1] = K[-1, 1, 1] * sy
+        sK[-1, 1, 2] = K[-1, 1, 2] * sy
+
+        # Initialize camera with scaled parameters
+        sh = torch.IntTensor([sh]).to(device)
+        sw = torch.IntTensor([sw]).to(device)
+        self.camera = PinholeCamera(sK, E, sh, sw)
 
     def check_validity(self, points_3d: torch.tensor, points_2d: torch.tensor) -> torch.tensor:
         """Check that the points are valid after projecting them on the image
@@ -125,6 +157,9 @@ class ImageProjector:
         # Return torch masks
         return masks, image_overlay
 
+    def resize_image(self, image: torch.tensor):
+        return self.image_crop(image)
+
 
 def run_image_projector():
     """Projects 3D points to example images and returns an image with the projection"""
@@ -155,8 +190,8 @@ def run_image_projector():
     T_WC = SE3(R_WC, rho).as_matrix()  # Pose matrix of camera in world frame
     T_WC = T_WC.unsqueeze(0)
     # Image size
-    H = torch.IntTensor([1080])
-    W = torch.IntTensor([1440])
+    H = 1080
+    W = 1440
 
     # Create projector
     im = ImageProjector(K, H, W)
@@ -167,6 +202,7 @@ def run_image_projector():
     # Convert to torch
     k_img = to_tensor(pil_img)
     k_img = k_img.unsqueeze(0)
+    k_img = im.resize_image(k_img)
 
     # Create 3D points around origin
     X = make_plane(x=0.8, y=0.5, pose=torch.eye(4)).unsqueeze(0)
@@ -178,7 +214,7 @@ def run_image_projector():
     # Plot result as in colab
     fig, ax = plt.subplots(1, 3, figsize=(5 * 3, 5))
 
-    ax[0].imshow(pil_img)
+    ax[0].imshow(tensor_to_image(k_img))
     ax[0].set_title("Image")
     ax[1].imshow(tensor_to_image(k_mask))
     ax[1].set_title("Labels")
