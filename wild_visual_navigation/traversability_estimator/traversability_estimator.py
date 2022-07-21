@@ -145,15 +145,15 @@ class TraversabilityEstimator:
     def save_graph(self, mission_path: str, export_debug: bool = False):
         # Make folder if it doesn't exist
         os.makedirs(mission_path, exist_ok=True)
-        os.makedirs( os.path.join(mission_path, "graph"), exist_ok=True)
-        os.makedirs( os.path.join(mission_path, "seg"), exist_ok=True)
-        os.makedirs( os.path.join(mission_path, "center"), exist_ok=True)
-        os.makedirs( os.path.join(mission_path, "img"), exist_ok=True)
+        os.makedirs(os.path.join(mission_path, "graph"), exist_ok=True)
+        os.makedirs(os.path.join(mission_path, "seg"), exist_ok=True)
+        os.makedirs(os.path.join(mission_path, "center"), exist_ok=True)
+        os.makedirs(os.path.join(mission_path, "img"), exist_ok=True)
 
         # Get all the current nodes
         global_nodes = self.experience_graph.get_nodes()
         i = 0
-        for node in global_nodes: 
+        for node in global_nodes:
             if node.is_valid():
                 node.save(mission_path, i)
                 i += 1

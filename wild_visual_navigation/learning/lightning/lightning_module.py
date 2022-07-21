@@ -9,11 +9,12 @@ from torchmetrics import Accuracy
 from torch.nn.functional import cross_entropy
 from wild_visual_navigation.learning.visu import LearningVisualizer
 
+
 class LightningTrav(pl.LightningModule):
     def __init__(self, exp, env):
         super().__init__()
         self._model = get_model(exp["model"])
-        
+
         self._visu_count = {"val": 0, "test": 0, "train": 0}
         self._visualizer = LearningVisualizer(
             p_visu=join(exp["general"]["model_path"], "visu"), store=True, pl_model=self
@@ -42,9 +43,9 @@ class LightningTrav(pl.LightningModule):
             seg = batch[3]
 
         res = self._model(graph)
-        loss =F.mse_loss(res, graph.y)
+        loss = F.mse_loss(res, graph.y)
         self.log(f"{self._mode}_loss", loss.item(), on_epoch=True, prog_bar=True)
-        
+
         if not fast:
             self.visu(graph, center, img, seg, res)
 
@@ -83,7 +84,7 @@ class LightningTrav(pl.LightningModule):
 
     def validation_epoch_end(self, outputs):
         pass
-    
+
     # TESTING
     def on_test_epoch_start(self):
         self._mode = "test"

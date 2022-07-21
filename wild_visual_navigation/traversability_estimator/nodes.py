@@ -114,7 +114,7 @@ class GlobalNode(BaseNode):
 
     def get_feature_edges(self):
         return self.feature_edges
-    
+
     def get_feature_segments(self):
         return self.feature_segments
 
@@ -146,7 +146,7 @@ class GlobalNode(BaseNode):
 
         # Draw graph
         for i in range(self.feature_edges.shape[1]):
-            a, b = self.feature_edges[0,i], self.feature_edges[1, i]
+            a, b = self.feature_edges[0, i], self.feature_edges[1, i]
             line_params = self.feature_positions[a].tolist() + self.feature_positions[b].tolist()
             img_draw.line(line_params, fill=(255, 255, 255, 100), width=2)
 
@@ -160,21 +160,20 @@ class GlobalNode(BaseNode):
         np_draw = np.array(img_pil)
         return kornia.utils.image_to_tensor(np_draw.copy()).to(self.image.device)
 
-    def save(self, output_path: str, index: int, graph_only: bool=False):
+    def save(self, output_path: str, index: int, graph_only: bool = False):
         graph_data = self.as_pyg_data()
         path = os.path.join(output_path, "graph", f"graph_{index:06d}.pt")
         torch.save(graph_data, path)
-        if not graph_only:                
-            p = path.replace("graph","img")
+        if not graph_only:
+            p = path.replace("graph", "img")
             torch.save(self.image.cpu(), p)
-            
-            p = path.replace("graph","center")
+
+            p = path.replace("graph", "center")
             torch.save(self.feature_positions.cpu(), p)
-            
-            p = path.replace("graph","seg")
+
+            p = path.replace("graph", "seg")
             torch.save(self.feature_segments.cpu(), p)
-            
-        
+
     def set_image(self, image: torch.tensor):
         self.image = image
 
@@ -210,7 +209,7 @@ class GlobalNode(BaseNode):
         labels_per_segment = []
         for s in range(self.feature_segments.max() + 1):
             # Get a mask indices for the segment
-            m = (self.feature_segments == s)
+            m = self.feature_segments == s
             # Count the labels
             idx, counts = torch.unique(signal[m], return_counts=True)
             # append the labels

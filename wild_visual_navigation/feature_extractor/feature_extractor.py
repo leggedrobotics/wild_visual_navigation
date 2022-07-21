@@ -190,10 +190,10 @@ class FeatureExtractor:
             feat = feat_dino[0, :, x, y].mean(dim=1)
             features.append(feat)
 
-        ret = (adjacency_list.T, torch.stack(features, dim=1).T , seg)
+        ret = (adjacency_list.T, torch.stack(features, dim=1).T, seg)
 
         if return_centers:
-            ret += (self.se.centers(seg[None,None]),)
+            ret += (self.se.centers(seg[None, None]),)
 
         if show or return_image:
             ph = PlotHelper()
@@ -208,7 +208,7 @@ class FeatureExtractor:
             centers = self.se.centers(seg)
             fil_col = (seg.max() + 5).item()
             for i in range(adjacency_list.shape[1]):
-                a, b = adjacency_list[0,i], adjacency_list[1, i]
+                a, b = adjacency_list[0, i], adjacency_list[1, i]
                 line_params = centers[a].tolist() + centers[b].tolist()
                 img_draw.line(line_params, fill=fil_col)
                 seg_draw.line(line_params, fill=fil_col)
