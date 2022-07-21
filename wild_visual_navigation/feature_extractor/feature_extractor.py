@@ -132,7 +132,7 @@ class FeatureExtractor:
         self,
         img: torch.tensor,
         n_segments: int = 100,
-        compactness: float = 100.0,
+        compactness: float = 10.0,
         return_centers: bool = False,
         return_image: bool = False,
         show: bool = False,
@@ -174,7 +174,9 @@ class FeatureExtractor:
 
         # Get slic clusters
         img_np = kornia.utils.tensor_to_image(img)
-        seg = skimage.segmentation.slic(img_np, n_segments=n_segments, compactness=compactness, start_label=0)
+        seg = skimage.segmentation.slic(
+            img_np, n_segments=n_segments, compactness=compactness, start_label=0, channel_axis=2
+        )
 
         # extract adjacency_list based on clusters
         seg = torch.from_numpy(seg).to(self.device)[None, None]

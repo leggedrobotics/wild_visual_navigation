@@ -176,7 +176,7 @@ class TraversabilityEstimator:
                 )
 
             # Update supervision signal
-            print(f"updating supervision in {node}")
+            # print(f"updating supervision in {node}")
             node.update_supervision_signal()
 
     # def update_labels_and_features(self, search_radius: float = None):
