@@ -190,7 +190,7 @@ class FeatureExtractor:
             feat = feat_dino[0, :, x, y].mean(dim=1)
             features.append(feat)
 
-        ret = (adjacency_list, torch.stack(features, dim=1)[None], seg)
+        ret = (adjacency_list, torch.stack(features, dim=1).T , seg)
 
         if return_centers:
             ret += (self.se.centers(seg[None,None]),)
