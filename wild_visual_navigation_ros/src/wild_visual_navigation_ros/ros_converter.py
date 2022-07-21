@@ -77,19 +77,19 @@ def anymal_state_to_torch(anymal_state, device="cpu"):
     # Joints
     # Position
     N = 13
-    state_labels.extend(["position_{x}" for x in anymal_state.joints.name])
+    state_labels.extend([f"position_{x}" for x in anymal_state.joints.name])
     torch_state[N : N + LEG_DIM] = torch.FloatTensor(anymal_state.joints.position)
     # Velocity
     N = N + LEG_DIM
-    state_labels.extend(["velocity_{x}" for x in anymal_state.joints.name])
+    state_labels.extend([f"velocity_{x}" for x in anymal_state.joints.name])
     torch_state[N : N + LEG_DIM] = torch.FloatTensor(anymal_state.joints.velocity)
     # Acceleration
     N = N + LEG_DIM
-    state_labels.extend(["acceleration_{x}" for x in anymal_state.joints.name])
+    state_labels.extend([f"acceleration_{x}" for x in anymal_state.joints.name])
     torch_state[N : N + LEG_DIM] = torch.FloatTensor(anymal_state.joints.acceleration)
     # Effort
     N = N + LEG_DIM
-    state_labels.extend(["effort_{x}" for x in anymal_state.joints.name])
+    state_labels.extend([f"effort_{x}" for x in anymal_state.joints.name])
     torch_state[N : N + LEG_DIM] = torch.FloatTensor(anymal_state.joints.effort)
 
     return torch_state, state_labels
