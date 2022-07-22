@@ -165,7 +165,7 @@ class MissionNode(BaseNode):
         trav_np = kornia.utils.tensor_to_image(self._supervision_mask)
 
         # Draw segments
-        img_np = segmentation.mark_boundaries(img_np, self._feature_segments.cpu().numpy())
+        img_np = segmentation.mark_boundaries(img_np, self._feature_segments.cpu().numpy(), color=(0.7, 0.7, 0.7))
 
         img_pil = Image.fromarray(np.uint8(img_np * 255))
         img_draw = ImageDraw.Draw(img_pil)
@@ -177,10 +177,10 @@ class MissionNode(BaseNode):
             line_params = self._feature_positions[a].tolist() + self._feature_positions[b].tolist()
             img_draw.line(line_params, fill=(255, 255, 255, 100), width=2)
 
-        for i in range(self._feature_positions.shape[1]):
+        for i in range(self._feature_positions.shape[0]):
             params = self._feature_positions[i].tolist()
             color = trav_pil.getpixel((params[0], params[1]))
-            r = 10
+            r = 5
             params = [p - r for p in params] + [p + r for p in params]
             img_draw.ellipse(params, fill=color)
 

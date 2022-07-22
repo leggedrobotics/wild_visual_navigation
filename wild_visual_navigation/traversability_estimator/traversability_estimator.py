@@ -2,6 +2,8 @@ from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation.feature_extractor import FeatureExtractor
 from wild_visual_navigation.learning.dataset import GraphTravOnlineDataset
+from wild_visual_navigation.learning.lightning import LightningTrav
+from wild_visual_navigation.learning.utils import OnlineParams, load_env, create_experiment_folder
 from wild_visual_navigation.traversability_estimator import (
     BaseNode,
     BaseGraph,
@@ -10,12 +12,16 @@ from wild_visual_navigation.traversability_estimator import (
     ImageNode,
     ProprioceptionNode,
 )
-
+from pytorch_lightning import Trainer
+from torch_geometric.data import LightningDataset
+from simple_parsing import ArgumentParser
 from threading import Thread, Lock
+import dataclasses
 import os
 import torch
 import networkx as nx
 import torchvision.transforms as transforms
+import yaml
 
 to_tensor = transforms.ToTensor()
 
@@ -52,6 +58,30 @@ class TraversabilityEstimator:
 
         # Mutex
         self.lock = Lock()
+
+        # Lightning module
+        parser = ArgumentParser()
+        parser.add_arguments(OnlineParams, dest="experiment")
+        args = parser.parse_args()
+        exp = dataclasses.asdict(args.experiment)
+        env = load_env()
+
+        model_path = create_experiment_folder(exp, env)
+        exp["general"]["name"] = os.path.relpath(model_path, env["base"])
+        exp["general"]["model_path"] = model_path
+        with open(os.path.join(model_path, "experiment_params.yaml"), "w") as f:
+            yaml.dump(exp, f, default_flow_style=False)
+
+        # SET GPUS
+        if (exp["trainer"]).get("gpus", -1) == -1:
+            nr = torch.cuda.device_count()
+            print(f"Set GPU Count for Trainer to {nr}!")
+            for i in range(nr):
+                print(f"Device {i}: " + str(torch.cuda.get_device_name(i)))
+            exp["trainer"]["gpus"] = -1
+
+        self._model = LightningTrav(exp, env)
+        self._trainer = Trainer(**exp["trainer"], default_root_dir=model_path)  # , callbacks=cb_ls, logger=logger)
 
     def add_image_node(self, node: BaseNode):
         """Adds a node to the local graph to store images
@@ -175,111 +205,39 @@ class TraversabilityEstimator:
                 node.save(mission_path, i)
                 i += 1
 
-    def make_online_dataset(self):
+    def make_online_dataset(
+        self,
+        batch_size: int = 1,
+        num_workers: int = 0,
+    ):
         # Prepare online dataset
-        dataset = GraphTravOnlineDataset("/tmp")
+        train_dataset = GraphTravOnlineDataset("/tmp")
 
         # Get all the current nodes
-        mission_nodes = self.mission_graph.get_nodes()
-        for index, node in enumerate(mission_nodes):
-            if node.is_valid():
-                dataset.add(node.as_pyg_data(), index)
+        mission_nodes = self.mission_graph.get_valid_nodes()
 
-        dataset.set_ready()
-        return dataset
+        i=0
+        for node in mission_nodes:
+            train_dataset.add(node.as_pyg_data(), i)
+            i += 0
+        train_dataset.set_ready()
 
-    def train(self, iter=10):
+        return LightningDataset(
+            train_dataset=train_dataset,
+            val_dataset=train_dataset,
+            test_dataset=train_dataset,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            pin_memory=False
+        )
+
+    def train(self, epochs=10):
         if self.mission_graph.get_num_valid_nodes() > self.min_samples_for_training:
-            # Prepare dataset
+            # Prepare new dataset
             dataset = self.make_online_dataset()
 
-        # Train model
-
-    # def update_features(self):
-    #     for node in self.mission_graph.get_nodes():
-    #         # print(f"updating node {node}")
-
-    #         # Update features
-    #         if node.get_features() is None:
-    #             print(f"updating features in {node}")
-    #             # Run feature extractor
-    #             edges, feat, seg, center = self.feature_extractor.extract(
-    #                 img=node.get_image().clone().unsqueeze(0), return_centers=True
-    #             )
-
-    #             # Set features in global graph
-    #             node.set_features(
-    #                 feature_type=self.feature_extractor.get_type(),
-    #                 features=feat,
-    #                 edges=edges,
-    #                 segments=seg,
-    #                 positions=center,
-    #             )
-
-    #         # Update supervision signal
-    #         # print(f"updating supervision in {node}")
-    #         node.update_supervision_signal()
-
-    # def update_labels_and_features(self, search_radius: float = None):
-    #     """Iterates the nodes and projects their information from their neighbors
-    #     Note: This is highly inefficient
-
-    #     Args:
-    #         search_radius (float): to find neighbors in the graph
-    #     """
-    #     # Iterate all nodes in the local graph
-    #     for node, dnode, gnode in zip(
-    #         self.image_graph.get_nodes(), self.debug_graph.get_nodes(), self.mission_graph.get_nodes()
-    #     ):
-    #         # Get neighbors
-    #         proprio_nodes = self.proprio_graph.get_nodes_within_radius_range(node, min_radius = 0.01, max_radius=search_radius, time_eps=5)
-
-    #         # Get image projector
-    #         image_projector = node.get_image_projector()
-    #         # pose_camera_in_world
-    #         pose_camera_in_world = node.get_pose_cam_in_world().unsqueeze(0)
-    #         # Get debug image
-    #         image = node.get_image()
-    #         supervision_mask = dnode.get_supervision_mask()
-
-    #         # Compute features if we haven't done it
-    #         if dnode.get_image() is None:
-    #             # Run feature extractor
-    #             edges, feat, seg, center = self.feature_extractor.extract(
-    #                 img=image.clone().unsqueeze(0), return_centers=True
-    #             )
-
-    #             # Set features in global graph
-    #             gnode.set_features(
-    #                 feature_type=self.feature_extractor.get_type(),
-    #                 features=feat,
-    #                 edges=edges,
-    #                 segments=seg,
-    #                 positions=center,
-    #             )
-
-    #             # Set image in debug graph
-    #             dnode.set_image(image)
-
-    #         # Iterate neighbor proprioceptive nodes
-    #         for ppnode in proprio_nodes:
-    #             footprint = ppnode.get_footprint_points().unsqueeze(0)
-    #             color = torch.FloatTensor([1.0, 1.0, 1.0])
-
-    #             # Project and render mask
-    #             mask, _ = image_projector.project_and_render(pose_camera_in_world, footprint, color)
-    #             mask = mask.squeeze(0)
-
-    #             # Update traversability mask
-    #             supervision_mask = torch.maximum(supervision_mask, mask.to(supervision_mask.device))
-
-    #         # Save traversability in global node to store supervision signal
-    #         gnode.set_supervision_signal(supervision_mask, is_image=True)
-
-    #         # Save traversability mask and labeled image in debug node
-    #         with self.debug_graph.lock:
-    #             dnode.set_supervision_mask(supervision_mask)
-    #             dnode.set_training_node(gnode)
+            # Train model
+            self._trainer.fit(model=self._model, datamodule=dataset)
 
 
 def run_traversability_estimator():

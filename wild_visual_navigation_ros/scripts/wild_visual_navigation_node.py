@@ -51,7 +51,7 @@ class WvnRosInterface:
 
     def __del__(self):
         # Join threads
-        self.slow_thread.join()
+        self.learning_thread.join()
 
     def read_params(self):
         # Topics
@@ -213,7 +213,7 @@ class WvnRosInterface:
         # Main loop
         while not rospy.is_shutdown():
             # Optimize model
-            self.traversability_estimator.train(iter=10)
+            self.traversability_estimator.train(epochs=10)
             rate.sleep()
 
     def visualize(self):
