@@ -83,6 +83,10 @@ class BaseGraph:
             nodes = sorted(self._graph.nodes)
         return nodes
 
+    def get_valid_nodes(self):
+        with self._lock:
+            return sorted([n for n in self._graph.nodes if n.is_valid()])
+
     def get_node_with_timestamp(self, timestamp: float, eps: float = 1e-12):
         def approximate_timestamp_filter(node):
             return abs(node.timestamp - timestamp) < eps
