@@ -99,9 +99,15 @@ class GlobalNode(BaseNode):
         self.image = None
         self.supervision_mask = None
         self.supervision_signal = None
+        self.supervision_signal_valid = None
 
     def as_pyg_data(self):
-        return Data(x=self.features, edge_index=self.feature_edges, y=self.supervision_signal)
+        return Data(
+            x=self.features,
+            edge_index=self.feature_edges,
+            y=self.supervision_signal,
+            y_valid=self.supervision_signal_valid,
+        )
 
     def is_valid(self):
         return isinstance(self.features, torch.Tensor) and isinstance(self.supervision_signal, torch.Tensor)
@@ -210,15 +216,15 @@ class GlobalNode(BaseNode):
         for s in range(self.feature_segments.max() + 1):
             # Get a mask indices for the segment
             m = self.feature_segments == s
-            # Count the labels
-            idx, counts = torch.unique(signal[m], return_counts=True)
-            # append the labels
-            labels_per_segment.append(idx[torch.argmax(counts)])
+            # Add the higehst number per segment
+            labels_per_segment.append(signal[m].max())
 
         # Prepare supervision signal
         torch_labels = torch.stack(labels_per_segment)
         if torch_labels.sum() > 0:
-            self.supervision_signal = torch.stack(labels_per_segment)
+            self.supervision_signal = torch_labels
+            # Binary mask
+            self.supervision_signal_valid = torch_labels > 0
 
 
 class ProprioceptionNode(BaseNode):

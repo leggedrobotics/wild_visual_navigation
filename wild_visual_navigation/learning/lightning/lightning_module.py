@@ -43,9 +43,18 @@ class LightningTrav(pl.LightningModule):
             seg = batch[3]
 
         res = self._model(graph)
-        loss = F.mse_loss(res, graph.y)
-        
-        
+        # compute loss only for valid elements [graph.y_valid]
+        loss_trav = F.mse_loss(F.sigmoid(res[:, 0]), graph.y)
+
+        loss = loss_trav * self._exp["loss"]["trav"]
+        self.log(f"{self._mode}_loss_trav", loss_trav.item(), on_epoch=True, prog_bar=True)
+
+        if self._exp["model"]["simple_gcn_cfg"]["reconstruction"]:
+            nc = self._exp["model"]["simple_gcn_cfg"]["num_classes"]
+            loss_reco = F.mse_loss(res[graph.y_valid][:, nc:], graph.x[graph.y_valid])
+            loss += loss_reco * self._exp["loss"]["reco"]
+            self.log(f"{self._mode}_loss_reco", loss_reco.item(), on_epoch=True, prog_bar=True)
+
         self.log(f"{self._mode}_loss", loss.item(), on_epoch=True, prog_bar=True)
 
         if not fast:
@@ -54,21 +63,31 @@ class LightningTrav(pl.LightningModule):
         return loss
 
     def visu(self, graph, center, img, seg, res):
-        if (
-            self._visu_count[self._mode] < self._exp["visu"][self._mode]
-            and self.current_epoch % self._exp["visu"]["log_every_n_epochs"] == 0
-        ):
+        for b in range(img.shape[0]):
+            if not (
+                self._visu_count[self._mode] < self._exp["visu"][self._mode]
+                and self.current_epoch % self._exp["visu"]["log_every_n_epochs"] == 0
+            ):
+                break
 
-            r = torch.argmax(res, 1)
-            for b in range(img.shape[0]):
-                self._visu_count[self._mode] += 1
-                n = int(res.shape[0] / img.shape[0])
-                pred = r[int(n * b) : int(n * (b + 1))]
-                c = self._visu_count[self._mode]
-                e = self.current_epoch
-                self._visualizer.plot_graph_result(
-                    graph[b], center[b], img[b], seg[b], pred, tag=f"C{c}_{self._mode}_graph"
-                )
+            self._visu_count[self._mode] += 1
+
+            n = int(res.shape[0] / img.shape[0])
+            pred = res[int(n * b) : int(n * (b + 1))]
+            c = self._visu_count[self._mode]
+            e = self.current_epoch
+            self._visualizer.plot_graph_result(
+                graph[b], center[b], img[b], seg[b], pred[:, 0], colormap="autumn", tag=f"C{c}_{self._mode}_TRAV"
+            )
+            nc = self._exp["model"]["simple_gcn_cfg"]["num_classes"]
+
+            conf = (F.sigmoid(pred[:, nc:]) - graph[b].x).abs().sum(dim=1)
+            conf -= conf.min()
+            conf /= conf.max()
+            conf = 1 - conf
+            self._visualizer.plot_graph_result(
+                graph[b], center[b], img[b], seg[b], conf, colormap="autumn", tag=f"C{c}_{self._mode}_CONV"
+            )
 
     def training_epoch_end(self, outputs):
         # Log epoch metric
