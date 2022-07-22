@@ -33,9 +33,10 @@ def test_dino_interfacer():
     #             res = di.inference(di.transform(im))
 
     import torch_tensorrt
+
     spec = {
-        "forward":
-            torch_tensorrt.ts.TensorRTCompileSpec({
+        "forward": torch_tensorrt.ts.TensorRTCompileSpec(
+            {
                 "inputs": [torch_tensorrt.Input([1, 3, 488, 488])],
                 "enabled_precisions": {torch.float, torch.half},
                 "refit": False,
@@ -44,20 +45,21 @@ def test_dino_interfacer():
                     "device_type": torch_tensorrt.DeviceType.GPU,
                     "gpu_id": 0,
                     "dla_core": 0,
-                    "allow_gpu_fallback": True
+                    "allow_gpu_fallback": True,
                 },
                 "capability": torch_tensorrt.EngineCapability.default,
                 "num_min_timing_iters": 2,
                 "num_avg_timing_iters": 1,
-            })
-        }
+            }
+        )
+    }
     script_model = torch.jit.script(di.model)
     trt_model = torch._C._jit_to_backend("tensorrt", script_model, spec)
-    
-    
+
     with Timer("TensorRT Inference: "):
         im = img + torch.rand(img.shape, device=img.device) / 100
         trt_model(di.transform(im))
-    
+
+
 if __name__ == "__main__":
     test_dino_interfacer()
