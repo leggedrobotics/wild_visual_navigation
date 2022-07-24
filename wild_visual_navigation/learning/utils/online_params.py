@@ -30,10 +30,17 @@ class OnlineParams(Serializable):
             weight_decay: float = 4.0e-05
 
         name: str = "ADAMW"
-        lr: float = 0.001
+        lr: float = 0.01
         adamw_cfg: AdamwCfgParams = AdamwCfgParams()
 
     optimizer: OptimizerParams = OptimizerParams()
+
+    @dataclass
+    class LossParams:
+        trav: float = 1.0
+        reco: float = 1.0
+
+    loss: LossParams = LossParams()
 
     @dataclass
     class TrainerParams:
@@ -46,7 +53,7 @@ class OnlineParams(Serializable):
         max_epochs: int = 5
         profiler: bool = False
         num_sanity_val_steps: int = 0
-        check_val_every_n_epoch: int = 1
+        check_val_every_n_epoch: int = 20
 
     trainer: TrainerParams = TrainerParams()
 
@@ -66,6 +73,7 @@ class OnlineParams(Serializable):
         class SimpleGcnCfgParams:
             num_node_features: int = 90
             num_classes: int = 1
+            reconstruction: bool = True
 
         simple_gcn_cfg: SimpleGcnCfgParams = SimpleGcnCfgParams()
 
@@ -88,6 +96,6 @@ class OnlineParams(Serializable):
         train: int = 2
         val: int = 2
         test: int = 2
-        log_every_n_epochs: int = 2
+        log_every_n_epochs: int = 10
 
     visu: VisuParams = VisuParams()

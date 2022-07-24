@@ -101,19 +101,38 @@ class MissionNode(BaseNode):
         self,
         timestamp: float = 0.0,
         pose_base_in_world: torch.tensor = torch.eye(4),
+        pose_cam_in_base: torch.tensor = torch.eye(4),
+        pose_cam_in_world: torch.tensor = None,
+        image: torch.tensor = None,
+        image_projector: ImageProjector = None,
     ):
         super().__init__(timestamp=timestamp, pose_base_in_world=pose_base_in_world)
+        # Initialize members
+        self._pose_cam_in_base = pose_cam_in_base
+        self._pose_cam_in_world = (
+            self._pose_base_in_world @ self._pose_cam_in_base if pose_cam_in_world is None else pose_cam_in_world
+        )
+        self._image = image
+        self._image_projector = image_projector
+
+        # Uninitialized members
         self._features = None
         self._feature_type = None
         self._feature_edges = None
         self._feature_segments = None
         self._feature_positions = None
-        self._image = None
+        self._prediction = None
         self._supervision_mask = None
         self._supervision_signal = None
+        self._supervision_signal_valid = None
 
     def as_pyg_data(self):
-        return Data(x=self._features, edge_index=self._feature_edges, y=self._supervision_signal)
+        return Data(
+            x=self.features,
+            edge_index=self._feature_edges,
+            y=self._supervision_signal,
+            y_valid=self._supervision_signal_valid,
+        )
 
     def is_valid(self):
         return isinstance(self._features, torch.Tensor) and isinstance(self._supervision_signal, torch.Tensor)
@@ -143,6 +162,18 @@ class MissionNode(BaseNode):
         return self._image
 
     @property
+    def image_projector(self):
+        return self._image_projector
+
+    @property
+    def pose_cam_in_world(self):
+        return self._pose_cam_in_world
+    
+    @property
+    def prediction(self):
+        return self.prediction
+
+    @property
     def supervision_signal(self):
         return self._supervision_signal
 
@@ -150,13 +181,59 @@ class MissionNode(BaseNode):
     def supervision_mask(self):
         return self._supervision_mask
 
+    @features.setter
+    def features(self, features):
+        self._features = features
+
+    @feature_type.setter
+    def feature_type(self, feature_type):
+        self._feature_type = feature_type
+
+    @feature_edges.setter
+    def feature_edges(self, feature_edges):
+        self._feature_edges = feature_edges
+
+    @feature_segments.setter
+    def feature_segments(self, feature_segments):
+        self._feature_segments = feature_segments
+
+    @feature_positions.setter
+    def feature_positions(self, feature_positions):
+        self._feature_positions = feature_positions
+
     @image.setter
-    def image(self, image: torch.tensor):
+    def image(self, image):
         self._image = image
 
+    @image_projector.setter
+    def image_projector(self, image_projector):
+        self._image_projector = image_projector
+
+    @pose_cam_in_world.setter
+    def pose_cam_in_world(self, pose_cam_in_world):
+        self._pose_cam_in_world = pose_cam_in_world
+    
+    @prediction.setter
+    def prediction(self, prediction):
+        self._prediction = prediction
+
+    @supervision_signal.setter
+    def supervision_signal(self, _supervision_signal):
+        self._supervision_signal = _supervision_signal
+
     @supervision_mask.setter
-    def supervision_mask(self, mask: torch.tensor):
-        self._supervision_mask = mask
+    def supervision_mask(self, supervision_mask):
+        self._supervision_mask = supervision_mask
+
+    def get_prediction_image(self):
+        if self._image is None or self._prediction is None:
+            return None
+        img_np = kornia.utils.tensor_to_image(self._image)
+
+        # TODO: implement to draw the segmentation and uncertainty
+
+        return self._image, self._image
+
 
     def get_training_image(self):
         if self._image is None or self._supervision_mask is None:
@@ -202,20 +279,6 @@ class MissionNode(BaseNode):
                 p = path.replace("graph", "seg")
                 torch.save(self._feature_segments.cpu(), p)
 
-    def set_features(
-        self,
-        feature_type: str,
-        features: torch.tensor,
-        edges: torch.tensor,
-        segments: torch.tensor,
-        positions: torch.tensor,
-    ):
-        self._feature_type = feature_type
-        self._features = features
-        self._feature_edges = edges
-        self._feature_segments = segments
-        self._feature_positions = positions
-
     def update_supervision_signal(self):
         if self._supervision_mask is None:
             return
@@ -231,17 +294,16 @@ class MissionNode(BaseNode):
         labels_per_segment = []
         for s in range(self._feature_segments.max() + 1):
             # Get a mask indices for the segment
-            m = self._feature_segments == s
-
-            # Count the labels
-            idx, counts = torch.unique(signal[m], return_counts=True)
-            # append the labels
-            labels_per_segment.append(idx[torch.argmax(counts)])
+            m = self.feature_segments == s
+            # Add the higehst number per segment
+            labels_per_segment.append(signal[m].max())
 
         # Prepare supervision signal
         torch_labels = torch.stack(labels_per_segment)
         if torch_labels.sum() > 0:
-            self._supervision_signal = torch.stack(labels_per_segment)
+            self._supervision_signal = torch_labels
+            # Binary mask
+            self._supervision_signal_valid = torch_labels > 0
 
 
 class ProprioceptionNode(BaseNode):
@@ -308,20 +370,18 @@ class ImageNode(BaseNode):
         self,
         timestamp: float = 0.0,
         pose_base_in_world: torch.tensor = torch.eye(4),
-        pose_camera_in_base: torch.tensor = torch.eye(4),
-        pose_camera_in_world: torch.tensor = None,
+        pose_cam_in_base: torch.tensor = torch.eye(4),
+        pose_cam_in_world: torch.tensor = None,
         image: torch.tensor = None,
         image_projector: ImageProjector = None,
     ):
         assert isinstance(pose_base_in_world, torch.Tensor)
-        assert isinstance(pose_camera_in_base, torch.Tensor)
+        assert isinstance(pose_cam_in_base, torch.Tensor)
         super().__init__(timestamp, pose_base_in_world)
 
-        self._pose_camera_in_base = pose_camera_in_base
-        self._pose_camera_in_world = (
-            self._pose_base_in_world @ self._pose_camera_in_base
-            if pose_camera_in_world is None
-            else pose_camera_in_world
+        self._pose_cam_in_base = pose_cam_in_base
+        self._pose_cam_in_world = (
+            self._pose_base_in_world @ self._pose_cam_in_base if pose_cam_in_world is None else pose_cam_in_world
         )
         self._image = image
         self._image_projector = image_projector
@@ -332,7 +392,7 @@ class ImageNode(BaseNode):
 
     @property
     def pose_cam_in_world(self):
-        return self._pose_camera_in_world
+        return self._pose_cam_in_world
 
     @property
     def image_projector(self):

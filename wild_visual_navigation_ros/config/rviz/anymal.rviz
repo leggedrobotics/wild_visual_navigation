@@ -4,14 +4,12 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Global Options1
         - /Status1
-        - /TF1
         - /TF1/Tree1
-        - /PointCloud21/Autocompute Value Bounds1
-        - /Footprint1/Namespaces1
-      Splitter Ratio: 0.4699828326702118
-    Tree Height: 689
+        - /Wild Visual Navigation1
+        - /Prediction1
+      Splitter Ratio: 0.644501268863678
+    Tree Height: 380
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -30,7 +28,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: Image Mask
+    SyncSource: Input Image
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -496,213 +494,213 @@ Visualization Manager:
               {}
       Update Interval: 0
       Value: true
-    - Alpha: 0.5
-      Autocompute Intensity Bounds: true
-      Class: grid_map_rviz_plugin/GridMap
-      Color: 200; 200; 200
-      Color Layer: traversability
-      Color Transformer: GridMapLayer
-      ColorMap: default
-      Enabled: true
-      Grid Cell Decimation: 1
-      Grid Line Thickness: 0.10000000149011612
-      Height Layer: elevation
-      Height Transformer: GridMapLayer
-      History Length: 1
-      Invert ColorMap: false
-      Max Color: 255; 255; 255
-      Max Intensity: 10
-      Min Color: 0; 0; 0
-      Min Intensity: 0
-      Name: GridMap
-      Show Grid Lines: false
-      Topic: /elevation_mapping/elevation_map_recordable
-      Unreliable: false
-      Use ColorMap: false
-      Value: true
-    - Angle Tolerance: 0.10000000149011612
-      Class: rviz/Odometry
-      Covariance:
-        Orientation:
-          Alpha: 0.5
-          Color: 255; 255; 127
-          Color Style: Unique
-          Frame: Local
-          Offset: 1
-          Scale: 1
+    - Class: rviz/Group
+      Displays:
+        - Alpha: 0.5
+          Autocompute Intensity Bounds: true
+          Class: grid_map_rviz_plugin/GridMap
+          Color: 200; 200; 200
+          Color Layer: traversability
+          Color Transformer: GridMapLayer
+          ColorMap: default
+          Enabled: true
+          Grid Cell Decimation: 1
+          Grid Line Thickness: 0.10000000149011612
+          Height Layer: elevation
+          Height Transformer: GridMapLayer
+          History Length: 1
+          Invert ColorMap: false
+          Max Color: 255; 255; 255
+          Max Intensity: 10
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: GridMap
+          Show Grid Lines: false
+          Topic: /elevation_mapping/elevation_map_recordable
+          Unreliable: false
+          Use ColorMap: false
           Value: true
-        Position:
-          Alpha: 0.30000001192092896
-          Color: 204; 51; 204
-          Scale: 1
+        - Angle Tolerance: 0.10000000149011612
+          Class: rviz/Odometry
+          Covariance:
+            Orientation:
+              Alpha: 0.5
+              Color: 255; 255; 127
+              Color Style: Unique
+              Frame: Local
+              Offset: 1
+              Scale: 1
+              Value: true
+            Position:
+              Alpha: 0.30000001192092896
+              Color: 204; 51; 204
+              Scale: 1
+              Value: true
+            Value: true
+          Enabled: false
+          Keep: 200
+          Name: Odometry
+          Position Tolerance: 1
+          Queue Size: 10
+          Shape:
+            Alpha: 1
+            Axes Length: 1
+            Axes Radius: 0.10000000149011612
+            Color: 255; 25; 0
+            Head Length: 0.30000001192092896
+            Head Radius: 0.10000000149011612
+            Shaft Length: 1
+            Shaft Radius: 0.05000000074505806
+            Value: Arrow
+          Topic: /loam/odometry
+          Unreliable: false
+          Value: false
+        - Alpha: 1
+          Class: rviz/RobotModel
+          Collision Enabled: false
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            Link Tree Style: Links in Alphabetic Order
+          Name: RobotModel
+          Robot Description: anymal_description
+          TF Prefix: ""
+          Update Interval: 0
           Value: true
-        Value: true
-      Enabled: false
-      Keep: 200
-      Name: Odometry
-      Position Tolerance: 1
-      Queue Size: 10
-      Shape:
-        Alpha: 1
-        Axes Length: 1
-        Axes Radius: 0.10000000149011612
-        Color: 255; 25; 0
-        Head Length: 0.30000001192092896
-        Head Radius: 0.10000000149011612
-        Shaft Length: 1
-        Shaft Radius: 0.05000000074505806
-        Value: Arrow
-      Topic: /loam/odometry
-      Unreliable: false
-      Value: false
-    - Alpha: 1
-      Class: rviz/RobotModel
-      Collision Enabled: false
+          Visual Enabled: true
       Enabled: true
-      Links:
-        All Links Enabled: true
-        Expand Joint Details: false
-        Expand Link Details: false
-        Expand Tree: false
-        Link Tree Style: Links in Alphabetic Order
-      Name: RobotModel
-      Robot Description: anymal_description
-      TF Prefix: ""
-      Update Interval: 0
-      Value: true
-      Visual Enabled: true
-    - Alpha: 0.5
-      Autocompute Intensity Bounds: true
-      Autocompute Value Bounds:
-        Max Value: 10
-        Min Value: -5
-        Value: false
-      Axis: Z
-      Channel Name: intensity
-      Class: rviz/PointCloud2
-      Color: 255; 255; 255
-      Color Transformer: AxisColor
-      Decay Time: 0
-      Enabled: false
-      Invert Rainbow: false
-      Max Color: 255; 255; 255
-      Min Color: 0; 0; 0
-      Name: PointCloud2
-      Position Transformer: XYZ
-      Queue Size: 10
-      Selectable: true
-      Size (Pixels): 2
-      Size (m): 0.029999999329447746
-      Style: Spheres
-      Topic: /loam/map
-      Unreliable: false
-      Use Fixed Frame: true
-      Use rainbow: true
-      Value: false
-    - Class: rviz/Marker
+      Name: Raw signals
+    - Class: rviz/Group
+      Displays:
+        - Class: rviz/Group
+          Displays:
+            - Class: rviz/Image
+              Enabled: true
+              Image Topic: /wild_visual_navigation_node/last_node_image_labeled
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: Supervision - Image Labeled
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: true
+            - Class: rviz/Image
+              Enabled: true
+              Image Topic: /wild_visual_navigation_node/last_node_image_mask
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: Supervision - Mask
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: true
+            - Class: rviz/Marker
+              Enabled: true
+              Marker Topic: /wild_visual_navigation_node/graph_footprints
+              Name: Footprint
+              Namespaces:
+                footprints: true
+              Queue Size: 100
+              Value: true
+            - Alpha: 1
+              Buffer Length: 1
+              Class: rviz/Path
+              Color: 25; 255; 0
+              Enabled: true
+              Head Diameter: 0.30000001192092896
+              Head Length: 0.20000000298023224
+              Length: 0.30000001192092896
+              Line Style: Billboards
+              Line Width: 0.029999999329447746
+              Name: Proprio Graph
+              Offset:
+                X: 0
+                Y: 0
+                Z: 0
+              Pose Color: 255; 85; 255
+              Pose Style: None
+              Queue Size: 10
+              Radius: 0.029999999329447746
+              Shaft Diameter: 0.10000000149011612
+              Shaft Length: 0.10000000149011612
+              Topic: /wild_visual_navigation_node/proprioceptive_graph
+              Unreliable: false
+              Value: true
+          Enabled: true
+          Name: Self Supervision
+        - Alpha: 1
+          Buffer Length: 1
+          Class: rviz/Path
+          Color: 191; 64; 185
+          Enabled: true
+          Head Diameter: 0.30000001192092896
+          Head Length: 0.20000000298023224
+          Length: 0.10000000149011612
+          Line Style: Billboards
+          Line Width: 0.029999999329447746
+          Name: Mission Graph
+          Offset:
+            X: 0
+            Y: 0
+            Z: 0
+          Pose Color: 255; 85; 255
+          Pose Style: Axes
+          Queue Size: 10
+          Radius: 0.009999999776482582
+          Shaft Diameter: 0.10000000149011612
+          Shaft Length: 0.10000000149011612
+          Topic: /wild_visual_navigation_node/mission_graph
+          Unreliable: false
+          Value: true
+        - Class: rviz/Image
+          Enabled: true
+          Image Topic: /alphasense_driver_ros/cam4/debayered
+          Max Value: 1
+          Median window: 5
+          Min Value: 0
+          Name: Input Image
+          Normalize Range: true
+          Queue Size: 2
+          Transport Hint: raw
+          Unreliable: false
+          Value: true
       Enabled: true
-      Marker Topic: /wild_visual_navigation_node/debug/graph_footprints
-      Name: Footprint
-      Namespaces:
-        footprints: true
-      Queue Size: 100
-      Value: true
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 191; 64; 185
+      Name: Wild Visual Navigation
+    - Class: rviz/Group
+      Displays:
+        - Class: rviz/Image
+          Enabled: true
+          Image Topic: /wild_visual_navigation_node/current_prediction
+          Max Value: 1
+          Median window: 5
+          Min Value: 0
+          Name: Prediction
+          Normalize Range: true
+          Queue Size: 2
+          Transport Hint: raw
+          Unreliable: false
+          Value: true
+        - Class: rviz/Image
+          Enabled: true
+          Image Topic: /wild_visual_navigation_node/current_uncertainty
+          Max Value: 1
+          Median window: 5
+          Min Value: 0
+          Name: Uncertainty
+          Normalize Range: true
+          Queue Size: 2
+          Transport Hint: raw
+          Unreliable: false
+          Value: true
       Enabled: true
-      Head Diameter: 0.30000001192092896
-      Head Length: 0.20000000298023224
-      Length: 0.10000000149011612
-      Line Style: Billboards
-      Line Width: 0.029999999329447746
-      Name: Image graph
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: Axes
-      Queue Size: 10
-      Radius: 0.009999999776482582
-      Shaft Diameter: 0.10000000149011612
-      Shaft Length: 0.10000000149011612
-      Topic: /wild_visual_navigation_node/debug/image_graph
-      Unreliable: false
-      Value: true
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 25; 255; 0
-      Enabled: true
-      Head Diameter: 0.30000001192092896
-      Head Length: 0.20000000298023224
-      Length: 0.30000001192092896
-      Line Style: Billboards
-      Line Width: 0.029999999329447746
-      Name: Proprio Graph
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Queue Size: 10
-      Radius: 0.029999999329447746
-      Shaft Diameter: 0.10000000149011612
-      Shaft Length: 0.10000000149011612
-      Topic: /wild_visual_navigation_node/debug/proprioceptive_graph
-      Unreliable: false
-      Value: true
-    - Class: rviz/Image
-      Enabled: true
-      Image Topic: /alphasense_driver_ros/cam4/debayered
-      Max Value: 1
-      Median window: 5
-      Min Value: 0
-      Name: Input Image
-      Normalize Range: true
-      Queue Size: 2
-      Transport Hint: raw
-      Unreliable: false
-      Value: true
-    - Class: rviz/Image
-      Enabled: true
-      Image Topic: /wild_visual_navigation_node/debug/last_node_image_labeled
-      Max Value: 1
-      Median window: 5
-      Min Value: 0
-      Name: Image Labeled
-      Normalize Range: true
-      Queue Size: 2
-      Transport Hint: raw
-      Unreliable: false
-      Value: true
-    - Class: rviz/Image
-      Enabled: true
-      Image Topic: /wild_visual_navigation_node/debug/last_node_image_mask
-      Max Value: 1
-      Median window: 5
-      Min Value: 0
-      Name: Image Mask
-      Normalize Range: true
-      Queue Size: 2
-      Transport Hint: raw
-      Unreliable: false
-      Value: true
-    - Class: rviz/Image
-      Enabled: false
-      Image Topic: /wild_visual_navigation_node/debug/last_node_image_features
-      Max Value: 1
-      Median window: 5
-      Min Value: 0
-      Name: Image Features
-      Normalize Range: true
-      Queue Size: 2
-      Transport Hint: raw
-      Unreliable: false
-      Value: false
+      Name: Prediction
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -731,7 +729,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 13.487255096435547
+      Distance: 15.446929931640625
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -739,41 +737,43 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -2.1737868785858154
-        Y: -0.5045728087425232
-        Z: -0.30108243227005005
+        X: -0.46954986453056335
+        Y: 1.708451509475708
+        Z: -2.3300647735595703
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.37539708614349365
+      Pitch: 0.6353968381881714
       Target Frame: base
-      Yaw: 0.4967634081840515
+      Yaw: 4.569951057434082
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1136
+  Height: 1016
   Hide Left Dock: false
   Hide Right Dock: false
-  Image Features:
-    collapsed: false
-  Image Labeled:
-    collapsed: false
-  Image Mask:
-    collapsed: false
   Input Image:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd000000040000000000000189000002eefc0200000009fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c0061007900730100000165000002ee000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000c00430061006d00650072006100000002ea000000c80000000000000000000000010000010f0000020efc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007300000001560000020e000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000000000020000073800000122fc0100000005fb000000160049006e00700075007400200049006d0061006700650100000000000002770000008600fffffffb0000001c0049006d006100670065002000460065006100740075007200650073000000014f000003690000009d00fffffffb0000001a0049006d0061006700650020004c006100620065006c00650064010000027d000002ad0000009800fffffffb000000140049006d0061006700650020004d00610073006b0100000530000002080000008500fffffffb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007800000003efc0100000002fb0000000800540069006d0065000000000000000780000004f300fffffffb0000000800540069006d00650100000000000004500000000000000000000005a9000002ee00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Prediction:
+    collapsed: false
+  QMainWindow State: 000000ff00000000fd00000004000000000000018900000276fc020000000afb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c0061007900730100000165000001b9000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000c00430061006d00650072006100000002ea000000c80000000000000000fb000000160055006e006300650072007400610069006e007400790100000324000000b70000001600ffffff000000010000010f0000020efc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007300000001560000020e000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000000000020000073800000122fc0100000006fb000000160049006e00700075007400200049006d0061006700650100000000000001150000008600fffffffb0000001c0049006d00610067006500200046006500610074007500720065007300000000bf000003690000000000000000fb00000036005300750070006500720076006900730069006f006e0020002d00200049006d0061006700650020004c006100620065006c00650064010000011b00000169000000f200fffffffb00000024005300750070006500720076006900730069006f006e0020002d0020004d00610073006b010000028a000001a5000000b200fffffffb0000001400500072006500640069006300740069006f006e0100000435000003030000007b00fffffffb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007800000003efc0100000002fb0000000800540069006d0065000000000000000780000004f300fffffffb0000000800540069006d00650100000000000004500000000000000000000005a90000027600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
+    collapsed: false
+  Supervision - Image Labeled:
+    collapsed: false
+  Supervision - Mask:
     collapsed: false
   Time:
     collapsed: false
   Tool Properties:
     collapsed: false
+  Uncertainty:
+    collapsed: false
   Views:
     collapsed: false
   Width: 1848
-  X: 1992
+  X: 72
   Y: 27
