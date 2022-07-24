@@ -3,6 +3,7 @@ from .nodes import BaseNode
 import os
 from os.path import join
 import networkx as nx
+import random
 import torch
 from threading import Lock
 
@@ -59,12 +60,10 @@ class BaseGraph:
             self._graph.clear()
 
     def get_first_node(self):
-        if self.get_num_nodes() > 0:
-            return self.get_nodes()[0]
+        return self._first_node
 
     def get_last_node(self):
-        if self.get_num_nodes() > 0:
-            return self.get_nodes()[-1]
+        return self._last_added_node
 
     def get_num_nodes(self):
         with self._lock:
@@ -86,6 +85,15 @@ class BaseGraph:
     def get_valid_nodes(self):
         with self._lock:
             return sorted([n for n in self._graph.nodes if n.is_valid()])
+        
+    def get_n_random_valid_nodes(self, n=None):
+        nodes = self.get_valid_nodes()
+        random.shuffle(nodes)
+        if n is None:
+            return nodes
+        else:
+            return nodes[:n]
+
 
     def get_node_with_timestamp(self, timestamp: float, eps: float = 1e-12):
         def approximate_timestamp_filter(node):
@@ -203,6 +211,10 @@ class DistanceWindowGraph(BaseGraph):
 
         self._max_distance = max_distance
         self._edge_distance = edge_distance
+    
+    @property
+    def max_distance(self):
+        return self._max_distance
 
     def add_node(self, node: BaseNode):
         """Adds a node to the graph and removes far nodes"""
@@ -220,6 +232,8 @@ class DistanceWindowGraph(BaseGraph):
             node, min_radius=self._max_distance, max_radius=float("inf"), metric="pose"
         )
         return out
+
+        
 
 
 def run_base_graph():
