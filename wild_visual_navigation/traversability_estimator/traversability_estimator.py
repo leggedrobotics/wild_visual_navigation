@@ -9,7 +9,6 @@ from wild_visual_navigation.traversability_estimator import (
     BaseGraph,
     DistanceWindowGraph,
     MissionNode,
-    ImageNode,
     ProprioceptionNode,
 )
 from pytorch_lightning import Trainer, seed_everything
