@@ -360,48 +360,6 @@ class ProprioceptionNode(BaseNode):
         return isinstance(self._proprioceptive_state, torch.Tensor)
 
 
-class ImageNode(BaseNode):
-    """Local node stores all the information required for traversability estimation and debugging
-    All the information matches a real frame that must be respected to keep consistency"""
-
-    name = "local_image_node"
-
-    def __init__(
-        self,
-        timestamp: float = 0.0,
-        pose_base_in_world: torch.tensor = torch.eye(4),
-        pose_cam_in_base: torch.tensor = torch.eye(4),
-        pose_cam_in_world: torch.tensor = None,
-        image: torch.tensor = None,
-        image_projector: ImageProjector = None,
-    ):
-        assert isinstance(pose_base_in_world, torch.Tensor)
-        assert isinstance(pose_cam_in_base, torch.Tensor)
-        super().__init__(timestamp, pose_base_in_world)
-
-        self._pose_cam_in_base = pose_cam_in_base
-        self._pose_cam_in_world = (
-            self._pose_base_in_world @ self._pose_cam_in_base if pose_cam_in_world is None else pose_cam_in_world
-        )
-        self._image = image
-        self._image_projector = image_projector
-
-    @property
-    def image(self):
-        return self._image
-
-    @property
-    def pose_cam_in_world(self):
-        return self._pose_cam_in_world
-
-    @property
-    def image_projector(self):
-        return self._image_projector
-
-    def is_valid(self):
-        return isinstance(self._image, torch.Tensor) and isinstance(self._image_projector, ImageProjector)
-
-
 def run_base_state():
     """TODO."""
 
