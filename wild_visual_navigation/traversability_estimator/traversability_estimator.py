@@ -80,7 +80,7 @@ class TraversabilityEstimator:
             for i in range(nr):
                 print(f"Device {i}: " + str(torch.cuda.get_device_name(i)))
             exp["trainer"]["gpus"] = -1
-        exp["trainer"]["plugins"] = SingleDevicePlugin(device=f"{self.device}:0") # TODO ":0" shouldn't be hardcoded
+        exp["trainer"]["plugins"] = SingleDevicePlugin(device=f"{self.device}:0")  # TODO ":0" shouldn't be hardcoded
 
         self._model = LightningTrav(exp, env)
         self._last_trained_model = self._model.to(device)
@@ -94,9 +94,7 @@ class TraversabilityEstimator:
         """
 
         # Extract features
-        edges, feat, seg, center = self.feature_extractor.extract(
-            img = node.image.clone()[None], return_centers=True
-        )
+        edges, feat, seg, center = self.feature_extractor.extract(img=node.image.clone()[None], return_centers=True)
 
         # Set features in node
         node.feature_type = self.feature_extractor.get_type()
@@ -104,7 +102,7 @@ class TraversabilityEstimator:
         node.feature_edges = edges
         node.feature_segments = seg
         node.feature_positions = center
-    
+
     def update_prediction(self, node: MissionNode):
         with self._lock:
             if self._last_trained_model is not None:
@@ -117,7 +115,7 @@ class TraversabilityEstimator:
         Args:
             node (BaseNode): new node in the image graph
         """
-        
+
         # Compute image features
         self.update_features(node)
 
@@ -167,7 +165,9 @@ class TraversabilityEstimator:
             if last_mission_node is None:
                 return False
 
-            mission_nodes = self.mission_graph.get_nodes_within_radius_range(last_mission_node, 0, self.proprio_graph.max_distance)
+            mission_nodes = self.mission_graph.get_nodes_within_radius_range(
+                last_mission_node, 0, self.proprio_graph.max_distance
+            )
             # Project footprint onto all the image nodes
             for m_node in mission_nodes:
                 # Project

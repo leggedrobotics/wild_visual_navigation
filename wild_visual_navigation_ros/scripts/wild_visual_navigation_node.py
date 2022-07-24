@@ -112,9 +112,7 @@ class WvnRosInterface:
         self.pub_image_labeled = rospy.Publisher(
             "/wild_visual_navigation_node/last_node_image_labeled", Image, queue_size=10
         )
-        self.pub_image_mask = rospy.Publisher(
-            "/wild_visual_navigation_node/last_node_image_mask", Image, queue_size=10
-        )
+        self.pub_image_mask = rospy.Publisher("/wild_visual_navigation_node/last_node_image_mask", Image, queue_size=10)
         self.pub_image_prediction = rospy.Publisher(
             "/wild_visual_navigation_node/current_prediction", Image, queue_size=10
         )
@@ -124,9 +122,7 @@ class WvnRosInterface:
         self.pub_debug_proprio_graph = rospy.Publisher(
             "/wild_visual_navigation_node/proprioceptive_graph", Path, queue_size=10
         )
-        self.pub_mission_graph = rospy.Publisher(
-            "/wild_visual_navigation_node/mission_graph", Path, queue_size=10
-        )
+        self.pub_mission_graph = rospy.Publisher("/wild_visual_navigation_node/mission_graph", Path, queue_size=10)
         self.pub_graph_footprints = rospy.Publisher(
             "/wild_visual_navigation_node/graph_footprints", Marker, queue_size=10
         )
@@ -276,7 +272,7 @@ class WvnRosInterface:
                 p.y = footprint_points[0, n, 1]
                 p.z = footprint_points[0, n, 2]
                 footprints_marker.points.append(p)
-        
+
         # Publish
         self.pub_graph_footprints.publish(footprints_marker)
         self.pub_debug_proprio_graph.publish(proprio_graph_msg)
@@ -316,7 +312,6 @@ class WvnRosInterface:
             mission_graph_msg.poses.append(pose)
 
         self.pub_mission_graph.publish(mission_graph_msg)
-        
 
 
 if __name__ == "__main__":

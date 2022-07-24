@@ -168,7 +168,7 @@ class MissionNode(BaseNode):
     @property
     def pose_cam_in_world(self):
         return self._pose_cam_in_world
-    
+
     @property
     def prediction(self):
         return self.prediction
@@ -212,7 +212,7 @@ class MissionNode(BaseNode):
     @pose_cam_in_world.setter
     def pose_cam_in_world(self, pose_cam_in_world):
         self._pose_cam_in_world = pose_cam_in_world
-    
+
     @prediction.setter
     def prediction(self, prediction):
         self._prediction = prediction
@@ -233,7 +233,6 @@ class MissionNode(BaseNode):
         # TODO: implement to draw the segmentation and uncertainty
 
         return self._image, self._image
-
 
     def get_training_image(self):
         if self._image is None or self._supervision_mask is None:

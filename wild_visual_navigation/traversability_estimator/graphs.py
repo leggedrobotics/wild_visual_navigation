@@ -85,7 +85,7 @@ class BaseGraph:
     def get_valid_nodes(self):
         with self._lock:
             return sorted([n for n in self._graph.nodes if n.is_valid()])
-        
+
     def get_n_random_valid_nodes(self, n=None):
         nodes = self.get_valid_nodes()
         random.shuffle(nodes)
@@ -93,7 +93,6 @@ class BaseGraph:
             return nodes
         else:
             return nodes[:n]
-
 
     def get_node_with_timestamp(self, timestamp: float, eps: float = 1e-12):
         def approximate_timestamp_filter(node):
@@ -211,7 +210,7 @@ class DistanceWindowGraph(BaseGraph):
 
         self._max_distance = max_distance
         self._edge_distance = edge_distance
-    
+
     @property
     def max_distance(self):
         return self._max_distance
@@ -232,8 +231,6 @@ class DistanceWindowGraph(BaseGraph):
             node, min_radius=self._max_distance, max_radius=float("inf"), metric="pose"
         )
         return out
-
-        
 
 
 def run_base_graph():
