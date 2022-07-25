@@ -79,7 +79,7 @@ class WvnRosInterface:
         self.network_input_image_size = rospy.get_param("~network_input_image_size", 448)
 
         # Threads
-        self.run_online_learning = rospy.get_param("~run_online_learning", True)
+        self.run_online_learning = rospy.get_param("~run_online_learning", False)
         self.image_callback_rate = rospy.get_param("~image_callback_rate", 3)  # hertz
         self.learning_thread_rate = rospy.get_param("~learning_thread_rate", 10)  # hertz
 
@@ -130,6 +130,7 @@ class WvnRosInterface:
         # Services
         # Like, reset graph or the like
         self.save_graph_service = rospy.Service("~save_graph", Trigger, self.save_graph_callback)
+        self.save_pickle_service = rospy.Service("~save_pickle", Trigger, self.save_pickle_callback)
 
     def save_graph_callback(self, req):
         mission_path = os.path.join(self.output_path, self.mission_name)
@@ -137,6 +138,11 @@ class WvnRosInterface:
         t.start()
         t.join()
         return TriggerResponse(success=True, message=f"Graph saved in {mission_path}")
+
+    def save_pickle_callback(self, req):
+        mission_path = os.path.join(self.output_path, self.mission_name, "traversability_estimator.pickle")
+        self.traversability_estimator.save(mission_path)
+        return TriggerResponse(success=True, message=f"Pickle saved in {mission_path}")
 
     def query_tf(self, parent_frame, child_frame):
         self.tf_listener.waitForTransform(parent_frame, child_frame, rospy.Time(), rospy.Duration(1.0))
@@ -224,7 +230,7 @@ class WvnRosInterface:
         # Main loop
         while not rospy.is_shutdown():
             # Optimize model
-            self.traversability_estimator.train(epochs=10)
+            self.traversability_estimator.train()
             rate.sleep()
 
     def visualize_proprioception(self):

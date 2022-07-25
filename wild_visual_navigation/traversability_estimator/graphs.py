@@ -30,6 +30,21 @@ class BaseGraph:
     def __str__(self):
         return str(self._graph)
 
+    def __getstate__(self):
+        """We modify the state so the object can be pickled"""
+        state = self.__dict__.copy()
+        del state["_lock"]
+        return state
+
+    def __setstate__(self, state):
+        """We modify the state so the object can be pickled"""
+        self.__dict__.update(state)
+        self._lock = Lock()
+
+    def change_device(self, device):
+        for n in self._graph.nodes:
+            n.change_device(device)
+
     def add_node(self, node: BaseNode):
         """Adds a node to the graph and creates edge to the latest node
 

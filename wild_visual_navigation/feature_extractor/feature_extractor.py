@@ -127,6 +127,10 @@ class FeatureExtractor:
     def get_type(self):
         return self.extractor_type
 
+    def change_device(self, device):
+        self.device = device
+        self.extractor.change_device(device)
+
     @torch.no_grad()
     def dino_slic(
         self,
