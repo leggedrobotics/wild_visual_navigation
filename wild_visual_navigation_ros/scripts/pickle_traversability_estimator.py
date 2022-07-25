@@ -23,4 +23,4 @@ if __name__ == "__main__":
     # Make training thread
     while True:
         print("New iteration")
-        te.train_vanilla()
+        te.train()
