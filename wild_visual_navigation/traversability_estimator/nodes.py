@@ -2,6 +2,7 @@ from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation.utils import make_box, make_rounded_box, make_plane
 from liegroups.torch import SE3, SO3
+from matplotlib import cm
 from PIL import Image, ImageDraw
 from skimage import segmentation
 from torch_geometric.data import Data
@@ -9,6 +10,7 @@ import kornia
 import numpy as np
 import os
 import torch
+import torch.nn.functional as F
 
 
 class BaseNode:
@@ -252,16 +254,46 @@ class MissionNode(BaseNode):
     def supervision_mask(self, supervision_mask):
         self._supervision_mask = supervision_mask
 
-    def get_prediction_image(self):
+    def get_numpy_prediction_image(self):
         if self._image is None or self._prediction is None:
             return None
-        img_np = kornia.utils.tensor_to_image(self._image)
+        img_np = kornia.utils.tensor_to_image(self._image) * 255
+        seg_np = kornia.utils.tensor_to_image(self._feature_segments)
+        seg_np_rgb = img_np.copy()
+        confidence_np_rgb = img_np.copy()
+
+        colormap = cm.get_cmap("autumn", 255)
+        col_map = np.uint8(colormap(np.linspace(0, 1, 256))[:, :3] * 255)
 
         # TODO: implement to draw the segmentation and uncertainty
+        max_seg = 1.0
+        y_pred = (self._prediction.clip(0, max_seg) / max_seg * 255).type(torch.uint8).cpu()
+        label_pred = y_pred[:, 0]
+        confidence_pred = (torch.sigmoid(y_pred[:, 1:]) - self._features.cpu()).abs().sum(dim=1)
+        confidence_pred -= confidence_pred.min()
+        confidence_pred /= confidence_pred.max()
+        confidence_pred = 1.0 - confidence_pred
+        confidence_pred = (confidence_pred.clip(0, max_seg) / max_seg * 255).type(torch.uint8)
 
-        return self._image, self._image
+        # segments to CPU
+        seg = self._feature_segments.cpu()
 
-    def get_training_image(self):
+        # iterate segments
+        for i in range(self._feature_positions.shape[0]):
+            params = self._feature_positions[i].tolist()
+            segment_id = self._feature_segments[int(params[0]), int(params[1])].item()
+
+            seg_np_rgb[seg == segment_id] = tuple(col_map[label_pred[i]].tolist())
+            confidence_np_rgb[seg == segment_id] = tuple(col_map[confidence_pred[i]].tolist())
+
+        # blending
+        alpha = 0.5
+        seg_np_rgb = alpha * img_np + (1 - alpha) * seg_np_rgb
+        confidence_np_rgb = alpha * img_np + (1 - alpha) * confidence_np_rgb
+
+        return seg_np_rgb.astype(np.uint8), confidence_np_rgb.astype(np.uint8)
+
+    def get_numpy_training_image(self):
         if self._image is None or self._supervision_mask is None:
             return None
         img_np = kornia.utils.tensor_to_image(self._image)
@@ -288,7 +320,7 @@ class MissionNode(BaseNode):
             img_draw.ellipse(params, fill=color)
 
         np_draw = np.array(img_pil)
-        return kornia.utils.image_to_tensor(np_draw.copy()).to(self._image.device)
+        return np_draw.astype(np.uint8)
 
     def save(self, output_path: str, index: int, graph_only: bool = False):
         if self._feature_positions is not None:

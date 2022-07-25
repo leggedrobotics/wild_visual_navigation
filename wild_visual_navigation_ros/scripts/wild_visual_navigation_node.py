@@ -79,7 +79,7 @@ class WvnRosInterface:
         self.network_input_image_size = rospy.get_param("~network_input_image_size", 448)
 
         # Threads
-        self.run_online_learning = rospy.get_param("~run_online_learning", False)
+        self.run_online_learning = rospy.get_param("~run_online_learning", True)
         self.image_callback_rate = rospy.get_param("~image_callback_rate", 3)  # hertz
         self.learning_thread_rate = rospy.get_param("~learning_thread_rate", 10)  # hertz
 
@@ -140,8 +140,8 @@ class WvnRosInterface:
         return TriggerResponse(success=True, message=f"Graph saved in {mission_path}")
 
     def save_pickle_callback(self, req):
-        mission_path = os.path.join(self.output_path, self.mission_name, "traversability_estimator.pickle")
-        self.traversability_estimator.save(mission_path)
+        mission_path = os.path.join(self.output_path, self.mission_name)
+        self.traversability_estimator.save(mission_path, "traversability_estimator.pickle")
         return TriggerResponse(success=True, message=f"Pickle saved in {mission_path}")
 
     def query_tf(self, parent_frame, child_frame):
@@ -288,10 +288,10 @@ class WvnRosInterface:
         now = rospy.Time.now()
 
         # Publish predictions
-        if mission_node is not None:
-            torch_prediction_image, torch_uncertainty_image = mission_node.get_prediction_image()
-            self.pub_image_prediction.publish(rc.torch_to_ros_image(torch_prediction_image))
-            self.pub_image_prediction_uncertainty.publish(rc.torch_to_ros_image(torch_uncertainty_image))
+        if mission_node is not None and self.run_online_learning:
+            np_prediction_image, np_uncertainty_image = mission_node.get_numpy_prediction_image()
+            self.pub_image_prediction.publish(rc.numpy_to_ros_image(np_prediction_image))
+            self.pub_image_prediction_uncertainty.publish(rc.numpy_to_ros_image(np_uncertainty_image))
 
         # Publish reprojections of last node in graph
         # TODO: change visualization for a better node
@@ -300,9 +300,9 @@ class WvnRosInterface:
 
             if mission_node is not None:
                 torch_mask = mission_node.supervision_mask
-                torch_labeled_image = mission_node.get_training_image()
                 self.pub_image_mask.publish(rc.torch_to_ros_image(torch_mask))
-                self.pub_image_labeled.publish(rc.torch_to_ros_image(torch_labeled_image))
+                np_labeled_image = mission_node.get_numpy_training_image()
+                self.pub_image_labeled.publish(rc.numpy_to_ros_image(np_labeled_image))
 
         # Publish local graph
         mission_graph_msg = Path()
