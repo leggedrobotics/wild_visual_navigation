@@ -5,7 +5,7 @@ from wild_visual_navigation.traversability_estimator import TraversabilityEstima
 from wild_visual_navigation.traversability_estimator import MissionNode, ProprioceptionNode
 import wild_visual_navigation_ros.ros_converter as rc
 
-from anymal_msgs.msg import AnymalState
+from wild_visual_navigation_msgs.msg import RobotState
 from geometry_msgs.msg import Pose, PoseStamped, Point
 from nav_msgs.msg import Path
 from sensor_msgs.msg import Image, CameraInfo
@@ -57,9 +57,9 @@ class WvnRosInterface:
 
     def read_params(self):
         # Topics
-        self.anymal_state_topic = rospy.get_param("~anymal_state_topic", "/state_estimator/anymal_state")
-        self.image_topic = rospy.get_param("~anymal_state_topic", "/alphasense_driver_ros/cam4/debayered")
-        self.info_topic = rospy.get_param("~anymal_state_topic", "/alphasense_driver_ros/cam4/camera_info")
+        self.robot_state_topic = rospy.get_param("~robot_state_topic", "/wild_visual_navigation_ros/robot_state")
+        self.image_topic = rospy.get_param("~image_topic", "/alphasense_driver_ros/cam4/debayered")
+        self.info_topic = rospy.get_param("~camera_info_topic", "/alphasense_driver_ros/cam4/camera_info")
 
         # Frames
         self.fixed_frame = rospy.get_param("~fixed_frame", "odom")
@@ -97,9 +97,9 @@ class WvnRosInterface:
         # Initialize TF listener
         self.tf_listener = tf.TransformListener()
 
-        # Anymal state callback
-        self.anymal_state_sub = rospy.Subscriber(
-            self.anymal_state_topic, AnymalState, self.anymal_state_callback, queue_size=1
+        # Robot state callback
+        self.robot_state_sub = rospy.Subscriber(
+            self.robot_state_topic, RobotState, self.robot_state_callback, queue_size=1
         )
 
         # Image callback
@@ -148,7 +148,7 @@ class WvnRosInterface:
             rospy.logwarn(f"Couldn't get between {parent_frame} and {child_frame}")
             return (None, None)
 
-    def anymal_state_callback(self, msg):
+    def robot_state_callback(self, msg):
         ts = msg.header.stamp.to_sec()
 
         # Query transforms from TF
@@ -161,7 +161,7 @@ class WvnRosInterface:
         pose_footprint_in_base[:3, :3] = torch.eye(3, device=self.device)
 
         # Convert state to tensor
-        proprio_tensor, proprio_labels = rc.anymal_state_to_torch(msg, device=self.device)
+        proprio_tensor, proprio_labels = rc.wvn_robot_state_to_torch(msg, device=self.device)
 
         # Create proprioceptive node for the graph
         proprio_node = ProprioceptionNode(

@@ -3,7 +3,10 @@ std_msgs/Header header
 
 # Standard robot states
 # We consider that any robot should have access to 6DoF pose and twist estimates
+string pose_frame_id
 geometry_msgs/PoseStamped pose
+
+string twist_frame_id
 geometry_msgs/TwistStamped twist
 
 
