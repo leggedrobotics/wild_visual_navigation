@@ -40,6 +40,10 @@ class DinoInterface:
             ]
         )
 
+    def change_device(self, device):
+        self.model.to(device)
+        self.device = device
+
     def download_pretrained_model(self, cfg: DictConfig):
         """Loads model.
 

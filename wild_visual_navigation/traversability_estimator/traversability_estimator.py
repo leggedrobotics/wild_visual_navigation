@@ -18,6 +18,7 @@ from simple_parsing import ArgumentParser
 from threading import Thread, Lock
 import dataclasses
 import os
+import pickle
 import torch
 import networkx as nx
 import torchvision.transforms as transforms
@@ -39,22 +40,20 @@ class TraversabilityEstimator:
         max_distance: float = 3,
         image_distance_thr: float = None,
         proprio_distance_thr: float = None,
-        feature_extractor: str = "dino_slic",
+        feature_extractor_type: str = "dino_slic",
         min_samples_for_training: int = 10,
     ):
         self.device = device
         self.min_samples_for_training = min_samples_for_training
 
         # Local graphs
-        self.image_graph = DistanceWindowGraph(max_distance=max_distance, edge_distance=image_distance_thr)
-        self.proprio_graph = DistanceWindowGraph(max_distance=max_distance, edge_distance=proprio_distance_thr)
+        self._proprio_graph = DistanceWindowGraph(max_distance=max_distance, edge_distance=proprio_distance_thr)
         # Experience graph
-        self.mission_graph = BaseGraph()
+        self._mission_graph = BaseGraph()
 
         # TODO: fix feature extractor type
-        self.feature_extractor = FeatureExtractor(device, extractor_type=feature_extractor)
-        # For debugging
-        os.makedirs(os.path.join(WVN_ROOT_DIR, "results", "test_traversability_estimator"), exist_ok=True)
+        self._feature_extractor_type = feature_extractor_type
+        self._feature_extractor = FeatureExtractor(device, extractor_type=self._feature_extractor_type)
 
         # Mutex
         self._lock = Lock()
@@ -86,18 +85,42 @@ class TraversabilityEstimator:
         self._last_trained_model = self._model.to(device)
         self._trainer = Trainer(**exp["trainer"], default_root_dir=model_path)  # , callbacks=cb_ls, logger=logger)
 
-    def update_features(self, node: BaseNode):
+    def __getstate__(self):
+        # Copy the object's state from self.__dict__ which contains
+        # all our instance attributes. Always use the dict.copy()
+        # method to avoid modifying the original state.
+        state = self.__dict__.copy()
+        # Remove the unpicklable entries.
+        del state["_lock"]
+        return state
+
+    def __setstate__(self, state):
+        # Restore instance attributes (i.e., filename and lineno).
+        self.__dict__.update(state)
+        # Restore the previously opened file's state. To do so, we need to
+        # reopen it and read from it until the line count is restored.
+        self._lock = Lock()
+
+    def change_device(self, device: str):
+        self._proprio_graph.change_device(device)
+        self._mission_graph.change_device(device)
+        self._feature_extractor.change_device(device)
+
+        self._model = self._model.to(device)
+        self._last_trained_model = self._last_trained_model.to(device)
+
+    def update_features(self, node: MissionNode):
         """Extracts visual features from a node that stores an image
 
         Args:
-            node (BaseNode): new node in the image graph
+            node (MissionNode): new node in the mission graph
         """
 
         # Extract features
-        edges, feat, seg, center = self.feature_extractor.extract(img=node.image.clone()[None], return_centers=True)
+        edges, feat, seg, center = self._feature_extractor.extract(img=node.image.clone()[None], return_centers=True)
 
         # Set features in node
-        node.feature_type = self.feature_extractor.get_type()
+        node.feature_type = self._feature_extractor.get_type()
         node.features = feat
         node.feature_edges = edges
         node.feature_segments = seg
@@ -120,14 +143,14 @@ class TraversabilityEstimator:
         self.update_features(node)
 
         # Add image node
-        if self.mission_graph.add_node(node):
+        if self._mission_graph.add_node(node):
             print(f"adding node [{node}]")
             # Project past footprints on current image
             image_projector = node.image_projector
             pose_cam_in_world = node.pose_cam_in_world[None]
             supervision_mask = node.image * 0
 
-            for p_node in self.proprio_graph.get_nodes():
+            for p_node in self._proprio_graph.get_nodes():
                 footprint = p_node.get_footprint_points()[None]
                 color = torch.FloatTensor([1.0, 1.0, 1.0])
                 # Project and render mask
@@ -152,7 +175,7 @@ class TraversabilityEstimator:
         if not node.is_valid():
             return False
 
-        if not self.proprio_graph.add_node(node):
+        if not self._proprio_graph.add_node(node):
             return False
 
         else:
@@ -161,12 +184,12 @@ class TraversabilityEstimator:
             color = torch.FloatTensor([1.0, 1.0, 1.0])
 
             # Get last mission node
-            last_mission_node = self.mission_graph.get_last_node()
+            last_mission_node = self._mission_graph.get_last_node()
             if last_mission_node is None:
                 return False
 
-            mission_nodes = self.mission_graph.get_nodes_within_radius_range(
-                last_mission_node, 0, self.proprio_graph.max_distance
+            mission_nodes = self._mission_graph.get_nodes_within_radius_range(
+                last_mission_node, 0, self._proprio_graph.max_distance
             )
             # Project footprint onto all the image nodes
             for m_node in mission_nodes:
@@ -191,17 +214,29 @@ class TraversabilityEstimator:
             return True
 
     def get_mission_nodes(self):
-        return self.mission_graph.get_nodes()
+        return self._mission_graph.get_nodes()
 
     def get_proprio_nodes(self):
-        return self.proprio_graph.get_nodes()
+        return self._proprio_graph.get_nodes()
 
     def get_last_valid_mission_node(self):
         last_valid_node = None
-        for node in self.mission_graph.get_nodes():
+        for node in self._mission_graph.get_nodes():
             if node.is_valid():
                 last_valid_node = node
         return last_valid_node
+
+    def save(self, file_path: str):
+        self.change_device("cpu")
+        self._lock = None
+        pickle.dump(self, open(file_path, "wb"))
+
+    @classmethod
+    def load(cls, file_path: str, device="cpu"):
+        # Load pickled object
+        obj = pickle.load(open(file_path, "rb"))
+        obj.change_device(device)
+        return obj
 
     def save_graph(self, mission_path: str, export_debug: bool = False):
         # Make folder if it doesn't exist
@@ -212,7 +247,7 @@ class TraversabilityEstimator:
         os.makedirs(os.path.join(mission_path, "img"), exist_ok=True)
 
         # Get all the current nodes
-        mission_nodes = self.mission_graph.get_nodes()
+        mission_nodes = self._mission_graph.get_nodes()
         i = 0
         for node in mission_nodes:
             if node.is_valid():
@@ -228,7 +263,7 @@ class TraversabilityEstimator:
         train_dataset = GraphTravOnlineDataset("/tmp")
 
         # Get all the current nodes
-        mission_nodes = self.mission_graph.get_n_random_valid_nodes(n=self.min_samples_for_training)
+        mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=self.min_samples_for_training)
 
         i = 0
         for node in mission_nodes:
@@ -245,8 +280,8 @@ class TraversabilityEstimator:
             pin_memory=False,
         )
 
-    def train(self, epochs=10):
-        if self.mission_graph.get_num_valid_nodes() > self.min_samples_for_training:
+    def train(self):
+        if self._mission_graph.get_num_valid_nodes() > self.min_samples_for_training:
             # Prepare new dataset
             print("making new dataset")
             dataset = self.make_online_dataset()
@@ -265,4 +300,12 @@ class TraversabilityEstimator:
 
 
 def run_traversability_estimator():
-    pass
+    t = TraversabilityEstimator()
+    t.save("/tmp/te.pickle")
+    print("Store pickled")
+    t2 = TraversabilityEstimator.load("/tmp/te.pickle")
+    print("Loaded pickled")
+
+
+if __name__ == "__main__":
+    run_traversability_estimator()

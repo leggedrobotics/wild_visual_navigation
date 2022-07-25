@@ -40,6 +40,9 @@ class BaseNode:
     def __lt__(self, other):
         return self._timestamp < other.timestamp
 
+    def change_device(self, device):
+        self._pose_base_in_world = self._pose_base_in_world.to(device)
+
     @classmethod
     def from_node(cls, instance):
         return cls(timestamp=instance.timestamp, pose_base_in_world=instance.pose_base_in_world)
@@ -125,6 +128,30 @@ class MissionNode(BaseNode):
         self._supervision_mask = None
         self._supervision_signal = None
         self._supervision_signal_valid = None
+
+    def change_device(self, device):
+        super().change_device(device)
+        self._image_projector.change_device(device)
+        self._image = self._image.to(device)
+        self._pose_cam_in_base = self._pose_cam_in_base.to(device)
+        self._pose_cam_in_world = self._pose_cam_in_world.to(device)
+
+        if self._features is not None:
+            self._features = self._features.to(device)
+        if self._feature_edges is not None:
+            self._feature_edges = self._feature_edges.to(device)
+        if self._feature_segments is not None:
+            self._feature_segments = self._feature_segments.to(device)
+        if self._feature_positions is not None:
+            self._feature_positions = self._feature_positions.to(device)
+        if self._prediction is not None:
+            self._prediction = self._prediction.to(device)
+        if self._supervision_mask is not None:
+            self._supervision_mask = self._supervision_mask.to(device)
+        if self._supervision_signal is not None:
+            self._supervision_signal = self._supervision_signal.to(device)
+        if self._supervision_signal_valid is not None:
+            self._supervision_signal_valid = self._supervision_signal_valid.to(device)
 
     def as_pyg_data(self):
         return Data(
@@ -336,6 +363,12 @@ class ProprioceptionNode(BaseNode):
         self._width = width
         self._height = height
         self._proprioceptive_state = proprioception
+
+    def change_device(self, device):
+        super().change_device(device)
+        self._pose_footprint_in_base = self._pose_footprint_in_base.to(device)
+        self._pose_footprint_in_world = self._pose_footprint_in_world.to(device)
+        self._proprioceptive_state = self._proprioceptive_state.to(device)
 
     def get_bounding_box_points(self):
         return make_box(self._length, self._width, self._height, pose=self._pose_base_in_world, grid_size=5).to(

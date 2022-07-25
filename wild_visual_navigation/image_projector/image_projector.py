@@ -64,6 +64,15 @@ class ImageProjector:
         sw = torch.IntTensor([sw]).to(device)
         self.camera = PinholeCamera(sK, E, sh, sw)
 
+    def change_device(self, device):
+        self.K = self.K.to(device)
+        self.camera = PinholeCamera(
+            self.camera.intrinsics.to(device),
+            self.camera.extrinsics.to(device),
+            self.camera.height.to(device),
+            self.camera.width.to(device),
+        )
+
     def check_validity(self, points_3d: torch.tensor, points_2d: torch.tensor) -> torch.tensor:
         """Check that the points are valid after projecting them on the image
 
