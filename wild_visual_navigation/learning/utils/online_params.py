@@ -50,7 +50,7 @@ class OnlineParams(Serializable):
         limit_train_batches: float = 1.0
         limit_val_batches: float = 1.0
         limit_test_batches: float = 1.0
-        max_epochs: int = 5
+        max_epochs: int = 10
         profiler: bool = False
         num_sanity_val_steps: int = 0
         check_val_every_n_epoch: int = 20

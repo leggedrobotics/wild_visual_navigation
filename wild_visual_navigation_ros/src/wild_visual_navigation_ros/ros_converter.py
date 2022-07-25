@@ -84,8 +84,13 @@ def ros_image_to_torch(ros_img, desired_encoding="rgb8", device="cpu"):
 
 
 def torch_to_ros_image(torch_img, desired_encoding="rgb8"):
-    np_image = np.array(TO_PIL_IMAGE(torch_img.cpu()))
-    ros_image = CV_BRIDGE.cv2_to_imgmsg(np_image, encoding=desired_encoding)
+    np_img = np.array(TO_PIL_IMAGE(torch_img.cpu()))
+    ros_img = CV_BRIDGE.cv2_to_imgmsg(np_img, encoding=desired_encoding)
+    return ros_img
+
+
+def numpy_to_ros_image(np_img, desired_encoding="rgb8"):
+    ros_image = CV_BRIDGE.cv2_to_imgmsg(np_img, encoding=desired_encoding)
     return ros_image
 
 

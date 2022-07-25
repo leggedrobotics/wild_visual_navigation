@@ -3,6 +3,7 @@ from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation.feature_extractor import FeatureExtractor
 from wild_visual_navigation.learning.dataset import GraphTravOnlineDataset
 from wild_visual_navigation.learning.lightning import LightningTrav
+from wild_visual_navigation.learning.model import get_model
 from wild_visual_navigation.learning.utils import OnlineParams, load_env, create_experiment_folder
 from wild_visual_navigation.traversability_estimator import (
     BaseNode,
@@ -13,14 +14,15 @@ from wild_visual_navigation.traversability_estimator import (
 )
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.plugins import SingleDevicePlugin
-from torch_geometric.data import LightningDataset, Data
+from torch_geometric.data import LightningDataset, Data, Batch
 from simple_parsing import ArgumentParser
 from threading import Thread, Lock
 import dataclasses
+import networkx as nx
 import os
 import pickle
 import torch
-import networkx as nx
+import torch.nn.functional as F
 import torchvision.transforms as transforms
 import yaml
 
@@ -81,9 +83,18 @@ class TraversabilityEstimator:
             exp["trainer"]["gpus"] = -1
         exp["trainer"]["plugins"] = SingleDevicePlugin(device=f"{self.device}:0")  # TODO ":0" shouldn't be hardcoded
 
-        self._model = LightningTrav(exp, env)
+        self._pl_model = LightningTrav(exp, env)
+        self._pl_last_trained_model = self._pl_model.to(device)
+        self._pl_trainer = Trainer(**exp["trainer"], default_root_dir=model_path)  # , callbacks=cb_ls, logger=logger)
+
+        self._model = get_model(
+            {"name": "SimpleGCN", "simple_gcn_cfg": {"num_node_features": 90, "num_classes": 1, "reconstruction": True}}
+        ).to(device)
+        self._epoch = 0
         self._last_trained_model = self._model.to(device)
-        self._trainer = Trainer(**exp["trainer"], default_root_dir=model_path)  # , callbacks=cb_ls, logger=logger)
+        self._model.train()
+        self._optimizer = torch.optim.AdamW(self._model.parameters(), lr=0.01)
+        torch.set_grad_enabled(True)
 
     def __getstate__(self):
         # Copy the object's state from self.__dict__ which contains
@@ -226,10 +237,12 @@ class TraversabilityEstimator:
                 last_valid_node = node
         return last_valid_node
 
-    def save(self, file_path: str):
+    def save(self, mission_path: str, filename: str):
+        os.makedirs(mission_path, exist_ok=True)
+        output_file = os.path.join(mission_path, filename)
         self.change_device("cpu")
         self._lock = None
-        pickle.dump(self, open(file_path, "wb"))
+        pickle.dump(self, open(output_file, "wb"))
 
     @classmethod
     def load(cls, file_path: str, device="cpu"):
@@ -256,7 +269,7 @@ class TraversabilityEstimator:
 
     def make_online_dataset(
         self,
-        batch_size: int = 1,
+        batch_size: int = 8,
         num_workers: int = 0,
     ):
         # Prepare online dataset
@@ -280,7 +293,13 @@ class TraversabilityEstimator:
             pin_memory=False,
         )
 
-    def train(self):
+    def make_batch(self, batch_size: int = 8):
+        # Get all the current nodes
+        mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
+        batch = Batch.from_data_list([x.as_pyg_data() for x in mission_nodes])
+        return batch
+
+    def train_lightning(self):
         if self._mission_graph.get_num_valid_nodes() > self.min_samples_for_training:
             # Prepare new dataset
             print("making new dataset")
@@ -288,15 +307,44 @@ class TraversabilityEstimator:
             print(dataset)
 
             # Fit model
-            self._trainer.fit(model=self._model, datamodule=dataset)
+            self._pl_trainer.fit(model=self._pl_model, datamodule=dataset)
 
             # Reset epochs so we can optimize again
-            self._trainer.fit_loop.epoch_progress.reset()
+            self._pl_trainer.fit_loop.epoch_progress.reset()
 
             # Copy current model
             with self._lock:
-                self.last_trained_model = self._model
+                self.pl_last_trained_model = self._pl_model
             print("─" * 80)
+
+    def train(self):
+        if self._mission_graph.get_num_valid_nodes() > self.min_samples_for_training:
+            # Prepare new batch
+            batch = self.make_batch()
+
+            # forward pass
+            res = self._model(batch)
+
+            # compute loss only for valid elements [graph.y_valid]
+            # traversability loss
+            loss_trav = F.mse_loss(F.sigmoid(res[:, 0]), batch.y)
+
+            # Reconstruction loss
+            nc = 1
+            loss_reco = F.mse_loss(res[batch.y_valid][:, nc:], batch.x[batch.y_valid])
+            loss = 0.1 * loss_trav + 0.1 * loss_reco
+
+            # backprop
+            self._optimizer.zero_grad()
+            loss.backward()
+            self._optimizer.step()
+
+            # update epochs
+            self._epoch += 1
+
+            # print losses
+            if self._epoch % 20 == 0:
+                print(f"epoch: {self._epoch} | loss: {loss:5f} | loss_trav: {loss_trav:5f} | loss_reco: {loss_reco:5f}")
 
 
 def run_traversability_estimator():
