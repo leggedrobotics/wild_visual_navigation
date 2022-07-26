@@ -128,6 +128,11 @@ class FeatureExtractor:
         return self.extractor_type
 
     def change_device(self, device):
+        """Changes the device of all the class members
+
+        Args:
+            device (str): new device
+        """
         self.device = device
         self.extractor.change_device(device)
 

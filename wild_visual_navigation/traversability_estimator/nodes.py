@@ -43,6 +43,11 @@ class BaseNode:
         return self._timestamp < other.timestamp
 
     def change_device(self, device):
+        """Changes the device of all the class members
+
+        Args:
+            device (str): new device
+        """
         self._pose_base_in_world = self._pose_base_in_world.to(device)
 
     @classmethod
@@ -132,6 +137,11 @@ class MissionNode(BaseNode):
         self._supervision_signal_valid = None
 
     def change_device(self, device):
+        """Changes the device of all the class members
+
+        Args:
+            device (str): new device
+        """
         super().change_device(device)
         self._image_projector.change_device(device)
         self._image = self._image.to(device)
@@ -397,6 +407,11 @@ class ProprioceptionNode(BaseNode):
         self._proprioceptive_state = proprioception
 
     def change_device(self, device):
+        """Changes the device of all the class members
+
+        Args:
+            device (str): new device
+        """
         super().change_device(device)
         self._pose_footprint_in_base = self._pose_footprint_in_base.to(device)
         self._pose_footprint_in_world = self._pose_footprint_in_world.to(device)

@@ -42,6 +42,11 @@ class BaseGraph:
         self._lock = Lock()
 
     def change_device(self, device):
+        """Changes the device of all the class members
+
+        Args:
+            device (str): new device
+        """
         for n in self._graph.nodes:
             n.change_device(device)
 
@@ -128,12 +133,13 @@ class BaseGraph:
         try:
             with self._lock:
                 if metric == "dijkstra":
+                    # Here we compute the closest nodes respecting the graph's structure
                     length, path = nx.single_source_dijkstra(
                         self._graph, closest_node, cutoff=max_radius, weight="distance"
                     )
                     nodes = list(length)[1:]  # first node is the query node
                 elif metric == "pose":
-
+                    # Here we compute the closest nodes just using the 3D pose of the nodes
                     def pose_distance_filter(other):
                         d = abs(other.distance_to(node))
                         return d >= min_radius and d < max_radius

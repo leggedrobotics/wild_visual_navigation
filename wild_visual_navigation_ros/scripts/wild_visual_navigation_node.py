@@ -51,11 +51,15 @@ class WvnRosInterface:
         rospy.spin()
 
     def __del__(self):
+        """Destructor
+        """
         # Join threads
         if self.run_online_learning:
             self.learning_thread.join()
 
     def read_params(self):
+        """Reads all the parameters from the parameter server
+        """
         # Topics
         self.robot_state_topic = rospy.get_param("~robot_state_topic", "/wild_visual_navigation_ros/robot_state")
         self.image_topic = rospy.get_param("~image_topic", "/alphasense_driver_ros/cam4/debayered")
@@ -94,6 +98,8 @@ class WvnRosInterface:
         self.device = rospy.get_param("device", "cuda")
 
     def setup_ros(self):
+        """Main function to setup ROS-related stuff: publishers, subscribers and services
+        """
         # Initialize TF listener
         self.tf_listener = tf.TransformListener()
 
@@ -133,6 +139,11 @@ class WvnRosInterface:
         self.save_pickle_service = rospy.Service("~save_pickle", Trigger, self.save_pickle_callback)
 
     def save_graph_callback(self, req):
+        """Service call to store the mission graph as a dataset
+
+        Args:
+            req (TriggerRequest): Trigger request service
+        """
         mission_path = os.path.join(self.output_path, self.mission_name)
         t = Thread(target=self.traversability_estimator.save_graph, args=(mission_path,))
         t.start()
@@ -140,11 +151,23 @@ class WvnRosInterface:
         return TriggerResponse(success=True, message=f"Graph saved in {mission_path}")
 
     def save_pickle_callback(self, req):
+        """Service call to store the traversability estimator instance as a pickle file
+
+        Args:
+            req (TriggerRequest): Trigger request service
+        """
         mission_path = os.path.join(self.output_path, self.mission_name)
         self.traversability_estimator.save(mission_path, "traversability_estimator.pickle")
         return TriggerResponse(success=True, message=f"Pickle saved in {mission_path}")
 
-    def query_tf(self, parent_frame, child_frame):
+    def query_tf(self, parent_frame: str, child_frame: str):
+        """Helper function to query TFs
+
+        Args:
+            parent_frame (str): Frame of the parent TF
+            child_frame (str): Frame of the child
+        """
+        # Wait for required tfs
         self.tf_listener.waitForTransform(parent_frame, child_frame, rospy.Time(), rospy.Duration(1.0))
 
         try:
@@ -154,8 +177,13 @@ class WvnRosInterface:
             rospy.logwarn(f"Couldn't get between {parent_frame} and {child_frame}")
             return (None, None)
 
-    def robot_state_callback(self, msg):
-        ts = msg.header.stamp.to_sec()
+    def robot_state_callback(self, state_msg):
+        """Main callback to process proprioceptive info (robot state)
+
+        Args:
+            state_msg (wild_visual_navigation_msgs/RobotState): Robot state message
+        """
+        ts = state_msg.header.stamp.to_sec()
 
         # Query transforms from TF
         pose_base_in_world = rc.ros_tf_to_torch(self.query_tf(self.fixed_frame, self.base_frame), device=self.device)
@@ -167,7 +195,7 @@ class WvnRosInterface:
         pose_footprint_in_base[:3, :3] = torch.eye(3, device=self.device)
 
         # Convert state to tensor
-        proprio_tensor, proprio_labels = rc.wvn_robot_state_to_torch(msg, device=self.device)
+        proprio_tensor, proprio_labels = rc.wvn_robot_state_to_torch(state_msg, device=self.device)
 
         # Create proprioceptive node for the graph
         proprio_node = ProprioceptionNode(
@@ -185,7 +213,13 @@ class WvnRosInterface:
         # Visualizations
         self.visualize_proprioception()
 
-    def image_callback(self, image_msg, info_msg):
+    def image_callback(self, image_msg: Image, info_msg: CameraInfo):
+        """Main callback to process incoming images
+
+        Args:
+            image_msg (sensor_msgs/Image): Incoming image
+            info_msg (sensor_msgs/CameraInfo): Camera info message associated to the image
+        """
         # Run the callback so as to match the desired rate
         ts = image_msg.header.stamp.to_sec()
         if abs(ts - self.last_ts) < 1.0 / self.image_callback_rate:
@@ -224,6 +258,9 @@ class WvnRosInterface:
         self.visualize_mission(mission_node)
 
     def learning_thread_loop(self):
+        """This implements the main thread that runs the training procedure
+        We can only set the rate using rosparam
+        """
         # Set rate
         rate = rospy.Rate(self.learning_thread_rate)
 
@@ -234,6 +271,9 @@ class WvnRosInterface:
             rate.sleep()
 
     def visualize_proprioception(self):
+        """Publishes all the visualizations related to proprioceptive info,
+        like footprints and the sliding graph
+        """
         # Get current time for later
         now = rospy.Time.now()
 
@@ -284,6 +324,9 @@ class WvnRosInterface:
         self.pub_debug_proprio_graph.publish(proprio_graph_msg)
 
     def visualize_mission(self, mission_node: MissionNode = None):
+        """Publishes all the visualizations related to mission graph, like the graph
+        itself, visual features, supervision signals, and traversability estimates
+        """
         # Get current time for later
         now = rospy.Time.now()
 
