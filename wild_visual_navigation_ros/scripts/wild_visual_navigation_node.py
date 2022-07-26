@@ -59,8 +59,7 @@ class WvnRosInterface:
             self.learning_thread.join()
 
     def read_params(self):
-        """Reads all the parameters from the parameter server
-        """
+        """Reads all the parameters from the parameter server"""
         # Topics
         self.robot_state_topic = rospy.get_param("~robot_state_topic", "/wild_visual_navigation_ros/robot_state")
         self.image_topic = rospy.get_param("~image_topic", "/alphasense_driver_ros/cam4/debayered")
@@ -99,8 +98,7 @@ class WvnRosInterface:
         self.device = rospy.get_param("device", "cuda")
 
     def setup_ros(self):
-        """Main function to setup ROS-related stuff: publishers, subscribers and services
-        """
+        """Main function to setup ROS-related stuff: publishers, subscribers and services"""
         # Initialize TF listener
         self.tf_listener = tf.TransformListener()
 
