@@ -1,10 +1,8 @@
 from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation.feature_extractor import FeatureExtractor
-from wild_visual_navigation.learning.dataset import GraphTravOnlineDataset
-from wild_visual_navigation.learning.lightning import LightningTrav
 from wild_visual_navigation.learning.model import get_model
-from wild_visual_navigation.learning.utils import ExperimentParams, load_env, create_experiment_folder
+from wild_visual_navigation.learning.utils import ExperimentParams
 from wild_visual_navigation.traversability_estimator import (
     BaseNode,
     BaseGraph,
@@ -12,9 +10,8 @@ from wild_visual_navigation.traversability_estimator import (
     MissionNode,
     ProprioceptionNode,
 )
-from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.plugins import SingleDevicePlugin
-from torch_geometric.data import LightningDataset, Data, Batch
+from pytorch_lightning import seed_everything
+from torch_geometric.data import Data, Batch
 from simple_parsing import ArgumentParser
 from threading import Thread, Lock
 import dataclasses
