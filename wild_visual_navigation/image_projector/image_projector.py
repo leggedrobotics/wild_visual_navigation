@@ -65,6 +65,11 @@ class ImageProjector:
         self.camera = PinholeCamera(sK, E, sh, sw)
 
     def change_device(self, device):
+        """Changes the device of all the class members
+
+        Args:
+            device (str): new device
+        """
         self.K = self.K.to(device)
         self.camera = PinholeCamera(
             self.camera.intrinsics.to(device),

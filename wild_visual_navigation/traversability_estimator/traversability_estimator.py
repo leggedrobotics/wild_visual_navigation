@@ -53,7 +53,7 @@ class TraversabilityEstimator:
         # Experience graph
         self._mission_graph = BaseGraph()
 
-        # TODO: fix feature extractor type
+        # Feature extractor
         self._feature_extractor_type = feature_extractor_type
         self._feature_extractor = FeatureExtractor(device, extractor_type=self._feature_extractor_type)
 
@@ -97,22 +97,24 @@ class TraversabilityEstimator:
         torch.set_grad_enabled(True)
 
     def __getstate__(self):
-        # Copy the object's state from self.__dict__ which contains
-        # all our instance attributes. Always use the dict.copy()
-        # method to avoid modifying the original state.
+        """We modify the state so the object can be pickled"""
         state = self.__dict__.copy()
         # Remove the unpicklable entries.
         del state["_lock"]
         return state
 
-    def __setstate__(self, state):
-        # Restore instance attributes (i.e., filename and lineno).
+    def __setstate__(self, state: dict):
+        """We modify the state so the object can be pickled"""
         self.__dict__.update(state)
-        # Restore the previously opened file's state. To do so, we need to
-        # reopen it and read from it until the line count is restored.
+        # Restore the unpickable entries
         self._lock = Lock()
 
     def change_device(self, device: str):
+        """Changes the device of all the class members
+
+        Args:
+            device (str): new device
+        """
         self._proprio_graph.change_device(device)
         self._mission_graph.change_device(device)
         self._feature_extractor.change_device(device)
@@ -238,6 +240,12 @@ class TraversabilityEstimator:
         return last_valid_node
 
     def save(self, mission_path: str, filename: str):
+        """Saves a pickled file of the TraversabilityEstimator class
+
+        Args:
+            mission_path (str): folder to store the mission
+            filename (str): name for the output file
+        """
         os.makedirs(mission_path, exist_ok=True)
         output_file = os.path.join(mission_path, filename)
         self.change_device("cpu")
@@ -246,6 +254,13 @@ class TraversabilityEstimator:
 
     @classmethod
     def load(cls, file_path: str, device="cpu"):
+        """Loads pickled file and creates an instance of TraversabilityEstimator,
+        loading al the required objects to the given device
+
+        Args:
+            file_path (str): Full path of the pickle file
+            device (str): Device used to load the torch objects
+        """
         # Load pickled object
         obj = pickle.load(open(file_path, "rb"))
         obj.change_device(device)
@@ -294,6 +309,11 @@ class TraversabilityEstimator:
         )
 
     def make_batch(self, batch_size: int = 8):
+        """Samples a batch from the mission_graph
+
+        Args:
+            batch_size (int): Size of the batch
+        """
         # Get all the current nodes
         mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
         batch = Batch.from_data_list([x.as_pyg_data() for x in mission_nodes])
@@ -318,6 +338,11 @@ class TraversabilityEstimator:
             print("─" * 80)
 
     def train(self):
+        """Runs one step of the training loop
+        It samples a batch, and optimizes the model.
+        It also updates a copy of the model for inference
+
+        """
         if self._mission_graph.get_num_valid_nodes() > self.min_samples_for_training:
             # Prepare new batch
             batch = self.make_batch()
@@ -325,7 +350,7 @@ class TraversabilityEstimator:
             # forward pass
             res = self._model(batch)
 
-            # compute loss only for valid elements [graph.y_valid]
+            # Compute loss only for valid elements [graph.y_valid]
             # traversability loss
             loss_trav = F.mse_loss(F.sigmoid(res[:, 0]), batch.y)
 
@@ -334,20 +359,21 @@ class TraversabilityEstimator:
             loss_reco = F.mse_loss(res[batch.y_valid][:, nc:], batch.x[batch.y_valid])
             loss = 0.1 * loss_trav + 0.1 * loss_reco
 
-            # backprop
+            # Backprop
             self._optimizer.zero_grad()
             loss.backward()
             self._optimizer.step()
 
-            # update epochs
+            # Update epochs
             self._epoch += 1
 
-            # print losses
+            # Print losses
             if self._epoch % 20 == 0:
                 print(f"epoch: {self._epoch} | loss: {loss:5f} | loss_trav: {loss_trav:5f} | loss_reco: {loss_reco:5f}")
 
 
 def run_traversability_estimator():
+    
     t = TraversabilityEstimator()
     t.save("/tmp/te.pickle")
     print("Store pickled")
