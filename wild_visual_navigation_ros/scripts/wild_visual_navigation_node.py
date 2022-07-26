@@ -52,6 +52,7 @@ class WvnRosInterface:
 
     def __del__(self):
         """Destructor
+        Joins all the running threads
         """
         # Join threads
         if self.run_online_learning:

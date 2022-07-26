@@ -291,7 +291,7 @@ class MissionNode(BaseNode):
         # iterate segments
         for i in range(self._feature_positions.shape[0]):
             params = self._feature_positions[i].tolist()
-            segment_id = self._feature_segments[int(params[0]), int(params[1])].item()
+            segment_id = self._feature_segments[int(params[1]), int(params[0])].item()
 
             seg_np_rgb[seg == segment_id] = tuple(col_map[label_pred[i]].tolist())
             confidence_np_rgb[seg == segment_id] = tuple(col_map[confidence_pred[i]].tolist())

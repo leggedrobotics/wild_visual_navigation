@@ -4,7 +4,7 @@ from wild_visual_navigation.feature_extractor import FeatureExtractor
 from wild_visual_navigation.learning.dataset import GraphTravOnlineDataset
 from wild_visual_navigation.learning.lightning import LightningTrav
 from wild_visual_navigation.learning.model import get_model
-from wild_visual_navigation.learning.utils import OnlineParams, load_env, create_experiment_folder
+from wild_visual_navigation.learning.utils import ExperimentParams, load_env, create_experiment_folder
 from wild_visual_navigation.traversability_estimator import (
     BaseNode,
     BaseGraph,
@@ -59,11 +59,12 @@ class TraversabilityEstimator:
 
         # Mutex
         self._lock = Lock()
+        self._pause_training = False
 
         # Lightning module
         seed_everything(42)
         parser = ArgumentParser()
-        parser.add_arguments(OnlineParams, dest="experiment")
+        parser.add_arguments(ExperimentParams, dest="experiment")
         args = parser.parse_args()
         exp = dataclasses.asdict(args.experiment)
         env = load_env()
@@ -108,6 +109,14 @@ class TraversabilityEstimator:
         self.__dict__.update(state)
         # Restore the unpickable entries
         self._lock = Lock()
+
+    @property
+    def pause_learning(self):
+        return self._pause_training
+    
+    @pause_learning.setter
+    def pause_learning(self, pause: bool):
+        self._pause_training = pause
 
     def change_device(self, device: str):
         """Changes the device of all the class members
@@ -246,11 +255,14 @@ class TraversabilityEstimator:
             mission_path (str): folder to store the mission
             filename (str): name for the output file
         """
+        self._pause_training = True
         os.makedirs(mission_path, exist_ok=True)
         output_file = os.path.join(mission_path, filename)
         self.change_device("cpu")
         self._lock = None
         pickle.dump(self, open(output_file, "wb"))
+        self._pause_training = False
+        
 
     @classmethod
     def load(cls, file_path: str, device="cpu"):
@@ -267,6 +279,7 @@ class TraversabilityEstimator:
         return obj
 
     def save_graph(self, mission_path: str, export_debug: bool = False):
+        self._pause_training = True
         # Make folder if it doesn't exist
         os.makedirs(mission_path, exist_ok=True)
         os.makedirs(os.path.join(mission_path, "graph"), exist_ok=True)
@@ -281,6 +294,7 @@ class TraversabilityEstimator:
             if node.is_valid():
                 node.save(mission_path, i)
                 i += 1
+        self._pause_training = False
 
     def make_online_dataset(
         self,
@@ -343,6 +357,9 @@ class TraversabilityEstimator:
         It also updates a copy of the model for inference
 
         """
+        if self._pause_training:
+            return
+
         if self._mission_graph.get_num_valid_nodes() > self.min_samples_for_training:
             # Prepare new batch
             batch = self.make_batch()
@@ -370,6 +387,10 @@ class TraversabilityEstimator:
             # Print losses
             if self._epoch % 20 == 0:
                 print(f"epoch: {self._epoch} | loss: {loss:5f} | loss_trav: {loss_trav:5f} | loss_reco: {loss_reco:5f}")
+            
+            # Update model
+            with self._lock:
+                self.last_trained_model = self._model
 
 
 def run_traversability_estimator():
