@@ -373,7 +373,7 @@ class TraversabilityEstimator:
 
 
 def run_traversability_estimator():
-    
+
     t = TraversabilityEstimator()
     t.save("/tmp/te.pickle")
     print("Store pickled")
