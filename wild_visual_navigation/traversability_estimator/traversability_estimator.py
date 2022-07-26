@@ -63,38 +63,13 @@ class TraversabilityEstimator:
 
         # Lightning module
         seed_everything(42)
-        parser = ArgumentParser()
-        parser.add_arguments(ExperimentParams, dest="experiment")
-        args = parser.parse_args()
-        exp = dataclasses.asdict(args.experiment)
-        env = load_env()
+        self._exp_cfg = dataclasses.asdict(ExperimentParams())
 
-        model_path = create_experiment_folder(exp, env)
-        exp["general"]["name"] = os.path.relpath(model_path, env["base"])
-        exp["general"]["model_path"] = model_path
-        with open(os.path.join(model_path, "experiment_params.yaml"), "w") as f:
-            yaml.dump(exp, f, default_flow_style=False)
-
-        # SET GPUS
-        if (exp["trainer"]).get("gpus", -1) == -1:
-            nr = torch.cuda.device_count()
-            print(f"Set GPU Count for Trainer to {nr}!")
-            for i in range(nr):
-                print(f"Device {i}: " + str(torch.cuda.get_device_name(i)))
-            exp["trainer"]["gpus"] = -1
-        exp["trainer"]["plugins"] = SingleDevicePlugin(device=f"{self.device}:0")  # TODO ":0" shouldn't be hardcoded
-
-        self._pl_model = LightningTrav(exp, env)
-        self._pl_last_trained_model = self._pl_model.to(device)
-        self._pl_trainer = Trainer(**exp["trainer"], default_root_dir=model_path)  # , callbacks=cb_ls, logger=logger)
-
-        self._model = get_model(
-            {"name": "SimpleGCN", "simple_gcn_cfg": {"num_node_features": 90, "num_classes": 1, "reconstruction": True}}
-        ).to(device)
+        self._model = get_model(self._exp_cfg["model"]).to(device)
         self._epoch = 0
         self._last_trained_model = self._model.to(device)
         self._model.train()
-        self._optimizer = torch.optim.AdamW(self._model.parameters(), lr=0.01)
+        self._optimizer = torch.optim.AdamW(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
         torch.set_grad_enabled(True)
 
     def __getstate__(self):
@@ -295,32 +270,6 @@ class TraversabilityEstimator:
                 i += 1
         self._pause_training = False
 
-    def make_online_dataset(
-        self,
-        batch_size: int = 8,
-        num_workers: int = 0,
-    ):
-        # Prepare online dataset
-        train_dataset = GraphTravOnlineDataset("/tmp")
-
-        # Get all the current nodes
-        mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=self.min_samples_for_training)
-
-        i = 0
-        for node in mission_nodes:
-            train_dataset.add(node.as_pyg_data(), i)
-            i += 0
-        train_dataset.set_ready()
-
-        return LightningDataset(
-            train_dataset=train_dataset,
-            val_dataset=train_dataset,
-            test_dataset=train_dataset,
-            batch_size=batch_size,
-            num_workers=num_workers,
-            pin_memory=False,
-        )
-
     def make_batch(self, batch_size: int = 8):
         """Samples a batch from the mission_graph
 
@@ -331,24 +280,6 @@ class TraversabilityEstimator:
         mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
         batch = Batch.from_data_list([x.as_pyg_data() for x in mission_nodes])
         return batch
-
-    def train_lightning(self):
-        if self._mission_graph.get_num_valid_nodes() > self.min_samples_for_training:
-            # Prepare new dataset
-            print("making new dataset")
-            dataset = self.make_online_dataset()
-            print(dataset)
-
-            # Fit model
-            self._pl_trainer.fit(model=self._pl_model, datamodule=dataset)
-
-            # Reset epochs so we can optimize again
-            self._pl_trainer.fit_loop.epoch_progress.reset()
-
-            # Copy current model
-            with self._lock:
-                self.pl_last_trained_model = self._pl_model
-            print("─" * 80)
 
     def train(self):
         """Runs one step of the training loop
@@ -361,7 +292,7 @@ class TraversabilityEstimator:
 
         if self._mission_graph.get_num_valid_nodes() > self.min_samples_for_training:
             # Prepare new batch
-            batch = self.make_batch()
+            batch = self.make_batch(self._exp_cfg["data_module"]["batch_size"])
 
             # forward pass
             res = self._model(batch)
@@ -373,7 +304,7 @@ class TraversabilityEstimator:
             # Reconstruction loss
             nc = 1
             loss_reco = F.mse_loss(res[batch.y_valid][:, nc:], batch.x[batch.y_valid])
-            loss = 0.1 * loss_trav + 0.1 * loss_reco
+            loss = self._exp_cfg["loss"]["trav"] * loss_trav + self._exp_cfg["loss"]["reco"] * loss_reco
 
             # Backprop
             self._optimizer.zero_grad()
