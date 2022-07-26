@@ -113,7 +113,7 @@ class TraversabilityEstimator:
     @property
     def pause_learning(self):
         return self._pause_training
-    
+
     @pause_learning.setter
     def pause_learning(self, pause: bool):
         self._pause_training = pause
@@ -262,7 +262,6 @@ class TraversabilityEstimator:
         self._lock = None
         pickle.dump(self, open(output_file, "wb"))
         self._pause_training = False
-        
 
     @classmethod
     def load(cls, file_path: str, device="cpu"):
@@ -387,14 +386,14 @@ class TraversabilityEstimator:
             # Print losses
             if self._epoch % 20 == 0:
                 print(f"epoch: {self._epoch} | loss: {loss:5f} | loss_trav: {loss_trav:5f} | loss_reco: {loss_reco:5f}")
-            
+
             # Update model
             with self._lock:
                 self.last_trained_model = self._model
 
 
 def run_traversability_estimator():
-    
+
     t = TraversabilityEstimator()
     t.save("/tmp/te.pickle")
     print("Store pickled")
