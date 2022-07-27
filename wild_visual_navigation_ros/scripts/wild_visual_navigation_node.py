@@ -49,7 +49,9 @@ class WvnRosInterface:
         rospy.spin()
 
     def __del__(self):
-        """Destructor"""
+        """Destructor
+        Joins all the running threads
+        """
         # Join threads
         if self.run_online_learning:
             self.learning_thread.join()
