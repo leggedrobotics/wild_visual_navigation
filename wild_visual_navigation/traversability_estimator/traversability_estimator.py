@@ -2,7 +2,7 @@ from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation.feature_extractor import FeatureExtractor
 from wild_visual_navigation.learning.model import get_model
-from wild_visual_navigation.learning.utils import ExperimentParams
+from wild_visual_navigation.cfg import ExperimentParams
 from wild_visual_navigation.traversability_estimator import (
     BaseNode,
     BaseGraph,
@@ -304,7 +304,7 @@ class TraversabilityEstimator:
 
             # Compute loss only for valid elements [graph.y_valid]
             # traversability loss
-            loss_trav = F.mse_loss(F.sigmoid(res[:, 0]), batch.y)
+            loss_trav = F.mse_loss(res[:, 0], batch.y)
 
             # Reconstruction loss
             nc = 1

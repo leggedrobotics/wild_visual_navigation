@@ -12,6 +12,7 @@ from torchvision import transforms as T
 from PIL import Image
 from typing import Optional, Callable
 
+
 class GraphTravDataset(InMemoryDataset):
     def __init__(
         self,

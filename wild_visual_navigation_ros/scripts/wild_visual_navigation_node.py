@@ -338,13 +338,19 @@ class WvnRosInterface:
         # Publish reprojections of last node in graph
         # TODO: change visualization for a better node
         if len(self.traversability_estimator.get_mission_nodes()) > 0:
-            mission_node = self.traversability_estimator.get_last_valid_mission_node()
+            nodes = self.traversability_estimator.get_mission_nodes()
+            try:
+                mission_node = nodes[-10]
+            except:
+                mission_node = self.traversability_estimator.get_last_valid_mission_node()
 
             if mission_node is not None:
-                torch_mask = mission_node.supervision_mask
-                self.pub_image_mask.publish(rc.torch_to_ros_image(torch_mask))
-                np_labeled_image = self.traversability_estimator.plot_mission_node_training(mission_node)
+                # torch_mask = mission_node.supervision_mask
+                # self.pub_image_mask.publish(rc.torch_to_ros_image(torch_mask))
+
+                np_labeled_image, np_mask_image = self.traversability_estimator.plot_mission_node_training(mission_node)
                 self.pub_image_labeled.publish(rc.numpy_to_ros_image(np_labeled_image))
+                self.pub_image_mask.publish(rc.numpy_to_ros_image(np_mask_image))
 
         # Publish local graph
         mission_graph_msg = Path()

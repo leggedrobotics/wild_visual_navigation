@@ -14,7 +14,8 @@ import skimage
 import seaborn as sns
 from torch_geometric.data import Data
 import pytorch_lightning as pl
-from wild_visual_navigation.traversability_estimator import MissionNode
+from typing import Optional
+from wild_visual_navigation.learning.utils import get_confidence
 
 __all__ = ["LearningVisualizer"]
 
@@ -61,75 +62,44 @@ class LearningVisualizer:
     def plot_list(self, imgs, **kwargs):
         return np.concatenate(imgs, axis=1)
 
-    def plot_mission_node_training(self, node: MissionNode):
-        # TODO: implement to draw the segmentation and uncertainty
-        if node._image is None or node._supervision_mask is None:
-            return None
-        img_np = kornia.utils.tensor_to_image(node._image)
-        trav_np = kornia.utils.tensor_to_image(node._supervision_mask)
-
-        # Draw segments
-        img_np = segmentation.mark_boundaries(img_np, node._feature_segments.cpu().numpy(), color=(0.7, 0.7, 0.7))
-
-        img_pil = Image.fromarray(np.uint8(img_np * 255))
-        img_draw = ImageDraw.Draw(img_pil)
-        trav_pil = Image.fromarray(np.uint8(trav_np * 255))
-
-        # Draw graph
-        for i in range(node._feature_edges.shape[1]):
-            a, b = node._feature_edges[0, i], node._feature_edges[1, i]
-            line_params = node._feature_positions[a].tolist() + node._feature_positions[b].tolist()
-            img_draw.line(line_params, fill=(255, 255, 255, 100), width=2)
-
-        for i in range(node._feature_positions.shape[0]):
-            params = node._feature_positions[i].tolist()
-            color = trav_pil.getpixel((params[0], params[1]))
-            r = 5
-            params = [p - r for p in params] + [p + r for p in params]
-            img_draw.ellipse(params, fill=color)
-
-        np_draw = np.array(img_pil)
-        return np_draw.astype(np.uint8)
-
-    def plot_mission_node_prediction(self, node: MissionNode):
-        # TODO: convert to visu function
+    def plot_mission_node_prediction(self, node: any):
         if node._image is None or node._prediction is None:
             return None
-        img_np = kornia.utils.tensor_to_image(node._image) * 255
-        seg_np = kornia.utils.tensor_to_image(node._feature_segments)
-        seg_np_rgb = img_np.copy()
-        confidence_np_rgb = img_np.copy()
 
-        colormap = cm.get_cmap("autumn", 255)
-        col_map = np.uint8(colormap(np.linspace(0, 1, 256))[:, :3] * 255)
+        trav_pred = node._prediction[:, 0]
+        reco_pred = node._prediction[:, 1:]
+        conf_pred = get_confidence(reco_pred, node._features)
 
-        # TODO: implement to draw the segmentation and uncertainty
-        max_seg = 1.0
-        y_pred = (node._prediction.clip(0, max_seg) / max_seg * 255).type(torch.uint8).cpu()
-        label_pred = y_pred[:, 0]
-        confidence_pred = (torch.sigmoid(y_pred[:, 1:]) - node._features.cpu()).abs().sum(dim=1)
-        confidence_pred -= confidence_pred.min()
-        confidence_pred /= confidence_pred.max()
-        confidence_pred = 1.0 - confidence_pred
-        confidence_pred = (confidence_pred.clip(0, max_seg) / max_seg * 255).type(torch.uint8)
+        trav_img = self.plot_traversability_graph_on_seg(
+            trav_pred, node.feature_segments, node.as_pyg_data(), node.feature_positions, node.image.clone()
+        )
+        conf_img = self.plot_traversability_graph_on_seg(
+            conf_pred, node.feature_segments, node.as_pyg_data(), node.feature_positions, node.image.clone()
+        )
+        return trav_img, conf_img
 
-        # segments to CPU
-        seg = node._feature_segments.cpu()
+    def plot_mission_node_training(self, node: any):
+        if node._image is None or node._prediction is None:
+            return None
 
-        # iterate segments
-        for i in range(node._feature_positions.shape[0]):
-            params = node._feature_positions[i].tolist()
-            segment_id = node._feature_segments[int(params[0]), int(params[1])].item()
+        if node.supervision_signal is None:
+            sa = node.image.shape
+            supervison_img = np.zeros((sa[1], sa[2], sa[0]), dtype=np.uint8).shape
+        else:
+            supervison_img = self.plot_traversability_graph(
+                node.supervision_signal,
+                node.as_pyg_data(),
+                node.feature_positions,
+                node.image.clone(),
+                colormap="YlOrBr",
+            )
 
-            seg_np_rgb[seg == segment_id] = tuple(col_map[label_pred[i]].tolist())
-            confidence_np_rgb[seg == segment_id] = tuple(col_map[confidence_pred[i]].tolist())
+        mask = node.supervision_mask.sum(0) == 0
+        mask_img = self.plot_detectron(
+            node.image.clone(), node.supervision_mask[0], max_seg=2, colormap="Set2", overlay_mask=mask
+        )
 
-        # blending
-        alpha = 0.5
-        seg_np_rgb = alpha * img_np + (1 - alpha) * seg_np_rgb
-        confidence_np_rgb = alpha * img_np + (1 - alpha) * confidence_np_rgb
-
-        return seg_np_rgb.astype(np.uint8), confidence_np_rgb.astype(np.uint8)
+        return supervison_img, mask_img
 
     @image_functionality
     def plot_traversability_graph_on_seg(
@@ -164,7 +134,7 @@ class LearningVisualizer:
             prediction.max() <= max_val and prediction.min() >= 0
         ), f"Pred out of Bounds: 0-1, Given: {prediction.min()}-{prediction.max()}"
         elipse_size = 5
-        prediction = (prediction.type(torch.float32) / 255).type(torch.uint8)
+        prediction = (prediction.type(torch.float32) * 255).type(torch.uint8)
         img = np.uint8((img.permute(1, 2, 0) * 255).cpu().numpy())
 
         img_pil = Image.fromarray(img)
@@ -189,7 +159,9 @@ class LearningVisualizer:
         return np.array(img_pil)
 
     @image_functionality
-    def plot_detectron(self, img, seg, alpha=0.5, draw_bound=True, max_seg=40, colormap="Set2", **kwargs):
+    def plot_detectron(
+        self, img, seg, alpha=0.3, draw_bound=True, max_seg=40, colormap="Set2", overlay_mask=None, **kwargs
+    ):
         img = self.plot_image(img, not_log=True)
         assert seg.max() < max_seg and seg.min() >= 0, f"Seg out of Bounds: 0-{max_seg}, Given: {seg.min()}-{seg.max()}"
         try:
@@ -221,6 +193,13 @@ class LearningVisualizer:
         fore = np.zeros((H, W, 4))
         fore[:, :, :3] = overlay
         fore[:, :, 3] = alpha * 255
+        if overlay_mask is not None:
+            try:
+                overlay_mask = overlay_mask.cpu().numpy()
+            except:
+                pass
+            fore[overlay_mask] = 0
+
         img_new = Image.alpha_composite(Image.fromarray(np.uint8(back)), Image.fromarray(np.uint8(fore)))
 
         img_new = img_new.convert("RGB")
@@ -233,7 +212,7 @@ class LearningVisualizer:
         return np.uint8(img_new)
 
     @image_functionality
-    def plot_detectron_cont(self, img, seg, alpha=0.5, max_val=1.0, colormap="viridis", **kwargs):
+    def plot_detectron_cont(self, img, seg, alpha=0.3, max_val=1.0, colormap="viridis", **kwargs):
         img = self.plot_image(img, not_log=True)
         assert (
             seg.max() <= max_val and seg.min() >= 0
@@ -379,30 +358,62 @@ class LearningVisualizer:
 
 
 if __name__ == "__main__":
+    # Data was generated in the visu function of the lightning_module with the following code
+    # from PIL import Image
+    # import numpy as np
+    # Image.fromarray(np.uint8(img[b].cpu().numpy().transpose(1,2,0)*255)).save("assets/graph/img.png")
+    # torch.save( graph[b], "assets/graph/graph.pt")
+    # torch.save( center[b], "assets/graph/center.pt")
+    # torch.save( pred[:, 0], "assets/graph/trav_pred.pt")
+    # torch.save( pred[:, 1:], "assets/graph/reco_pred.pt")
+    # torch.save( seg[b], "assets/graph/seg.pt")
+
     from wild_visual_navigation import WVN_ROOT_DIR
+    from wild_visual_navigation.learning.utils import get_confidence
+    from PIL import Image
+
+    img = np.array(Image.open(os.path.join(WVN_ROOT_DIR, "assets/graph/img.png")))
+    img = (torch.from_numpy(img).type(torch.float32) / 255).permute(2, 0, 1)
+
+    graph = torch.load(os.path.join(WVN_ROOT_DIR, "assets/graph/graph.pt"))
+    center = torch.load(os.path.join(WVN_ROOT_DIR, "assets/graph/center.pt"))
+    trav_pred = torch.load(os.path.join(WVN_ROOT_DIR, "assets/graph/trav_pred.pt"))
+    reco_pred = torch.load(os.path.join(WVN_ROOT_DIR, "assets/graph/reco_pred.pt"))
+    seg = torch.load(os.path.join(WVN_ROOT_DIR, "assets/graph/seg.pt"))
+    conf = get_confidence(reco_pred, graph.x)
 
     visu = LearningVisualizer(p_visu=os.path.join(WVN_ROOT_DIR, "results/test_visu"))
-    img = np.array(Image.open(os.path.join(WVN_ROOT_DIR, "assets/images/forest_clean.png")))
-    seg = np.zeros_like(img[:, :, 0], dtype=np.long)
-    seg[:100, :100] = 4
-    seg[300:500, 200:500] = 20
-    seg[300:500, 600:1440] = 30
-    seg[400:1080, 640:900] = 35
 
-    # print("Plot Image: HWC", img.shape, img.dtype, type(img))
-    # visu.plot_image(img=img, store=True, tag="1")
-    # print("Plot Image: CHW", img.transpose(2,0,1).shape, img.dtype, type(img))
-    # visu.plot_image(img=img.transpose(2,0,1), store=True, tag="2")
+    print("Plot Image: CHW", img.shape, img.dtype, type(img))
+    visu.plot_image(img=img, store=True, tag="1")
+    print("Plot Image: HWC", img.permute(1, 2, 0).shape, img.dtype, type(img))
+    visu.plot_image(img=img.permute(1, 2, 0), store=True, tag="2")
 
-    # # seg = np.random.randint( 0, 100, (400,400) )
-    # print("plot_segmentation: HW", seg.shape, seg.dtype, type(seg))
-    # visu.plot_segmentation(seg=seg, store=True, max_seg=40,  tag="3")
-    # print("plot_segmentation: CHW", seg[None].shape, seg.dtype, type(seg))
-    # visu.plot_segmentation(seg=seg[None], max_seg=40, store=True, tag="4")
+    # seg = np.random.randint( 0, 100, (400,400) )
+    print("plot_segmentation: HW", seg.shape, seg.dtype, type(seg))
+    visu.plot_segmentation(seg=seg, store=True, max_seg=100, tag="3")
+    print("plot_segmentation: CHW", seg[None].shape, seg.dtype, type(seg))
+    visu.plot_segmentation(seg=seg[None], max_seg=100, store=True, tag="4")
 
-    # print("plot_segmentation: HW", seg.shape, seg.dtype, type(seg))
-    # visu.plot_detectron(img=img, seg=seg, store=True, max_seg=40,  tag="5")
+    print("plot_segmentation: HW", seg.shape, seg.dtype, type(seg))
+    visu.plot_detectron(img=img, seg=seg, store=True, max_seg=100, tag="5")
 
-    print("plot_segmentation_cont: HW", seg.shape, seg.dtype, type(seg))
-    seg = seg.astype(np.float32) / seg.max()
+    print("plot_segmentation_count: HW", seg.shape, seg.dtype, type(seg))
+    seg = seg.type(torch.float32) / seg.max()
     visu.plot_detectron_cont(img=img, seg=seg, store=True, tag="6")
+
+    i1 = visu.plot_traversability_graph(trav_pred, graph, center, img, not_log=True)
+    i2 = visu.plot_traversability_graph(graph.y, graph, center, img, not_log=True)
+    visu.plot_list(imgs=[i1, i2], tag=f"7_Trav_Graph_only", store=True)
+
+    seg = torch.load(os.path.join(WVN_ROOT_DIR, "assets/graph/seg.pt"))
+    # Visualize Graph with Segmentation
+    i1 = visu.plot_traversability_graph_on_seg(trav_pred, seg, graph, center, img, not_log=True)
+    i2 = visu.plot_traversability_graph_on_seg(graph.y, seg, graph, center, img, not_log=True)
+    i3 = visu.plot_image(img, not_log=True)
+    visu.plot_list(imgs=[i1, i2, i3], tag=f"8_Trav", store=True)
+
+    i1 = visu.plot_traversability_graph_on_seg(conf, seg, graph, center, img, not_log=True)
+    i2 = visu.plot_traversability_graph_on_seg(graph.y_valid.type(torch.float32), seg, graph, center, img, not_log=True)
+    i3 = visu.plot_image(img, not_log=True)
+    visu.plot_list(imgs=[i1, i2, i3], tag=f"9_Confidence", store=True)
