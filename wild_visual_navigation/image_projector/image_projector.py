@@ -67,7 +67,7 @@ class ImageProjector:
             sK[-1, 0, 2] = K[-1, 0, 2] * sx
             sK[-1, 1, 1] = K[-1, 1, 1] * sy
             sK[-1, 1, 2] = K[-1, 1, 2] * sy
-        
+
         # Initialize camera with scaled parameters
         sh = torch.IntTensor([sh]).to(device)
         sw = torch.IntTensor([sw]).to(device)
