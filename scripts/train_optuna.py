@@ -6,7 +6,7 @@ import os
 import neptune.new.integrations.optuna as optuna_utils
 import torch
 
-from wild_visual_navigation.learning.utils import ExperimentParams
+from wild_visual_navigation.cfg import ExperimentParams
 from wild_visual_navigation.learning.general import training_routine
 from wild_visual_navigation.learning.utils import get_neptune_run
 

@@ -7,23 +7,26 @@ import os
 from os.path import join
 from torchmetrics import Accuracy
 from torch.nn.functional import cross_entropy
-from wild_visual_navigation.learning.visu import LearningVisualizer
+from wild_visual_navigation.visu import LearningVisualizer
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT
+import torch
 
 
 class LightningTrav(pl.LightningModule):
-    def __init__(self, exp, env):
+    def __init__(self, exp: dict, env: dict, log: bool = False):
         super().__init__()
         self._model = get_model(exp["model"])
 
         self._visu_count = {"val": 0, "test": 0, "train": 0}
         self._visualizer = LearningVisualizer(
-            p_visu=join(exp["general"]["model_path"], "visu"), store=True, pl_model=self
+            p_visu=join(exp["general"]["model_path"], "visu"), store=True, pl_model=self, log=True
         )
         self._exp = exp
         self._env = env
         self._mode = "train"
+        self._log = log
 
-    def forward(self, data):
+    def forward(self, data: torch.tensor):
         return self._model(data)
 
     # TRAINING
@@ -32,7 +35,7 @@ class LightningTrav(pl.LightningModule):
         self._visu_count[self._mode] = 0
         self._visualizer.epoch = self.current_epoch
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch: any, batch_idx: int) -> torch.Tensor:
         fast = type(batch) != list
         if fast:
             graph = batch
@@ -44,7 +47,9 @@ class LightningTrav(pl.LightningModule):
 
         res = self._model(graph)
         # compute loss only for valid elements [graph.y_valid]
-        loss_trav = F.mse_loss(F.sigmoid(res[:, 0]), graph.y)
+        res[:, 0] = F.sigmoid(res[:, 0])
+
+        loss_trav = F.mse_loss(res[:, 0], graph.y)
 
         loss = loss_trav * self._exp["loss"]["trav"]
         self.log(f"{self._mode}_loss_trav", loss_trav.item(), on_epoch=True, prog_bar=True)
@@ -62,7 +67,9 @@ class LightningTrav(pl.LightningModule):
 
         return loss
 
-    def visu(self, graph, center, img, seg, res):
+    def visu(
+        self, graph: torch_geometric.Data, center: torch.tensor, img: torch.tensor, seg: torch.tensor, res: torch.tensor
+    ):
         for b in range(img.shape[0]):
             if not (
                 self._visu_count[self._mode] < self._exp["visu"][self._mode]
@@ -76,20 +83,23 @@ class LightningTrav(pl.LightningModule):
             pred = res[int(n * b) : int(n * (b + 1))]
             c = self._visu_count[self._mode]
             e = self.current_epoch
-            self._visualizer.plot_graph_result(
-                graph[b], center[b], img[b], seg[b], pred[:, 0], colormap="autumn", tag=f"C{c}_{self._mode}_TRAV"
-            )
-            nc = self._exp["model"]["simple_gcn_cfg"]["num_classes"]
 
-            conf = (F.sigmoid(pred[:, nc:]) - graph[b].x).abs().sum(dim=1)
-            conf -= conf.min()
-            conf /= conf.max()
-            conf = 1 - conf
-            self._visualizer.plot_graph_result(
-                graph[b], center[b], img[b], seg[b], conf, colormap="autumn", tag=f"C{c}_{self._mode}_CONV"
-            )
+            # Visualize Graph without Segmentation
+            i1 = self._visualizer.plot_traversability_graph(pred[:, 0], graph[b], center[b], img[b], not_log=True)
+            i2 = self._visualizer.plot_traversability_graph(graph[b].y, graph[b], center[b], img[b], not_log=True)
+            self._visualizer.plot_list(imgs=[i1, i2], tag=f"C{c}_{self._mode}_TRAV")
 
-    def training_epoch_end(self, outputs):
+            # Visualize Graph with Segmentation
+            i1 = self._visualizer.plot_traversability_graph_on_seg(
+                pred[:, 0], seg[b], graph[b], center[b], img[b], not_log=True
+            )
+            i2 = self._visualizer.plot_traversability_graph_on_seg(
+                graph[b].y, seg[b], graph[b], center[b], img[b], not_log=True
+            )
+            i3 = self._visualizer.plot_image(img[b], not_log=True)
+            self._visualizer.plot_list(imgs=[i1, i2, i3], tag=f"C{c}_{self._mode}_GraphTRAV")
+
+    def training_epoch_end(self, outputs: EPOCH_OUTPUT):
         # Log epoch metric
         self._mode = "train"
 
@@ -98,12 +108,12 @@ class LightningTrav(pl.LightningModule):
         self._mode = "val"
         self._visu_count[self._mode] = 0
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch: any, batch_idx: int):
         # LAZY implementation of validation and test by calling the training method
         # Usually you want to have a different behaviour
         return self.training_step(batch, batch_idx)
 
-    def validation_epoch_end(self, outputs):
+    def validation_epoch_end(self, outputs: EPOCH_OUTPUT):
         pass
 
     # TESTING
@@ -111,10 +121,10 @@ class LightningTrav(pl.LightningModule):
         self._mode = "test"
         self._visu_count[self._mode] = 0
 
-    def test_step(self, batch, batch_idx: int) -> None:
+    def test_step(self, batch: any, batch_idx: int) -> None:
         return self.training_step(batch, batch_idx)
 
-    def test_epoch_end(self, outputs):
+    def test_epoch_end(self, outputs: any):
         pass
 
     def configure_optimizers(self) -> torch.optim.Optimizer:

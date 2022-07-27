@@ -10,10 +10,18 @@ from pathlib import Path
 from torch_geometric.data import Dataset
 from torchvision import transforms as T
 from PIL import Image
-
+from typing import Optional, Callable
 
 class GraphTravDataset(InMemoryDataset):
-    def __init__(self, root, transform=None, pre_transform=None, pre_filter=None, mode="train", percentage=0.8):
+    def __init__(
+        self,
+        root: str,
+        transform: Optional[Callable] = None,
+        pre_transform: Optional[Callable] = None,
+        pre_filter: Optional[Callable] = None,
+        mode: str = "train",
+        percentage: float = 0.8,
+    ):
         super().__init__(root, transform)
         paths = [str(s) for s in Path(os.path.join(root, "graph")).rglob("*.pt")]
         paths.sort()
@@ -29,7 +37,15 @@ class GraphTravDataset(InMemoryDataset):
 
 
 class GraphTravVisuDataset(Dataset):
-    def __init__(self, root, transform=None, pre_transform=None, pre_filter=None, mode="train", percentage=0.8):
+    def __init__(
+        self,
+        root: str,
+        transform: Optional[Callable] = None,
+        pre_transform: Optional[Callable] = None,
+        pre_filter: Optional[Callable] = None,
+        mode: str = "train",
+        percentage: float = 0.8,
+    ):
         super().__init__(root, transform)
         paths = [str(s) for s in Path(os.path.join(root, "graph")).rglob("*.pt")]
         paths.sort()
@@ -44,10 +60,10 @@ class GraphTravVisuDataset(Dataset):
 
         self.crop = T.Compose([T.Resize(448, T.InterpolationMode.NEAREST), T.CenterCrop(448)])
 
-    def len(self):
+    def len(self) -> int:
         return len(self.paths)
 
-    def get(self, idx):
+    def get(self, idx: int) -> any:
         # TODO update the dataset generation to avoid 0,0 and the cropping operation
         graph = torch.load(self.paths[idx])
         center = torch.load(self.paths[idx].replace("graph", "center"))
@@ -57,7 +73,15 @@ class GraphTravVisuDataset(Dataset):
 
 
 class GraphTravOnlineDataset(InMemoryDataset):
-    def __init__(self, root, transform=None, pre_transform=None, pre_filter=None, mode="train", percentage=0.8):
+    def __init__(
+        self,
+        root: str,
+        transform: Optional[Callable] = None,
+        pre_transform: Optional[Callable] = None,
+        pre_filter: Optional[Callable] = None,
+        mode="train",
+        percentage=0.8,
+    ):
         super().__init__(root, transform)
         self.data_list = []
         self.paths = []
@@ -74,7 +98,9 @@ class GraphTravOnlineDataset(InMemoryDataset):
         self.data, self.slices = self.collate(self.data_list)
 
 
-def get_pl_graph_trav_module(batch_size=1, num_workers=0, visu=False, **kwargs):
+def get_pl_graph_trav_module(
+    batch_size: int = 1, num_workers: int = 0, visu: bool = False, **kwargs
+) -> LightningDataset:
     root = str(os.path.join(WVN_ROOT_DIR, "results/default_mission"))
 
     if visu:

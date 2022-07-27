@@ -5,7 +5,7 @@ from wild_visual_navigation import WVN_ROOT_DIR
 __all__ = ["file_path", "load_yaml"]
 
 
-def file_path(string):
+def file_path(string: str) -> str:
     """Checks if string is a file path
 
     Args:
@@ -24,7 +24,7 @@ def file_path(string):
         raise NotADirectoryError(string)
 
 
-def load_yaml(path):
+def load_yaml(path: str) -> dict:
     """Loads yaml file
 
     Args:
@@ -38,7 +38,7 @@ def load_yaml(path):
     return res
 
 
-def load_env():
+def load_env() -> dict:
     """Uses ENV_WORKSTATION_NAME variable to load specified environment yaml file.
 
     Returns:

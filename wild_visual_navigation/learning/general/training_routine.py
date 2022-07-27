@@ -18,12 +18,12 @@ from wild_visual_navigation.learning.utils import get_logger
 from wild_visual_navigation.learning.lightning import LightningTrav
 from wild_visual_navigation.learning.utils import load_yaml, load_env, create_experiment_folder
 from wild_visual_navigation.learning.dataset import get_pl_graph_trav_module
-from wild_visual_navigation.learning.utils import ExperimentParams
+from wild_visual_navigation.cfg import ExperimentParams
 
 __all__ = ["training_routine"]
 
 
-def training_routine(experiment: ExperimentParams):
+def training_routine(experiment: ExperimentParams) -> torch.Tensor:
     seed_everything(42)
     exp = dataclasses.asdict(experiment)
     env = load_env()
