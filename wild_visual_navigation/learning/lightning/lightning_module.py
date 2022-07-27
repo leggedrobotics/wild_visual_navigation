@@ -1,4 +1,5 @@
 from wild_visual_navigation.learning.model import get_model
+from wild_visual_navigation.learning.utils import get_confidence
 
 import pytorch_lightning as pl
 import torch
@@ -10,6 +11,7 @@ from torch.nn.functional import cross_entropy
 from wild_visual_navigation.visu import LearningVisualizer
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 import torch
+from torch_geometric.data import Data
 
 
 class LightningTrav(pl.LightningModule):
@@ -47,7 +49,6 @@ class LightningTrav(pl.LightningModule):
 
         res = self._model(graph)
         # compute loss only for valid elements [graph.y_valid]
-        res[:, 0] = F.sigmoid(res[:, 0])
 
         loss_trav = F.mse_loss(res[:, 0], graph.y)
 
@@ -67,9 +68,7 @@ class LightningTrav(pl.LightningModule):
 
         return loss
 
-    def visu(
-        self, graph: torch_geometric.Data, center: torch.tensor, img: torch.tensor, seg: torch.tensor, res: torch.tensor
-    ):
+    def visu(self, graph: Data, center: torch.tensor, img: torch.tensor, seg: torch.tensor, res: torch.tensor):
         for b in range(img.shape[0]):
             if not (
                 self._visu_count[self._mode] < self._exp["visu"][self._mode]
@@ -85,9 +84,9 @@ class LightningTrav(pl.LightningModule):
             e = self.current_epoch
 
             # Visualize Graph without Segmentation
-            i1 = self._visualizer.plot_traversability_graph(pred[:, 0], graph[b], center[b], img[b], not_log=True)
-            i2 = self._visualizer.plot_traversability_graph(graph[b].y, graph[b], center[b], img[b], not_log=True)
-            self._visualizer.plot_list(imgs=[i1, i2], tag=f"C{c}_{self._mode}_TRAV")
+            # i1 = self._visualizer.plot_traversability_graph(pred[:, 0], graph[b], center[b], img[b], not_log=True)
+            # i2 = self._visualizer.plot_traversability_graph(graph[b].y, graph[b], center[b], img[b], not_log=True)
+            # self._visualizer.plot_list(imgs=[i1, i2], tag=f"C{c}_{self._mode}_Trav")
 
             # Visualize Graph with Segmentation
             i1 = self._visualizer.plot_traversability_graph_on_seg(
@@ -97,7 +96,18 @@ class LightningTrav(pl.LightningModule):
                 graph[b].y, seg[b], graph[b], center[b], img[b], not_log=True
             )
             i3 = self._visualizer.plot_image(img[b], not_log=True)
-            self._visualizer.plot_list(imgs=[i1, i2, i3], tag=f"C{c}_{self._mode}_GraphTRAV")
+            self._visualizer.plot_list(imgs=[i1, i2, i3], tag=f"C{c}_{self._mode}_GraphTrav")
+
+            conf = get_confidence(pred[:, 1:], graph[b].x)
+            # Visualize Graph with Segmentation
+            i1 = self._visualizer.plot_traversability_graph_on_seg(
+                conf, seg[b], graph[b], center[b], img[b], not_log=True
+            )
+            i2 = self._visualizer.plot_traversability_graph_on_seg(
+                graph[b].y_valid.type(torch.float32), seg[b], graph[b], center[b], img[b], not_log=True
+            )
+            i3 = self._visualizer.plot_image(img[b], not_log=True)
+            self._visualizer.plot_list(imgs=[i1, i2, i3], tag=f"C{c}_{self._mode}_GraphConf")
 
     def training_epoch_end(self, outputs: EPOCH_OUTPUT):
         # Log epoch metric

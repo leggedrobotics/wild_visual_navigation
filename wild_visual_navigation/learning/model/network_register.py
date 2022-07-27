@@ -33,7 +33,6 @@ def create_registery():
         cfg_key = "".join(cfg_key)
         cfg_keys[key] = cfg_key + "_cfg"
 
-    print("done")
     return register, cfg_keys
 
 

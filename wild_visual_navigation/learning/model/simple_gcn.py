@@ -19,5 +19,5 @@ class SimpleGCN(torch.nn.Module):
         x = F.relu(x)
         # x = F.dropout(x, training=self.training)
         x = self.conv2(x, edge_index)
-
+        x[:, 0] = F.sigmoid(x[:, 0])
         return x
