@@ -7,6 +7,9 @@
   <!-- Load parameters -->
   <rosparam command="load" file="$(arg params_file)" ns="$(arg name)"/>
 
+  <!-- Launch ANYmal message converter node -->
+  <node name="anymal_msg_converter_node" pkg="wild_visual_navigation_anymal" type="anymal_msg_converter_node.py"/>
+
   <!-- Launch node -->
   <node name="$(arg name)" pkg="wild_visual_navigation_ros" type="wild_visual_navigation_node.py"/>
 
