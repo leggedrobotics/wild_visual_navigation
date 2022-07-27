@@ -34,6 +34,9 @@
 | [Traversability Estimator](./wild_visual_navigation/traversability_estimator) | TBD |  Traversability Estimator |
 | [Utils](./wild_visual_navigation/utils) | - | General Utilities |
 
+
+![Overview](./assets/drawings/overview.svg)
+
 ## Citation
 
 ## Setup

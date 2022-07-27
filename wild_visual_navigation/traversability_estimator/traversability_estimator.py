@@ -1,20 +1,32 @@
 from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation.feature_extractor import FeatureExtractor
+from wild_visual_navigation.learning.model import get_model
+from wild_visual_navigation.cfg import ExperimentParams
 from wild_visual_navigation.traversability_estimator import (
     BaseNode,
     BaseGraph,
     DistanceWindowGraph,
-    GlobalNode,
-    ImageNode,
+    MissionNode,
     ProprioceptionNode,
 )
+from wild_visual_navigation.visu import LearningVisualizer
 
+from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning.plugins import SingleDevicePlugin
+from torch_geometric.data import LightningDataset, Data, Batch
+from pytorch_lightning import seed_everything
+from torch_geometric.data import Data, Batch
+from simple_parsing import ArgumentParser
 from threading import Thread, Lock
-import os
-import torch
+import dataclasses
 import networkx as nx
+import os
+import pickle
+import torch
+import torch.nn.functional as F
 import torchvision.transforms as transforms
+import yaml
 
 to_tensor = transforms.ToTensor()
 
@@ -32,56 +44,131 @@ class TraversabilityEstimator:
         max_distance: float = 3,
         image_distance_thr: float = None,
         proprio_distance_thr: float = None,
-        feature_extractor: str = "dino_slic",
+        feature_extractor_type: str = "dino_slic",
+        min_samples_for_training: int = 10,
     ):
         self.device = device
-        # Local graphs
-        self.image_graph = DistanceWindowGraph(max_distance=max_distance, edge_distance=image_distance_thr)
-        self.proprio_graph = DistanceWindowGraph(max_distance=max_distance, edge_distance=proprio_distance_thr)
-        # Experience graph
-        self.experience_graph = BaseGraph()
+        self.min_samples_for_training = min_samples_for_training
 
-        # TODO: fix feature extractor type
-        self.feature_extractor = FeatureExtractor(device, extractor_type=feature_extractor)
-        # For debugging
-        os.makedirs(os.path.join(WVN_ROOT_DIR, "results", "test_traversability_estimator"), exist_ok=True)
+        # Local graphs
+        self._proprio_graph = DistanceWindowGraph(max_distance=max_distance, edge_distance=proprio_distance_thr)
+        # Experience graph
+        self._mission_graph = BaseGraph()
+
+        # Feature extractor
+        self._feature_extractor_type = feature_extractor_type
+        self._feature_extractor = FeatureExtractor(device, extractor_type=self._feature_extractor_type)
 
         # Mutex
-        self.lock = Lock()
+        self._lock = Lock()
+        self._pause_training = False
 
-    def add_image_node(self, node: BaseNode):
-        """Adds a node to the local graph to store images
+        # Visualization
+        self._visualizer = LearningVisualizer()
+
+        # Lightning module
+        seed_everything(42)
+        self._exp_cfg = dataclasses.asdict(ExperimentParams())
+
+        self._model = get_model(self._exp_cfg["model"]).to(device)
+        self._epoch = 0
+        self._last_trained_model = self._model.to(device)
+        self._model.train()
+        self._optimizer = torch.optim.AdamW(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
+        torch.set_grad_enabled(True)
+
+    def __getstate__(self):
+        """We modify the state so the object can be pickled"""
+        state = self.__dict__.copy()
+        # Remove the unpicklable entries.
+        del state["_lock"]
+        return state
+
+    def __setstate__(self, state: dict):
+        """We modify the state so the object can be pickled"""
+        self.__dict__.update(state)
+        # Restore the unpickable entries
+        self._lock = Lock()
+
+    @property
+    def pause_learning(self):
+        return self._pause_training
+
+    @pause_learning.setter
+    def pause_learning(self, pause: bool):
+        self._pause_training = pause
+
+    def change_device(self, device: str):
+        """Changes the device of all the class members
+
+        Args:
+            device (str): new device
+        """
+        self._proprio_graph.change_device(device)
+        self._mission_graph.change_device(device)
+        self._feature_extractor.change_device(device)
+
+        self._model = self._model.to(device)
+        self._last_trained_model = self._last_trained_model.to(device)
+
+    def update_features(self, node: MissionNode):
+        """Extracts visual features from a node that stores an image
+
+        Args:
+            node (MissionNode): new node in the mission graph
+        """
+
+        # Extract features
+        edges, feat, seg, center = self._feature_extractor.extract(img=node.image.clone()[None], return_centers=True)
+
+        # Set features in node
+        node.feature_type = self._feature_extractor.get_type()
+        node.features = feat
+        node.feature_edges = edges
+        node.feature_segments = seg
+        node.feature_positions = center
+
+    def update_prediction(self, node: MissionNode):
+        with self._lock:
+            if self._last_trained_model is not None:
+                data = Data(x=node.features, edge_index=node.feature_edges)
+                node.prediction = self._last_trained_model(data)
+
+    def add_mission_node(self, node: MissionNode):
+        """Adds a node to the local graph to images and training info
 
         Args:
             node (BaseNode): new node in the image graph
         """
 
-        if node.is_valid():
-            # Add image node
-            if self.image_graph.add_node(node):
-                # Add global node
-                global_node = GlobalNode.from_node(node)
-                global_node.set_image(node.get_image())
-                self.experience_graph.add_node(global_node)
-                print(f"Adding new node {global_node}")
+        # Compute image features
+        self.update_features(node)
 
-                # Project past footprints on current image
-                image_projector = node.get_image_projector()
-                T_WC = node.get_pose_cam_in_world().unsqueeze(0)
-                supervision_mask = node.get_image() * 0
+        # Add image node
+        if self._mission_graph.add_node(node):
+            print(f"adding node [{node}]")
+            # Project past footprints on current image
+            image_projector = node.image_projector
+            pose_cam_in_world = node.pose_cam_in_world[None]
+            supervision_mask = node.image * 0
 
-                for pnode in self.proprio_graph.get_nodes():
-                    footprint = pnode.get_footprint_points().unsqueeze(0)
-                    color = torch.FloatTensor([1.0, 1.0, 1.0])
-                    # Project and render mask
-                    mask, _ = image_projector.project_and_render(T_WC, footprint, color)
-                    mask = mask.squeeze(0)
-                    # Update supervision mask
-                    supervision_mask = torch.maximum(supervision_mask, mask.to(supervision_mask.device))
+            for p_node in self._proprio_graph.get_nodes():
+                footprint = p_node.get_footprint_points()[None]
+                color = torch.FloatTensor([1.0, 1.0, 1.0])
+                # Project and render mask
+                mask, _ = image_projector.project_and_render(pose_cam_in_world, footprint, color)
+                mask = mask[0]
 
-                global_node.set_supervision_mask(supervision_mask)
+                # Update supervision mask
+                # TODO: when we eventually add the latents/other meaningful metric, the supervision
+                # mask needs to be combined appropriately, i.e, averaging the latents in the overlapping
+                # regions. This should be done in image or 3d space
+                supervision_mask = torch.maximum(supervision_mask, mask.to(supervision_mask.device))
 
-    def add_proprio_node(self, node: BaseNode):
+            # Finally overwrite the current mask
+            node.supervision_mask = supervision_mask
+
+    def add_proprio_node(self, node: ProprioceptionNode):
         """Adds a node to the local graph to store proprioception
 
         Args:
@@ -90,156 +177,170 @@ class TraversabilityEstimator:
         if not node.is_valid():
             return False
 
-        if not self.proprio_graph.add_node(node):
+        if not self._proprio_graph.add_node(node):
             return False
 
         else:
             # Get proprioceptive information
-            footprint = node.get_footprint_points().unsqueeze(0)
+            footprint = node.get_footprint_points()[None]
             color = torch.FloatTensor([1.0, 1.0, 1.0])
 
+            # Get last mission node
+            last_mission_node = self._mission_graph.get_last_node()
+            if last_mission_node is None:
+                return False
+
+            mission_nodes = self._mission_graph.get_nodes_within_radius_range(
+                last_mission_node, 0, self._proprio_graph.max_distance
+            )
             # Project footprint onto all the image nodes
-            for inode in self.image_graph.get_nodes():
-                # Get global node
-                global_node = self.experience_graph.get_node_with_timestamp(inode.get_timestamp())
-                if global_node is None:
-                    continue
+            for m_node in mission_nodes:
+                # Project
+                image_projector = m_node.image_projector
+                pose_cam_in_world = m_node.pose_cam_in_world[None]
+                supervision_mask = m_node.supervision_mask
 
-                # Get stuff from image node
-                image_projector = inode.get_image_projector()
-                T_WC = inode.get_pose_cam_in_world().unsqueeze(0)
-                # Get stuff from global node
-                supervision_mask = global_node.get_supervision_mask()
-
-                # Project and render mask
-                mask, _ = image_projector.project_and_render(T_WC, footprint, color)
+                mask, _ = image_projector.project_and_render(pose_cam_in_world, footprint, color)
 
                 if mask is None or supervision_mask is None:
                     continue
 
                 # Update traversability mask
-                mask = mask.squeeze(0)
+                mask = mask[0]
                 supervision_mask = torch.maximum(supervision_mask, mask.to(supervision_mask.device))
 
                 # Get global node and update supervision signal
-                global_node.set_supervision_mask(supervision_mask)
+                m_node.supervision_mask = supervision_mask
+                m_node.update_supervision_signal()
 
             return True
 
-    def get_image_nodes(self):
-        return self.image_graph.get_nodes()
+    def get_mission_nodes(self):
+        return self._mission_graph.get_nodes()
 
     def get_proprio_nodes(self):
-        return self.proprio_graph.get_nodes()
+        return self._proprio_graph.get_nodes()
 
-    def get_last_valid_global_node(self):
-        # last_image_node = self.image_graph.get_nodes()[0]
-        # last_global_node = self.experience_graph.get_node_with_timestamp(last_image_node.get_timestamp())
-        # return last_global_node if last_global_node.is_valid() else None
+    def get_last_valid_mission_node(self):
         last_valid_node = None
-        for node in self.experience_graph.get_nodes():
+        for node in self._mission_graph.get_nodes():
             if node.is_valid():
                 last_valid_node = node
         return last_valid_node
 
+    def save(self, mission_path: str, filename: str):
+        """Saves a pickled file of the TraversabilityEstimator class
+
+        Args:
+            mission_path (str): folder to store the mission
+            filename (str): name for the output file
+        """
+        self._pause_training = True
+        os.makedirs(mission_path, exist_ok=True)
+        output_file = os.path.join(mission_path, filename)
+        self.change_device("cpu")
+        self._lock = None
+        pickle.dump(self, open(output_file, "wb"))
+        self._pause_training = False
+
+    @classmethod
+    def load(cls, file_path: str, device="cpu"):
+        """Loads pickled file and creates an instance of TraversabilityEstimator,
+        loading al the required objects to the given device
+
+        Args:
+            file_path (str): Full path of the pickle file
+            device (str): Device used to load the torch objects
+        """
+        # Load pickled object
+        obj = pickle.load(open(file_path, "rb"))
+        obj.change_device(device)
+        return obj
+
     def save_graph(self, mission_path: str, export_debug: bool = False):
+        self._pause_training = True
         # Make folder if it doesn't exist
         os.makedirs(mission_path, exist_ok=True)
+        os.makedirs(os.path.join(mission_path, "graph"), exist_ok=True)
+        os.makedirs(os.path.join(mission_path, "seg"), exist_ok=True)
+        os.makedirs(os.path.join(mission_path, "center"), exist_ok=True)
+        os.makedirs(os.path.join(mission_path, "img"), exist_ok=True)
 
         # Get all the current nodes
-        global_nodes = self.experience_graph.get_nodes()
-        for node, index in zip(global_nodes, range(len(global_nodes))):
-            node.save(mission_path, index)
+        mission_nodes = self._mission_graph.get_nodes()
+        i = 0
+        for node in mission_nodes:
+            if node.is_valid():
+                node.save(mission_path, i)
+                i += 1
+        self._pause_training = False
 
-    def train(self, iter=10):
-        pass
+    def make_batch(self, batch_size: int = 8):
+        """Samples a batch from the mission_graph
 
-    def update_features(self):
-        for node in self.experience_graph.get_nodes():
-            # print(f"updating node {node}")
+        Args:
+            batch_size (int): Size of the batch
+        """
+        # Get all the current nodes
+        mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
+        batch = Batch.from_data_list([x.as_pyg_data() for x in mission_nodes])
+        return batch
 
-            # Update features
-            if node.get_features() is None:
-                print(f"updating features in {node}")
-                # Run feature extractor
-                edges, feat, seg, center = self.feature_extractor.extract(
-                    img=node.get_image().clone().unsqueeze(0), return_centers=True
-                )
+    def train(self):
+        """Runs one step of the training loop
+        It samples a batch, and optimizes the model.
+        It also updates a copy of the model for inference
 
-                # Set features in global graph
-                node.set_features(
-                    feature_type=self.feature_extractor.get_type(),
-                    features=feat,
-                    edges=edges,
-                    segments=seg,
-                    positions=center,
-                )
+        """
+        if self._pause_training:
+            return
 
-            # Update supervision signal
-            # print(f"updating supervision in {node}")
-            node.update_supervision_signal()
+        if self._mission_graph.get_num_valid_nodes() > self.min_samples_for_training:
+            # Prepare new batch
+            batch = self.make_batch(self._exp_cfg["data_module"]["batch_size"])
 
-    # def update_labels_and_features(self, search_radius: float = None):
-    #     """Iterates the nodes and projects their information from their neighbors
-    #     Note: This is highly inefficient
+            # forward pass
+            res = self._model(batch)
 
-    #     Args:
-    #         search_radius (float): to find neighbors in the graph
-    #     """
-    #     # Iterate all nodes in the local graph
-    #     for node, dnode, gnode in zip(
-    #         self.image_graph.get_nodes(), self.debug_graph.get_nodes(), self.experience_graph.get_nodes()
-    #     ):
-    #         # Get neighbors
-    #         proprio_nodes = self.proprio_graph.get_nodes_within_radius_range(node, min_radius = 0.01, max_radius=search_radius, time_eps=5)
+            # Compute loss only for valid elements [graph.y_valid]
+            # traversability loss
+            loss_trav = F.mse_loss(res[:, 0], batch.y)
 
-    #         # Get image projector
-    #         image_projector = node.get_image_projector()
-    #         # T_WC
-    #         T_WC = node.get_pose_cam_in_world().unsqueeze(0)
-    #         # Get debug image
-    #         image = node.get_image()
-    #         supervision_mask = dnode.get_supervision_mask()
+            # Reconstruction loss
+            nc = 1
+            loss_reco = F.mse_loss(res[batch.y_valid][:, nc:], batch.x[batch.y_valid])
+            loss = self._exp_cfg["loss"]["trav"] * loss_trav + self._exp_cfg["loss"]["reco"] * loss_reco
 
-    #         # Compute features if we haven't done it
-    #         if dnode.get_image() is None:
-    #             # Run feature extractor
-    #             edges, feat, seg, center = self.feature_extractor.extract(
-    #                 img=image.clone().unsqueeze(0), return_centers=True
-    #             )
+            # Backprop
+            self._optimizer.zero_grad()
+            loss.backward()
+            self._optimizer.step()
 
-    #             # Set features in global graph
-    #             gnode.set_features(
-    #                 feature_type=self.feature_extractor.get_type(),
-    #                 features=feat,
-    #                 edges=edges,
-    #                 segments=seg,
-    #                 positions=center,
-    #             )
+            # Update epochs
+            self._epoch += 1
 
-    #             # Set image in debug graph
-    #             dnode.set_image(image)
+            # Print losses
+            if self._epoch % 20 == 0:
+                print(f"epoch: {self._epoch} | loss: {loss:5f} | loss_trav: {loss_trav:5f} | loss_reco: {loss_reco:5f}")
+            # Update model
+            with self._lock:
+                self.last_trained_model = self._model
 
-    #         # Iterate neighbor proprioceptive nodes
-    #         for ppnode in proprio_nodes:
-    #             footprint = ppnode.get_footprint_points().unsqueeze(0)
-    #             color = torch.FloatTensor([1.0, 1.0, 1.0])
+    def plot_mission_node_prediction(self, node: MissionNode):
+        return self._visualizer.plot_mission_node_prediction(node)
 
-    #             # Project and render mask
-    #             mask, _ = image_projector.project_and_render(T_WC, footprint, color)
-    #             mask = mask.squeeze(0)
-
-    #             # Update traversability mask
-    #             supervision_mask = torch.maximum(supervision_mask, mask.to(supervision_mask.device))
-
-    #         # Save traversability in global node to store supervision signal
-    #         gnode.set_supervision_signal(supervision_mask, is_image=True)
-
-    #         # Save traversability mask and labeled image in debug node
-    #         with self.debug_graph.lock:
-    #             dnode.set_supervision_mask(supervision_mask)
-    #             dnode.set_training_node(gnode)
+    def plot_mission_node_training(self, node: MissionNode):
+        return self._visualizer.plot_mission_node_training(node)
 
 
 def run_traversability_estimator():
-    pass
+
+    t = TraversabilityEstimator()
+    t.save("/tmp/te.pickle")
+    print("Store pickled")
+    t2 = TraversabilityEstimator.load("/tmp/te.pickle")
+    print("Loaded pickled")
+
+
+if __name__ == "__main__":
+    run_traversability_estimator()

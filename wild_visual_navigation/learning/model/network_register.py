@@ -1,5 +1,6 @@
 from wild_visual_navigation.learning.model import *
 import inspect
+import torch
 
 
 def create_registery():
@@ -32,11 +33,10 @@ def create_registery():
         cfg_key = "".join(cfg_key)
         cfg_keys[key] = cfg_key + "_cfg"
 
-    print("done")
     return register, cfg_keys
 
 
-def get_model(model_cfg):
+def get_model(model_cfg: dict) -> torch.nn.Module:
     """Returns the instantiated model
 
     Args:

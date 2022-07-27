@@ -30,10 +30,17 @@ class ExperimentParams(Serializable):
             weight_decay: float = 4.0e-05
 
         name: str = "ADAMW"
-        lr: float = 0.001
+        lr: float = 0.01
         adamw_cfg: AdamwCfgParams = AdamwCfgParams()
 
     optimizer: OptimizerParams = OptimizerParams()
+
+    @dataclass
+    class LossParams:
+        trav: float = 1.0
+        reco: float = 1.0
+
+    loss: LossParams = LossParams()
 
     @dataclass
     class TrainerParams:
@@ -52,7 +59,7 @@ class ExperimentParams(Serializable):
 
     @dataclass
     class DataModuleParams:
-        visu: bool = False
+        visu: bool = True
         batch_size: int = 8
         num_workers: int = 0
 
@@ -65,7 +72,8 @@ class ExperimentParams(Serializable):
         @dataclass
         class SimpleGcnCfgParams:
             num_node_features: int = 90
-            num_classes: int = 30
+            num_classes: int = 1
+            reconstruction: bool = True
 
         simple_gcn_cfg: SimpleGcnCfgParams = SimpleGcnCfgParams()
 
@@ -88,6 +96,6 @@ class ExperimentParams(Serializable):
         train: int = 2
         val: int = 2
         test: int = 2
-        log_every_n_epochs: int = 2
+        log_every_n_epochs: int = 10
 
     visu: VisuParams = VisuParams()

@@ -2,6 +2,7 @@ from anymal_msgs.msg import AnymalState
 from geometry_msgs.msg import Pose
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import CameraInfo
+from wild_visual_navigation_msgs.msg import RobotState
 from cv_bridge import CvBridge
 
 from liegroups.torch import SO3, SE3
@@ -44,56 +45,12 @@ def robot_state_to_torch(robot_state, device="cpu"):
 
     return torch_state, state_labels
 
-
-def anymal_state_to_torch(anymal_state, device="cpu"):
-    assert isinstance(anymal_state, AnymalState)
-    LEG_DIM = 12
-    ANYMAL_DIM = LEG_DIM * 4
-
-    # preallocate torch state
-    torch_state = torch.zeros(BASE_DIM + ANYMAL_DIM, dtype=torch.float32).to(device)
-    state_labels = []
-
-    # Base
-    # Pose
-    state_labels.extend(["tx", "ty", "tz", "qx", "qy", "qz", "qw"])
-    torch_state[0] = anymal_state.pose.pose.position.x
-    torch_state[1] = anymal_state.pose.pose.position.y
-    torch_state[2] = anymal_state.pose.pose.position.z
-    torch_state[3] = anymal_state.pose.pose.orientation.x
-    torch_state[4] = anymal_state.pose.pose.orientation.y
-    torch_state[5] = anymal_state.pose.pose.orientation.z
-    torch_state[6] = anymal_state.pose.pose.orientation.w
-
-    # Twist
-    state_labels.extend(["vx", "vy", "vz", "wx", "wy", "wz"])
-    torch_state[7] = anymal_state.twist.twist.linear.x
-    torch_state[8] = anymal_state.twist.twist.linear.y
-    torch_state[9] = anymal_state.twist.twist.linear.z
-    torch_state[10] = anymal_state.twist.twist.angular.x
-    torch_state[11] = anymal_state.twist.twist.angular.y
-    torch_state[12] = anymal_state.twist.twist.angular.z
-
-    # Joints
-    # Position
-    N = 13
-    state_labels.extend([f"position_{x}" for x in anymal_state.joints.name])
-    torch_state[N : N + LEG_DIM] = torch.FloatTensor(anymal_state.joints.position)
-    # Velocity
-    N = N + LEG_DIM
-    state_labels.extend([f"velocity_{x}" for x in anymal_state.joints.name])
-    torch_state[N : N + LEG_DIM] = torch.FloatTensor(anymal_state.joints.velocity)
-    # Acceleration
-    N = N + LEG_DIM
-    state_labels.extend([f"acceleration_{x}" for x in anymal_state.joints.name])
-    torch_state[N : N + LEG_DIM] = torch.FloatTensor(anymal_state.joints.acceleration)
-    # Effort
-    N = N + LEG_DIM
-    state_labels.extend([f"effort_{x}" for x in anymal_state.joints.name])
-    torch_state[N : N + LEG_DIM] = torch.FloatTensor(anymal_state.joints.effort)
-
-    return torch_state, state_labels
-
+def wvn_robot_state_to_torch(robot_state, device="cpu"):
+    # TODO this should export a SE(3) pose, a R3 twist, a latent, and the labels
+    vector_state = [x for x in robot_state.states if x.name == "vector_state"][0]
+    # torch_state = torch.zeros(BASE_DIM + ANYMAL_DIM, dtype=torch.float32).to(device)
+    torch_state = torch.FloatTensor(vector_state.values).to(device)
+    return torch_state, vector_state.labels
 
 def ros_cam_info_to_tensors(caminfo_msg, device="cpu"):
     K = torch.eye(4, dtype=torch.float32).to(device)
@@ -127,8 +84,13 @@ def ros_image_to_torch(ros_img, desired_encoding="rgb8", device="cpu"):
 
 
 def torch_to_ros_image(torch_img, desired_encoding="rgb8"):
-    np_image = np.array(TO_PIL_IMAGE(torch_img.cpu()))
-    ros_image = CV_BRIDGE.cv2_to_imgmsg(np_image, encoding=desired_encoding)
+    np_img = np.array(TO_PIL_IMAGE(torch_img.cpu()))
+    ros_img = CV_BRIDGE.cv2_to_imgmsg(np_img, encoding=desired_encoding)
+    return ros_img
+
+
+def numpy_to_ros_image(np_img, desired_encoding="rgb8"):
+    ros_image = CV_BRIDGE.cv2_to_imgmsg(np_img, encoding=desired_encoding)
     return ros_image
 
 

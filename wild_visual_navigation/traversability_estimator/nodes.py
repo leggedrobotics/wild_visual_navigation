@@ -2,6 +2,7 @@ from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation.utils import make_box, make_rounded_box, make_plane
 from liegroups.torch import SE3, SO3
+from matplotlib import cm
 from PIL import Image, ImageDraw
 from skimage import segmentation
 from torch_geometric.data import Data
@@ -9,21 +10,22 @@ import kornia
 import numpy as np
 import os
 import torch
+import torch.nn.functional as F
 
 
 class BaseNode:
     """Base node data structure"""
 
-    name = "base_node"
+    _name = "base_node"
 
-    def __init__(self, timestamp: float = 0.0, T_WB: torch.tensor = torch.eye(4)):
-        assert isinstance(T_WB, torch.Tensor)
+    def __init__(self, timestamp: float = 0.0, pose_base_in_world: torch.tensor = torch.eye(4)):
+        assert isinstance(pose_base_in_world, torch.Tensor)
 
-        self.timestamp = timestamp
-        self.T_WB = T_WB
+        self._timestamp = timestamp
+        self._pose_base_in_world = pose_base_in_world
 
     def __str__(self):
-        return f"{self.name}_{self.timestamp}"
+        return f"{self._name}_{self._timestamp}"
 
     def __hash__(self):
         return hash(str(self))
@@ -31,14 +33,26 @@ class BaseNode:
     def __eq__(self, other):
         if other is None:
             return False
-        return self.name == other.name and self.timestamp == other.timestamp and torch.equal(self.T_WB, other.T_WB)
+        return (
+            self._name == other.name
+            and self._timestamp == other.timestamp
+            and torch.equal(self._pose_base_in_world, other.pose_base_in_world)
+        )
 
     def __lt__(self, other):
-        return self.timestamp < other.timestamp
+        return self._timestamp < other.timestamp
+
+    def change_device(self, device):
+        """Changes the device of all the class members
+
+        Args:
+            device (str): new device
+        """
+        self._pose_base_in_world = self._pose_base_in_world.to(device)
 
     @classmethod
     def from_node(cls, instance):
-        return cls(timestamp=instance.get_timestamp(), T_WB=instance.get_pose_base_in_world())
+        return cls(timestamp=instance.timestamp, pose_base_in_world=instance.pose_base_in_world)
 
     def is_valid(self):
         return True
@@ -52,7 +66,7 @@ class BaseNode:
         Returns:
             tensor (torch.tensor): Pose difference expressed in this' frame
         """
-        return other.T_WB.inverse() @ self.T_WB
+        return other.pose_base_in_world.inverse() @ self.pose_base_in_world
 
     def distance_to(self, other):
         """Computes the relative distance between states
@@ -64,237 +78,297 @@ class BaseNode:
             distance (float): absolute distance between the states
         """
         # Compute pose difference, then log() to get a vector, then extract position coordinates, finally get norm
-        return SE3.from_matrix(self.T_WB.inverse() @ other.T_WB).log()[:3].norm()
+        return SE3.from_matrix(self.pose_base_in_world.inverse() @ other.pose_base_in_world).log()[:3].norm()
 
-    def get_pose_base_in_world(self):
-        return self.T_WB
+    @property
+    def name(self):
+        return self._name
 
-    def get_timestamp(self):
-        return self.timestamp
+    @property
+    def pose_base_in_world(self):
+        return self._pose_base_in_world
 
-    def set_pose_base_in_world(self, T_WB: torch.tensor):
-        self.T_WB = T_WB
+    @property
+    def timestamp(self):
+        return self._timestamp
 
-    def set_timestamp(self, timestamp: float):
-        self.timestamp = timestamp
+    @pose_base_in_world.setter
+    def pose_base_in_world(self, pose_base_in_world: torch.tensor):
+        self._pose_base_in_world = pose_base_in_world
+
+    @timestamp.setter
+    def timestamp(self, timestamp: float):
+        self._timestamp = timestamp
 
 
-class GlobalNode(BaseNode):
-    """Global node stores the minimum information required for traversability estimation
+class MissionNode(BaseNode):
+    """Mission node stores the minimum information required for traversability estimation
     All the information is stored on the image plane"""
 
-    name = "global_node"
+    _name = "mission_node"
 
     def __init__(
         self,
         timestamp: float = 0.0,
-        T_WB: torch.tensor = torch.eye(4),
+        pose_base_in_world: torch.tensor = torch.eye(4),
+        pose_cam_in_base: torch.tensor = torch.eye(4),
+        pose_cam_in_world: torch.tensor = None,
+        image: torch.tensor = None,
+        image_projector: ImageProjector = None,
     ):
-        super().__init__(timestamp=timestamp, T_WB=T_WB)
-        self.features = None
-        self.feature_type = None
-        self.feature_edges = None
-        self.feature_segments = None
-        self.feature_positions = None
-        self.image = None
-        self.supervision_mask = None
-        self.supervision_signal = None
+        super().__init__(timestamp=timestamp, pose_base_in_world=pose_base_in_world)
+        # Initialize members
+        self._pose_cam_in_base = pose_cam_in_base
+        self._pose_cam_in_world = (
+            self._pose_base_in_world @ self._pose_cam_in_base if pose_cam_in_world is None else pose_cam_in_world
+        )
+        self._image = image
+        self._image_projector = image_projector
+
+        # Uninitialized members
+        self._features = None
+        self._feature_type = None
+        self._feature_edges = None
+        self._feature_segments = None
+        self._feature_positions = None
+        self._prediction = None
+        self._supervision_mask = None
+        self._supervision_signal = None
+        self._supervision_signal_valid = None
+
+    def change_device(self, device):
+        """Changes the device of all the class members
+
+        Args:
+            device (str): new device
+        """
+        super().change_device(device)
+        self._image_projector.change_device(device)
+        self._image = self._image.to(device)
+        self._pose_cam_in_base = self._pose_cam_in_base.to(device)
+        self._pose_cam_in_world = self._pose_cam_in_world.to(device)
+
+        if self._features is not None:
+            self._features = self._features.to(device)
+        if self._feature_edges is not None:
+            self._feature_edges = self._feature_edges.to(device)
+        if self._feature_segments is not None:
+            self._feature_segments = self._feature_segments.to(device)
+        if self._feature_positions is not None:
+            self._feature_positions = self._feature_positions.to(device)
+        if self._prediction is not None:
+            self._prediction = self._prediction.to(device)
+        if self._supervision_mask is not None:
+            self._supervision_mask = self._supervision_mask.to(device)
+        if self._supervision_signal is not None:
+            self._supervision_signal = self._supervision_signal.to(device)
+        if self._supervision_signal_valid is not None:
+            self._supervision_signal_valid = self._supervision_signal_valid.to(device)
 
     def as_pyg_data(self):
-        return Data(x=self.features, edge_index=self.feature_edges, y=self.supervision_signal)
+        return Data(
+            x=self.features,
+            edge_index=self._feature_edges,
+            y=self._supervision_signal,
+            y_valid=self._supervision_signal_valid,
+        )
 
     def is_valid(self):
-        return isinstance(self.features, torch.Tensor) and isinstance(self.supervision_signal, torch.Tensor)
+        return isinstance(self._features, torch.Tensor) and isinstance(self._supervision_signal, torch.Tensor)
 
-    def get_features(self):
-        return self.features
+    @property
+    def features(self):
+        return self._features
 
-    def get_feature_type(self):
-        return self.feature_type
+    @property
+    def feature_type(self):
+        return self._feature_type
 
-    def get_feature_edges(self):
-        return self.feature_edges
+    @property
+    def feature_edges(self):
+        return self._feature_edges
 
-    def get_feature_segments(self):
-        return self.feature_segments
+    @property
+    def feature_segments(self):
+        return self._feature_segments
 
-    def get_feature_positions(self):
-        return self.feature_positions
+    @property
+    def feature_positions(self):
+        return self._feature_positions
 
-    def get_image(self):
-        return self.image
+    @property
+    def image(self):
+        return self._image
 
-    def get_supervision_signal(self):
-        return self.supervision_signal
+    @property
+    def image_projector(self):
+        return self._image_projector
 
-    def get_supervision_mask(self):
-        return self.supervision_mask
+    @property
+    def pose_cam_in_world(self):
+        return self._pose_cam_in_world
 
-    def get_training_image(self):
-        if self.image is None or self.supervision_mask is None:
-            return None
-        img_np = kornia.utils.tensor_to_image(self.image)
-        trav_np = kornia.utils.tensor_to_image(self.supervision_mask)
+    @property
+    def prediction(self):
+        return self.prediction
 
-        # Draw segments
-        # trav_np = segmentation.mark_boundaries(trav_np, self.feature_segments.cpu().numpy()[0,0])
-        img_np = segmentation.mark_boundaries(img_np, self.feature_segments.cpu().numpy()[0, 0])
+    @property
+    def supervision_signal(self):
+        return self._supervision_signal
 
-        img_pil = Image.fromarray(np.uint8(img_np * 255))
-        img_draw = ImageDraw.Draw(img_pil)
-        trav_pil = Image.fromarray(np.uint8(trav_np * 255))
+    @property
+    def supervision_mask(self):
+        return self._supervision_mask
 
-        # Draw graph
-        for i in range(self.feature_edges.shape[1]):
-            a, b = self.feature_edges[0, i, 0], self.feature_edges[0, i, 1]
-            line_params = self.feature_positions[0][a].tolist() + self.feature_positions[0][b].tolist()
-            img_draw.line(line_params, fill=(255, 255, 255, 100), width=2)
+    @features.setter
+    def features(self, features):
+        self._features = features
 
-        for i in range(self.feature_positions.shape[1]):
-            params = self.feature_positions[0][i].tolist()
-            color = trav_pil.getpixel((params[0], params[1]))
-            r = 10
-            params = [p - r for p in params] + [p + r for p in params]
-            img_draw.ellipse(params, fill=color)
+    @feature_type.setter
+    def feature_type(self, feature_type):
+        self._feature_type = feature_type
 
-        np_draw = np.array(img_pil)
-        return kornia.utils.image_to_tensor(np_draw.copy()).to(self.image.device)
+    @feature_edges.setter
+    def feature_edges(self, feature_edges):
+        self._feature_edges = feature_edges
 
-    def save(self, output_path: str, index: int):
-        graph_data = self.as_pyg_data()
-        path = os.path.join(output_path, f"graph_{index:06d}.pt")
-        torch.save(graph_data, path)
+    @feature_segments.setter
+    def feature_segments(self, feature_segments):
+        self._feature_segments = feature_segments
 
-    def set_image(self, image: torch.tensor):
-        self.image = image
+    @feature_positions.setter
+    def feature_positions(self, feature_positions):
+        self._feature_positions = feature_positions
 
-    def set_features(
-        self,
-        feature_type: str,
-        features: torch.tensor,
-        edges: torch.tensor,
-        segments: torch.tensor,
-        positions: torch.tensor,
-    ):
-        self.feature_type = feature_type
-        self.features = features
-        self.feature_edges = edges
-        self.feature_segments = segments
-        self.feature_positions = positions
+    @image.setter
+    def image(self, image):
+        self._image = image
 
-    def set_supervision_mask(self, mask: torch.tensor):
-        self.supervision_mask = mask
+    @image_projector.setter
+    def image_projector(self, image_projector):
+        self._image_projector = image_projector
+
+    @pose_cam_in_world.setter
+    def pose_cam_in_world(self, pose_cam_in_world):
+        self._pose_cam_in_world = pose_cam_in_world
+
+    @prediction.setter
+    def prediction(self, prediction):
+        self._prediction = prediction
+
+    @supervision_signal.setter
+    def supervision_signal(self, _supervision_signal):
+        self._supervision_signal = _supervision_signal
+
+    @supervision_mask.setter
+    def supervision_mask(self, supervision_mask):
+        self._supervision_mask = supervision_mask
+
+    def save(self, output_path: str, index: int, graph_only: bool = False):
+        if self._feature_positions is not None:
+            graph_data = self.as_pyg_data()
+            path = os.path.join(output_path, "graph", f"graph_{index:06d}.pt")
+            torch.save(graph_data, path)
+            if not graph_only:
+                p = path.replace("graph", "img")
+                torch.save(self._image.cpu(), p)
+
+                p = path.replace("graph", "center")
+                torch.save(self._feature_positions.cpu(), p)
+
+                p = path.replace("graph", "seg")
+                torch.save(self._feature_segments.cpu(), p)
 
     def update_supervision_signal(self):
-        if self.supervision_mask is None:
+        if self._supervision_mask is None:
             return
 
-        if len(self.supervision_mask.shape) == 3:
-            signal = self.supervision_mask.mean(axis=0)
+        if len(self._supervision_mask.shape) == 3:
+            signal = self._supervision_mask.mean(axis=0)
 
         # If we don't have features, return
-        if self.features is None:
+        if self._features is None:
             return
 
         # If we have features, update supervision signal
         labels_per_segment = []
-        for s in range(self.feature_segments.max() + 1):
+        for s in range(self._feature_segments.max() + 1):
             # Get a mask indices for the segment
-            m = (self.feature_segments == s)[0, 0]
-            # Count the labels
-            idx, counts = torch.unique(signal[m], return_counts=True)
-            # append the labels
-            labels_per_segment.append(idx[torch.argmax(counts)])
+            m = self.feature_segments == s
+            # Add the higehst number per segment
+            labels_per_segment.append(signal[m].max())
 
         # Prepare supervision signal
         torch_labels = torch.stack(labels_per_segment)
         if torch_labels.sum() > 0:
-            self.supervision_signal = torch.stack(labels_per_segment)
+            self._supervision_signal = torch_labels
+            # Binary mask
+            self._supervision_signal_valid = torch_labels > 0
 
 
 class ProprioceptionNode(BaseNode):
     """Local node stores all the information required for traversability estimation and debugging
     All the information matches a real frame that must be respected to keep consistency"""
 
-    name = "local_proprioception_node"
+    _name = "local_proprioception_node"
 
     def __init__(
         self,
         timestamp: float = 0.0,
-        T_WB: torch.tensor = torch.eye(4),
-        T_BF: torch.tensor = torch.eye(4),
-        T_WF: torch.tensor = None,
+        pose_base_in_world: torch.tensor = torch.eye(4),
+        pose_footprint_in_base: torch.tensor = torch.eye(4),
+        pose_footprint_in_world: torch.tensor = None,
         length: float = 0.1,
         width: float = 0.1,
         height: float = 0.1,
         proprioception: torch.tensor = None,
     ):
-        assert isinstance(T_WB, torch.Tensor)
-        assert isinstance(T_BF, torch.Tensor)
-        super().__init__(timestamp=timestamp, T_WB=T_WB)
+        assert isinstance(pose_base_in_world, torch.Tensor)
+        assert isinstance(pose_footprint_in_base, torch.Tensor)
+        super().__init__(timestamp=timestamp, pose_base_in_world=pose_base_in_world)
 
-        self.T_BF = T_BF
-        # footprint in world
-        self.T_WF = self.T_WB @ self.T_BF if T_WF is None else T_WF
-        self.length = length
-        self.width = width
-        self.height = height
-        self.proprioceptive_state = proprioception
+        self._pose_footprint_in_base = pose_footprint_in_base
+        self._pose_footprint_in_world = (
+            self._pose_base_in_world @ self._pose_footprint_in_base
+            if pose_footprint_in_world is None
+            else pose_footprint_in_world
+        )
+        self._length = length
+        self._width = width
+        self._height = height
+        self._proprioceptive_state = proprioception
+
+    def change_device(self, device):
+        """Changes the device of all the class members
+
+        Args:
+            device (str): new device
+        """
+        super().change_device(device)
+        self._pose_footprint_in_base = self._pose_footprint_in_base.to(device)
+        self._pose_footprint_in_world = self._pose_footprint_in_world.to(device)
+        self._proprioceptive_state = self._proprioceptive_state.to(device)
 
     def get_bounding_box_points(self):
-        return make_box(self.length, self.width, self.height, pose=self.T_WB, grid_size=5).to(self.T_WB.device)
+        return make_box(self._length, self._width, self._height, pose=self._pose_base_in_world, grid_size=5).to(
+            self._pose_base_in_world.device
+        )
 
     def get_footprint_points(self):
-        return make_plane(x=self.length, y=self.width, pose=self.T_WF, grid_size=25).to(self.T_WF.device)
+        return make_plane(x=self._length, y=self._width, pose=self._pose_footprint_in_world, grid_size=25).to(
+            self._pose_footprint_in_world.device
+        )
 
-    def get_pose_cam_in_world(self):
-        return self.T_WC
+    @property
+    def pose_footprint_in_world(self):
+        return self._pose_footprint_in_world
 
-    def get_pose_footprint_in_world(self):
-        return self.T_WC
-
-    def get_propropioceptive_state(self):
-        return self.proprioceptive_state
-
-    def is_valid(self):
-        return isinstance(self.proprioceptive_state, torch.Tensor)
-
-
-class ImageNode(BaseNode):
-    """Local node stores all the information required for traversability estimation and debugging
-    All the information matches a real frame that must be respected to keep consistency"""
-
-    name = "local_image_node"
-
-    def __init__(
-        self,
-        timestamp: float = 0.0,
-        T_WB: torch.tensor = torch.eye(4),
-        T_BC: torch.tensor = torch.eye(4),
-        T_WC: torch.tensor = None,
-        image: torch.tensor = None,
-        projector: ImageProjector = None,
-    ):
-        assert isinstance(T_WB, torch.Tensor)
-        assert isinstance(T_BC, torch.Tensor)
-        super().__init__(timestamp, T_WB)
-
-        self.T_BC = T_BC
-        self.T_WC = self.T_WB @ self.T_BC if T_WC is None else T_WC
-        self.image = image
-        self.projector = projector
-
-    def get_image(self):
-        return self.image
-
-    def get_pose_cam_in_world(self):
-        return self.T_WC
-
-    def get_image_projector(self):
-        return self.projector
+    @property
+    def propropioceptive_state(self):
+        return self._proprioceptive_state
 
     def is_valid(self):
-        return isinstance(self.image, torch.Tensor) and isinstance(self.projector, ImageProjector)
+        return isinstance(self._proprioceptive_state, torch.Tensor)
 
 
 def run_base_state():
@@ -302,8 +376,8 @@ def run_base_state():
 
     import torch
 
-    rs1 = BaseNode(1, T_WB=SE3(SO3.identity(), torch.Tensor([1, 0, 0])).as_matrix())
-    rs2 = BaseNode(2, T_WB=SE3(SO3.identity(), torch.Tensor([2, 0, 0])).as_matrix())
+    rs1 = BaseNode(1, pose_base_in_world=SE3(SO3.identity(), torch.Tensor([1, 0, 0])).as_matrix())
+    rs2 = BaseNode(2, pose_base_in_world=SE3(SO3.identity(), torch.Tensor([2, 0, 0])).as_matrix())
 
     # Check that distance between robot states is correct
     assert abs(rs2.distance_to(rs1) - 1.0) < 1e-10
@@ -312,7 +386,7 @@ def run_base_state():
     assert rs1 != rs2
 
     # Check that timestamps are 1 second apart
-    assert rs2.get_timestamp() - rs1.get_timestamp() == 1.0
+    assert rs2.timestamp - rs1.timestamp == 1.0
 
     # Create node from another one
     rs3 = BaseNode.from_node(rs1)
