@@ -35,10 +35,8 @@ class WvnRosInterface:
             image_distance_thr=self.image_graph_dist_thr,
             proprio_distance_thr=self.proprio_graph_dist_thr,
         )
-
         # Setup ros
         self.setup_ros()
-
         # Launch processes
         print("─" * 80)
 
@@ -329,7 +327,9 @@ class WvnRosInterface:
 
         # Publish predictions
         if mission_node is not None and self.run_online_learning:
-            np_prediction_image, np_uncertainty_image = mission_node.get_numpy_prediction_image()
+            np_prediction_image, np_uncertainty_image = self.traversability_estimator.plot_mission_node_prediction(
+                mission_node
+            )  # TODO: Check
             self.pub_image_prediction.publish(rc.numpy_to_ros_image(np_prediction_image))
             self.pub_image_prediction_uncertainty.publish(rc.numpy_to_ros_image(np_uncertainty_image))
 
@@ -341,7 +341,7 @@ class WvnRosInterface:
             if mission_node is not None:
                 torch_mask = mission_node.supervision_mask
                 self.pub_image_mask.publish(rc.torch_to_ros_image(torch_mask))
-                np_labeled_image = mission_node.get_numpy_training_image()
+                np_labeled_image = self.traversability_estimator.plot_mission_node_training(mission_node)
                 self.pub_image_labeled.publish(rc.numpy_to_ros_image(np_labeled_image))
 
         # Publish local graph

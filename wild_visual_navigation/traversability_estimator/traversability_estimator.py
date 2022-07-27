@@ -4,7 +4,7 @@ from wild_visual_navigation.feature_extractor import FeatureExtractor
 from wild_visual_navigation.learning.dataset import GraphTravOnlineDataset
 from wild_visual_navigation.learning.lightning import LightningTrav
 from wild_visual_navigation.learning.model import get_model
-from wild_visual_navigation.learning.utils import OnlineParams, load_env, create_experiment_folder
+from wild_visual_navigation.cfg import OnlineParams, load_env, create_experiment_folder
 from wild_visual_navigation.traversability_estimator import (
     BaseNode,
     BaseGraph,
@@ -12,6 +12,8 @@ from wild_visual_navigation.traversability_estimator import (
     MissionNode,
     ProprioceptionNode,
 )
+from wild_visual_navigation.visu import LearningVisualizer
+
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.plugins import SingleDevicePlugin
 from torch_geometric.data import LightningDataset, Data, Batch
@@ -60,12 +62,13 @@ class TraversabilityEstimator:
         # Mutex
         self._lock = Lock()
 
+        # Visualization
+        self._visualizer = LearningVisualizer()
+
         # Lightning module
         seed_everything(42)
-        parser = ArgumentParser()
-        parser.add_arguments(OnlineParams, dest="experiment")
-        args = parser.parse_args()
-        exp = dataclasses.asdict(args.experiment)
+        online_params = OnlineParams
+        exp = dataclasses.asdict(online_params)
         env = load_env()
 
         model_path = create_experiment_folder(exp, env)
@@ -370,6 +373,12 @@ class TraversabilityEstimator:
             # Print losses
             if self._epoch % 20 == 0:
                 print(f"epoch: {self._epoch} | loss: {loss:5f} | loss_trav: {loss_trav:5f} | loss_reco: {loss_reco:5f}")
+
+    def plot_mission_node_prediction(self, node: MissionNode):
+        return self._visualizer.plot_mission_node_prediction(node)
+
+    def plot_mission_node_training(self, node: MissionNode):
+        return self._visualizer.plot_mission_node_training(node)
 
 
 def run_traversability_estimator():

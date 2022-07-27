@@ -6,7 +6,16 @@ from pytorch_lightning.utilities import rank_zero_only
 
 
 @rank_zero_only
-def create_experiment_folder(exp, env):
+def create_experiment_folder(exp: dict, env: dict) -> str:
+    """Creates an experiment folder if rank=0 with unique timestamp
+
+    Args:
+        exp (dict): Experiment cfg
+        env (dict): Environment cfg
+
+    Returns:
+        str: model_path of the run
+    """
     # Set in name the correct model path
     if exp.get("timestamp", True):
         timestamp = datetime.datetime.now().replace(microsecond=0).isoformat()
