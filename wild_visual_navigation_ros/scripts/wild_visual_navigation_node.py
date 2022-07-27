@@ -33,7 +33,7 @@ class WvnRosInterface:
             device=self.device,
             max_distance=self.traversability_radius,
             image_distance_thr=self.image_graph_dist_thr,
-            proprio_distance_thr=self.proprio_graph_dist_thr
+            proprio_distance_thr=self.proprio_graph_dist_thr,
         )
 
         # Setup ros
