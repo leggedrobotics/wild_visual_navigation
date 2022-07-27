@@ -3,7 +3,7 @@ import collections
 __all__ = ["flatten_dict"]
 
 
-def flatten_dict(d, parent_key="", sep="_"):
+def flatten_dict(d: dict, parent_key: str = "", sep: str = "_") -> dict:
     """Generates flattened dict
 
     Args:

@@ -10,7 +10,7 @@ __all__ = ["get_neptune_logger", "get_wandb_logger", "get_tensorboard_logger", "
 PROXIES = {"http": "http://proxy.ethz.ch:3128", "https": "http://proxy.ethz.ch:3128"}
 
 
-def get_neptune_run(neptune_project_name, tags):
+def get_neptune_run(neptune_project_name: str, tags: [str]) -> any:
     """Get neptune run
 
     Args:
@@ -30,7 +30,7 @@ def get_neptune_run(neptune_project_name, tags):
     return run
 
 
-def get_neptune_logger(exp, env):
+def get_neptune_logger(exp: dict, env: dict) -> NeptuneLogger:
     """Returns NeptuneLogger
 
     Args:
@@ -59,7 +59,7 @@ def get_neptune_logger(exp, env):
     )
 
 
-def get_wandb_logger(exp, env):
+def get_wandb_logger(exp: dict, env: dict) -> WandbLogger:
     """Returns NeptuneLogger
 
     Args:
@@ -78,7 +78,7 @@ def get_wandb_logger(exp, env):
     )
 
 
-def get_tensorboard_logger(exp, env):
+def get_tensorboard_logger(exp: dict, env: dict) -> TensorBoardLogger:
     """Returns TensorboardLoggers
 
     Args:
@@ -91,7 +91,7 @@ def get_tensorboard_logger(exp, env):
     return TensorBoardLogger(save_dir=exp["name"], name="tensorboard", default_hp_metric=params)
 
 
-def get_skip_logger(exp, env):
+def get_skip_logger(exp: dict, env: dict) -> None:
     """Returns None
 
     Args:
@@ -103,7 +103,7 @@ def get_skip_logger(exp, env):
     return None
 
 
-def get_logger(exp, env):
+def get_logger(exp: dict, env: dict) -> any:
     name = exp["logger"]["name"]
     save_dir = os.path.join(env["base"], exp["general"]["name"])
     register = {k: v for k, v in globals().items() if inspect.isfunction(v)}

@@ -25,6 +25,15 @@ class StegoInterface:
             ]
         )
 
+    def change_device(self, device):
+        """Changes the device of all the class members
+
+        Args:
+            device (str): new device
+        """
+        self.model.to(device)
+        self.device = device
+
     def load(self):
         """Loads model.
 

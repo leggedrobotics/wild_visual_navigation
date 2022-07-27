@@ -40,6 +40,15 @@ class DinoInterface:
             ]
         )
 
+    def change_device(self, device):
+        """Changes the device of all the class members
+
+        Args:
+            device (str): new device
+        """
+        self.model.to(device)
+        self.device = device
+
     def download_pretrained_model(self, cfg: DictConfig):
         """Loads model.
 
@@ -85,7 +94,7 @@ class DinoInterface:
         Returns:
             features (torch.tensor, dtype=torch.float32, shape=(BS,D,H,W)): per-pixel D-dimensional features
         """
-        assert 1 == img.shape[0]
+        # assert 1 == img.shape[0]
         assert img.device.type == self.device
 
         # Extract features
