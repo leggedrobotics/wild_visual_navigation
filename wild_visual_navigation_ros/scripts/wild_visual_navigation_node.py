@@ -85,7 +85,7 @@ class WvnRosInterface:
 
         # Threads
         self.run_online_learning = rospy.get_param("~run_online_learning", True)
-        self.image_callback_rate = rospy.get_param("~image_callback_rate", 10)  # hertz
+        self.image_callback_rate = rospy.get_param("~image_callback_rate", 3)  # hertz
         self.learning_thread_rate = rospy.get_param("~learning_thread_rate", 10)  # hertz
 
         # Data storage
