@@ -168,7 +168,7 @@ class FeatureExtractor:
 
         # Prepare input image
         img_internal = img.clone()
-        img_internal = self.crop(img_internal.to(self.device))
+        # img_internal = self.crop(img_internal.to(self.device))
         img_internal = self.norm(img_internal)
 
         # Extract dino features
@@ -245,7 +245,7 @@ class FeatureExtractor:
 
         # Prepare input image
         img_internal = img.clone()
-        img_internal = self.crop(img_internal.to(self.device))
+        # img_internal = self.crop(img_internal.to(self.device))
         img_internal = self.norm(img_internal)
 
         return self.extractor.inference(img_internal)

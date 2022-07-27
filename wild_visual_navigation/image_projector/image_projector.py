@@ -49,15 +49,24 @@ class ImageProjector:
         sw = new_w if new_w is not None else sh
 
         # Prepare image cropper
-        self.image_crop = T.Compose([T.Resize(new_h, T.InterpolationMode.NEAREST), T.CenterCrop(new_h)])
+        if new_w is None:
+            self.image_crop = T.Compose([T.Resize(new_h, T.InterpolationMode.NEAREST), T.CenterCrop(new_h)])
+        else:
+            self.image_crop = T.Resize([new_h, new_w], T.InterpolationMode.NEAREST)
 
         # Adjust camera matrix
         # Fill values
         sK = K.clone()
-        sK[-1, 0, 0] = K[-1, 1, 1] * sy
-        sK[-1, 0, 2] = K[-1, 1, 2] * sy
-        sK[-1, 1, 1] = K[-1, 1, 1] * sy
-        sK[-1, 1, 2] = K[-1, 1, 2] * sy
+        if new_w is None:
+            sK[-1, 0, 0] = K[-1, 1, 1] * sy
+            sK[-1, 0, 2] = K[-1, 1, 2] * sy
+            sK[-1, 1, 1] = K[-1, 1, 1] * sy
+            sK[-1, 1, 2] = K[-1, 1, 2] * sy
+        else:
+            sK[-1, 0, 0] = K[-1, 0, 0] * sx
+            sK[-1, 0, 2] = K[-1, 0, 2] * sx
+            sK[-1, 1, 1] = K[-1, 1, 1] * sy
+            sK[-1, 1, 2] = K[-1, 1, 2] * sy
 
         # Initialize camera with scaled parameters
         sh = torch.IntTensor([sh]).to(device)
