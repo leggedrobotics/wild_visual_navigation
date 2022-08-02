@@ -201,7 +201,8 @@ class WvnRosInterface:
         target_v = torch.tensor([target.x, target.y], device=self.device)
         current_v = torch.tensor([current.x, current.y], device=self.device)
         error = torch.nn.functional.mse_loss(current_v, target_v) / self.robot_max_velocity
-        error = error.clip(0, 1)
+        error = 1.0 - error.clip(0, 1)
+        error_var = torch.FloatTensor(1).to(self.device)
 
         ts = state_msg.header.stamp.to_sec()
 
@@ -226,6 +227,8 @@ class WvnRosInterface:
             length=self.robot_length,
             height=self.robot_width,
             proprioception=proprio_tensor,
+            traversability=error,
+            traversability_var=error_var,
         )
         # Add node to graph
         self.traversability_estimator.add_proprio_node(proprio_node)
@@ -333,9 +336,7 @@ class WvnRosInterface:
             proprio_graph_msg.poses.append(pose)
 
             # Color for traversability
-            r, g, b, _ = self.color_palette(n / N)
-            n += 1
-            # TODO update this by real traversability self.color_palette(node.traversability)
+            r, g, b, _ = self.color_palette(node.traversability.item())
             c = ColorRGBA(r, g, b, 0.8)
 
             # Rainbow path

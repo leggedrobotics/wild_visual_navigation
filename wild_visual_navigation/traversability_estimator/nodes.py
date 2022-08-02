@@ -322,6 +322,8 @@ class ProprioceptionNode(BaseNode):
         width: float = 0.1,
         height: float = 0.1,
         proprioception: torch.tensor = None,
+        traversability: torch.tensor = torch.FloatTensor([0.0]),
+        traversability_var: torch.tensor = torch.FloatTensor([0.0]),
     ):
         assert isinstance(pose_base_in_world, torch.Tensor)
         assert isinstance(pose_footprint_in_base, torch.Tensor)
@@ -337,8 +339,8 @@ class ProprioceptionNode(BaseNode):
         self._width = width
         self._height = height
         self._proprioceptive_state = proprioception
-        self._traversability = 1.0
-        self._variance = 1.0
+        self._traversability = traversability
+        self._traversability_var = traversability_var
 
     def change_device(self, device):
         """Changes the device of all the class members
@@ -366,13 +368,19 @@ class ProprioceptionNode(BaseNode):
             self._pose_footprint_in_world.device
         )
 
-    @property
-    def variance(self):
-        return self._variance
+    def update_traversability(self, traversability: torch.tensor, traversability_var: torch.tensor):
+        self._traversability_var = 1.0 / (1.0 / self._traversability_var ** 2 + 1.0 / traversability_var ** 2)
+        self._traversability = self.traversability_var * (
+            1.0 / self._traversability_var * self._traversability + 1.0 / traversability_var * traversability
+        )
 
     @property
     def traversability(self):
         return self._traversability
+
+    @property
+    def traversability_var(self):
+        return self._traversability_var
 
     @property
     def pose_footprint_in_world(self):
@@ -382,13 +390,13 @@ class ProprioceptionNode(BaseNode):
     def propropioceptive_state(self):
         return self._proprioceptive_state
 
-    @variance.setter
-    def variance(self, variance):
-        self._variance = variance
-
     @traversability.setter
     def traversability(self, traversability):
         self._traversability = traversability
+
+    @traversability_var.setter
+    def traversability_var(self, variance):
+        self._traversability_var = variance
 
     def is_valid(self):
         return isinstance(self._proprioceptive_state, torch.Tensor)
