@@ -358,6 +358,19 @@ class ProprioceptionNode(BaseNode):
         return make_plane(x=self._length, y=self._width, pose=self._pose_footprint_in_world, grid_size=25).to(
             self._pose_footprint_in_world.device
         )
+    
+    def get_side_points(self):
+        return make_plane(y=self._width, pose=self._pose_footprint_in_world, grid_size=2).to(
+            self._pose_footprint_in_world.device
+        )
+
+    @property
+    def variance(self):
+        return self._variance
+
+    @property
+    def traversability(self):
+        return self._traversability
 
     @property
     def pose_footprint_in_world(self):
@@ -366,6 +379,14 @@ class ProprioceptionNode(BaseNode):
     @property
     def propropioceptive_state(self):
         return self._proprioceptive_state
+    
+    @variance.setter
+    def variance(self, variance):
+        self._variance = variance
+
+    @traversability.setter
+    def traversability(self, traversability):
+        self._traversability = traversability
 
     def is_valid(self):
         return isinstance(self._proprioceptive_state, torch.Tensor)

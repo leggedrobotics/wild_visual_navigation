@@ -9,12 +9,14 @@ from wild_visual_navigation_msgs.msg import RobotState
 from geometry_msgs.msg import Pose, PoseStamped, Point
 from nav_msgs.msg import Path
 from sensor_msgs.msg import Image, CameraInfo
+from std_msgs.msg import ColorRGBA
 from std_srvs.srv import Trigger, TriggerResponse
 from threading import Thread
 from visualization_msgs.msg import MarkerArray, Marker
 import message_filters
 import os
 import rospy
+import seaborn as sns
 import tf
 import torch
 
@@ -39,6 +41,9 @@ class WvnRosInterface:
         self.setup_ros()
         # Launch processes
         print("─" * 80)
+
+        # Visualization
+        self.palette = sns.color_palette(self.colormap, as_cmap=True)
 
         # Setup slow threads
         print("Launching [learning] thread")
@@ -76,7 +81,7 @@ class WvnRosInterface:
 
         # Traversability estimation params
         self.traversability_radius = rospy.get_param("~traversability_radius", 5.0)
-        self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr", 0.5)
+        self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr", 0.1)
         self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.1)
         self.network_input_image_height = rospy.get_param("~network_input_image_height", 448)
         self.network_input_image_width = rospy.get_param("~network_input_image_width", 448)
@@ -95,6 +100,9 @@ class WvnRosInterface:
 
         # Torch device
         self.device = rospy.get_param("device", "cuda")
+
+        # Visualization
+        self.colormap = rospy.get_param("colormap", "viridis")
 
     def setup_ros(self):
         """Main function to setup ROS-related stuff: publishers, subscribers and services"""
@@ -292,15 +300,16 @@ class WvnRosInterface:
         footprints_marker.scale.x = 1
         footprints_marker.scale.y = 1
         footprints_marker.scale.z = 1
-        footprints_marker.color.a = 0.5
-        footprints_marker.color.r = 0.0
-        footprints_marker.color.g = 1.0
-        footprints_marker.color.b = 0.0
+        # footprints_marker.color.a = 0.5
+        # footprints_marker.color.r = 0.0
+        # footprints_marker.color.g = 1.0
+        # footprints_marker.color.b = 0.0
         footprints_marker.pose.orientation.w = 1.0
         footprints_marker.pose.position.x = 0.0
         footprints_marker.pose.position.y = 0.0
         footprints_marker.pose.position.z = 0.0
 
+        last_added_point = None # Used to make a consistent path visualization
         for node in self.traversability_estimator.get_proprio_nodes():
             # Path
             pose = PoseStamped()
@@ -309,15 +318,32 @@ class WvnRosInterface:
             pose.pose = rc.torch_to_ros_pose(node.pose_base_in_world)
             proprio_graph_msg.poses.append(pose)
 
-            # Footprints
-            footprint_points = node.get_footprint_points()[None]
-            B, N, D = footprint_points.shape
-            for n in [0, 2, 1, 2, 0, 3]:  # this is a hack to show the triangles correctly
-                p = Point()
-                p.x = footprint_points[0, n, 0]
-                p.y = footprint_points[0, n, 1]
-                p.z = footprint_points[0, n, 2]
+            # # Footprints
+            # footprint_points = node.get_footprint_points()
+            # for n in [0, 2, 1, 2, 0, 3]:  # this is a hack to show the triangles correctly
+            #     p = Point()
+            #     p.x = footprint_points[n, 0]
+            #     p.y = footprint_points[n, 1]
+            #     p.z = footprint_points[n, 2]
+            #     footprints_marker.points.append(p)
+
+            # Color for traversability
+            r, g, b = self.colormap(node.traversability)
+            c = ColorRGBA(r, g, b, 0.5)
+            
+            # Rainbow path
+            side_points = node.get_side_points()
+            
+            # Add last added point
+            if last_added_point is not None:
                 footprints_marker.points.append(p)
+                footprints_marker.color.append(c)
+
+            # Add new points
+            for sp in side_points:
+                p = Point(x=sp[0], y=sp[0], z=sp[0])
+                footprints_marker.points.append(p)
+                footprints_marker.color.append(c)
 
         # Publish
         self.pub_graph_footprints.publish(footprints_marker)
@@ -352,6 +378,8 @@ class WvnRosInterface:
                 # self.pub_image_mask.publish(rc.torch_to_ros_image(torch_mask))
 
                 np_labeled_image, np_mask_image = self.traversability_estimator.plot_mission_node_training(mission_node)
+                if np_labeled_image is None or np_mask_image is None:
+                    return
                 self.pub_image_labeled.publish(rc.numpy_to_ros_image(np_labeled_image))
                 self.pub_image_mask.publish(rc.numpy_to_ros_image(np_mask_image))
 

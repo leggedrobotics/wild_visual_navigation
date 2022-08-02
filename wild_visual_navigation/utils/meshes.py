@@ -85,7 +85,7 @@ def make_plane(x=None, y=None, z=None, pose=torch.eye(4), grid_size=10):
     else:
         raise "make_plane requires just 2 inputs to be set"
 
-    # interpolate according to the gridsize
+    # Interpolate according to the gridsize
     finer_points = [points]
     if grid_size > 0:
         w_steps = torch.linspace(0, 1, steps=grid_size).to(pose.device)
@@ -94,13 +94,15 @@ def make_plane(x=None, y=None, z=None, pose=torch.eye(4), grid_size=10):
                 interp = torch.lerp(points[i], points[(i + 1) % 4], w).unsqueeze(0)
                 finer_points.append(interp)
     # To torch
-    finer_points = torch.cat(finer_points).unsqueeze(0)
+    finer_points = torch.cat(finer_points)
+    finer_points = torch.unique(finer_points, dim=0)
 
     if len(pose.shape) == 2:
         pose = pose.unsqueeze(0)
 
-    return transform_points(pose, finer_points).squeeze(0)
+    return transform_points(pose, finer_points[None]).squeeze(0)
 
 
 if __name__ == "__main__":
-    points = make_plane(x=0.8, y=0.4, grid_size=10)
+    xy_plane = make_plane(x=0.8, y=0.4, grid_size=10)
+    y_points = make_plane(x=0.0, y=0.4, grid_size=2)
