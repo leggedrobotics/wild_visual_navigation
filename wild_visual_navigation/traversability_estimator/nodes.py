@@ -337,6 +337,8 @@ class ProprioceptionNode(BaseNode):
         self._width = width
         self._height = height
         self._proprioceptive_state = proprioception
+        self._traversability = 1.0
+        self._variance = 1.0
 
     def change_device(self, device):
         """Changes the device of all the class members
@@ -358,9 +360,9 @@ class ProprioceptionNode(BaseNode):
         return make_plane(x=self._length, y=self._width, pose=self._pose_footprint_in_world, grid_size=25).to(
             self._pose_footprint_in_world.device
         )
-    
+
     def get_side_points(self):
-        return make_plane(y=self._width, pose=self._pose_footprint_in_world, grid_size=2).to(
+        return make_plane(x=0.0, y=self._width, pose=self._pose_footprint_in_world, grid_size=2).to(
             self._pose_footprint_in_world.device
         )
 
@@ -379,7 +381,7 @@ class ProprioceptionNode(BaseNode):
     @property
     def propropioceptive_state(self):
         return self._proprioceptive_state
-    
+
     @variance.setter
     def variance(self, variance):
         self._variance = variance

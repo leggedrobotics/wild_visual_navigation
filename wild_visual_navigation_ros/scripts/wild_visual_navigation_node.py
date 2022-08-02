@@ -43,7 +43,7 @@ class WvnRosInterface:
         print("─" * 80)
 
         # Visualization
-        self.palette = sns.color_palette(self.colormap, as_cmap=True)
+        self.color_palette = sns.color_palette(self.colormap, as_cmap=True)
 
         # Setup slow threads
         print("Launching [learning] thread")
@@ -82,7 +82,7 @@ class WvnRosInterface:
         # Traversability estimation params
         self.traversability_radius = rospy.get_param("~traversability_radius", 5.0)
         self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr", 0.1)
-        self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.1)
+        self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.01)
         self.network_input_image_height = rospy.get_param("~network_input_image_height", 448)
         self.network_input_image_width = rospy.get_param("~network_input_image_width", 448)
 
@@ -102,7 +102,7 @@ class WvnRosInterface:
         self.device = rospy.get_param("device", "cuda")
 
         # Visualization
-        self.colormap = rospy.get_param("colormap", "viridis")
+        self.colormap = rospy.get_param("colormap", "inferno")
 
     def setup_ros(self):
         """Main function to setup ROS-related stuff: publishers, subscribers and services"""
@@ -300,16 +300,16 @@ class WvnRosInterface:
         footprints_marker.scale.x = 1
         footprints_marker.scale.y = 1
         footprints_marker.scale.z = 1
-        # footprints_marker.color.a = 0.5
-        # footprints_marker.color.r = 0.0
-        # footprints_marker.color.g = 1.0
-        # footprints_marker.color.b = 0.0
+        footprints_marker.color.a = 1.0
         footprints_marker.pose.orientation.w = 1.0
         footprints_marker.pose.position.x = 0.0
         footprints_marker.pose.position.y = 0.0
         footprints_marker.pose.position.z = 0.0
 
-        last_added_point = None # Used to make a consistent path visualization
+        last_points = [None, None]
+        # debug vis
+        N = len(self.traversability_estimator.get_proprio_nodes())
+        n = 0
         for node in self.traversability_estimator.get_proprio_nodes():
             # Path
             pose = PoseStamped()
@@ -318,34 +318,54 @@ class WvnRosInterface:
             pose.pose = rc.torch_to_ros_pose(node.pose_base_in_world)
             proprio_graph_msg.poses.append(pose)
 
-            # # Footprints
-            # footprint_points = node.get_footprint_points()
-            # for n in [0, 2, 1, 2, 0, 3]:  # this is a hack to show the triangles correctly
-            #     p = Point()
-            #     p.x = footprint_points[n, 0]
-            #     p.y = footprint_points[n, 1]
-            #     p.z = footprint_points[n, 2]
-            #     footprints_marker.points.append(p)
-
             # Color for traversability
-            r, g, b = self.colormap(node.traversability)
-            c = ColorRGBA(r, g, b, 0.5)
-            
+            r, g, b, _ = self.color_palette(n / N)
+            n += 1
+            # TODO update this by real traversability self.color_palette(node.traversability)
+            c = ColorRGBA(r, g, b, 0.8)
+
             # Rainbow path
             side_points = node.get_side_points()
-            
-            # Add last added point
-            if last_added_point is not None:
-                footprints_marker.points.append(p)
-                footprints_marker.color.append(c)
 
-            # Add new points
-            for sp in side_points:
-                p = Point(x=sp[0], y=sp[0], z=sp[0])
-                footprints_marker.points.append(p)
-                footprints_marker.color.append(c)
+            # if the last points are empty, fill and continue
+            if None in last_points:
+                for i in range(2):
+                    last_points[i] = Point(
+                        x=side_points[i, 0].item(), y=side_points[i, 1].item(), z=side_points[i, 2].item()
+                    )
+                continue
+            else:
+                # here we want to add 2 triangles: from the last saved points (lp)
+                # and the current side points (sp):
+                # triangle 1: [lp0, lp1, sp0]
+                # triangle 2: [lp1, sp0, sp1]
+
+                points_to_add = []
+                # add the last points points
+                for lp in last_points:
+                    points_to_add.append(lp)
+                # Add first from new side points
+                points_to_add.append(
+                    Point(x=side_points[i, 0].item(), y=side_points[i, 1].item(), z=side_points[i, 2].item())
+                )
+                # Add last of last points
+                points_to_add.append(last_points[0])
+                # Add new side points and update last points
+                for i in range(2):
+                    last_points[i] = Point(
+                        x=side_points[i, 0].item(), y=side_points[i, 1].item(), z=side_points[i, 2].item()
+                    )
+                    points_to_add.append(last_points[i])
+
+                # Add all the points and colors
+                for p in points_to_add:
+                    footprints_marker.points.append(p)
+                    footprints_marker.colors.append(c)
 
         # Publish
+        if len(footprints_marker.points) % 3 != 0:
+            print(f"number of points for footprint is {len(footprints_marker.points)}")
+            return
         self.pub_graph_footprints.publish(footprints_marker)
         self.pub_debug_proprio_graph.publish(proprio_graph_msg)
 
