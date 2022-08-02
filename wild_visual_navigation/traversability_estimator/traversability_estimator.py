@@ -167,6 +167,9 @@ class TraversabilityEstimator:
 
             # Finally overwrite the current mask
             node.supervision_mask = supervision_mask
+            return True
+        else:
+            return False
 
     def add_proprio_node(self, node: ProprioceptionNode):
         """Adds a node to the local graph to store proprioception
