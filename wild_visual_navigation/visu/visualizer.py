@@ -84,7 +84,7 @@ class LearningVisualizer:
 
         if node.supervision_signal is None:
             sa = node.image.shape
-            supervison_img = np.zeros((sa[1], sa[2], sa[0]), dtype=np.uint8).shape
+            supervison_img = np.zeros((sa[1], sa[2], sa[0]), dtype=np.uint8)
         else:
             supervison_img = self.plot_traversability_graph(
                 node.supervision_signal,
