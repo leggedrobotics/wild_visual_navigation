@@ -6,7 +6,7 @@ from wild_visual_navigation.traversability_estimator import MissionNode, Proprio
 import wild_visual_navigation_ros.ros_converter as rc
 
 from wild_visual_navigation_msgs.msg import RobotState
-from geometry_msgs.msg import Pose, PoseStamped, Point
+from geometry_msgs.msg import Pose, PoseStamped, Point, TwistStamped
 from nav_msgs.msg import Path
 from sensor_msgs.msg import Image, CameraInfo
 from std_msgs.msg import ColorRGBA
@@ -67,6 +67,7 @@ class WvnRosInterface:
         self.robot_state_topic = rospy.get_param("~robot_state_topic", "/wild_visual_navigation_ros/robot_state")
         self.image_topic = rospy.get_param("~image_topic", "/alphasense_driver_ros/cam4/debayered")
         self.info_topic = rospy.get_param("~camera_info_topic", "/alphasense_driver_ros/cam4/camera_info")
+        self.desired_twist_topic = rospy.get_param("~desired_twist_topic", "/log/state/desiredRobotTwist")
 
         # Frames
         self.fixed_frame = rospy.get_param("~fixed_frame", "odom")
@@ -74,10 +75,11 @@ class WvnRosInterface:
         self.camera_frame = rospy.get_param("~camera_frame", "cam4_sensor_frame_helper")
         self.footprint_frame = rospy.get_param("~footprint_frame", "footprint")
 
-        # Robot size
+        # Robot size and specs
         self.robot_length = rospy.get_param("~robot_length", 1.0)
         self.robot_width = rospy.get_param("~robot_width", 0.6)
         self.robot_height = rospy.get_param("~robot_height", 0.3)
+        self.robot_max_velocity = rospy.get_param("~robot_max_velocity", 0.8)
 
         # Traversability estimation params
         self.traversability_radius = rospy.get_param("~traversability_radius", 5.0)
@@ -110,14 +112,17 @@ class WvnRosInterface:
         self.tf_listener = tf.TransformListener()
 
         # Robot state callback
-        self.robot_state_sub = rospy.Subscriber(
-            self.robot_state_topic, RobotState, self.robot_state_callback, queue_size=1
+        robot_state_sub = message_filters.Subscriber(self.robot_state_topic, RobotState)
+        desired_twist_sub = message_filters.Subscriber(self.desired_twist_topic, TwistStamped)
+        self.robot_state_sub = message_filters.ApproximateTimeSynchronizer(
+            [robot_state_sub, desired_twist_sub], queue_size=10, slop=0.1
         )
+        self.robot_state_sub.registerCallback(self.robot_state_callback)
 
         # Image callback
         self.image_sub = message_filters.Subscriber(self.image_topic, Image)
         self.info_sub = message_filters.Subscriber(self.info_topic, CameraInfo)
-        self.ts = message_filters.ApproximateTimeSynchronizer([self.image_sub, self.info_sub], 1, slop=1.0 / 10)
+        self.ts = message_filters.ApproximateTimeSynchronizer([self.image_sub, self.info_sub], 2, slop=0.1)
         self.ts.registerCallback(self.image_callback)
 
         # Publishers
@@ -183,12 +188,21 @@ class WvnRosInterface:
             rospy.logwarn(f"Couldn't get between {parent_frame} and {child_frame}")
             return (None, None)
 
-    def robot_state_callback(self, state_msg):
+    def robot_state_callback(self, state_msg, desired_twist_msg: TwistStamped):
         """Main callback to process proprioceptive info (robot state)
 
         Args:
             state_msg (wild_visual_navigation_msgs/RobotState): Robot state message
+            desired_twist_msg (geometry_msgs/TwistStamped): Desired twist message
         """
+        # Compute current velocity tracking error
+        current = state_msg.twist.twist.linear
+        target = desired_twist_msg.twist.linear
+        target_v = torch.tensor([target.x, target.y], device=self.device)
+        current_v = torch.tensor([current.x, current.y], device=self.device)
+        error = torch.nn.functional.mse_loss(current_v, target_v) / self.robot_max_velocity
+        error = error.clip(0, 1)
+
         ts = state_msg.header.stamp.to_sec()
 
         # Query transforms from TF
