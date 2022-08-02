@@ -329,7 +329,9 @@ class WvnRosInterface:
 
         # Publish predictions
         if mission_node is not None and self.run_online_learning:
-            np_prediction_image, np_uncertainty_image = self.traversability_estimator.plot_mission_node_prediction( mission_node )
+            np_prediction_image, np_uncertainty_image = self.traversability_estimator.plot_mission_node_prediction(
+                mission_node
+            )
             self.pub_image_prediction.publish(rc.numpy_to_ros_image(np_prediction_image))
             self.pub_image_prediction_uncertainty.publish(rc.numpy_to_ros_image(np_uncertainty_image))
 
