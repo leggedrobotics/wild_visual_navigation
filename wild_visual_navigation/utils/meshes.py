@@ -91,7 +91,7 @@ def make_plane(x=None, y=None, z=None, pose=torch.eye(4), grid_size=10):
         w_steps = torch.linspace(0, 1, steps=grid_size).to(pose.device)
         for i in range(4):
             for w in w_steps:
-                interp = torch.lerp(points[i], points[(i + 1) % 4], w).unsqueeze(0)
+                interp = torch.lerp(points[i], points[(i + 1) % 4], w)[None]
                 finer_points.append(interp)
     # To torch
     finer_points = torch.cat(finer_points)
@@ -103,6 +103,21 @@ def make_plane(x=None, y=None, z=None, pose=torch.eye(4), grid_size=10):
     return transform_points(pose, finer_points[None]).squeeze(0)
 
 
+def make_polygon_from_points(points: torch.tensor, grid_size=10):
+    B, D = points.shape
+    finer_points = []
+    w_steps = torch.linspace(0, 1, steps=grid_size).to(points.device)
+    # assume the points are sorted
+    for i in range(B):
+        for w in w_steps:
+            finer_points.append(torch.lerp(points[i], points[(i + 1) % B], w)[None])
+    finer_points = torch.cat(finer_points, dim=0)
+    return finer_points
+
+
 if __name__ == "__main__":
     xy_plane = make_plane(x=0.8, y=0.4, grid_size=10)
     y_points = make_plane(x=0.0, y=0.4, grid_size=2)
+
+    points = torch.FloatTensor([[1, 1, 0], [-1, 1, 0], [-1, -1, 0], [1, -1, 0]])
+    polygon = make_polygon_from_points(points)

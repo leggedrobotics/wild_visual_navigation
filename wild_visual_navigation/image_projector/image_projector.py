@@ -167,18 +167,18 @@ class ImageProjector:
             # Get subset of points that are part of the convex hull
             indices = torch.LongTensor(hull.vertices)
             projected_hull = projected_points[..., indices, :]
-
+            
             # Fill the mask
             masks = draw_convex_polygon(masks, projected_hull.to(masks.device), colors.to(masks.device))
 
             # Draw on image (if applies)
             if image is not None:
                 if len(image.shape) != 4:
-                    image = image.unsqueeze(0)
+                    image = image[None]
                 image_overlay = draw_convex_polygon(image, projected_hull.to(image.device), colors.to(image.device))
 
         # Return torch masks
-        return masks, image_overlay
+        return masks, image_overlay, projected_points, valid_points
 
     def resize_image(self, image: torch.tensor):
         return self.image_crop(image)
@@ -232,7 +232,7 @@ def run_image_projector():
     colors = torch.tensor([0, 1, 0]).expand(1, 3)
 
     # Project points to image
-    k_mask, k_img_overlay = im.project_and_render(pose_camera_in_world, X, colors, k_img)
+    k_mask, k_img_overlay, _, _ = im.project_and_render(pose_camera_in_world, X, colors, k_img)
 
     # Plot result as in colab
     fig, ax = plt.subplots(1, 3, figsize=(5 * 3, 5))
