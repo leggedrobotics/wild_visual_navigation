@@ -72,15 +72,17 @@ class ExperimentParams(Serializable):
         @dataclass
         class SimpleMlpCfgParams:
             input_size: int = 90
-            hidden_sizes: List[int] = field(default_factory=lambda: [120,120,1])
+            hidden_sizes: List[int] = field(default_factory=lambda: [120, 120, 1])
             reconstruction: bool = True
+
         simple_mlp_cfg: SimpleMlpCfgParams = SimpleMlpCfgParams()
-        
+
         @dataclass
         class SimpleGcnCfgParams:
             num_node_features: int = 90
             num_classes: int = 1
             reconstruction: bool = True
+
         simple_gcn_cfg: SimpleGcnCfgParams = SimpleGcnCfgParams()
 
     model: ModelParams = ModelParams()
