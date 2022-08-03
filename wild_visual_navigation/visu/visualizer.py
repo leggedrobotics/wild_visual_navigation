@@ -91,12 +91,17 @@ class LearningVisualizer:
                 node.as_pyg_data(),
                 node.feature_positions,
                 node.image.clone(),
-                colormap="YlOrBr",
+                colormap="inferno",
             )
 
         mask = node.supervision_mask.sum(0) == 0
         mask_img = self.plot_detectron(
-            node.image.clone(), node.supervision_mask[0], max_seg=2, colormap="Set2", overlay_mask=mask
+            node.image.clone(),
+            torch.round(255 * node.supervision_mask[0]),
+            max_seg=256,
+            colormap="inferno",
+            overlay_mask=mask,
+            draw_bound=False,
         )
 
         return supervison_img, mask_img

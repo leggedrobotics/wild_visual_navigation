@@ -30,6 +30,9 @@ class WvnRosInterface:
         # Read params
         self.read_params()
 
+        # Visualization
+        self.color_palette = sns.color_palette(self.colormap, as_cmap=True)
+
         # Initialize traversability estimator
         self.traversability_estimator = TraversabilityEstimator(
             device=self.device,
@@ -41,9 +44,6 @@ class WvnRosInterface:
         self.setup_ros()
         # Launch processes
         print("─" * 80)
-
-        # Visualization
-        self.color_palette = sns.color_palette(self.colormap, as_cmap=True)
 
         # Setup slow threads
         print("Launching [learning] thread")
@@ -84,9 +84,9 @@ class WvnRosInterface:
         # Traversability estimation params
         self.traversability_radius = rospy.get_param("~traversability_radius", 5.0)
         self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr", 0.1)
-        self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.01)
-        self.network_input_image_height = rospy.get_param("~network_input_image_height", 448)
-        self.network_input_image_width = rospy.get_param("~network_input_image_width", 448)
+        self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.1)
+        self.network_input_image_height = rospy.get_param("~network_input_image_height", 224)
+        self.network_input_image_width = rospy.get_param("~network_input_image_width", 224)
 
         # Threads
         self.run_online_learning = rospy.get_param("~run_online_learning", True)
@@ -337,7 +337,7 @@ class WvnRosInterface:
 
             # Color for traversability
             r, g, b, _ = self.color_palette(node.traversability.item())
-            c = ColorRGBA(r, g, b, 0.8)
+            c = ColorRGBA(r, g, b, 1.0)
 
             # Rainbow path
             side_points = node.get_side_points()
