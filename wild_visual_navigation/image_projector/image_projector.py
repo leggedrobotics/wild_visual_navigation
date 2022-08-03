@@ -167,7 +167,7 @@ class ImageProjector:
             # Get subset of points that are part of the convex hull
             indices = torch.LongTensor(hull.vertices)
             projected_hull = projected_points[..., indices, :]
-            
+
             # Fill the mask
             masks = draw_convex_polygon(masks, projected_hull.to(masks.device), colors.to(masks.device))
 
