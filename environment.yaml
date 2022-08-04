@@ -42,3 +42,4 @@ dependencies:
     - git+https://github.com/kornia/kornia#egg=kornia
     - git+https://github.com/mmattamala/liegroups#egg=liegroups
     - --editable git+https://github.com/leggedrobotics/stego.git#egg=stego==0.0.1
+    - --editable git+https://github.com/JonasFrey96/pytorch_pwc.git#egg=pytorch_pwc==0.0.1
