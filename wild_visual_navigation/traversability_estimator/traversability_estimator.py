@@ -1,10 +1,7 @@
-from wild_visual_navigation import WVN_ROOT_DIR
-from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation.feature_extractor import FeatureExtractor
 from wild_visual_navigation.learning.model import get_model
 from wild_visual_navigation.cfg import ExperimentParams
 from wild_visual_navigation.traversability_estimator import (
-    BaseNode,
     BaseGraph,
     DistanceWindowGraph,
     MissionNode,
@@ -12,30 +9,17 @@ from wild_visual_navigation.traversability_estimator import (
 )
 from wild_visual_navigation.utils import make_polygon_from_points
 from wild_visual_navigation.visu import LearningVisualizer
-from matplotlib.colors import ListedColormap
-from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.plugins import SingleDevicePlugin
-from torch_geometric.data import LightningDataset, Data, Batch
 from pytorch_lightning import seed_everything
 from torch_geometric.data import Data, Batch
-from simple_parsing import ArgumentParser
-from threading import Thread, Lock
+from threading import Lock
 import dataclasses
-import networkx as nx
 import os
 import pickle
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
-import yaml
 
 to_tensor = transforms.ToTensor()
-
-# debug
-from wild_visual_navigation.utils import get_img_from_fig
-import matplotlib.pyplot as plt
-from kornia.utils import tensor_to_image
-from stego.src import remove_axes
 
 
 class TraversabilityEstimator:

@@ -6,13 +6,13 @@ from wild_visual_navigation.traversability_estimator import MissionNode, Proprio
 import wild_visual_navigation_ros.ros_converter as rc
 
 from wild_visual_navigation_msgs.msg import RobotState
-from geometry_msgs.msg import Pose, PoseStamped, Point, TwistStamped
+from geometry_msgs.msg import PoseStamped, Point, TwistStamped
 from nav_msgs.msg import Path
 from sensor_msgs.msg import Image, CameraInfo
 from std_msgs.msg import ColorRGBA
 from std_srvs.srv import Trigger, TriggerResponse
 from threading import Thread
-from visualization_msgs.msg import MarkerArray, Marker
+from visualization_msgs.msg import Marker
 import message_filters
 import os
 import rospy
@@ -324,9 +324,6 @@ class WvnRosInterface:
         footprints_marker.pose.position.z = 0.0
 
         last_points = [None, None]
-        # debug vis
-        N = len(self.traversability_estimator.get_proprio_nodes())
-        n = 0
         for node in self.traversability_estimator.get_proprio_nodes():
             # Path
             pose = PoseStamped()
@@ -405,7 +402,7 @@ class WvnRosInterface:
             nodes = self.traversability_estimator.get_mission_nodes()
             try:
                 mission_node = nodes[-10]
-            except:
+            except Exception:
                 mission_node = self.traversability_estimator.get_last_valid_mission_node()
 
             if mission_node is not None:

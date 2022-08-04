@@ -2,17 +2,12 @@
 
 import os
 import numpy as np
-import imageio
-import cv2
 from PIL import Image, ImageDraw
-import numpy as np
 from matplotlib import cm
-from wild_visual_navigation.utils import get_img_from_fig
 from wild_visual_navigation.visu import image_functionality
 import torch
 import skimage
 import seaborn as sns
-from torch_geometric.data import Data
 import pytorch_lightning as pl
 from typing import Optional
 from wild_visual_navigation.learning.utils import get_confidence
@@ -159,7 +154,7 @@ class LearningVisualizer:
 
         adjacency_list = graph.edge_index
 
-        if not colormap in self._c_maps:
+        if colormap not in self._c_maps:
             self._c_maps[colormap] = np.array([np.uint8(np.array(c) * 255) for c in sns.color_palette(colormap, 256)])
         c_map = self._c_maps[colormap]
 
@@ -183,7 +178,7 @@ class LearningVisualizer:
         assert seg.max() < max_seg and seg.min() >= 0, f"Seg out of Bounds: 0-{max_seg}, Given: {seg.min()}-{seg.max()}"
         try:
             seg = seg.clone().cpu().numpy()
-        except:
+        except Exception:
             pass
         seg = seg.astype(np.uint32)
 
@@ -213,7 +208,7 @@ class LearningVisualizer:
         if overlay_mask is not None:
             try:
                 overlay_mask = overlay_mask.cpu().numpy()
-            except:
+            except Exception:
                 pass
             fore[overlay_mask] = 0
 
@@ -236,14 +231,14 @@ class LearningVisualizer:
         ), f"Seg out of Bounds: 0-{max_val}, Given: {seg.min()}-{seg.max()}"
         try:
             seg = seg.clone().cpu().numpy()
-        except:
+        except Exception:
             pass
         seg = np.uint8(seg.astype(np.float32) * 255)
 
         H, W, C = img.shape
         overlay = np.zeros_like(img)
 
-        if not colormap in self._c_maps:
+        if colormap not in self._c_maps:
             self._c_maps[colormap] = np.array([np.uint8(np.array(c) * 255) for c in sns.color_palette(colormap, 256)])
         c_map = self._c_maps[colormap]
 
@@ -328,7 +323,7 @@ class LearningVisualizer:
     def plot_segmentation(self, seg, max_seg=40, colormap="Set2", **kwargs):
         try:
             seg = seg.clone().cpu().numpy()
-        except:
+        except Exception:
             pass
 
         if seg.shape[0] == 1:
@@ -358,7 +353,7 @@ class LearningVisualizer:
         """
         try:
             img = img.clone().cpu().numpy()
-        except:
+        except Exception:
             pass
 
         if img.shape[2] == 3:
@@ -386,8 +381,6 @@ if __name__ == "__main__":
     # torch.save( seg[b], "assets/graph/seg.pt")
 
     from wild_visual_navigation import WVN_ROOT_DIR
-    from wild_visual_navigation.learning.utils import get_confidence
-    from PIL import Image
 
     img = np.array(Image.open(os.path.join(WVN_ROOT_DIR, "assets/graph/img.png")))
     img = (torch.from_numpy(img).type(torch.float32) / 255).permute(2, 0, 1)
@@ -421,16 +414,16 @@ if __name__ == "__main__":
 
     i1 = visu.plot_traversability_graph(trav_pred, graph, center, img, not_log=True)
     i2 = visu.plot_traversability_graph(graph.y, graph, center, img, not_log=True)
-    visu.plot_list(imgs=[i1, i2], tag=f"7_Trav_Graph_only", store=True)
+    visu.plot_list(imgs=[i1, i2], tag="7_Trav_Graph_only", store=True)
 
     seg = torch.load(os.path.join(WVN_ROOT_DIR, "assets/graph/seg.pt"))
     # Visualize Graph with Segmentation
     i1 = visu.plot_traversability_graph_on_seg(trav_pred, seg, graph, center, img, not_log=True)
     i2 = visu.plot_traversability_graph_on_seg(graph.y, seg, graph, center, img, not_log=True)
     i3 = visu.plot_image(img, not_log=True)
-    visu.plot_list(imgs=[i1, i2, i3], tag=f"8_Trav", store=True)
+    visu.plot_list(imgs=[i1, i2, i3], tag="8_Trav", store=True)
 
     i1 = visu.plot_traversability_graph_on_seg(conf, seg, graph, center, img, not_log=True)
     i2 = visu.plot_traversability_graph_on_seg(graph.y_valid.type(torch.float32), seg, graph, center, img, not_log=True)
     i3 = visu.plot_image(img, not_log=True)
-    visu.plot_list(imgs=[i1, i2, i3], tag=f"9_Confidence", store=True)
+    visu.plot_list(imgs=[i1, i2, i3], tag="9_Confidence", store=True)

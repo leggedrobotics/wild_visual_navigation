@@ -1,16 +1,9 @@
-from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.image_projector import ImageProjector
-from wild_visual_navigation.utils import make_box, make_rounded_box, make_plane
+from wild_visual_navigation.utils import make_box, make_plane
 from liegroups.torch import SE3, SO3
-from matplotlib import cm
-from PIL import Image, ImageDraw
-from skimage import segmentation
 from torch_geometric.data import Data
-import kornia
-import numpy as np
 import os
 import torch
-import torch.nn.functional as F
 
 
 class BaseNode:

@@ -1,7 +1,6 @@
 from pathlib import Path
 import torch
 from os.path import join
-from wild_visual_navigation.feature_extractor import run_stego_interfacer
 from wild_visual_navigation import WVN_ROOT_DIR
 
 

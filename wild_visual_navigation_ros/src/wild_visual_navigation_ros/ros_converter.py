@@ -1,8 +1,5 @@
-from anymal_msgs.msg import AnymalState
 from geometry_msgs.msg import Pose
 from nav_msgs.msg import Odometry
-from sensor_msgs.msg import CameraInfo
-from wild_visual_navigation_msgs.msg import RobotState
 from cv_bridge import CvBridge
 
 from liegroups.torch import SO3, SE3
@@ -45,6 +42,7 @@ def robot_state_to_torch(robot_state, device="cpu"):
 
     return torch_state, state_labels
 
+
 def wvn_robot_state_to_torch(robot_state, device="cpu"):
     # TODO this should export a SE(3) pose, a R3 twist, a latent, and the labels
     vector_state = [x for x in robot_state.states if x.name == "vector_state"][0]
@@ -52,12 +50,13 @@ def wvn_robot_state_to_torch(robot_state, device="cpu"):
     torch_state = torch.FloatTensor(vector_state.values).to(device)
     return torch_state, vector_state.labels
 
+
 def ros_cam_info_to_tensors(caminfo_msg, device="cpu"):
     K = torch.eye(4, dtype=torch.float32).to(device)
     K[:3, :3] = torch.FloatTensor(caminfo_msg.K).reshape(3, 3)
     K = K.unsqueeze(0)
-    H = caminfo_msg.height #torch.IntTensor([caminfo_msg.height]).to(device)
-    W = caminfo_msg.width  #torch.IntTensor([caminfo_msg.width]).to(device)
+    H = caminfo_msg.height  # torch.IntTensor([caminfo_msg.height]).to(device)
+    W = caminfo_msg.width   # torch.IntTensor([caminfo_msg.width]).to(device)
     return K, H, W
 
 
