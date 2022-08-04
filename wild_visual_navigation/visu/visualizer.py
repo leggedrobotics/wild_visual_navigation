@@ -356,6 +356,39 @@ class LearningVisualizer:
         img = np.uint8(img)
         return img
 
+    @image_functionality
+    def plot_optical_flow(self, flow: torch.Tensor, img1: torch.Tensor, img2: torch.Tensor, **kwargs):
+        """Draws line connection between to images based on estimated flow
+
+        Args:
+            flow (torch.Tensor,  dtype=torch.float32, shape=(2,H,W)): Flow
+            img1 ((torch.Tensor,  dtype=torch.float32, shape=(C,H,W) or (H,W,C)): Img1
+            img2 (torch.Tensor,  dtype=torch.float32, shape=(C,H,W) or (H,W,C)): Img2
+        Returns:
+            (np.array, dtype=np.uint8, shape=(H,2xW,C)): Concatenated image with flow lines
+        """
+
+        i1 = self.plot_image(img1, not_log=True, store=False)
+        i2 = self.plot_image(img2, not_log=True, store=False)
+        img = np.concatenate([i1, i2], axis=1)
+
+        pil_img = Image.fromarray(img, "RGB")
+        draw = ImageDraw.Draw(pil_img)
+
+        s = 10
+        col = (0, 255, 0)
+        for u in range(int(flow.shape[1] / s) - 2):
+            u = int(u * s)
+            for v in range(int(flow.shape[2] / s) - 2):
+                v = int(v * s)
+                du = (flow[0, u, v]).item()
+                dv = (flow[1, u, v] + i2.shape[1]).item()
+                try:
+                    draw.line([(v, u), (v + dv, u + du)], fill=col, width=2)
+                except:
+                    pass
+        return np.array(pil_img).astype(np.uint8)
+
 
 if __name__ == "__main__":
     # Data was generated in the visu function of the lightning_module with the following code
