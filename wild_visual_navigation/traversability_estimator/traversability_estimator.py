@@ -60,6 +60,7 @@ class TraversabilityEstimator:
         self._last_trained_model = self._model.to(device)
         self._model.train()
         self._optimizer = torch.optim.AdamW(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
+        self._loss = torch.tensor([torch.inf])
         torch.set_grad_enabled(True)
 
     def __getstate__(self):
@@ -117,7 +118,8 @@ class TraversabilityEstimator:
         with self._lock:
             if self._last_trained_model is not None:
                 data = Data(x=node.features, edge_index=node.feature_edges)
-                node.prediction = self._last_trained_model(data)
+                with torch.inference_mode():
+                    node.prediction = self._last_trained_model(data)
 
     def add_mission_node(self, node: MissionNode):
         """Adds a node to the local graph to images and training info
@@ -135,7 +137,7 @@ class TraversabilityEstimator:
             # Project past footprints on current image
             image_projector = node.image_projector
             pose_cam_in_world = node.pose_cam_in_world[None]
-            supervision_mask = node.image * 0
+            supervision_mask = torch.ones(node.image.shape).to(node.image.device) * torch.nan
 
             proprio_nodes = self._proprio_graph.get_nodes()
             for pnode, next_pnode in zip(proprio_nodes[:-1], proprio_nodes[1:]):
@@ -151,7 +153,7 @@ class TraversabilityEstimator:
                 mask = mask[0]
 
                 # Update supervision mask
-                supervision_mask = torch.maximum(supervision_mask, mask.to(supervision_mask.device))
+                supervision_mask = torch.fmax(supervision_mask, mask.to(supervision_mask.device))
 
             # Finally overwrite the current mask
             node.supervision_mask = supervision_mask
@@ -208,7 +210,7 @@ class TraversabilityEstimator:
 
                 # Update traversability mask
                 mask = mask[0]
-                supervision_mask = torch.maximum(supervision_mask, mask.to(supervision_mask.device))
+                supervision_mask = torch.fmax(supervision_mask, mask.to(supervision_mask.device))
 
                 # Get global node and update supervision signal
                 mnode.supervision_mask = supervision_mask
@@ -259,6 +261,13 @@ class TraversabilityEstimator:
         return obj
 
     def save_graph(self, mission_path: str, export_debug: bool = False):
+        """Saves the graph as a dataset for offline training
+
+        Args:
+            mission_path (str): Folder where to put the data
+            export_debug (bool): If debug data should be exported as well (e.g. images)
+        """
+
         self._pause_training = True
         # Make folder if it doesn't exist
         os.makedirs(mission_path, exist_ok=True)
@@ -274,6 +283,64 @@ class TraversabilityEstimator:
             if node.is_valid():
                 node.save(mission_path, i)
                 i += 1
+        self._pause_training = False
+
+    def save_checkpoint(self, mission_path: str, filename: str = "last_model.pt"):
+        """Saves the torch model and optimization state
+
+        Args:
+            mission_path (str): Folder where to put the data
+            filename (str): Name for the checkpoint file
+        """
+
+        self._pause_training = True
+        # Prepare folder
+        os.makedirs(mission_path, exist_ok=True)
+        checkpoint_file = os.path.join(mission_path, filename)
+
+        # Save checkpoint
+        torch.save(
+            {
+                "epoch": self._epoch,
+                "model_state_dict": self._model.state_dict(),
+                "optimizer_state_dict": self._optimizer.state_dict(),
+                "loss": self._loss,
+            },
+            checkpoint_file,
+        )
+
+        print(f"Saved checkpoint to file {checkpoint_file}")
+        self._pause_training = False
+
+    def load_checkpoint(self, mission_path: str, filename: str = "last_model.pt"):
+        """Loads the torch model and optimization state
+
+        Args:
+            mission_path (str): Folder where to put the data
+            checkpoint_file (str): Name of the checkpoint file to be loaded
+        """
+
+        self._pause_training = True
+
+        # Prepare file
+        os.makedirs(mission_path, exist_ok=True)
+        checkpoint_file = os.path.join(mission_path, filename)
+
+        # Load checkpoint
+        checkpoint = torch.load(checkpoint_file)
+        self._model.load_state_dict(checkpoint["model_state_dict"])
+        self._optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        self._epoch = checkpoint["epoch"]
+        self._loss = checkpoint["loss"]
+
+        # Copy last trained model
+        with torch.inference_mode():
+            self._last_trained_model = self._model
+
+        # Set model in training mode
+        self._model.train()
+
+        print(f"Loaded checkpoint from file {checkpoint_file}")
         self._pause_training = False
 
     def make_batch(self, batch_size: int = 8):
@@ -305,16 +372,17 @@ class TraversabilityEstimator:
 
             # Compute loss only for valid elements [graph.y_valid]
             # traversability loss
-            loss_trav = F.mse_loss(res[:, 0][batch.y_valid], batch.y[batch.y_valid])
+            # loss_trav = F.mse_loss(res[:, 0][batch.y_valid], batch.y[batch.y_valid])
+            loss_trav = F.mse_loss(res[:, 0], batch.y)
 
             # Reconstruction loss
             nc = 1
             loss_reco = F.mse_loss(res[batch.y_valid][:, nc:], batch.x[batch.y_valid])
-            loss = self._exp_cfg["loss"]["trav"] * loss_trav + self._exp_cfg["loss"]["reco"] * loss_reco
+            self._loss = self._exp_cfg["loss"]["trav"] * loss_trav + self._exp_cfg["loss"]["reco"] * loss_reco
 
             # Backprop
             self._optimizer.zero_grad()
-            loss.backward()
+            self._loss.backward()
             self._optimizer.step()
 
             # Update epochs
@@ -322,7 +390,7 @@ class TraversabilityEstimator:
 
             # Print losses
             if self._epoch % 20 == 0:
-                print(f"epoch: {self._epoch} | loss: {loss:5f} | loss_trav: {loss_trav:5f} | loss_reco: {loss_reco:5f}")
+                print(f"epoch: {self._epoch} | loss: {self._loss:5f} | loss_trav: {loss_trav:5f} | loss_reco: {loss_reco:5f}")
             # Update model
             with self._lock:
                 self.last_trained_model = self._model

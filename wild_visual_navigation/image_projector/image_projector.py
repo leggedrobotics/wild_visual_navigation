@@ -178,6 +178,7 @@ class ImageProjector:
                 image_overlay = draw_convex_polygon(image, projected_hull.to(image.device), colors.to(image.device))
 
         # Return torch masks
+        masks[masks == 0.0] = torch.nan
         return masks, image_overlay, projected_points, valid_points
 
     def resize_image(self, image: torch.tensor):
