@@ -363,7 +363,7 @@ class ProprioceptionNode(BaseNode):
         )
 
     def update_traversability(self, traversability: torch.tensor, traversability_var: torch.tensor):
-        self._traversability_var = 1.0 / (1.0 / self._traversability_var ** 2 + 1.0 / traversability_var ** 2)
+        self._traversability_var = 1.0 / (1.0 / self._traversability_var**2 + 1.0 / traversability_var**2)
         self._traversability = self.traversability_var * (
             1.0 / self._traversability_var * self._traversability + 1.0 / traversability_var * traversability
         )
