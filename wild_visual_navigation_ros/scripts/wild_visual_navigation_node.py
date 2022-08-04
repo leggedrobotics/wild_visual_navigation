@@ -6,13 +6,13 @@ from wild_visual_navigation.traversability_estimator import MissionNode, Proprio
 import wild_visual_navigation_ros.ros_converter as rc
 
 from wild_visual_navigation_msgs.msg import RobotState
-from geometry_msgs.msg import Pose, PoseStamped, Point, TwistStamped
+from geometry_msgs.msg import PoseStamped, Point, TwistStamped
 from nav_msgs.msg import Path
 from sensor_msgs.msg import Image, CameraInfo
 from std_msgs.msg import ColorRGBA
 from std_srvs.srv import Trigger, TriggerResponse
 from threading import Thread
-from visualization_msgs.msg import MarkerArray, Marker
+from visualization_msgs.msg import Marker
 import message_filters
 import os
 import rospy
@@ -30,6 +30,9 @@ class WvnRosInterface:
         # Read params
         self.read_params()
 
+        # Visualization
+        self.color_palette = sns.color_palette(self.colormap, as_cmap=True)
+
         # Initialize traversability estimator
         self.traversability_estimator = TraversabilityEstimator(
             device=self.device,
@@ -41,9 +44,6 @@ class WvnRosInterface:
         self.setup_ros()
         # Launch processes
         print("─" * 80)
-
-        # Visualization
-        self.color_palette = sns.color_palette(self.colormap, as_cmap=True)
 
         # Setup slow threads
         print("Launching [learning] thread")
@@ -84,7 +84,7 @@ class WvnRosInterface:
         # Traversability estimation params
         self.traversability_radius = rospy.get_param("~traversability_radius", 5.0)
         self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr", 0.1)
-        self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.01)
+        self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.1)
         self.network_input_image_height = rospy.get_param("~network_input_image_height", 448)
         self.network_input_image_width = rospy.get_param("~network_input_image_width", 448)
 
@@ -104,7 +104,7 @@ class WvnRosInterface:
         self.device = rospy.get_param("device", "cuda")
 
         # Visualization
-        self.colormap = rospy.get_param("colormap", "inferno")
+        self.colormap = rospy.get_param("colormap", "RdYlBu")
 
     def setup_ros(self):
         """Main function to setup ROS-related stuff: publishers, subscribers and services"""
@@ -324,9 +324,6 @@ class WvnRosInterface:
         footprints_marker.pose.position.z = 0.0
 
         last_points = [None, None]
-        # debug vis
-        N = len(self.traversability_estimator.get_proprio_nodes())
-        n = 0
         for node in self.traversability_estimator.get_proprio_nodes():
             # Path
             pose = PoseStamped()
@@ -337,7 +334,7 @@ class WvnRosInterface:
 
             # Color for traversability
             r, g, b, _ = self.color_palette(node.traversability.item())
-            c = ColorRGBA(r, g, b, 0.8)
+            c = ColorRGBA(r, g, b, 1.0)
 
             # Rainbow path
             side_points = node.get_side_points()
@@ -405,7 +402,7 @@ class WvnRosInterface:
             nodes = self.traversability_estimator.get_mission_nodes()
             try:
                 mission_node = nodes[-10]
-            except:
+            except Exception:
                 mission_node = self.traversability_estimator.get_last_valid_mission_node()
 
             if mission_node is not None:

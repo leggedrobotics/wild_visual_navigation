@@ -52,13 +52,13 @@ def image_functionality(func):
                     from neptune.new.types import File
 
                     args[0]._pl_model.logger.experiment[tag].log(File.as_image(np.float32(ds) / 255), step=epoch)
-                except:
+                except Exception:
                     try:
                         # logger == wandb
                         import wandb
 
                         args[0]._pl_model.logger.experiment.log({tag: [wandb.Image(ds, caption=tag)]}, commit=True)
-                    except:
+                    except Exception:
                         try:
                             # logger == tensorboard
                             args[0]._pl_model.logger.experiment.add_image(
@@ -67,7 +67,7 @@ def image_functionality(func):
                                 global_step=epoch,
                                 dataformats="HWC",
                             )
-                        except:
+                        except Exception:
                             print("Tensorboard Logging and Neptune Logging failed !!!")
                             pass
 
