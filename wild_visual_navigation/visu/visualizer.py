@@ -71,10 +71,20 @@ class LearningVisualizer:
         conf_pred = get_confidence(reco_pred, node._features)
 
         trav_img = self.plot_traversability_graph_on_seg(
-            trav_pred, node.feature_segments, node.as_pyg_data(), node.feature_positions, node.image.clone(), colormap="RdYlBu"
+            trav_pred,
+            node.feature_segments,
+            node.as_pyg_data(),
+            node.feature_positions,
+            node.image.clone(),
+            colormap="RdYlBu",
         )
         conf_img = self.plot_traversability_graph_on_seg(
-            conf_pred, node.feature_segments, node.as_pyg_data(), node.feature_positions, node.image.clone(), colormap="viridis_r"
+            conf_pred,
+            node.feature_segments,
+            node.as_pyg_data(),
+            node.feature_positions,
+            node.image.clone(),
+            colormap="viridis_r",
         )
         return trav_img, conf_img
 
@@ -117,7 +127,9 @@ class LearningVisualizer:
             m[seg == i] = prediction[i]
 
         # Plot Segments on Image
-        i1 = self.plot_detectron_cont(img.detach().cpu().numpy(), m.detach().cpu().numpy(), not_log=True, colormap=colormap)
+        i1 = self.plot_detectron_cont(
+            img.detach().cpu().numpy(), m.detach().cpu().numpy(), not_log=True, colormap=colormap
+        )
         i2 = (torch.from_numpy(i1).type(torch.float32) / 255).permute(2, 0, 1)
         # Plot Graph on Image
         return self.plot_traversability_graph(prediction, graph, center, i2, not_log=True, colormap=colormap)
