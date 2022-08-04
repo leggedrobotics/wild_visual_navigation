@@ -277,7 +277,7 @@ class MissionNode(BaseNode):
             return
 
         if len(self._supervision_mask.shape) == 3:
-            signal = self._supervision_mask.mean(axis=0)
+            signal = self._supervision_mask.nanmean(axis=0)
 
         # If we don't have features, return
         if self._features is None:
@@ -289,14 +289,15 @@ class MissionNode(BaseNode):
             # Get a mask indices for the segment
             m = self.feature_segments == s
             # Add the higehst number per segment
-            labels_per_segment.append(signal[m].max())
+            # labels_per_segment.append(signal[m].max())
+            labels_per_segment.append(signal[m].nanmean(axis=0))
 
         # Prepare supervision signal
         torch_labels = torch.stack(labels_per_segment)
-        if torch_labels.sum() > 0:
-            self._supervision_signal = torch_labels
-            # Binary mask
-            self._supervision_signal_valid = torch_labels > 0
+        # if torch_labels.sum() > 0:
+        self._supervision_signal = torch.nan_to_num(torch_labels, nan=0)
+        # Binary mask
+        self._supervision_signal_valid = torch_labels > 0
 
 
 class ProprioceptionNode(BaseNode):
