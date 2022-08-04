@@ -7,6 +7,7 @@ Panels:
         - /Status1
         - /TF1/Tree1
         - /Wild Visual Navigation1
+        - /Wild Visual Navigation1/Self Supervision1
         - /Prediction1
       Splitter Ratio: 0.644501268863678
     Tree Height: 689
@@ -612,7 +613,7 @@ Visualization Manager:
             - Alpha: 1
               Buffer Length: 1
               Class: rviz/Path
-              Color: 25; 255; 0
+              Color: 191; 64; 185
               Enabled: true
               Head Diameter: 0.30000001192092896
               Head Length: 0.20000000298023224
@@ -638,13 +639,13 @@ Visualization Manager:
         - Alpha: 1
           Buffer Length: 1
           Class: rviz/Path
-          Color: 191; 64; 185
+          Color: 136; 138; 133
           Enabled: true
           Head Diameter: 0.30000001192092896
           Head Length: 0.20000000298023224
           Length: 0.10000000149011612
           Line Style: Billboards
-          Line Width: 0.029999999329447746
+          Line Width: 0.05000000074505806
           Name: Mission Graph
           Offset:
             X: 0
@@ -729,7 +730,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 4.96205472946167
+      Distance: 10.972844123840332
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -737,17 +738,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 1.7796193361282349
-        Y: -1.956445336341858
-        Z: 1.5917224884033203
+        X: 1.5214905738830566
+        Y: 1.4009929895401
+        Z: -0.9204660058021545
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.575397253036499
+      Pitch: 0.44039586186408997
       Target Frame: base
-      Yaw: 5.1735968589782715
+      Yaw: 2.8804073333740234
     Saved: ~
 Window Geometry:
   Displays:

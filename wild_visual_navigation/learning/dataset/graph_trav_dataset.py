@@ -1,6 +1,6 @@
 # TODO: Jonas adapt GraphTravVisuDataset when storing fixed in create_gnn_dataset
 
-from torch_geometric.data import InMemoryDataset, DataLoader, DataListLoader
+from torch_geometric.data import InMemoryDataset, DataListLoader
 from torch_geometric.data import LightningDataset
 
 from wild_visual_navigation import WVN_ROOT_DIR
@@ -9,7 +9,6 @@ import torch
 from pathlib import Path
 from torch_geometric.data import Dataset
 from torchvision import transforms as T
-from PIL import Image
 from typing import Optional, Callable
 
 
@@ -123,8 +122,6 @@ def get_pl_graph_trav_module(
 
 
 if __name__ == "__main__":
-    from torch_geometric.data import DataLoader
-
     root = str(os.path.join(WVN_ROOT_DIR, "results/perugia_forest"))
     dataset = GraphTravDataset(root=root)
     dl = DataListLoader(dataset, batch_size=8)

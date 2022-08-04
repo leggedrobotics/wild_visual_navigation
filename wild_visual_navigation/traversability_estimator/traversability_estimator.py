@@ -1,40 +1,25 @@
-from wild_visual_navigation import WVN_ROOT_DIR
-from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation.feature_extractor import FeatureExtractor
 from wild_visual_navigation.learning.model import get_model
 from wild_visual_navigation.cfg import ExperimentParams
 from wild_visual_navigation.traversability_estimator import (
-    BaseNode,
     BaseGraph,
     DistanceWindowGraph,
     MissionNode,
     ProprioceptionNode,
 )
+from wild_visual_navigation.utils import make_polygon_from_points
 from wild_visual_navigation.visu import LearningVisualizer
-
-from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.plugins import SingleDevicePlugin
-from torch_geometric.data import LightningDataset, Data, Batch
 from pytorch_lightning import seed_everything
 from torch_geometric.data import Data, Batch
-from simple_parsing import ArgumentParser
-from threading import Thread, Lock
+from threading import Lock
 import dataclasses
-import networkx as nx
 import os
 import pickle
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
-import yaml
 
 to_tensor = transforms.ToTensor()
-
-# debug
-from wild_visual_navigation.utils import get_img_from_fig
-import matplotlib.pyplot as plt
-from kornia.utils import tensor_to_image
-from stego.src import remove_axes
 
 
 class TraversabilityEstimator:
@@ -152,17 +137,20 @@ class TraversabilityEstimator:
             pose_cam_in_world = node.pose_cam_in_world[None]
             supervision_mask = node.image * 0
 
-            for p_node in self._proprio_graph.get_nodes():
-                footprint = p_node.get_footprint_points()[None]
-                color = torch.FloatTensor([1.0, 1.0, 1.0])
+            proprio_nodes = self._proprio_graph.get_nodes()
+            for pnode, next_pnode in zip(proprio_nodes[:-1], proprio_nodes[1:]):
+                side_points = pnode.get_side_points()
+                next_side_points = next_pnode.get_side_points()
+                points = torch.concat((side_points, next_side_points), dim=0)
+                footprint = make_polygon_from_points(points, grid_size=10)[None]
+                footprint = pnode.get_footprint_points()[None]
+                color = torch.FloatTensor([1.0, 1.0, 1.0]) * pnode.traversability.cpu()  # TODO fix this
+
                 # Project and render mask
-                mask, _ = image_projector.project_and_render(pose_cam_in_world, footprint, color)
+                mask, _, _, _ = image_projector.project_and_render(pose_cam_in_world, footprint, color)
                 mask = mask[0]
 
                 # Update supervision mask
-                # TODO: when we eventually add the latents/other meaningful metric, the supervision
-                # mask needs to be combined appropriately, i.e, averaging the latents in the overlapping
-                # regions. This should be done in image or 3d space
                 supervision_mask = torch.maximum(supervision_mask, mask.to(supervision_mask.device))
 
             # Finally overwrite the current mask
@@ -171,25 +159,32 @@ class TraversabilityEstimator:
         else:
             return False
 
-    def add_proprio_node(self, node: ProprioceptionNode):
+    def add_proprio_node(self, pnode: ProprioceptionNode):
         """Adds a node to the local graph to store proprioception
 
         Args:
             node (BaseNode): new node in the proprioceptive graph
         """
-        if not node.is_valid():
+        if not pnode.is_valid():
             return False
 
-        if not self._proprio_graph.add_node(node):
+        if not self._proprio_graph.add_node(pnode):
             # Update traversability of latest node
-            last_ppnode = self._proprio_graph.get_last_node()
-            last_ppnode.update_traversability(node.traversability, node.traversability_var)
+            last_pnode = self._proprio_graph.get_last_node()
+            last_pnode.update_traversability(pnode.traversability, pnode.traversability_var)
             return False
 
         else:
-            # Get proprioceptive information
-            footprint = node.get_footprint_points()[None]
-            color = torch.FloatTensor([1.0, 1.0, 1.0])
+            # Get last added proprio node
+            last_pnode = self._proprio_graph.get_last_node()
+
+            # update footprint
+            last_side_points = last_pnode.get_side_points()
+            side_points = pnode.get_side_points()
+            points = torch.concat((last_side_points, side_points), dim=0)
+            footprint = make_polygon_from_points(points, grid_size=20)[None]
+            footprint = pnode.get_footprint_points()[None]
+            color = torch.FloatTensor([1.0, 1.0, 1.0]) * pnode.traversability.cpu()  # TODO fix this
 
             # Get last mission node
             last_mission_node = self._mission_graph.get_last_node()
@@ -200,13 +195,13 @@ class TraversabilityEstimator:
                 last_mission_node, 0, self._proprio_graph.max_distance
             )
             # Project footprint onto all the image nodes
-            for m_node in mission_nodes:
+            for mnode in mission_nodes:
                 # Project
-                image_projector = m_node.image_projector
-                pose_cam_in_world = m_node.pose_cam_in_world[None]
-                supervision_mask = m_node.supervision_mask
+                image_projector = mnode.image_projector
+                pose_cam_in_world = mnode.pose_cam_in_world[None]
+                supervision_mask = mnode.supervision_mask
 
-                mask, _ = image_projector.project_and_render(pose_cam_in_world, footprint, color)
+                mask, _, _, _ = image_projector.project_and_render(pose_cam_in_world, footprint, color)
 
                 if mask is None or supervision_mask is None:
                     continue
@@ -216,8 +211,8 @@ class TraversabilityEstimator:
                 supervision_mask = torch.maximum(supervision_mask, mask.to(supervision_mask.device))
 
                 # Get global node and update supervision signal
-                m_node.supervision_mask = supervision_mask
-                m_node.update_supervision_signal()
+                mnode.supervision_mask = supervision_mask
+                mnode.update_supervision_signal()
 
             return True
 
@@ -310,7 +305,7 @@ class TraversabilityEstimator:
 
             # Compute loss only for valid elements [graph.y_valid]
             # traversability loss
-            loss_trav = F.mse_loss(res[:, 0], batch.y)
+            loss_trav = F.mse_loss(res[:, 0][batch.y_valid], batch.y[batch.y_valid])
 
             # Reconstruction loss
             nc = 1
