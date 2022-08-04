@@ -85,8 +85,8 @@ class WvnRosInterface:
         self.traversability_radius = rospy.get_param("~traversability_radius", 5.0)
         self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr", 0.1)
         self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.1)
-        self.network_input_image_height = rospy.get_param("~network_input_image_height", 224)
-        self.network_input_image_width = rospy.get_param("~network_input_image_width", 224)
+        self.network_input_image_height = rospy.get_param("~network_input_image_height", 448)
+        self.network_input_image_width = rospy.get_param("~network_input_image_width", 448)
 
         # Threads
         self.run_online_learning = rospy.get_param("~run_online_learning", True)
@@ -104,7 +104,7 @@ class WvnRosInterface:
         self.device = rospy.get_param("device", "cuda")
 
         # Visualization
-        self.colormap = rospy.get_param("colormap", "inferno")
+        self.colormap = rospy.get_param("colormap", "RdYlBu")
 
     def setup_ros(self):
         """Main function to setup ROS-related stuff: publishers, subscribers and services"""

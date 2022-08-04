@@ -7,6 +7,7 @@ Panels:
         - /Status1
         - /TF1/Tree1
         - /Wild Visual Navigation1
+        - /Wild Visual Navigation1/Self Supervision1
         - /Prediction1
       Splitter Ratio: 0.644501268863678
     Tree Height: 689
@@ -155,18 +156,6 @@ Visualization Manager:
           Value: false
         bottom_shell:
           Value: false
-        bpearl_front:
-          Value: true
-        bpearl_front_beam_origin:
-          Value: true
-        bpearl_front_protection_bars:
-          Value: true
-        bpearl_rear:
-          Value: true
-        bpearl_rear_beam_origin:
-          Value: true
-        bpearl_rear_protection_bars:
-          Value: true
         cam0_sensor_frame:
           Value: false
         cam1_sensor_frame:
@@ -201,8 +190,76 @@ Visualization Manager:
           Value: false
         control:
           Value: true
+        depth_camera_front_camera:
+          Value: true
+        depth_camera_front_camera_parent:
+          Value: true
+        depth_camera_front_depth_frame:
+          Value: true
+        depth_camera_front_depth_optical_frame:
+          Value: true
+        depth_camera_front_infra1_frame:
+          Value: true
+        depth_camera_front_infra1_optical_frame:
+          Value: true
+        depth_camera_front_infra2_frame:
+          Value: true
+        depth_camera_front_infra2_optical_frame:
+          Value: true
+        depth_camera_left_camera:
+          Value: true
+        depth_camera_left_camera_parent:
+          Value: true
+        depth_camera_left_depth_frame:
+          Value: true
+        depth_camera_left_depth_optical_frame:
+          Value: true
+        depth_camera_left_infra1_frame:
+          Value: true
+        depth_camera_left_infra1_optical_frame:
+          Value: true
+        depth_camera_left_infra2_frame:
+          Value: true
+        depth_camera_left_infra2_optical_frame:
+          Value: true
+        depth_camera_rear_camera:
+          Value: true
+        depth_camera_rear_camera_parent:
+          Value: true
+        depth_camera_rear_depth_frame:
+          Value: true
+        depth_camera_rear_depth_optical_frame:
+          Value: true
+        depth_camera_rear_infra1_frame:
+          Value: true
+        depth_camera_rear_infra1_optical_frame:
+          Value: true
+        depth_camera_rear_infra2_frame:
+          Value: true
+        depth_camera_rear_infra2_optical_frame:
+          Value: true
+        depth_camera_right_camera:
+          Value: true
+        depth_camera_right_camera_parent:
+          Value: true
+        depth_camera_right_depth_frame:
+          Value: true
+        depth_camera_right_depth_optical_frame:
+          Value: true
+        depth_camera_right_infra1_frame:
+          Value: true
+        depth_camera_right_infra1_optical_frame:
+          Value: true
+        depth_camera_right_infra2_frame:
+          Value: true
+        depth_camera_right_infra2_optical_frame:
+          Value: true
         docking_hatch_cover:
           Value: false
+        face_front:
+          Value: true
+        face_rear:
+          Value: true
         feetcenter:
           Value: true
         footprint:
@@ -225,10 +282,14 @@ Visualization Manager:
           Value: false
         lidar:
           Value: false
+        lidar_rotated:
+          Value: true
         loco_footprint:
           Value: true
         map:
           Value: false
+        mira_spectrometer:
+          Value: true
         msf_body_imu_map:
           Value: true
         odom:
@@ -241,6 +302,14 @@ Visualization Manager:
           Value: true
         top_shell:
           Value: false
+        wide_angle_camera_front_camera:
+          Value: true
+        wide_angle_camera_front_camera_parent:
+          Value: true
+        wide_angle_camera_rear_camera:
+          Value: true
+        wide_angle_camera_rear_camera_parent:
+          Value: true
       Marker Alpha: 1
       Marker Scale: 0.5
       Name: TF
@@ -304,18 +373,60 @@ Visualization Manager:
               {}
             bottom_shell:
               {}
-            bpearl_front:
-              bpearl_front_beam_origin:
-                {}
-            bpearl_front_protection_bars:
-              {}
-            bpearl_rear:
-              bpearl_rear_beam_origin:
-                {}
-            bpearl_rear_protection_bars:
-              {}
+            depth_camera_left_camera:
+              depth_camera_left_camera_parent:
+                depth_camera_left_depth_frame:
+                  depth_camera_left_depth_optical_frame:
+                    {}
+                depth_camera_left_infra1_frame:
+                  depth_camera_left_infra1_optical_frame:
+                    {}
+                depth_camera_left_infra2_frame:
+                  depth_camera_left_infra2_optical_frame:
+                    {}
+            depth_camera_right_camera:
+              depth_camera_right_camera_parent:
+                depth_camera_right_depth_frame:
+                  depth_camera_right_depth_optical_frame:
+                    {}
+                depth_camera_right_infra1_frame:
+                  depth_camera_right_infra1_optical_frame:
+                    {}
+                depth_camera_right_infra2_frame:
+                  depth_camera_right_infra2_optical_frame:
+                    {}
             docking_hatch_cover:
               {}
+            face_front:
+              depth_camera_front_camera:
+                depth_camera_front_camera_parent:
+                  depth_camera_front_depth_frame:
+                    depth_camera_front_depth_optical_frame:
+                      {}
+                  depth_camera_front_infra1_frame:
+                    depth_camera_front_infra1_optical_frame:
+                      {}
+                  depth_camera_front_infra2_frame:
+                    depth_camera_front_infra2_optical_frame:
+                      {}
+              wide_angle_camera_front_camera:
+                wide_angle_camera_front_camera_parent:
+                  {}
+            face_rear:
+              depth_camera_rear_camera:
+                depth_camera_rear_camera_parent:
+                  depth_camera_rear_depth_frame:
+                    depth_camera_rear_depth_optical_frame:
+                      {}
+                  depth_camera_rear_infra1_frame:
+                    depth_camera_rear_infra1_optical_frame:
+                      {}
+                  depth_camera_rear_infra2_frame:
+                    depth_camera_rear_infra2_optical_frame:
+                      {}
+              wide_angle_camera_rear_camera:
+                wide_angle_camera_rear_camera_parent:
+                  {}
             front_handle:
               {}
             handle:
@@ -325,6 +436,8 @@ Visualization Manager:
             interface_hatch:
               hatch:
                 {}
+            mira_spectrometer:
+              {}
             perception_head_cage:
               lidar:
                 imu_sensor_frame:
@@ -346,6 +459,8 @@ Visualization Manager:
                   cam6_sensor_frame_helper:
                     cam6_sensor_frame:
                       {}
+                lidar_rotated:
+                  {}
             remote:
               {}
             top_shell:
@@ -498,7 +613,7 @@ Visualization Manager:
             - Alpha: 1
               Buffer Length: 1
               Class: rviz/Path
-              Color: 245; 121; 0
+              Color: 191; 64; 185
               Enabled: true
               Head Diameter: 0.30000001192092896
               Head Length: 0.20000000298023224
@@ -524,7 +639,7 @@ Visualization Manager:
         - Alpha: 1
           Buffer Length: 1
           Class: rviz/Path
-          Color: 40; 87; 244
+          Color: 136; 138; 133
           Enabled: true
           Head Diameter: 0.30000001192092896
           Head Length: 0.20000000298023224
@@ -615,7 +730,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 6.819754600524902
+      Distance: 10.972844123840332
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -631,9 +746,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.44539597630500793
+      Pitch: 0.44039586186408997
       Target Frame: base
-      Yaw: 4.155418872833252
+      Yaw: 2.8804073333740234
     Saved: ~
 Window Geometry:
   Displays:
