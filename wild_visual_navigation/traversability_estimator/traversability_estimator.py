@@ -321,7 +321,7 @@ class TraversabilityEstimator:
 
             # Compute loss only for valid elements [graph.y_valid]
             # traversability loss
-            loss_trav = F.mse_loss(res[:, 0], batch.y)
+            loss_trav = F.mse_loss(res[:, 0][batch.y_valid], batch.y[batch.y_valid])
 
             # Reconstruction loss
             nc = 1

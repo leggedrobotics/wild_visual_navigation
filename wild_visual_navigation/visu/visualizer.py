@@ -71,10 +71,10 @@ class LearningVisualizer:
         conf_pred = get_confidence(reco_pred, node._features)
 
         trav_img = self.plot_traversability_graph_on_seg(
-            trav_pred, node.feature_segments, node.as_pyg_data(), node.feature_positions, node.image.clone()
+            trav_pred, node.feature_segments, node.as_pyg_data(), node.feature_positions, node.image.clone(), colormap="RdYlBu"
         )
         conf_img = self.plot_traversability_graph_on_seg(
-            conf_pred, node.feature_segments, node.as_pyg_data(), node.feature_positions, node.image.clone()
+            conf_pred, node.feature_segments, node.as_pyg_data(), node.feature_positions, node.image.clone(), colormap="viridis_r"
         )
         return trav_img, conf_img
 
@@ -91,7 +91,7 @@ class LearningVisualizer:
                 node.as_pyg_data(),
                 node.feature_positions,
                 node.image.clone(),
-                colormap="inferno",
+                colormap="RdYlBu",
             )
 
         mask = node.supervision_mask.sum(0) == 0
@@ -99,7 +99,7 @@ class LearningVisualizer:
             node.image.clone(),
             torch.round(255 * node.supervision_mask[0]),
             max_seg=256,
-            colormap="inferno",
+            colormap="RdYlBu",
             overlay_mask=mask,
             draw_bound=False,
         )
@@ -117,10 +117,10 @@ class LearningVisualizer:
             m[seg == i] = prediction[i]
 
         # Plot Segments on Image
-        i1 = self.plot_detectron_cont(img.detach().cpu().numpy(), m.detach().cpu().numpy(), not_log=True)
+        i1 = self.plot_detectron_cont(img.detach().cpu().numpy(), m.detach().cpu().numpy(), not_log=True, colormap=colormap)
         i2 = (torch.from_numpy(i1).type(torch.float32) / 255).permute(2, 0, 1)
         # Plot Graph on Image
-        return self.plot_traversability_graph(prediction, graph, center, i2, not_log=True)
+        return self.plot_traversability_graph(prediction, graph, center, i2, not_log=True, colormap=colormap)
 
     @image_functionality
     def plot_traversability_graph(self, prediction, graph, center, img, max_val=1.0, colormap="viridis", **kwargs):
@@ -165,7 +165,7 @@ class LearningVisualizer:
 
     @image_functionality
     def plot_detectron(
-        self, img, seg, alpha=0.3, draw_bound=True, max_seg=40, colormap="Set2", overlay_mask=None, **kwargs
+        self, img, seg, alpha=0.5, draw_bound=True, max_seg=40, colormap="Set2", overlay_mask=None, **kwargs
     ):
         img = self.plot_image(img, not_log=True)
         assert seg.max() < max_seg and seg.min() >= 0, f"Seg out of Bounds: 0-{max_seg}, Given: {seg.min()}-{seg.max()}"
