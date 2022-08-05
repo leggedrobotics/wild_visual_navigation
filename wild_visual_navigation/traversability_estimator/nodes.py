@@ -210,6 +210,10 @@ class MissionNode(BaseNode):
         return self._supervision_signal
 
     @property
+    def supervision_signal_valid(self):
+        return self._supervision_signal_valid
+
+    @property
     def supervision_mask(self):
         return self._supervision_mask
 
@@ -253,6 +257,10 @@ class MissionNode(BaseNode):
     def supervision_signal(self, _supervision_signal):
         self._supervision_signal = _supervision_signal
 
+    @supervision_signal_valid.setter
+    def supervision_signal_valid(self, _supervision_signal_valid):
+        self._supervision_signal_valid = _supervision_signal_valid
+
     @supervision_mask.setter
     def supervision_mask(self, supervision_mask):
         self._supervision_mask = supervision_mask
@@ -277,7 +285,7 @@ class MissionNode(BaseNode):
             return
 
         if len(self._supervision_mask.shape) == 3:
-            signal = self._supervision_mask.mean(axis=0)
+            signal = self._supervision_mask.nanmean(axis=0)
 
         # If we don't have features, return
         if self._features is None:
@@ -289,14 +297,15 @@ class MissionNode(BaseNode):
             # Get a mask indices for the segment
             m = self.feature_segments == s
             # Add the higehst number per segment
-            labels_per_segment.append(signal[m].max())
+            # labels_per_segment.append(signal[m].max())
+            labels_per_segment.append(signal[m].nanmean(axis=0))
 
         # Prepare supervision signal
         torch_labels = torch.stack(labels_per_segment)
-        if torch_labels.sum() > 0:
-            self._supervision_signal = torch_labels
-            # Binary mask
-            self._supervision_signal_valid = torch_labels > 0
+        # if torch_labels.sum() > 0:
+        self._supervision_signal = torch.nan_to_num(torch_labels, nan=0)
+        # Binary mask
+        self._supervision_signal_valid = torch_labels > 0
 
 
 class ProprioceptionNode(BaseNode):
@@ -362,7 +371,7 @@ class ProprioceptionNode(BaseNode):
         )
 
     def update_traversability(self, traversability: torch.tensor, traversability_var: torch.tensor):
-        self._traversability_var = 1.0 / (1.0 / self._traversability_var ** 2 + 1.0 / traversability_var ** 2)
+        self._traversability_var = 1.0 / (1.0 / self._traversability_var**2 + 1.0 / traversability_var**2)
         self._traversability = self.traversability_var * (
             1.0 / self._traversability_var * self._traversability + 1.0 / traversability_var * traversability
         )

@@ -16,7 +16,7 @@ add_message_files(
 
 add_service_files(
   FILES
-  SaveDataset.srv
+  SaveLoadData.srv
 )
 
 generate_messages(

@@ -79,7 +79,7 @@ class LearningVisualizer:
             node.as_pyg_data(),
             node.feature_positions,
             node.image.clone(),
-            colormap="viridis_r",
+            colormap="RdYlBu",
         )
         return trav_img, conf_img
 
@@ -99,13 +99,15 @@ class LearningVisualizer:
                 colormap="RdYlBu",
             )
 
-        mask = node.supervision_mask.sum(0) == 0
+        mask = torch.isnan(node.supervision_mask)
+        supervision_mask = node.supervision_mask.clone()
+        supervision_mask[mask] = 0
         mask_img = self.plot_detectron(
             node.image.clone(),
-            torch.round(255 * node.supervision_mask[0]),
+            torch.round(torch.clamp(255 * supervision_mask[0], 0, 255)),
             max_seg=256,
             colormap="RdYlBu",
-            overlay_mask=mask,
+            overlay_mask=mask[0],
             draw_bound=False,
         )
 
@@ -152,7 +154,13 @@ class LearningVisualizer:
         img_pil = Image.fromarray(img)
         img_draw = ImageDraw.Draw(img_pil)
 
+        # Get attributes from the graph
         adjacency_list = graph.edge_index
+
+        try:
+            node_validity = graph.y_valid
+        except Exception:
+            node_validity = [True] * adjacency_list.shape[1]
 
         if colormap not in self._c_maps:
             self._c_maps[colormap] = np.array([np.uint8(np.array(c) * 255) for c in sns.color_palette(colormap, 256)])
@@ -166,7 +174,10 @@ class LearningVisualizer:
         for i in range(center.shape[0]):
             params = center[i].tolist()
             params = [p - elipse_size for p in params] + [p + elipse_size for p in params]
-            img_draw.ellipse(params, width=10, fill=tuple(c_map[prediction[i]].tolist()))
+            if node_validity[i]:
+                img_draw.ellipse(params, width=10, fill=tuple(c_map[prediction[i]].tolist()))
+            else:
+                img_draw.ellipse(params, width=1, fill=(127, 127, 127))
 
         return np.array(img_pil)
 
@@ -175,23 +186,27 @@ class LearningVisualizer:
         self, img, seg, alpha=0.5, draw_bound=True, max_seg=40, colormap="Set2", overlay_mask=None, **kwargs
     ):
         img = self.plot_image(img, not_log=True)
-        assert seg.max() < max_seg and seg.min() >= 0, f"Seg out of Bounds: 0-{max_seg}, Given: {seg.min()}-{seg.max()}"
+        # assert seg.max() < max_seg and seg.min() >= 0, f"Seg out of Bounds: 0-{max_seg}, Given: {seg.min()}-{seg.max()}"
         try:
-            seg = seg.clone().cpu().numpy()
+            np_seg = seg.clone().cpu().numpy()
         except Exception:
             pass
-        seg = seg.astype(np.uint32)
+        np_seg = np_seg.astype(np.uint32)
 
         H, W, C = img.shape
         overlay = np.zeros_like(img)
         c_map = sns.color_palette(colormap, max_seg)
 
-        uni = np.unique(seg)
+        uni = np.unique(np_seg)
         # Commented out center extraction code
         # centers = []
         for u in uni:
-            m = seg == u
-            col = np.uint8(np.array(c_map[u])[:3] * 255)
+            m = np_seg == u
+            try:
+                col = np.uint8(np.array(c_map[u])[:3] * 255)
+            except Exception as e:
+                print(e)
+                continue
             overlay[m] = col
             # segs_mask = skimage.measure.label(m)
             # regions = skimage.measure.regionprops(segs_mask)
@@ -215,7 +230,7 @@ class LearningVisualizer:
         img_new = Image.alpha_composite(Image.fromarray(np.uint8(back)), Image.fromarray(np.uint8(fore)))
 
         img_new = img_new.convert("RGB")
-        mask = skimage.segmentation.mark_boundaries(np.array(img_new), seg, color=(255, 255, 255))
+        mask = skimage.segmentation.mark_boundaries(np.array(img_new), np_seg, color=(255, 255, 255))
         mask = mask.sum(axis=2)
         m = mask == mask.max()
         img_new = np.array(img_new)
