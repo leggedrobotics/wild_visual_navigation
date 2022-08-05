@@ -6,6 +6,7 @@ from wild_visual_navigation.visu import LearningVisualizer
 import numpy as np
 import PIL
 import os
+from wild_visual_navigation.utils import Timer
 
 if __name__ == "__main__":
     import os
@@ -17,7 +18,7 @@ if __name__ == "__main__":
             .astype(np.float32)
             * (1.0 / 255.0)
         )
-    )
+    ).cuda()
     tenTwo = torch.FloatTensor(
         np.ascontiguousarray(
             np.array(PIL.Image.open(os.path.join(PWC_ROOT_DIR, "assets/two.png")))[:, :, ::-1]
@@ -25,12 +26,15 @@ if __name__ == "__main__":
             .astype(np.float32)
             * (1.0 / 255.0)
         )
-    )
+    ).cuda()
 
-    print(tenOne.shape, tenOne.dtype)
-    fe = PwcFlowEstimator(device="cuda")
-    res = fe.forward(tenOne, tenTwo)
-    print(res.shape)
+    with Timer("inference"):
+        fe = PwcFlowEstimator(device="cuda")
+
+    a, b = tenOne[:, :436, :436], tenTwo[:, :436, :436]
+    with Timer("inference100"):
+        for i in range(100):
+            res = fe.forward(a, b)
 
     visu = LearningVisualizer(p_visu=os.path.join(WVN_ROOT_DIR, "results/test_visu"), store=True)
     visu.plot_optical_flow(res, tenOne, tenTwo)
