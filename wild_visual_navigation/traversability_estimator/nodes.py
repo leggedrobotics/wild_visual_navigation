@@ -208,6 +208,10 @@ class MissionNode(BaseNode):
     @property
     def supervision_signal(self):
         return self._supervision_signal
+    
+    @property
+    def supervision_signal_valid(self):
+        return self._supervision_signal_valid
 
     @property
     def supervision_mask(self):
@@ -252,6 +256,10 @@ class MissionNode(BaseNode):
     @supervision_signal.setter
     def supervision_signal(self, _supervision_signal):
         self._supervision_signal = _supervision_signal
+    
+    @supervision_signal_valid.setter
+    def supervision_signal_valid(self, _supervision_signal_valid):
+        self._supervision_signal_valid = _supervision_signal_valid
 
     @supervision_mask.setter
     def supervision_mask(self, supervision_mask):

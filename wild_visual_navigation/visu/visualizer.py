@@ -79,7 +79,7 @@ class LearningVisualizer:
             node.as_pyg_data(),
             node.feature_positions,
             node.image.clone(),
-            colormap="viridis_r",
+            colormap="RdYlBu",
         )
         return trav_img, conf_img
 
@@ -154,7 +154,13 @@ class LearningVisualizer:
         img_pil = Image.fromarray(img)
         img_draw = ImageDraw.Draw(img_pil)
 
+        # Get attributes from the graph
         adjacency_list = graph.edge_index
+
+        try:
+            node_validity = graph.y_valid
+        except Exception:
+            node_validity = [True] * adjacency_list.shape[1]
 
         if colormap not in self._c_maps:
             self._c_maps[colormap] = np.array([np.uint8(np.array(c) * 255) for c in sns.color_palette(colormap, 256)])
@@ -168,7 +174,10 @@ class LearningVisualizer:
         for i in range(center.shape[0]):
             params = center[i].tolist()
             params = [p - elipse_size for p in params] + [p + elipse_size for p in params]
-            img_draw.ellipse(params, width=10, fill=tuple(c_map[prediction[i]].tolist()))
+            if node_validity[i]:
+                img_draw.ellipse(params, width=10, fill=tuple(c_map[prediction[i]].tolist()))
+            else:
+                img_draw.ellipse(params, width=1, fill=(127, 127, 127))
 
         return np.array(img_pil)
 
