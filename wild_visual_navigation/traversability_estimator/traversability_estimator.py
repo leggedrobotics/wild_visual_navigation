@@ -176,7 +176,6 @@ class TraversabilityEstimator:
 
         if not self._proprio_graph.add_node(pnode):
             # Update traversability of latest node
-            last_pnode = self._proprio_graph.get_last_node()
             last_pnode.update_traversability(pnode.traversability, pnode.traversability_var)
             return False
 
@@ -190,7 +189,6 @@ class TraversabilityEstimator:
             side_points = pnode.get_side_points()
             points = torch.concat((last_side_points, side_points), dim=0)
             footprint = make_polygon_from_points(points, grid_size=20)[None]
-            # footprint = pnode.get_footprint_points()[None]
             color = torch.FloatTensor([1.0, 1.0, 1.0]) * pnode.traversability.cpu()  # TODO fix this
 
             # Get last mission node
@@ -395,7 +393,9 @@ class TraversabilityEstimator:
 
             # Print losses
             if self._epoch % 20 == 0:
-                print(f"epoch: {self._epoch} | loss: {self._loss:5f} | loss_trav: {loss_trav:5f} | loss_reco: {loss_reco:5f}")
+                print(
+                    f"epoch: {self._epoch} | loss: {self._loss:5f} | loss_trav: {loss_trav:5f} | loss_reco: {loss_reco:5f}"
+                )
             # Update model
             with self._lock:
                 self.last_trained_model = self._model
