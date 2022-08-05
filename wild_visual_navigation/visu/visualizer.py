@@ -383,6 +383,112 @@ class LearningVisualizer:
         img = np.uint8(img)
         return img
 
+    @image_functionality
+    def plot_optical_flow(self, flow: torch.Tensor, img1: torch.Tensor, img2: torch.Tensor, s=10, **kwargs):
+        """Draws line connection between to images based on estimated flow
+
+        Args:
+            flow (torch.Tensor,  dtype=torch.float32, shape=(2,H,W)): Flow
+            img1 ((torch.Tensor,  dtype=torch.float32, shape=(C,H,W) or (H,W,C)): Img1
+            img2 (torch.Tensor,  dtype=torch.float32, shape=(C,H,W) or (H,W,C)): Img2
+        Returns:
+            (np.array, dtype=np.uint8, shape=(H,2xW,C)): Concatenated image with flow lines
+        """
+
+        i1 = self.plot_image(img1, not_log=True, store=False)
+        i2 = self.plot_image(img2, not_log=True, store=False)
+        img = np.concatenate([i1, i2], axis=1)
+
+        pil_img = Image.fromarray(img, "RGB")
+        draw = ImageDraw.Draw(pil_img)
+
+        col = (0, 255, 0)
+        for u in range(int(flow.shape[1] / s)):
+            u = int(u * s)
+            for v in range(int(flow.shape[2] / s)):
+                v = int(v * s)
+                du = (flow[0, u, v]).item()
+                dv = (flow[1, u, v] + i2.shape[1]).item()
+                try:
+                    draw.line([(v, u), (v + dv, u + du)], fill=col, width=2)
+                except:
+                    pass
+        return np.array(pil_img).astype(np.uint8)
+
+    @image_functionality
+    def plot_sparse_optical_flow(
+        self, pre_pos: torch.Tensor, cur_pos: torch.Tensor, img1: torch.Tensor, img2: torch.Tensor, **kwargs
+    ):
+        """Draws line connection between to images based on estimated flow
+
+        Args:
+            pre_pos (torch.Tensor,  dtype=torch.float32, shape=(N,2)): Flow
+            cur_pos (torch.Tensor,  dtype=torch.float32, shape=(N,2)): Flow
+            img1 ((torch.Tensor,  dtype=torch.float32, shape=(C,H,W) or (H,W,C)): Img1
+            img2 (torch.Tensor,  dtype=torch.float32, shape=(C,H,W) or (H,W,C)): Img2
+        Returns:
+            (np.array, dtype=np.uint8, shape=(H,2xW,C)): Concatenated image with flow lines
+        """
+
+        i1 = self.plot_image(img1, not_log=True, store=False)
+        i2 = self.plot_image(img2, not_log=True, store=False)
+        img = np.concatenate([i1, i2], axis=1)
+
+        pil_img = Image.fromarray(img, "RGB")
+        draw = ImageDraw.Draw(pil_img)
+
+        col = (0, 255, 0)
+        for p, c in zip(pre_pos, cur_pos):
+            try:
+                draw.line([(p[0].item(), p[1].item()), ((i2.shape[1] + c[0]).item(), c[1].item())], fill=col, width=2)
+            except:
+                pass
+        return np.array(pil_img).astype(np.uint8)
+
+    @image_functionality
+    def plot_corrospondence_segment(
+        self,
+        seg_prev: torch.Tensor,
+        seg_current: torch.Tensor,
+        img_prev: torch.Tensor,
+        img_current: torch.Tensor,
+        center_prev: torch.Tensor,
+        center_current: torch.Tensor,
+        corrospondence: torch.Tensor,
+        **kwargs,
+    ):
+        """_summary_
+
+        Args:
+            seg_prev (torch.Tensor, dtype=torch.long, shape=(H,W))): Segmentation
+            seg_current (torch.Tensor, dtype=torch.long, shape=(H,W)): Segmentation
+            img_prev (torch.Tensor,  dtype=torch.float32, shape=(C,H,W) or (H,W,C)): Image
+            img_current (torch.Tensor,  dtype=torch.float32, shape=(C,H,W) or (H,W,C)): Image
+            center_prev (torch.Tensor,  dtype=torch.float32, shape=(N,2)): Center positions to index seg reverse order
+            center_current (torch.Tensor,  dtype=torch.float32, shape=(N,2)): Center positions to index seg reverse order
+            corrospondence (torch.Tensor,  dtype=torch.long, shape=(N,2)): 0 previous seg, 1 current seg
+
+        Returns:
+            (np.array, dtype=np.uint8, shape=(H,2xW,C)): Concatenated image with segments and connected centers
+        """
+        prev_img = self.plot_detectron(img_prev, seg_prev, max_seg=seg_prev.max() + 1, not_log=True, store=False)
+        current_img = self.plot_detectron(
+            img_current, seg_current, max_seg=seg_current.max() + 1, not_log=True, store=False
+        )
+        img = np.concatenate([prev_img, current_img], axis=1)
+
+        pil_img = Image.fromarray(img, "RGB")
+        draw = ImageDraw.Draw(pil_img)
+        col = (0, 255, 0)
+        for cp, cc in zip(center_prev[corrospondence[:, 0]], center_current[corrospondence[:, 1]]):
+            try:
+                draw.line(
+                    [(cp[0].item(), cp[1].item()), (cc[0].item() + img_prev.shape[1], cc[1].item())], fill=col, width=2
+                )
+            except:
+                pass
+        return np.array(pil_img).astype(np.uint8)
+
 
 if __name__ == "__main__":
     # Data was generated in the visu function of the lightning_module with the following code

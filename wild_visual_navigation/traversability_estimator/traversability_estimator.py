@@ -9,6 +9,7 @@ from wild_visual_navigation.traversability_estimator import (
 )
 from wild_visual_navigation.utils import make_polygon_from_points
 from wild_visual_navigation.visu import LearningVisualizer
+from wild_visual_navigation.utils import KLTTracker, KLTTrackerOpenCV
 from pytorch_lightning import seed_everything
 from torch_geometric.data import Data, Batch
 from threading import Lock
@@ -30,6 +31,7 @@ class TraversabilityEstimator:
         image_distance_thr: float = None,
         proprio_distance_thr: float = None,
         feature_extractor_type: str = "dino_slic",
+        optical_flow_estimatior_type: str = "none",
         min_samples_for_training: int = 10,
     ):
         self.device = device
@@ -43,6 +45,11 @@ class TraversabilityEstimator:
         # Feature extractor
         self._feature_extractor_type = feature_extractor_type
         self._feature_extractor = FeatureExtractor(device, extractor_type=self._feature_extractor_type)
+        # Optical flow
+        self._optical_flow_estimatior_type = optical_flow_estimatior_type
+
+        if optical_flow_estimatior_type == "sparse":
+            self._optical_flow_estimatior = KLTTrackerOpenCV(device=device)
 
         # Mutex
         self._lock = Lock()
@@ -93,8 +100,10 @@ class TraversabilityEstimator:
         self._proprio_graph.change_device(device)
         self._mission_graph.change_device(device)
         self._feature_extractor.change_device(device)
-
         self._model = self._model.to(device)
+        if self._optical_flow_estimatior_type != "none":
+            self._optical_flow_estimatior = self._optical_flow_estimatior.to(device)
+
         self._last_trained_model = self._last_trained_model.to(device)
 
     def update_features(self, node: MissionNode):
@@ -121,6 +130,116 @@ class TraversabilityEstimator:
                 with torch.inference_mode():
                     node.prediction = self._last_trained_model(data)
 
+    def add_corrospondences_dense_optical_flow(self, node: MissionNode, previous_node: MissionNode, debug=False):
+        flow_previous_to_current = self._optical_flow_estimatior.forward(
+            previous_node.image.clone(), node.image.clone()
+        )
+        grid_x, grid_y = torch.meshgrid(
+            torch.arange(0, previous_node.image.shape[1], device=self.device, dtype=torch.float32),
+            torch.arange(0, previous_node.image.shape[2], device=self.device, dtype=torch.float32),
+            indexing="ij",
+        )
+        positions = torch.stack([grid_x, grid_y])
+        positions += flow_previous_to_current
+        positions = positions.type(torch.long)
+        start_seg = torch.unique(previous_node.feature_segments)
+
+        previous = []
+        current = []
+        for el in start_seg:
+            m = previous_node.feature_segments == el
+            candidates = positions[:, m]
+            m = (
+                (candidates[0, :] >= 0)
+                * (candidates[0, :] < m.shape[0])
+                * (candidates[1, :] >= 0)
+                * (candidates[1, :] < m.shape[1])
+            )
+            if m.sum() == 0:
+                continue
+            candidates = candidates[:, m]
+            res = node.feature_segments[candidates[0, :], candidates[1, :]]
+            previous.append(el)
+            current.append(torch.unique(res, sorted=True)[0])
+
+        if len(current) != 0:
+            current = torch.stack(current)
+            previous = torch.stack(previous)
+            corrospondence = torch.stack([previous, current], dim=1)
+            node.corrospondence = corrospondence
+
+            if debug:
+                from wild_visual_navigation import WVN_ROOT_DIR
+                from wild_visual_navigation.visu import LearningVisualizer
+
+                visu = LearningVisualizer(p_visu=os.path.join(WVN_ROOT_DIR, "results/test_visu"), store=True)
+                visu.plot_corrospondence_segment(
+                    seg_prev=previous_node.feature_segments,
+                    seg_current=node.feature_segments,
+                    img_prev=previous_node.image,
+                    img_current=node.image,
+                    center_prev=previous_node.feature_positions,
+                    center_current=node.feature_positions,
+                    corrospondence=node.corrospondence,
+                    tag="centers",
+                )
+
+                visu.plot_optical_flow(
+                    flow=flow_previous_to_current, img1=previous_node.image, img2=node.image, tag="flow", s=50
+                )
+
+    def add_corrospondences_sparse_optical_flow(self, node: MissionNode, previous_node: MissionNode, debug=False):
+        # Transform previous_nodes feature locations into current image using KLT
+        pre_pos = previous_node.feature_positions
+        cur_pos = self._optical_flow_estimatior(
+            previous_node.feature_positions[:, 0].clone(),
+            previous_node.feature_positions[:, 1].clone(),
+            previous_node.image,
+            node.image,
+        )
+        cur_pos = torch.stack(cur_pos, dim=1)
+        # Use forward propagated cluster centers to get segment index of current image
+
+        # Only compute for forward propagated centers that fall onto current image plane
+        m = (
+            (cur_pos[:, 0] >= 0)
+            * (cur_pos[:, 1] >= 0)
+            * (cur_pos[:, 0] < node.image.shape[1])
+            * (cur_pos[:, 1] < node.image.shape[2])
+        )
+
+        # Can enumerate previous segments and use mask to get segment index
+        pre = torch.arange(previous_node.feature_positions.shape[0], device=self.device)[m]
+        cor_pre = pre[m]
+
+        # Check feature_segmentation mask to index correct segment index
+        cur_pos = cur_pos[m].type(torch.long)
+        cor_cur = node.feature_segments[cur_pos[:, 1], cur_pos[:, 0]]
+        node.corrospondence = torch.stack([cor_pre, cor_cur], dim=1)
+
+        if debug:
+            from wild_visual_navigation import WVN_ROOT_DIR
+            from wild_visual_navigation.visu import LearningVisualizer
+
+            visu = LearningVisualizer(p_visu=os.path.join(WVN_ROOT_DIR, "results/test_visu"), store=True)
+            visu.plot_sparse_optical_flow(
+                pre_pos,
+                cur_pos,
+                img1=previous_node.image,
+                img2=node.image,
+                tag="flow",
+            )
+            visu.plot_corrospondence_segment(
+                seg_prev=previous_node.feature_segments,
+                seg_current=node.feature_segments,
+                img_prev=previous_node.image,
+                img_current=node.image,
+                center_prev=previous_node.feature_positions,
+                center_current=node.feature_positions,
+                corrospondence=node.corrospondence,
+                tag="centers",
+            )
+
     def add_mission_node(self, node: MissionNode):
         """Adds a node to the local graph to images and training info
 
@@ -131,9 +250,19 @@ class TraversabilityEstimator:
         # Compute image features
         self.update_features(node)
 
+        previous_node = self._mission_graph.get_last_node()
         # Add image node
         if self._mission_graph.add_node(node):
             print(f"adding node [{node}]")
+
+            # Set optical flow
+            if self._optical_flow_estimatior_type == "dense" and previous_node is not None:
+                raise Exception("Not working")
+                self.add_corrospondences_dense_optical_flow(node, previous_node, debug=False)
+
+            elif self._optical_flow_estimatior_type == "sparse" and previous_node is not None:
+                self.add_corrospondences_sparse_optical_flow(node, previous_node, debug=False)
+
             # Project past footprints on current image
             image_projector = node.image_projector
             pose_cam_in_world = node.pose_cam_in_world[None]
@@ -353,8 +482,25 @@ class TraversabilityEstimator:
             batch_size (int): Size of the batch
         """
         # Get all the current nodes
-        mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
-        batch = Batch.from_data_list([x.as_pyg_data() for x in mission_nodes])
+
+        if self._optical_flow_estimatior_type != "none":
+            mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
+            ls = [
+                x.as_pyg_data(self._mission_graph.get_previous_node(x))
+                for x in mission_nodes
+                if x.corrospondence is not None
+            ]
+            # Make sure to only use nodes with valid corrospondences
+            while len(ls) < batch_size:
+                mn = self._mission_graph.get_n_random_valid_nodes(n=1)[0]
+                if mn.corrospondence is not None:
+                    ls.append(mn.as_pyg_data(self._mission_graph.get_previous_node(mn)))
+
+            batch = Batch.from_data_list(ls)
+        else:
+            mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
+            batch = Batch.from_data_list([x.as_pyg_data() for x in mission_nodes])
+
         return batch
 
     def train(self):
