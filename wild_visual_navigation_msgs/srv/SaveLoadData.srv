@@ -1,4 +1,4 @@
-# Path to save the dataset, otherwise it uses the default
+# Base folder to save the data
 string path
 
 # Name of the mission to store the dataset
