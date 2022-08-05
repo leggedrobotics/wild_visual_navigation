@@ -40,6 +40,7 @@ class WvnRosInterface:
             max_distance=self.traversability_radius,
             image_distance_thr=self.image_graph_dist_thr,
             proprio_distance_thr=self.proprio_graph_dist_thr,
+            optical_flow_estimatior_type=self.optical_flow_estimatior_type,
         )
         # Setup ros
         self.setup_ros()
@@ -88,6 +89,9 @@ class WvnRosInterface:
         self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.1)
         self.network_input_image_height = rospy.get_param("~network_input_image_height", 448)
         self.network_input_image_width = rospy.get_param("~network_input_image_width", 448)
+
+        # Optical flow params
+        self.optical_flow_estimatior_type = rospy.get_param("optical_flow_estimatior_type", "sparse")
 
         # Threads
         self.run_online_learning = rospy.get_param("~run_online_learning", True)
