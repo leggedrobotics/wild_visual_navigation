@@ -85,6 +85,9 @@ class BaseGraph:
     def get_last_node(self):
         return self._last_added_node
 
+    def get_previous_node(self, node: BaseNode):
+        return None
+
     def get_num_nodes(self):
         with self._lock:
             return len(self._graph.nodes)
