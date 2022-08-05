@@ -1,8 +1,6 @@
 #!/usr/bin/python3
 from wild_visual_navigation_msgs.msg import CustomState, RobotState
 from anymal_msgs.msg import AnymalState
-from std_msgs.msg import Float32MultiArray
-
 import rospy
 
 

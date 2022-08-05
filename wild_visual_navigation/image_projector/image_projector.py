@@ -49,7 +49,7 @@ class ImageProjector:
         sw = new_w if new_w is not None else sh
 
         # Prepare image cropper
-        if new_w is None:
+        if new_w is None or new_w == new_h:
             self.image_crop = T.Compose([T.Resize(new_h, T.InterpolationMode.NEAREST), T.CenterCrop(new_h)])
         else:
             self.image_crop = T.Resize([new_h, new_w], T.InterpolationMode.NEAREST)
@@ -57,7 +57,7 @@ class ImageProjector:
         # Adjust camera matrix
         # Fill values
         sK = K.clone()
-        if new_w is None:
+        if new_w is None or new_w == new_h:
             sK[-1, 0, 0] = K[-1, 1, 1] * sy
             sK[-1, 0, 2] = K[-1, 1, 2] * sy
             sK[-1, 1, 1] = K[-1, 1, 1] * sy
@@ -100,7 +100,7 @@ class ImageProjector:
 
         # Check cheirality (if points are behind the camera, i.e, negative z)
         valid_z = points_3d[..., 2] >= 0
-        # Check if projection is within image range
+        # # Check if projection is within image range
         valid_xmin = points_2d[..., 0] >= 0
         valid_xmax = points_2d[..., 0] <= self.camera.width
         valid_ymin = points_2d[..., 1] >= 0
@@ -121,7 +121,7 @@ class ImageProjector:
 
         # Adjust input points depending on the extrinsics
         T_CW = pose_camera_in_world.inverse()
-        # convert from fixed to camera frame
+        # Convert from fixed to camera frame
         points_C = transform_points(T_CW, points_W)
 
         # Project points to image
@@ -129,6 +129,13 @@ class ImageProjector:
 
         # Validity check (if points are out of the field of view)
         valid_points = self.check_validity(points_C, projected_points)
+
+        # # Clamp values
+        # N = self.camera.width.shape[0]
+        # zeros = self.camera.width * 0
+        # projected_points[..., 0] = torch.clamp(projected_points[..., 0], min=zeros, max=self.camera.width-1)
+        # projected_points[..., 1] = torch.clamp(projected_points[..., 1], min=zeros, max=self.camera.height-1)
+        # projected_points = projected_points.unique(dim=2)
 
         # Return projected points and validity
         return projected_points, valid_points
@@ -166,7 +173,7 @@ class ImageProjector:
 
             # Get subset of points that are part of the convex hull
             indices = torch.LongTensor(hull.vertices)
-            projected_hull = projected_points[..., indices, :]
+            projected_hull = projected_points[..., indices, :].to(torch.int32)
 
             # Fill the mask
             masks = draw_convex_polygon(masks, projected_hull.to(masks.device), colors.to(masks.device))
@@ -174,11 +181,12 @@ class ImageProjector:
             # Draw on image (if applies)
             if image is not None:
                 if len(image.shape) != 4:
-                    image = image.unsqueeze(0)
+                    image = image[None]
                 image_overlay = draw_convex_polygon(image, projected_hull.to(image.device), colors.to(image.device))
 
         # Return torch masks
-        return masks, image_overlay
+        masks[masks == 0.0] = torch.nan
+        return masks, image_overlay, projected_points, valid_points
 
     def resize_image(self, image: torch.tensor):
         return self.image_crop(image)
@@ -188,7 +196,7 @@ def run_image_projector():
     """Projects 3D points to example images and returns an image with the projection"""
 
     from wild_visual_navigation.utils import get_img_from_fig
-    from wild_visual_navigation.utils import make_box, make_ellipsoid, make_plane
+    from wild_visual_navigation.utils import make_plane
     from PIL import Image
     import matplotlib.pyplot as plt
     import torch
@@ -232,10 +240,23 @@ def run_image_projector():
     colors = torch.tensor([0, 1, 0]).expand(1, 3)
 
     # Project points to image
-    k_mask, k_img_overlay = im.project_and_render(pose_camera_in_world, X, colors, k_img)
+    k_mask, k_img_overlay, k_points, k_valid = im.project_and_render(pose_camera_in_world, X, colors, k_img)
+
+    # Plot points independently
+    k_points_overlay = k_img.clone()
+    for p in k_points[0]:
+        print(p)
+        idx = torch.round(p).to(torch.int32)
+        print(idx, k_points_overlay.shape)
+        for y in range(-3, 3, 1):
+            for x in range(-3, 3, 1):
+                try:
+                    k_points_overlay[0][:, idx[1].item() + y, idx[0].item() + x] = torch.tensor([0, 255, 0])
+                except Exception as e:
+                    continue
 
     # Plot result as in colab
-    fig, ax = plt.subplots(1, 3, figsize=(5 * 3, 5))
+    fig, ax = plt.subplots(1, 4, figsize=(5 * 4, 5))
 
     ax[0].imshow(tensor_to_image(k_img))
     ax[0].set_title("Image")
@@ -243,6 +264,8 @@ def run_image_projector():
     ax[1].set_title("Labels")
     ax[2].imshow(tensor_to_image(k_img_overlay))
     ax[2].set_title("Overlay")
+    ax[3].imshow(tensor_to_image(k_points_overlay))
+    ax[3].set_title("Overlay - dots")
     remove_axes(ax)
     plt.tight_layout()
 

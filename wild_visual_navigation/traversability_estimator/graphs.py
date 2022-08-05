@@ -1,10 +1,6 @@
-from wild_visual_navigation import WVN_ROOT_DIR
 from .nodes import BaseNode
-import os
-from os.path import join
 import networkx as nx
 import random
-import torch
 from threading import Lock
 import networkx
 
@@ -270,9 +266,8 @@ class DistanceWindowGraph(BaseGraph):
 
 def run_base_graph():
     from wild_visual_navigation.traversability_estimator import BaseNode
-    import torch
     from liegroups.torch import SO3, SE3
-    import matplotlib.pyplot as plt
+    import torch
 
     # Create graph
     graph = BaseGraph()
@@ -280,7 +275,6 @@ def run_base_graph():
 
     nodes_list = []
     for i in range(N):
-        t = i
         s = BaseNode(timestamp=i, pose_base_in_world=SE3(SO3.identity(), torch.Tensor([i / 10.0, 0, 0])).as_matrix())
         nodes_list.append(s)
         graph.add_node(s)
@@ -323,9 +317,8 @@ def run_base_graph():
 
 def run_temporal_window_graph():
     from wild_visual_navigation.traversability_estimator import BaseNode
-    import torch
     from liegroups.torch import SO3, SE3
-    import matplotlib.pyplot as plt
+    import torch
 
     # Create graph
     W = 25

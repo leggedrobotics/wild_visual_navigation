@@ -9,7 +9,6 @@ from stego.src import LitUnsupervisedSegmenter
 
 # from stego.src import get_transform
 from stego.src import dense_crf
-from PIL import Image
 
 
 class StegoInterface:
@@ -95,11 +94,9 @@ class StegoInterface:
 def run_stego_interfacer():
     """Performance inference using stego and stores result as an image."""
 
-    from PIL import Image
     from wild_visual_navigation.utils import get_img_from_fig
     import matplotlib.pyplot as plt
     from stego.src import unnorm, remove_axes
-    import numpy as np
     import cv2
 
     # Create test directory
@@ -109,7 +106,7 @@ def run_stego_interfacer():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     si = StegoInterface(device=device)
     p = join(WVN_ROOT_DIR, "assets/images/forest_clean.png")
-    np_img = cv2.imread(os.path.join(WVN_ROOT_DIR, "assets/images/forest_clean.png"))
+    np_img = cv2.imread(p)
     img = torch.from_numpy(cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB)).to(device)
     img = img.permute(2, 0, 1)
     img = (img.type(torch.float32) / 255)[None]

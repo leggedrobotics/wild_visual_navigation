@@ -1,9 +1,7 @@
 #!/usr/bin/python3
-from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.traversability_estimator import TraversabilityEstimator
 from os.path import exists
 import argparse
-import os
 import torch
 
 torch.cuda.empty_cache()

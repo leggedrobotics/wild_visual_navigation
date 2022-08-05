@@ -1,7 +1,6 @@
 import optuna
 from simple_parsing import ArgumentParser
 import copy
-import dataclasses
 import os
 import neptune.new.integrations.optuna as optuna_utils
 import torch

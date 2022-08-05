@@ -1,17 +1,12 @@
-from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.image_projector import ImageProjector
-from wild_visual_navigation.utils import make_box, make_rounded_box, make_plane
+from wild_visual_navigation.utils import make_box, make_plane
 from liegroups.torch import SE3, SO3
-from matplotlib import cm
-from PIL import Image, ImageDraw
-from skimage import segmentation
 from torch_geometric.data import Data
-import kornia
-import numpy as np
 import os
 import torch
 import torch.nn.functional as F
 from typing import Optional
+
 
 
 class BaseNode:
@@ -231,6 +226,10 @@ class MissionNode(BaseNode):
         return self._supervision_signal
 
     @property
+    def supervision_signal_valid(self):
+        return self._supervision_signal_valid
+
+    @property
     def supervision_mask(self):
         return self._supervision_mask
 
@@ -278,6 +277,10 @@ class MissionNode(BaseNode):
     def supervision_signal(self, _supervision_signal):
         self._supervision_signal = _supervision_signal
 
+    @supervision_signal_valid.setter
+    def supervision_signal_valid(self, _supervision_signal_valid):
+        self._supervision_signal_valid = _supervision_signal_valid
+
     @supervision_mask.setter
     def supervision_mask(self, supervision_mask):
         self._supervision_mask = supervision_mask
@@ -306,7 +309,7 @@ class MissionNode(BaseNode):
             return
 
         if len(self._supervision_mask.shape) == 3:
-            signal = self._supervision_mask.mean(axis=0)
+            signal = self._supervision_mask.nanmean(axis=0)
 
         # If we don't have features, return
         if self._features is None:
@@ -318,14 +321,15 @@ class MissionNode(BaseNode):
             # Get a mask indices for the segment
             m = self.feature_segments == s
             # Add the higehst number per segment
-            labels_per_segment.append(signal[m].max())
+            # labels_per_segment.append(signal[m].max())
+            labels_per_segment.append(signal[m].nanmean(axis=0))
 
         # Prepare supervision signal
         torch_labels = torch.stack(labels_per_segment)
-        if torch_labels.sum() > 0:
-            self._supervision_signal = torch_labels
-            # Binary mask
-            self._supervision_signal_valid = torch_labels > 0
+        # if torch_labels.sum() > 0:
+        self._supervision_signal = torch.nan_to_num(torch_labels, nan=0)
+        # Binary mask
+        self._supervision_signal_valid = torch_labels > 0
 
 
 class ProprioceptionNode(BaseNode):
