@@ -145,7 +145,7 @@ class TraversabilityEstimator:
                 next_side_points = next_pnode.get_side_points()
                 points = torch.concat((side_points, next_side_points), dim=0)
                 footprint = make_polygon_from_points(points, grid_size=10)[None]
-                footprint = pnode.get_footprint_points()[None]
+                # footprint = pnode.get_footprint_points()[None]
                 color = torch.FloatTensor([1.0, 1.0, 1.0]) * pnode.traversability.cpu()  # TODO fix this
 
                 # Project and render mask
@@ -167,8 +167,12 @@ class TraversabilityEstimator:
         Args:
             node (BaseNode): new node in the proprioceptive graph
         """
+        # If the node is not valid, we do nothing
         if not pnode.is_valid():
             return False
+
+        # Get last added proprio node
+        last_pnode = self._proprio_graph.get_last_node()
 
         if not self._proprio_graph.add_node(pnode):
             # Update traversability of latest node
@@ -177,15 +181,16 @@ class TraversabilityEstimator:
             return False
 
         else:
-            # Get last added proprio node
-            last_pnode = self._proprio_graph.get_last_node()
+            # If the previous node doesn't exist or is invalid, we do nothing
+            if last_pnode is None or not last_pnode.is_valid():
+                return False
 
             # update footprint
             last_side_points = last_pnode.get_side_points()
             side_points = pnode.get_side_points()
             points = torch.concat((last_side_points, side_points), dim=0)
             footprint = make_polygon_from_points(points, grid_size=20)[None]
-            footprint = pnode.get_footprint_points()[None]
+            # footprint = pnode.get_footprint_points()[None]
             color = torch.FloatTensor([1.0, 1.0, 1.0]) * pnode.traversability.cpu()  # TODO fix this
 
             # Get last mission node
@@ -372,8 +377,8 @@ class TraversabilityEstimator:
 
             # Compute loss only for valid elements [graph.y_valid]
             # traversability loss
-            # loss_trav = F.mse_loss(res[:, 0][batch.y_valid], batch.y[batch.y_valid])
-            loss_trav = F.mse_loss(res[:, 0], batch.y)
+            loss_trav = F.mse_loss(res[:, 0][batch.y_valid], batch.y[batch.y_valid])
+            # loss_trav = F.mse_loss(res[:, 0], batch.y)
 
             # Reconstruction loss
             nc = 1
@@ -405,7 +410,7 @@ class TraversabilityEstimator:
 def run_traversability_estimator():
 
     t = TraversabilityEstimator()
-    t.save("/tmp/te.pickle")
+    t.save("/tmp", "te.pickle")
     print("Store pickled")
     t2 = TraversabilityEstimator.load("/tmp/te.pickle")
     print("Loaded pickled")

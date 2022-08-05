@@ -387,7 +387,7 @@ class WvnRosInterface:
 
             # Color for traversability
             r, g, b, _ = self.color_palette(node.traversability.item())
-            c = ColorRGBA(r, g, b, 1.0)
+            c = ColorRGBA(r, g, b, 0.8)
 
             # Rainbow path
             side_points = node.get_side_points()
