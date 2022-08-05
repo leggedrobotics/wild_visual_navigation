@@ -8,7 +8,6 @@ import torch.nn.functional as F
 from typing import Optional
 
 
-
 class BaseNode:
     """Base node data structure"""
 

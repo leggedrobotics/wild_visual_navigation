@@ -10,7 +10,7 @@ from wild_visual_navigation_msgs.srv import SaveLoadData, SaveLoadDataResponse
 from geometry_msgs.msg import PoseStamped, Point, TwistStamped
 from nav_msgs.msg import Path
 from sensor_msgs.msg import Image, CameraInfo
-from std_msgs.msg import ColorRGBA
+from std_msgs.msg import ColorRGBA, Float32
 from std_srvs.srv import Trigger, TriggerResponse
 from threading import Thread
 from visualization_msgs.msg import Marker
@@ -148,6 +148,9 @@ class WvnRosInterface:
         self.pub_graph_footprints = rospy.Publisher(
             "/wild_visual_navigation_node/graph_footprints", Marker, queue_size=10
         )
+        self.pub_instant_traversability = rospy.Publisher(
+            "/wild_visual_navigation_node/instant_traversability", Float32, queue_size=10
+        )
 
         # Services
         # Like, reset graph or the like
@@ -252,15 +255,6 @@ class WvnRosInterface:
             state_msg (wild_visual_navigation_msgs/RobotState): Robot state message
             desired_twist_msg (geometry_msgs/TwistStamped): Desired twist message
         """
-        # Compute current velocity tracking error
-        current = state_msg.twist.twist.linear
-        target = desired_twist_msg.twist.linear
-        target_v = torch.tensor([target.x, target.y], device=self.device)
-        current_v = torch.tensor([current.x, current.y], device=self.device)
-        error = torch.nn.functional.mse_loss(current_v, target_v) / self.robot_max_velocity
-        error = 1.0 - error.clip(0, 1)
-        error_var = torch.FloatTensor(1).to(self.device)
-
         ts = state_msg.header.stamp.to_sec()
 
         # Query transforms from TF
@@ -274,6 +268,11 @@ class WvnRosInterface:
 
         # Convert state to tensor
         proprio_tensor, proprio_labels = rc.wvn_robot_state_to_torch(state_msg, device=self.device)
+        twist_tensor = rc.twist_to_torch(state_msg.twist, linear="xy", angular=None, device=self.device)
+        command_tensor = rc.twist_to_torch(desired_twist_msg, linear="xy", angular=None, device=self.device)
+
+        # Update affordance
+        affordance, affordance_var = affordance_generator.update_with_velocities(twist_tensor, command_tensor)
 
         # Create proprioceptive node for the graph
         proprio_node = ProprioceptionNode(
@@ -284,8 +283,8 @@ class WvnRosInterface:
             length=self.robot_length,
             height=self.robot_width,
             proprioception=proprio_tensor,
-            traversability=error,
-            traversability_var=error_var,
+            traversability=affordance,
+            traversability_var=affordance_var,
         )
         # Add node to graph
         self.traversability_estimator.add_proprio_node(proprio_node)
@@ -437,6 +436,9 @@ class WvnRosInterface:
             return
         self.pub_graph_footprints.publish(footprints_marker)
         self.pub_debug_proprio_graph.publish(proprio_graph_msg)
+
+        # Instant traversability
+        last_pnode = self.traversability_estimator.get_las
 
     def visualize_mission(self, mission_node: MissionNode = None):
         """Publishes all the visualizations related to mission graph, like the graph
