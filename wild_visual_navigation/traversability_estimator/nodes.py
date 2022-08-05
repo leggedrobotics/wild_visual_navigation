@@ -183,7 +183,7 @@ class MissionNode(BaseNode):
                 edge_index=self._feature_edges,
                 y=self._supervision_signal,
                 y_valid=self._supervision_signal_valid,
-                x_previous=self.previous_node.features,
+                x_previous=previous_node.features,
                 corrospondence=self._corrospondence,
             )
 

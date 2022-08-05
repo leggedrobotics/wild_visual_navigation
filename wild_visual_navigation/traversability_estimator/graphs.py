@@ -6,6 +6,7 @@ import networkx as nx
 import random
 import torch
 from threading import Lock
+import networkx
 
 
 class BaseGraph:
@@ -86,6 +87,16 @@ class BaseGraph:
         return self._last_added_node
 
     def get_previous_node(self, node: BaseNode):
+        """Returns either None or the previous node
+        Args:
+            node (BaseNode): Node with respect to which the previous node is optained
+
+        Returns:
+            BaseNode: Previous node or None
+        """
+        previous_node = [k for k in networkx.neighbors(self._graph, node) if k < node]
+        if len(previous_node) == 1:
+            return previous_node[0]
         return None
 
     def get_num_nodes(self):

@@ -45,7 +45,7 @@ class TraversabilityEstimator:
         image_distance_thr: float = None,
         proprio_distance_thr: float = None,
         feature_extractor_type: str = "dino_slic",
-        optical_flow_estimatior_type: str = "sparse",
+        optical_flow_estimatior_type: str = "none",
         min_samples_for_training: int = 10,
     ):
         self.device = device
@@ -63,7 +63,7 @@ class TraversabilityEstimator:
         self._optical_flow_estimatior_type = optical_flow_estimatior_type
 
         if optical_flow_estimatior_type == "sparse":
-            self._optical_flow_estimatior = KLTTracker(device=device)
+            self._optical_flow_estimatior = KLTTrackerOpenCV(device=device)
 
         # Mutex
         self._lock = Lock()
@@ -416,8 +416,25 @@ class TraversabilityEstimator:
             batch_size (int): Size of the batch
         """
         # Get all the current nodes
-        mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
-        batch = Batch.from_data_list([x.as_pyg_data() for x in mission_nodes])
+
+        if self._optical_flow_estimatior_type != "none":
+            mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
+            ls = [
+                x.as_pyg_data(self._mission_graph.get_previous_node(x))
+                for x in mission_nodes
+                if x.corrospondence is not None
+            ]
+            # Make sure to only use nodes with valid corrospondences
+            while len(ls) < batch_size:
+                mn = self._mission_graph.get_n_random_valid_nodes(n=1)[0]
+                if mn.corrospondence is not None:
+                    ls.append(mn.as_pyg_data(self._mission_graph.get_previous_node(mn)))
+
+            batch = Batch.from_data_list(ls)
+        else:
+            mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
+            batch = Batch.from_data_list([x.as_pyg_data() for x in mission_nodes])
+
         return batch
 
     def train(self):
