@@ -3,7 +3,6 @@ from wild_visual_navigation import WVN_ROOT_DIR
 
 import torch
 import os
-from PIL import Image
 from pathlib import PurePath, Path
 import cv2
 

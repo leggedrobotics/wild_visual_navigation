@@ -4,13 +4,9 @@ from wild_visual_navigation.learning.utils import get_confidence
 import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
-import os
 from os.path import join
-from torchmetrics import Accuracy
-from torch.nn.functional import cross_entropy
 from wild_visual_navigation.visu import LearningVisualizer
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
-import torch
 from torch_geometric.data import Data
 
 

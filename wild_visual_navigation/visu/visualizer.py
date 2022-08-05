@@ -2,17 +2,12 @@
 
 import os
 import numpy as np
-import imageio
-import cv2
 from PIL import Image, ImageDraw
-import numpy as np
 from matplotlib import cm
-from wild_visual_navigation.utils import get_img_from_fig
 from wild_visual_navigation.visu import image_functionality
 import torch
 import skimage
 import seaborn as sns
-from torch_geometric.data import Data
 import pytorch_lightning as pl
 from typing import Optional
 from wild_visual_navigation.learning.utils import get_confidence
@@ -71,10 +66,20 @@ class LearningVisualizer:
         conf_pred = get_confidence(reco_pred, node._features)
 
         trav_img = self.plot_traversability_graph_on_seg(
-            trav_pred, node.feature_segments, node.as_pyg_data(), node.feature_positions, node.image.clone()
+            trav_pred,
+            node.feature_segments,
+            node.as_pyg_data(),
+            node.feature_positions,
+            node.image.clone(),
+            colormap="RdYlBu",
         )
         conf_img = self.plot_traversability_graph_on_seg(
-            conf_pred, node.feature_segments, node.as_pyg_data(), node.feature_positions, node.image.clone()
+            conf_pred,
+            node.feature_segments,
+            node.as_pyg_data(),
+            node.feature_positions,
+            node.image.clone(),
+            colormap="RdYlBu",
         )
         return trav_img, conf_img
 
@@ -91,12 +96,19 @@ class LearningVisualizer:
                 node.as_pyg_data(),
                 node.feature_positions,
                 node.image.clone(),
-                colormap="YlOrBr",
+                colormap="RdYlBu",
             )
 
-        mask = node.supervision_mask.sum(0) == 0
+        mask = torch.isnan(node.supervision_mask)
+        supervision_mask = node.supervision_mask.clone()
+        supervision_mask[mask] = 0
         mask_img = self.plot_detectron(
-            node.image.clone(), node.supervision_mask[0], max_seg=2, colormap="Set2", overlay_mask=mask
+            node.image.clone(),
+            torch.round(torch.clamp(255 * supervision_mask[0], 0, 255)),
+            max_seg=256,
+            colormap="RdYlBu",
+            overlay_mask=mask[0],
+            draw_bound=False,
         )
 
         return supervison_img, mask_img
@@ -112,10 +124,12 @@ class LearningVisualizer:
             m[seg == i] = prediction[i]
 
         # Plot Segments on Image
-        i1 = self.plot_detectron_cont(img.detach().cpu().numpy(), m.detach().cpu().numpy(), not_log=True)
+        i1 = self.plot_detectron_cont(
+            img.detach().cpu().numpy(), m.detach().cpu().numpy(), not_log=True, colormap=colormap
+        )
         i2 = (torch.from_numpy(i1).type(torch.float32) / 255).permute(2, 0, 1)
         # Plot Graph on Image
-        return self.plot_traversability_graph(prediction, graph, center, i2, not_log=True)
+        return self.plot_traversability_graph(prediction, graph, center, i2, not_log=True, colormap=colormap)
 
     @image_functionality
     def plot_traversability_graph(self, prediction, graph, center, img, max_val=1.0, colormap="viridis", **kwargs):
@@ -140,9 +154,15 @@ class LearningVisualizer:
         img_pil = Image.fromarray(img)
         img_draw = ImageDraw.Draw(img_pil)
 
+        # Get attributes from the graph
         adjacency_list = graph.edge_index
 
-        if not colormap in self._c_maps:
+        try:
+            node_validity = graph.y_valid
+        except Exception:
+            node_validity = [True] * adjacency_list.shape[1]
+
+        if colormap not in self._c_maps:
             self._c_maps[colormap] = np.array([np.uint8(np.array(c) * 255) for c in sns.color_palette(colormap, 256)])
         c_map = self._c_maps[colormap]
 
@@ -154,32 +174,39 @@ class LearningVisualizer:
         for i in range(center.shape[0]):
             params = center[i].tolist()
             params = [p - elipse_size for p in params] + [p + elipse_size for p in params]
-            img_draw.ellipse(params, width=10, fill=tuple(c_map[prediction[i]].tolist()))
+            if node_validity[i]:
+                img_draw.ellipse(params, width=10, fill=tuple(c_map[prediction[i]].tolist()))
+            else:
+                img_draw.ellipse(params, width=1, fill=(127, 127, 127))
 
         return np.array(img_pil)
 
     @image_functionality
     def plot_detectron(
-        self, img, seg, alpha=0.3, draw_bound=True, max_seg=40, colormap="Set2", overlay_mask=None, **kwargs
+        self, img, seg, alpha=0.5, draw_bound=True, max_seg=40, colormap="Set2", overlay_mask=None, **kwargs
     ):
         img = self.plot_image(img, not_log=True)
-        assert seg.max() < max_seg and seg.min() >= 0, f"Seg out of Bounds: 0-{max_seg}, Given: {seg.min()}-{seg.max()}"
+        # assert seg.max() < max_seg and seg.min() >= 0, f"Seg out of Bounds: 0-{max_seg}, Given: {seg.min()}-{seg.max()}"
         try:
-            seg = seg.clone().cpu().numpy()
-        except:
+            np_seg = seg.clone().cpu().numpy()
+        except Exception:
             pass
-        seg = seg.astype(np.uint32)
+        np_seg = np_seg.astype(np.uint32)
 
         H, W, C = img.shape
         overlay = np.zeros_like(img)
         c_map = sns.color_palette(colormap, max_seg)
 
-        uni = np.unique(seg)
+        uni = np.unique(np_seg)
         # Commented out center extraction code
         # centers = []
         for u in uni:
-            m = seg == u
-            col = np.uint8(np.array(c_map[u])[:3] * 255)
+            m = np_seg == u
+            try:
+                col = np.uint8(np.array(c_map[u])[:3] * 255)
+            except Exception as e:
+                print(e)
+                continue
             overlay[m] = col
             # segs_mask = skimage.measure.label(m)
             # regions = skimage.measure.regionprops(segs_mask)
@@ -196,14 +223,14 @@ class LearningVisualizer:
         if overlay_mask is not None:
             try:
                 overlay_mask = overlay_mask.cpu().numpy()
-            except:
+            except Exception:
                 pass
             fore[overlay_mask] = 0
 
         img_new = Image.alpha_composite(Image.fromarray(np.uint8(back)), Image.fromarray(np.uint8(fore)))
 
         img_new = img_new.convert("RGB")
-        mask = skimage.segmentation.mark_boundaries(np.array(img_new), seg, color=(255, 255, 255))
+        mask = skimage.segmentation.mark_boundaries(np.array(img_new), np_seg, color=(255, 255, 255))
         mask = mask.sum(axis=2)
         m = mask == mask.max()
         img_new = np.array(img_new)
@@ -219,14 +246,14 @@ class LearningVisualizer:
         ), f"Seg out of Bounds: 0-{max_val}, Given: {seg.min()}-{seg.max()}"
         try:
             seg = seg.clone().cpu().numpy()
-        except:
+        except Exception:
             pass
         seg = np.uint8(seg.astype(np.float32) * 255)
 
         H, W, C = img.shape
         overlay = np.zeros_like(img)
 
-        if not colormap in self._c_maps:
+        if colormap not in self._c_maps:
             self._c_maps[colormap] = np.array([np.uint8(np.array(c) * 255) for c in sns.color_palette(colormap, 256)])
         c_map = self._c_maps[colormap]
 
@@ -311,7 +338,7 @@ class LearningVisualizer:
     def plot_segmentation(self, seg, max_seg=40, colormap="Set2", **kwargs):
         try:
             seg = seg.clone().cpu().numpy()
-        except:
+        except Exception:
             pass
 
         if seg.shape[0] == 1:
@@ -341,7 +368,7 @@ class LearningVisualizer:
         """
         try:
             img = img.clone().cpu().numpy()
-        except:
+        except Exception:
             pass
 
         if img.shape[2] == 3:
@@ -475,8 +502,6 @@ if __name__ == "__main__":
     # torch.save( seg[b], "assets/graph/seg.pt")
 
     from wild_visual_navigation import WVN_ROOT_DIR
-    from wild_visual_navigation.learning.utils import get_confidence
-    from PIL import Image
 
     img = np.array(Image.open(os.path.join(WVN_ROOT_DIR, "assets/graph/img.png")))
     img = (torch.from_numpy(img).type(torch.float32) / 255).permute(2, 0, 1)
@@ -510,16 +535,16 @@ if __name__ == "__main__":
 
     i1 = visu.plot_traversability_graph(trav_pred, graph, center, img, not_log=True)
     i2 = visu.plot_traversability_graph(graph.y, graph, center, img, not_log=True)
-    visu.plot_list(imgs=[i1, i2], tag=f"7_Trav_Graph_only", store=True)
+    visu.plot_list(imgs=[i1, i2], tag="7_Trav_Graph_only", store=True)
 
     seg = torch.load(os.path.join(WVN_ROOT_DIR, "assets/graph/seg.pt"))
     # Visualize Graph with Segmentation
     i1 = visu.plot_traversability_graph_on_seg(trav_pred, seg, graph, center, img, not_log=True)
     i2 = visu.plot_traversability_graph_on_seg(graph.y, seg, graph, center, img, not_log=True)
     i3 = visu.plot_image(img, not_log=True)
-    visu.plot_list(imgs=[i1, i2, i3], tag=f"8_Trav", store=True)
+    visu.plot_list(imgs=[i1, i2, i3], tag="8_Trav", store=True)
 
     i1 = visu.plot_traversability_graph_on_seg(conf, seg, graph, center, img, not_log=True)
     i2 = visu.plot_traversability_graph_on_seg(graph.y_valid.type(torch.float32), seg, graph, center, img, not_log=True)
     i3 = visu.plot_image(img, not_log=True)
-    visu.plot_list(imgs=[i1, i2, i3], tag=f"9_Confidence", store=True)
+    visu.plot_list(imgs=[i1, i2, i3], tag="9_Confidence", store=True)

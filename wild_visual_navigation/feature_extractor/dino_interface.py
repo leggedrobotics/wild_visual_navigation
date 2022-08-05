@@ -3,12 +3,9 @@ import os
 from os.path import join
 import torch.nn.functional as F
 import torch
-import wget
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 from torchvision import transforms as T
 from stego.src.train_segmentation import DinoFeaturizer
-
-from PIL import Image
 
 
 class DinoInterface:
@@ -109,11 +106,9 @@ class DinoInterface:
 def run_dino_interfacer():
     """Performance inference using stego and stores result as an image."""
 
-    from PIL import Image
     from wild_visual_navigation.utils import get_img_from_fig
     import matplotlib.pyplot as plt
-    from stego.src import unnorm, remove_axes
-    import numpy as np
+    from stego.src import remove_axes
     import cv2
 
     # Create test directory

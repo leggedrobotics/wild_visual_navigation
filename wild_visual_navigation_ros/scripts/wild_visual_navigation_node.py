@@ -6,13 +6,14 @@ from wild_visual_navigation.traversability_estimator import MissionNode, Proprio
 import wild_visual_navigation_ros.ros_converter as rc
 
 from wild_visual_navigation_msgs.msg import RobotState
-from geometry_msgs.msg import Pose, PoseStamped, Point, TwistStamped
+from wild_visual_navigation_msgs.srv import SaveLoadData, SaveLoadDataResponse
+from geometry_msgs.msg import PoseStamped, Point, TwistStamped
 from nav_msgs.msg import Path
 from sensor_msgs.msg import Image, CameraInfo
 from std_msgs.msg import ColorRGBA
 from std_srvs.srv import Trigger, TriggerResponse
 from threading import Thread
-from visualization_msgs.msg import MarkerArray, Marker
+from visualization_msgs.msg import Marker
 import message_filters
 import os
 import rospy
@@ -30,6 +31,9 @@ class WvnRosInterface:
         # Read params
         self.read_params()
 
+        # Visualization
+        self.color_palette = sns.color_palette(self.colormap, as_cmap=True)
+
         # Initialize traversability estimator
         self.traversability_estimator = TraversabilityEstimator(
             device=self.device,
@@ -42,9 +46,6 @@ class WvnRosInterface:
         self.setup_ros()
         # Launch processes
         print("─" * 80)
-
-        # Visualization
-        self.color_palette = sns.color_palette(self.colormap, as_cmap=True)
 
         # Setup slow threads
         print("Launching [learning] thread")
@@ -85,7 +86,7 @@ class WvnRosInterface:
         # Traversability estimation params
         self.traversability_radius = rospy.get_param("~traversability_radius", 5.0)
         self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr", 0.1)
-        self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.01)
+        self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.1)
         self.network_input_image_height = rospy.get_param("~network_input_image_height", 448)
         self.network_input_image_width = rospy.get_param("~network_input_image_width", 448)
 
@@ -108,7 +109,7 @@ class WvnRosInterface:
         self.device = rospy.get_param("device", "cuda")
 
         # Visualization
-        self.colormap = rospy.get_param("colormap", "inferno")
+        self.colormap = rospy.get_param("colormap", "RdYlBu")
 
     def setup_ros(self):
         """Main function to setup ROS-related stuff: publishers, subscribers and services"""
@@ -150,20 +151,31 @@ class WvnRosInterface:
 
         # Services
         # Like, reset graph or the like
-        self.save_graph_service = rospy.Service("~save_graph", Trigger, self.save_graph_callback)
-        self.save_pickle_service = rospy.Service("~save_pickle", Trigger, self.save_pickle_callback)
+        self.save_graph_service = rospy.Service("~save_graph", SaveLoadData, self.save_graph_callback)
+        self.save_pickle_service = rospy.Service("~save_pickle", SaveLoadData, self.save_pickle_callback)
+        self.save_checkpt_service = rospy.Service("~save_checkpoint", SaveLoadData, self.save_checkpoint_callback)
+        self.load_checkpt_service = rospy.Service("~load_checkpoint", SaveLoadData, self.load_checkpoint_callback)
 
     def save_graph_callback(self, req):
         """Service call to store the mission graph as a dataset
 
         Args:
-            req (TriggerRequest): Trigger request service
+            req (SaveLoadDataRequest): SaveLoadData obejct with the request
+
+        Returns:
+            res (SaveLoadDataResponse): Status of the request
         """
-        mission_path = os.path.join(self.output_path, self.mission_name)
+        if req.path == "" or req.mission_name == "":
+            return SaveLoadDataResponse(
+                success=False,
+                message=f"Either output_path [{path}] or mission_name [{mission_name}] is empty. Please check and try again",
+            )
+
+        mission_path = os.path.join(req.path, req.mission_name)
         t = Thread(target=self.traversability_estimator.save_graph, args=(mission_path,))
         t.start()
         t.join()
-        return TriggerResponse(success=True, message=f"Graph saved in {mission_path}")
+        return SaveLoadDataResponse(success=True, message=f"Graph saved in {mission_path}")
 
     def save_pickle_callback(self, req):
         """Service call to store the traversability estimator instance as a pickle file
@@ -171,9 +183,50 @@ class WvnRosInterface:
         Args:
             req (TriggerRequest): Trigger request service
         """
-        mission_path = os.path.join(self.output_path, self.mission_name)
-        self.traversability_estimator.save(mission_path, "traversability_estimator.pickle")
-        return TriggerResponse(success=True, message=f"Pickle saved in {mission_path}")
+        if req.path == "" or req.mission_name == "":
+            return SaveLoadDataResponse(
+                success=False,
+                message=f"Either path [{path}] or mission_name [{mission_name}] is empty. Please check and try again",
+            )
+
+        mission_path = os.path.join(req.path, req.mission_name)
+        pickle_file = "traversability_estimator.pickle"
+        self.traversability_estimator.save(mission_path, pickle_file)
+        return SaveLoadDataResponse(success=True, message=f"Pickle [{pickle_file}] saved in {mission_path}")
+
+    def save_checkpoint_callback(self, req):
+        """Service call to store the learned model
+
+        Args:
+            req (TriggerRequest): Trigger request service
+        """
+        if req.path == "" or req.mission_name == "":
+            return SaveLoadDataResponse(
+                success=False,
+                message=f"Either path [{path}] or mission_name [{mission_name}] is empty. Please check and try again",
+            )
+
+        mission_path = os.path.join(req.path, req.mission_name)
+        checkpoint_file = "model_checkpoint.pt"
+        self.traversability_estimator.save_checkpoint(mission_path, checkpoint_file)
+        return SaveLoadDataResponse(success=True, message=f"Checkpoint [{checkpoint_file}] saved in {mission_path}")
+
+    def load_checkpoint_callback(self, req):
+        """Service call to load a learned model
+
+        Args:
+            req (TriggerRequest): Trigger request service
+        """
+        if req.path == "" or req.mission_name == "":
+            return SaveLoadDataResponse(
+                success=False,
+                message=f"Either path [{path}] or mission_name [{mission_name}] is empty. Please check and try again",
+            )
+
+        mission_path = os.path.join(req.path, req.mission_name)
+        checkpoint_file = "model_checkpoint.pt"
+        self.traversability_estimator.load_checkpoint(mission_path, checkpoint_file)
+        return SaveLoadDataResponse(success=True, message=f"Checkpoint [{checkpoint_file}] loaded successfully")
 
     def query_tf(self, parent_frame: str, child_frame: str):
         """Helper function to query TFs
@@ -328,9 +381,6 @@ class WvnRosInterface:
         footprints_marker.pose.position.z = 0.0
 
         last_points = [None, None]
-        # debug vis
-        N = len(self.traversability_estimator.get_proprio_nodes())
-        n = 0
         for node in self.traversability_estimator.get_proprio_nodes():
             # Path
             pose = PoseStamped()
@@ -409,7 +459,7 @@ class WvnRosInterface:
             nodes = self.traversability_estimator.get_mission_nodes()
             try:
                 mission_node = nodes[-10]
-            except:
+            except Exception:
                 mission_node = self.traversability_estimator.get_last_valid_mission_node()
 
             if mission_node is not None:

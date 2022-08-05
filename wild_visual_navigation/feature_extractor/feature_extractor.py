@@ -1,4 +1,3 @@
-from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.feature_extractor import StegoInterface, DinoInterface
 from wild_visual_navigation.utils import PlotHelper
 
@@ -7,7 +6,6 @@ import skimage
 import torch
 import numpy as np
 import kornia
-import cv2
 from torchvision import transforms as T
 from PIL import Image, ImageDraw
 
@@ -140,7 +138,7 @@ class FeatureExtractor:
     def dino_slic(
         self,
         img: torch.tensor,
-        n_segments: int = 100,
+        n_segments: int = 200,
         compactness: float = 10.0,
         return_centers: bool = False,
         return_image: bool = False,
