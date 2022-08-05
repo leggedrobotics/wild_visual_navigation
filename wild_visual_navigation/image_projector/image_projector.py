@@ -245,9 +245,7 @@ def run_image_projector():
     # Plot points independently
     k_points_overlay = k_img.clone()
     for p in k_points[0]:
-        print(p)
         idx = torch.round(p).to(torch.int32)
-        print(idx, k_points_overlay.shape)
         for y in range(-3, 3, 1):
             for x in range(-3, 3, 1):
                 try:
