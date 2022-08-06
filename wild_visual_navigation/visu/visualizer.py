@@ -29,7 +29,7 @@ class LearningVisualizer:
         self._epoch = epoch
         self._store = store
         self._log = log
-        self._c_maps = {"viridis": np.array([np.uint8(np.array(c) * 255) for c in sns.color_palette("viridis", 256)])}
+        self._c_maps = {"RdYlBu": np.array([np.uint8(np.array(c) * 255) for c in sns.color_palette("RdYlBu", 256)])}
 
         if not (p_visu is None):
             if not os.path.exists(self._p_visu):
@@ -115,7 +115,7 @@ class LearningVisualizer:
 
     @image_functionality
     def plot_traversability_graph_on_seg(
-        self, prediction, seg, graph, center, img, max_val=1.0, colormap="viridis", **kwargs
+        self, prediction, seg, graph, center, img, max_val=1.0, colormap="RdYlBu", **kwargs
     ):
 
         # Transfer the node traversbility score to the segment
@@ -132,7 +132,7 @@ class LearningVisualizer:
         return self.plot_traversability_graph(prediction, graph, center, i2, not_log=True, colormap=colormap)
 
     @image_functionality
-    def plot_traversability_graph(self, prediction, graph, center, img, max_val=1.0, colormap="viridis", **kwargs):
+    def plot_traversability_graph(self, prediction, graph, center, img, max_val=1.0, colormap="RdYlBu", **kwargs):
         """Plot prediction on graph
 
         Args:
@@ -239,7 +239,7 @@ class LearningVisualizer:
         return np.uint8(img_new)
 
     @image_functionality
-    def plot_detectron_cont(self, img, seg, alpha=0.3, max_val=1.0, colormap="viridis", **kwargs):
+    def plot_detectron_cont(self, img, seg, alpha=0.3, max_val=1.0, colormap="RdYlBu", **kwargs):
         img = self.plot_image(img, not_log=True)
         assert (
             seg.max() <= max_val and seg.min() >= 0
@@ -273,7 +273,7 @@ class LearningVisualizer:
         return np.uint8(img_new)
 
     @image_functionality
-    def plot_graph_result(self, graph, center, img, seg, res, use_seg=False, colormap="viridis", **kwargs):
+    def plot_graph_result(self, graph, center, img, seg, res, use_seg=False, colormap="RdYlBu", **kwargs):
         """Plot Graph GT and Predtion on Image
 
         Args:
