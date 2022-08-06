@@ -1,5 +1,5 @@
 from wild_visual_navigation import WVN_ROOT_DIR
-from wild_visual_navigation.affordance_generator import LinearKalmanFilter
+from wild_visual_navigation.affordance_generator import KalmanFilter
 from os.path import join
 import os
 import torch
@@ -16,7 +16,7 @@ class AffordanceGenerator:
         Returns:
             None
         """
-        pass
+        self.kalman_filter_ = KalmanFilter(dim_state=1, dim_control=1, dim_meas=1)
 
     def update_with_velocities(
         self, current_velocity: torch.tensor, target_velocity: torch.tensor, max_velocity: float = 1.0
