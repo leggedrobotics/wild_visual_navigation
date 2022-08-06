@@ -39,6 +39,7 @@ class ExperimentParams(Serializable):
     class LossParams:
         trav: float = 1.0
         reco: float = 1.0
+        temp: float = 1.0
 
     loss: LossParams = LossParams()
 
@@ -62,6 +63,7 @@ class ExperimentParams(Serializable):
         visu: bool = True
         batch_size: int = 8
         num_workers: int = 0
+        dataset_folder: str = "results/perugia_forest_uphill_loop"
 
     data_module: DataModuleParams = DataModuleParams()
 
