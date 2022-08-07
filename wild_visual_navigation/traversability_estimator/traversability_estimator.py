@@ -7,6 +7,8 @@ from wild_visual_navigation.traversability_estimator import (
     MissionNode,
     ProprioceptionNode,
 )
+
+from wild_visual_navigation.learning.utils import compute_loss
 from wild_visual_navigation.utils import make_polygon_from_points
 from wild_visual_navigation.visu import LearningVisualizer
 from wild_visual_navigation.utils import KLTTracker, KLTTrackerOpenCV
@@ -257,8 +259,10 @@ class TraversabilityEstimator:
         previous_node = self._mission_graph.get_last_node()
         # Add image node
         if self._mission_graph.add_node(node):
-            print(f"adding node [{node}]")
-
+            total_nodes = self._mission_graph.get_num_nodes()
+            s = f"adding node [{node}], "
+            s += " " * (48 - len(s)) + f"total nodes [{total_nodes}]"
+            print(s)
             # Set optical flow
             if self._optical_flow_estimatior_type == "dense" and previous_node is not None:
                 raise Exception("Not working")
@@ -418,7 +422,7 @@ class TraversabilityEstimator:
         i = 0
         for node in mission_nodes:
             if node.is_valid():
-                node.save(mission_path, i)
+                node.save(mission_path, i, graph_only=False, previous_node=self._mission_graph.get_previous_node(node))
                 i += 1
         self._pause_training = False
 
@@ -495,16 +499,20 @@ class TraversabilityEstimator:
                 for x in mission_nodes
                 if x.corrospondence is not None
             ]
+
+            ls_aux = [self._mission_graph.get_previous_node(x).as_pyg_data(aux=True) for x in mission_nodes]
+
             # Make sure to only use nodes with valid corrospondences
             while len(ls) < batch_size:
                 mn = self._mission_graph.get_n_random_valid_nodes(n=1)[0]
                 if mn.corrospondence is not None:
                     ls.append(mn.as_pyg_data(self._mission_graph.get_previous_node(mn)))
+                    ls_aux.append(self._mission_graph.get_previous_node(mn).as_pyg_data(aux=True))
 
-            batch = Batch.from_data_list(ls)
+            batch = [Batch.from_data_list(ls), Batch.from_data_list(ls_aux)]
         else:
             mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
-            batch = Batch.from_data_list([x.as_pyg_data() for x in mission_nodes])
+            batch = [Batch.from_data_list([x.as_pyg_data() for x in mission_nodes]), None]
 
         return batch
 
@@ -519,20 +527,11 @@ class TraversabilityEstimator:
 
         if self._mission_graph.get_num_valid_nodes() > self.min_samples_for_training:
             # Prepare new batch
-            batch = self.make_batch(self._exp_cfg["data_module"]["batch_size"])
+            graph, graph_aux = self.make_batch(self._exp_cfg["data_module"]["batch_size"])
 
             # forward pass
-            res = self._model(batch)
-
-            # Compute loss only for valid elements [graph.y_valid]
-            # traversability loss
-            loss_trav = F.mse_loss(res[:, 0][batch.y_valid], batch.y[batch.y_valid])
-            # loss_trav = F.mse_loss(res[:, 0], batch.y)
-
-            # Reconstruction loss
-            nc = 1
-            loss_reco = F.mse_loss(res[batch.y_valid][:, nc:], batch.x[batch.y_valid])
-            self._loss = self._exp_cfg["loss"]["trav"] * loss_trav + self._exp_cfg["loss"]["reco"] * loss_reco
+            res = self._model(graph)
+            self._loss, loss_aux = compute_loss(graph, res, self._exp_cfg["loss"], self._model, graph_aux)
 
             # Backprop
             self._optimizer.zero_grad()
@@ -544,6 +543,8 @@ class TraversabilityEstimator:
 
             # Print losses
             if self._epoch % 20 == 0:
+                loss_trav = loss_aux["loss_trav"]
+                loss_reco = loss_aux["loss_reco"]
                 print(
                     f"epoch: {self._epoch} | loss: {self._loss:5f} | loss_trav: {loss_trav:5f} | loss_reco: {loss_reco:5f}"
                 )
@@ -562,7 +563,6 @@ class TraversabilityEstimator:
 
 
 def run_traversability_estimator():
-
     t = TraversabilityEstimator()
     t.save("/tmp", "te.pickle")
     print("Store pickled")

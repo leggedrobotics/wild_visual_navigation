@@ -163,7 +163,9 @@ class MissionNode(BaseNode):
         if self._corrospondence is not None:
             self._corrospondence = self._corrospondence.to(device)
 
-    def as_pyg_data(self, previous_node: Optional[BaseNode] = None):
+    def as_pyg_data(self, previous_node: Optional[BaseNode] = None, aux: bool = False):
+        if aux:
+            return Data(x=self.features, edge_index=self._feature_edges)
         if previous_node is None:
             return Data(
                 x=self.features,
@@ -178,11 +180,16 @@ class MissionNode(BaseNode):
                 y=self._supervision_signal,
                 y_valid=self._supervision_signal_valid,
                 x_previous=previous_node.features,
+                edge_index_previous=previous_node._feature_edges,
                 corrospondence=self._corrospondence,
             )
 
     def is_valid(self):
-        return isinstance(self._features, torch.Tensor) and isinstance(self._supervision_signal, torch.Tensor)
+        return (
+            isinstance(self._features, torch.Tensor)
+            and isinstance(self._supervision_signal, torch.Tensor)
+            and isinstance(self._corrospondence, torch.Tensor)
+        )
 
     @property
     def features(self):
@@ -288,9 +295,9 @@ class MissionNode(BaseNode):
     def corrospondence(self, corrospondence):
         self._corrospondence = corrospondence
 
-    def save(self, output_path: str, index: int, graph_only: bool = False):
+    def save(self, output_path: str, index: int, graph_only: bool = False, previous_node: Optional[BaseNode] = None):
         if self._feature_positions is not None:
-            graph_data = self.as_pyg_data()
+            graph_data = self.as_pyg_data(previous_node)
             path = os.path.join(output_path, "graph", f"graph_{index:06d}.pt")
             torch.save(graph_data, path)
             if not graph_only:
