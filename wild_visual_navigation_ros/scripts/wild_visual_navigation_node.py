@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.image_projector import ImageProjector
+from wild_visual_navigation.affordance_generator import AffordanceGenerator
 from wild_visual_navigation.traversability_estimator import TraversabilityEstimator
 from wild_visual_navigation.traversability_estimator import MissionNode, ProprioceptionNode
 import wild_visual_navigation_ros.ros_converter as rc
@@ -42,6 +43,10 @@ class WvnRosInterface:
             proprio_distance_thr=self.proprio_graph_dist_thr,
             optical_flow_estimatior_type=self.optical_flow_estimatior_type,
         )
+
+        # Affordance generator
+        self.affordance_generator = AffordanceGenerator(self.device)
+
         # Setup ros
         self.setup_ros()
         # Launch processes
@@ -66,7 +71,7 @@ class WvnRosInterface:
     def read_params(self):
         """Reads all the parameters from the parameter server"""
         # Topics
-        self.robot_state_topic = rospy.get_param("~robot_state_topic", "/wild_visual_navigation_ros/robot_state")
+        self.robot_state_topic = rospy.get_param("~robot_state_topic", "/wild_visual_navigation_node/robot_state")
         self.image_topic = rospy.get_param("~image_topic", "/alphasense_driver_ros/cam4/debayered")
         self.info_topic = rospy.get_param("~camera_info_topic", "/alphasense_driver_ros/cam4/camera_info")
         self.desired_twist_topic = rospy.get_param("~desired_twist_topic", "/log/state/desiredRobotTwist")
@@ -151,6 +156,7 @@ class WvnRosInterface:
         self.pub_instant_traversability = rospy.Publisher(
             "/wild_visual_navigation_node/instant_traversability", Float32, queue_size=10
         )
+        self.pub_training_loss = rospy.Publisher("/wild_visual_navigation_node/training_loss", Float32, queue_size=10)
 
         # Services
         # Like, reset graph or the like
@@ -268,11 +274,11 @@ class WvnRosInterface:
 
         # Convert state to tensor
         proprio_tensor, proprio_labels = rc.wvn_robot_state_to_torch(state_msg, device=self.device)
-        current_twist_tensor = rc.twist_to_torch(state_msg.twist, linear="xy", angular=None, device=self.device)
-        desired_twist_tensor = rc.twist_to_torch(desired_twist_msg, linear="xy", angular=None, device=self.device)
+        current_twist_tensor = rc.twist_stamped_to_torch(state_msg.twist, components=["vx", "vy"], device=self.device)
+        desired_twist_tensor = rc.twist_stamped_to_torch(desired_twist_msg, components=["vx", "vy"], device=self.device)
 
         # Update affordance
-        affordance, affordance_var = affordance_generator.update_with_velocities(
+        affordance, affordance_var = self.affordance_generator.update_with_velocities(
             current_twist_tensor, desired_twist_tensor
         )
 
@@ -350,7 +356,10 @@ class WvnRosInterface:
         # Main loop
         while not rospy.is_shutdown():
             # Optimize model
-            self.traversability_estimator.train()
+            loss = self.traversability_estimator.train()
+
+            # Publish loss
+            self.pub_training_loss.publish(loss)
             rate.sleep()
 
     def visualize_proprioception(self):
@@ -392,7 +401,7 @@ class WvnRosInterface:
 
             # Color for traversability
             r, g, b, _ = self.color_palette(node.traversability.item())
-            c = ColorRGBA(r, g, b, 0.8)
+            c = ColorRGBA(r, g, b, 0.95)
 
             # Rainbow path
             side_points = node.get_side_points()
@@ -439,8 +448,8 @@ class WvnRosInterface:
         self.pub_graph_footprints.publish(footprints_marker)
         self.pub_debug_proprio_graph.publish(proprio_graph_msg)
 
-        # Instant traversability
-        last_pnode = self.traversability_estimator.get_las
+        # Publish latest affordance/traversability
+        self.pub_instant_traversability.publish(self.affordance_generator.affordance)
 
     def visualize_mission(self, mission_node: MissionNode = None):
         """Publishes all the visualizations related to mission graph, like the graph

@@ -8,9 +8,8 @@ class KalmanFilter(nn.Module):
         dim_state: int = 1,
         dim_control: int = 1,
         dim_meas: int = 1,
-        outlier_rejection: bool = True,
+        outlier_rejection: str = "none",
         outlier_delta: float = 1.0,
-        outlier_loss: str = "huber",
     ):
         super().__init__()
 
@@ -34,7 +33,6 @@ class KalmanFilter(nn.Module):
         # Outlier rejection
         self.outlier_rejection = outlier_rejection
         self.outlier_delta = outlier_delta
-        self.outlier_loss = outlier_loss
 
     def init_process_model(self, proc_model=None, proc_cov=None, control_model=None):
         # Initialize process model
@@ -96,36 +94,30 @@ class KalmanFilter(nn.Module):
         innovation_cov = self.meas_model @ state_cov @ self.meas_model.t() + self.meas_cov
 
         # Kalman gain
-        kalman_gain = state_cov @ self.meas_model.t() @ innovation_cov.inverse()
+        kalman_gain = outlier_weight * state_cov @ self.meas_model.t() @ innovation_cov.inverse()
 
         # Updated state
-        state = state + outlier_weight * (kalman_gain @ innovation)
+        state = state + (kalman_gain @ innovation)
         state_cov = (self.eye - kalman_gain @ self.meas_model) @ state_cov
 
         return state, state_cov
 
     def get_outlier_weight(self, error: torch.tensor, cov: torch.tensor):
-        if self.outlier_rejection:
+        if self.outlier_rejection != "none":
             # Compute residual
-            r = torch.sqrt(error.t() @ cov.inverse() @ error).clone().detach().requires_grad_(True)
+            r = torch.sqrt(error.t() @ cov.inverse() @ error)
 
             # Apply outlier rejection strategy
-            if self.outlier_loss == "hard":
+            if self.outlier_rejection == "hard":
                 weight = torch.tensor([0.0]) if r.item() >= self.outlier_delta else torch.tensor([1.0])
-            else:
+            elif self.outlier_rejection == "huber":
                 # Prepare Huber loss
-                loss = nn.HuberLoss(reduction="none", delta=self.outlier_delta)
-
-                # Apply to get weighted residual
-                w_r = loss(r, torch.tensor([0.0])[None])
-
-                # Get weight (derivative of loss divided by loss)
-                w_r.backward()
-
-                # Weight for the residual is just the gradient of robust loss divided by the residual
-                weight = r.grad / r
-
-            return weight
+                abs_r = r.abs()
+                weight = 1.0 if abs_r <= self.outlier_delta else self.outlier_delta / abs_r
+                return weight
+            else:
+                print(f"Outlier rejection due to invalid option outlier_rejection [{self.outlier_rejection}].")
+                return torch.tensor([1.0])
         else:
             return torch.tensor([1.0])
 
@@ -142,14 +134,12 @@ def run_kalman_filter():
     import seaborn as sns
 
     # Normal KF
-    kf1 = KalmanFilter(dim_state=1, dim_control=1, dim_meas=1, outlier_rejection=False)
+    kf1 = KalmanFilter(dim_state=1, dim_control=1, dim_meas=1, outlier_rejection="none")
     kf1.init_process_model(proc_model=torch.eye(1) * 1, proc_cov=torch.eye(1) * 0.5)
     kf1.init_meas_model(meas_model=torch.eye(1), meas_cov=torch.eye(1) * 2)
 
     # Outlier-robust KF
-    kf2 = KalmanFilter(
-        dim_state=1, dim_control=1, dim_meas=1, outlier_rejection=True, outlier_delta=0.5, outlier_loss="huber"
-    )
+    kf2 = KalmanFilter(dim_state=1, dim_control=1, dim_meas=1, outlier_rejection="huber", outlier_delta=0.5)
     kf2.init_process_model(proc_model=torch.eye(1) * 1, proc_cov=torch.eye(1) * 0.5)
     kf2.init_meas_model(meas_model=torch.eye(1), meas_cov=torch.eye(1) * 2)
 
@@ -210,6 +200,7 @@ def run_kalman_filter():
     plt.plot(t_np, x_noisy_np, label="Noisy signal", color="k")
     plt.plot(t_np, x_e_np[0], label="Filtered", color="r")
     plt.plot(t_np, x_e_np[1], label="Filtered - w/outlier rejection", color="b")
+    plt.plot(t_np, x_cov_np[1], label="Cov - w/outlier rejection", color="g")
     plt.fill_between(
         t_np,
         x_e_np[0] - x_cov_np[0],

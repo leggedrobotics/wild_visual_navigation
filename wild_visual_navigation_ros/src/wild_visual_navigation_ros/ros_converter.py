@@ -50,6 +50,29 @@ def wvn_robot_state_to_torch(robot_state, device="cpu"):
     torch_state = torch.FloatTensor(vector_state.values).to(device)
     return torch_state, vector_state.labels
 
+def twist_stamped_to_torch(twist, components: list = ["vx", "vy", "vz", "wx", "wy", "wz"], device="cpu"):
+    N = len(components)
+    torch_twist = torch.zeros(N).to(device)
+    i = 0
+    if "vx" in components:
+        torch_twist[i] = twist.twist.linear.x
+        i+=1
+    if "vy" in components:
+        torch_twist[i] = twist.twist.linear.y
+        i+=1
+    if "vz" in components:
+        torch_twist[i] = twist.twist.linear.z
+        i+=1
+    if "wx" in components:
+        torch_twist[i] = twist.twist.angular.x
+        i+=1
+    if "wy" in components:
+        torch_twist[i] = twist.twist.angular.y
+        i+=1
+    if "wz" in components:
+        torch_twist[i] = twist.twist.angular.z
+        i+=1
+    return torch_twist
 
 def ros_cam_info_to_tensors(caminfo_msg, device="cpu"):
     K = torch.eye(4, dtype=torch.float32).to(device)
