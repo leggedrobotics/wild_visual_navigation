@@ -72,8 +72,10 @@ class AffordanceGenerator:
         # Note: The way we use the sigmoid is a bit hacky
         s = nn.Sigmoid()
         # Note: we use negative argument to revert sigmoid (smaller errors -> 1.0)
-        self._affordance = s(-(sigmoid_slope * (error - sigmoid_cutoff))) 
-        self._affordance_var = torch.tensor([1.0]).to(self._affordance.device)  # This needs to be improved, the KF can help
+        self._affordance = s(-(sigmoid_slope * (error - sigmoid_cutoff)))
+        self._affordance_var = torch.tensor([1.0]).to(
+            self._affordance.device
+        )  # This needs to be improved, the KF can help
 
         # Return
         return self._affordance, self._affordance_var

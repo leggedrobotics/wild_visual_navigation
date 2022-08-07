@@ -43,16 +43,17 @@ robot_state_msg.states.append(joint_effort)
 # Vector state
 vector_state = CustomState()
 vector_state.name = "vector_state"
-vector_state.dim = 7 + 6 # + 4 * 12
+vector_state.dim = 7 + 6  # + 4 * 12
 vector_state.values = [0] * vector_state.dim
 vector_state.labels = [""] * vector_state.dim
 vector_state.values = [0] * vector_state.dim
 robot_state_msg.states.append(vector_state)
 
-i=0
+i = 0
 for x in ["tx", "ty", "tz", "qx", "qy", "qz", "qw", "vx", "vy", "vz", "wx", "wy", "wz"]:
     robot_state_msg.states[4].labels[i] = x
     i += 1
+
 
 def anymal_msg_callback(anymal_state):
     global labels_initialized
@@ -96,7 +97,7 @@ def anymal_msg_callback(anymal_state):
     robot_state_msg.states[4].values[10] = anymal_state.twist.twist.angular.x
     robot_state_msg.states[4].values[11] = anymal_state.twist.twist.angular.y
     robot_state_msg.states[4].values[12] = anymal_state.twist.twist.angular.z
-    
+
     # i = 13
     # # Joints
     # if not labels_initialized:
@@ -118,7 +119,7 @@ def anymal_msg_callback(anymal_state):
     # robot_state_msg.states[4].values[i:i+d] = anymal_state.joints.acceleration
     # i = i + d
     # robot_state_msg.states[4].values[i:i+d] = anymal_state.joints.effort
-    
+
     # Publish
     robot_state_pub.publish(robot_state_msg)
 
