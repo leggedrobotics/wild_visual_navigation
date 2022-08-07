@@ -84,6 +84,10 @@ class TraversabilityEstimator:
         self._lock = Lock()
 
     @property
+    def loss(self):
+        return self._loss.detach().item()
+
+    @property
     def pause_learning(self):
         return self._pause_training
 
@@ -305,7 +309,8 @@ class TraversabilityEstimator:
 
         if not self._proprio_graph.add_node(pnode):
             # Update traversability of latest node
-            last_pnode.update_traversability(pnode.traversability, pnode.traversability_var)
+            if last_pnode is not None:
+                last_pnode.update_traversability(pnode.traversability, pnode.traversability_var)
             return False
 
         else:
@@ -545,6 +550,9 @@ class TraversabilityEstimator:
             # Update model
             with self._lock:
                 self.last_trained_model = self._model
+
+            # Return loss
+            return self._loss.item()
 
     def plot_mission_node_prediction(self, node: MissionNode):
         return self._visualizer.plot_mission_node_prediction(node)

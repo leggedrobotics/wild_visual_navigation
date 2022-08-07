@@ -348,7 +348,7 @@ class ProprioceptionNode(BaseNode):
         height: float = 0.1,
         proprioception: torch.tensor = None,
         traversability: torch.tensor = torch.FloatTensor([0.0]),
-        traversability_var: torch.tensor = torch.FloatTensor([0.0]),
+        traversability_var: torch.tensor = torch.FloatTensor([1.0]),
     ):
         assert isinstance(pose_base_in_world, torch.Tensor)
         assert isinstance(pose_footprint_in_base, torch.Tensor)
@@ -394,10 +394,10 @@ class ProprioceptionNode(BaseNode):
         )
 
     def update_traversability(self, traversability: torch.tensor, traversability_var: torch.tensor):
-        self._traversability_var = 1.0 / (1.0 / self._traversability_var ** 2 + 1.0 / traversability_var ** 2)
-        self._traversability = self.traversability_var * (
-            1.0 / self._traversability_var * self._traversability + 1.0 / traversability_var * traversability
-        )
+        # Pessimistic rule: choose the less traversable one
+        if (traversability < self._traversability).any():
+            self._traversability = traversability
+            self._traversability_var = traversability_var
 
     @property
     def traversability(self):
