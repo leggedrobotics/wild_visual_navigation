@@ -10,6 +10,7 @@ from pathlib import Path
 from torch_geometric.data import Dataset
 from torchvision import transforms as T
 from typing import Optional, Callable
+from torch_geometric.data import Data
 
 
 class GraphTravDataset(InMemoryDataset):
@@ -69,7 +70,12 @@ class GraphTravVisuDataset(Dataset):
         center = torch.load(self.paths[idx].replace("graph", "center"))
         img = self.crop(torch.load(self.paths[idx].replace("graph", "img")))
         seg = torch.load(self.paths[idx].replace("graph", "seg"))
-        return graph, center, img, seg
+        graph.img = img[None]
+        graph.center = center
+        graph.seg = seg[None]
+
+        graph2 = Data(x=graph.x_previous, edge_index=graph.edge_index_previous)
+        return graph, graph2
 
 
 class GraphTravOnlineDataset(InMemoryDataset):
@@ -99,9 +105,17 @@ class GraphTravOnlineDataset(InMemoryDataset):
 
 
 def get_pl_graph_trav_module(
-    batch_size: int = 1, num_workers: int = 0, visu: bool = False, **kwargs
+    batch_size: int = 1,
+    num_workers: int = 0,
+    visu: bool = False,
+    dataset_folder: str = "results/default_mission",
+    **kwargs
 ) -> LightningDataset:
-    root = str(os.path.join(WVN_ROOT_DIR, "results/default_mission"))
+
+    if os.path.isabs(dataset_folder):
+        root = dataset_folder
+    else:
+        root = str(os.path.join(WVN_ROOT_DIR, dataset_folder))
 
     if visu:
         train_dataset = GraphTravVisuDataset(root=root, mode="train")
