@@ -10,22 +10,27 @@ class KalmanFilter(nn.Module):
         dim_meas: int = 1,
         outlier_rejection: bool = True,
         outlier_delta: float = 1.0,
-        outlier_loss: str = "huber"
+        outlier_loss: str = "huber",
     ):
         super().__init__()
+
         # Store dimensions
         self.dim_state = dim_state
         self.dim_control = dim_control
         self.dim_meas = dim_meas
+
         # Prediction model
         self.proc_model = nn.Parameter(torch.eye(dim_state))
         self.proc_cov = nn.Parameter(torch.eye(dim_state))
         self.control_model = nn.Parameter(torch.eye(dim_state, dim_control))
+
         # Measurement model
         self.meas_model = nn.Parameter(torch.eye(dim_meas, dim_state))
         self.meas_cov = nn.Parameter(torch.eye(dim_meas, dim_meas))
+
         # Helper
         self.eye = nn.Parameter(torch.eye(dim_state, dim_state), requires_grad=False)
+
         # Outlier rejection
         self.outlier_rejection = outlier_rejection
         self.outlier_delta = outlier_delta
@@ -85,16 +90,16 @@ class KalmanFilter(nn.Module):
         innovation = meas - self.meas_model @ state
 
         # Get outlier rejection weight
-        weight = self.get_outlier_weight(innovation, self.meas_cov)
+        outlier_weight = self.get_outlier_weight(innovation, self.meas_cov)
 
         # Innovation covariance
-        innovation_cov = (self.meas_model @ state_cov @ self.meas_model.t() + self.meas_cov)
+        innovation_cov = self.meas_model @ state_cov @ self.meas_model.t() + self.meas_cov
 
         # Kalman gain
         kalman_gain = state_cov @ self.meas_model.t() @ innovation_cov.inverse()
 
         # Updated state
-        state = state + weight * (kalman_gain @ innovation)
+        state = state + outlier_weight * (kalman_gain @ innovation)
         state_cov = (self.eye - kalman_gain @ self.meas_model) @ state_cov
 
         return state, state_cov
@@ -102,19 +107,22 @@ class KalmanFilter(nn.Module):
     def get_outlier_weight(self, error: torch.tensor, cov: torch.tensor):
         if self.outlier_rejection:
             # Compute residual
-            r = torch.tensor(torch.sqrt(error.t() @ cov.inverse() @ error), requires_grad=True)
-            
+            r = torch.sqrt(error.t() @ cov.inverse() @ error).clone().detach().requires_grad_(True)
+
             # Apply outlier rejection strategy
             if self.outlier_loss == "hard":
                 weight = torch.tensor([0.0]) if r.item() >= self.outlier_delta else torch.tensor([1.0])
             else:
+                # Prepare Huber loss
                 loss = nn.HuberLoss(reduction="none", delta=self.outlier_delta)
-            
+
                 # Apply to get weighted residual
-                w_r = loss(r, torch.tensor([0.0]))
+                w_r = loss(r, torch.tensor([0.0])[None])
 
                 # Get weight (derivative of loss divided by loss)
                 w_r.backward()
+
+                # Weight for the residual is just the gradient of robust loss divided by the residual
                 weight = r.grad / r
 
             return weight
@@ -139,7 +147,9 @@ def run_kalman_filter():
     kf1.init_meas_model(meas_model=torch.eye(1), meas_cov=torch.eye(1) * 2)
 
     # Outlier-robust KF
-    kf2 = KalmanFilter(dim_state=1, dim_control=1, dim_meas=1, outlier_rejection=True, outlier_delta=0.5, outlier_loss="huber")
+    kf2 = KalmanFilter(
+        dim_state=1, dim_control=1, dim_meas=1, outlier_rejection=True, outlier_delta=0.5, outlier_loss="huber"
+    )
     kf2.init_process_model(proc_model=torch.eye(1) * 1, proc_cov=torch.eye(1) * 0.5)
     kf2.init_meas_model(meas_model=torch.eye(1), meas_cov=torch.eye(1) * 2)
 
@@ -181,8 +191,8 @@ def run_kalman_filter():
         s = x_noisy[i]
 
         # Get new estimate and cov
-        e1, cov1 = kf1(x_e[0, i-1][None], x_cov[0, i-1][None], s[None])
-        e2, cov2 = kf2(x_e[1, i-1][None], x_cov[1, i-1][None], s[None])
+        e1, cov1 = kf1(x_e[0, i - 1][None], x_cov[0, i - 1][None], s[None])
+        e2, cov2 = kf2(x_e[1, i - 1][None], x_cov[1, i - 1][None], s[None])
 
         # Save predictions
         x_e[0, i] = e1

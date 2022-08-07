@@ -268,11 +268,13 @@ class WvnRosInterface:
 
         # Convert state to tensor
         proprio_tensor, proprio_labels = rc.wvn_robot_state_to_torch(state_msg, device=self.device)
-        twist_tensor = rc.twist_to_torch(state_msg.twist, linear="xy", angular=None, device=self.device)
-        command_tensor = rc.twist_to_torch(desired_twist_msg, linear="xy", angular=None, device=self.device)
+        current_twist_tensor = rc.twist_to_torch(state_msg.twist, linear="xy", angular=None, device=self.device)
+        desired_twist_tensor = rc.twist_to_torch(desired_twist_msg, linear="xy", angular=None, device=self.device)
 
         # Update affordance
-        affordance, affordance_var = affordance_generator.update_with_velocities(twist_tensor, command_tensor)
+        affordance, affordance_var = affordance_generator.update_with_velocities(
+            current_twist_tensor, desired_twist_tensor
+        )
 
         # Create proprioceptive node for the graph
         proprio_node = ProprioceptionNode(
