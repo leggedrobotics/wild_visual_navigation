@@ -137,9 +137,7 @@ class TraversabilityEstimator:
                     node.prediction = self._last_trained_model(data)
 
     def add_correspondences_dense_optical_flow(self, node: MissionNode, previous_node: MissionNode, debug=False):
-        flow_previous_to_current = self._optical_flow_estimator.forward(
-            previous_node.image.clone(), node.image.clone()
-        )
+        flow_previous_to_current = self._optical_flow_estimator.forward(previous_node.image.clone(), node.image.clone())
         grid_x, grid_y = torch.meshgrid(
             torch.arange(0, previous_node.image.shape[1], device=self.device, dtype=torch.float32),
             torch.arange(0, previous_node.image.shape[2], device=self.device, dtype=torch.float32),
@@ -217,7 +215,7 @@ class TraversabilityEstimator:
         # Can enumerate previous segments and use mask to get segment index
         cor_pre = torch.arange(previous_node.feature_positions.shape[0], device=self.device)[m]
         # cor_pre = pre[m]
-        
+
         # Check feature_segmentation mask to index correct segment index
         cur_pos = cur_pos[m].type(torch.long)
         cor_cur = node.feature_segments[cur_pos[:, 1], cur_pos[:, 0]]
@@ -272,28 +270,28 @@ class TraversabilityEstimator:
                 self.add_correspondences_sparse_optical_flow(node, previous_node, debug=False)
 
             # Project past footprints on current image
-            image_projector = node.image_projector
-            pose_cam_in_world = node.pose_cam_in_world[None]
-            supervision_mask = torch.ones(node.image.shape).to(node.image.device) * torch.nan
+            device = node.image.device
+            supervision_mask = torch.ones(node.image.shape).to(device) * torch.nan
 
             proprio_nodes = self._proprio_graph.get_nodes()
-            for pnode, next_pnode in zip(proprio_nodes[:-1], proprio_nodes[1:]):
-                side_points = pnode.get_side_points()
-                next_side_points = next_pnode.get_side_points()
-                points = torch.concat((side_points, next_side_points), dim=0)
-                footprint = make_polygon_from_points(points, grid_size=10)[None]
-                # footprint = pnode.get_footprint_points()[None]
-                color = torch.FloatTensor([1.0, 1.0, 1.0]) * pnode.traversability.cpu()  # TODO fix this
+            for last_pnode, pnode in zip(proprio_nodes[:-1], proprio_nodes[1:]):
+                # Make footprint
+                footprint = pnode.make_footprint_with_node(last_pnode)
 
-                # Project and render mask
-                mask, _, _, _ = image_projector.project_and_render(pose_cam_in_world, footprint, color)
-                mask = mask[0]
+                # Project mask
+                mask, _, _, _ = node.project_footprint(footprint)
+                if mask is None:
+                    continue
+                    
+                # Update mask with traversability
+                mask = mask[0] * pnode.traversability.cpu()
 
-                # Update supervision mask
-                supervision_mask = torch.fmax(supervision_mask, mask.to(supervision_mask.device))
-
+                # Get global node and update supervision signal
+                supervision_mask = torch.fmin(supervision_mask, mask.to(device))
+                
             # Finally overwrite the current mask
             node.supervision_mask = supervision_mask
+            node.update_supervision_signal()
             return True
         else:
             return False
@@ -322,15 +320,12 @@ class TraversabilityEstimator:
             if last_pnode is None or not last_pnode.is_valid():
                 return False
 
-            # update footprint
-            last_side_points = last_pnode.get_side_points()
-            side_points = pnode.get_side_points()
-            points = torch.concat((last_side_points, side_points), dim=0)
-            footprint = make_polygon_from_points(points, grid_size=20)[None]
-            color = torch.FloatTensor([1.0, 1.0, 1.0]) * pnode.traversability.cpu()  # TODO fix this
+            # Update footprint
+            footprint = pnode.make_footprint_with_node(last_pnode)[None]
 
             # Get last mission node
             last_mission_node = self._mission_graph.get_last_node()
+
             if last_mission_node is None:
                 return False
 
@@ -339,22 +334,15 @@ class TraversabilityEstimator:
             )
             # Project footprint onto all the image nodes
             for mnode in mission_nodes:
-                # Project
-                image_projector = mnode.image_projector
-                pose_cam_in_world = mnode.pose_cam_in_world[None]
-                supervision_mask = mnode.supervision_mask
-
-                mask, _, _, _ = image_projector.project_and_render(pose_cam_in_world, footprint, color)
-
-                if mask is None or supervision_mask is None:
+                mask, _, _, _ = mnode.project_footprint(footprint)
+                if mask is None:
                     continue
 
-                # Update traversability mask
-                mask = mask[0]
-                supervision_mask = torch.fmax(supervision_mask, mask.to(supervision_mask.device))
+                # Update mask with traversability
+                mask = mask[0] * pnode.traversability.cpu()
 
                 # Get global node and update supervision signal
-                mnode.supervision_mask = supervision_mask
+                mnode.supervision_mask = torch.fmin(mnode.supervision_mask, mask.to(mnode.supervision_mask.device))
                 mnode.update_supervision_signal()
 
             return True
