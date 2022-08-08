@@ -45,7 +45,16 @@ class WvnRosInterface:
         )
 
         # Initialize affordance generator to process velocity commands
-        self.affordance_generator = AffordanceGenerator(self.device)
+        self.affordance_generator = AffordanceGenerator(
+            self.device,
+            kf_process_cov=0.1,
+            kf_meas_cov=1000,
+            kf_outlier_rejection="huber",
+            kf_outlier_rejection_delta=0.5,
+            sigmoid_slope=25,
+            sigmoid_cutoff=0.5,
+            unaffordable_thr=0.1,
+        )
 
         # Setup ros
         self.setup_ros()
@@ -278,7 +287,7 @@ class WvnRosInterface:
         desired_twist_tensor = rc.twist_stamped_to_torch(desired_twist_msg, components=["vx", "vy"], device=self.device)
 
         # Update affordance
-        affordance, affordance_var = self.affordance_generator.update_with_velocities(
+        affordance, affordance_var, is_unaffordable = self.affordance_generator.update_with_velocities(
             current_twist_tensor, desired_twist_tensor
         )
 
