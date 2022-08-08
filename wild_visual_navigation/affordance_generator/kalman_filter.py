@@ -113,13 +113,13 @@ class KalmanFilter(nn.Module):
             elif self.outlier_rejection == "huber":
                 # Prepare Huber loss
                 abs_r = r.abs()
-                weight = 1.0 if abs_r <= self.outlier_delta else self.outlier_delta / abs_r
+                weight = 1.0 if abs_r <= self.outlier_delta else (self.outlier_delta / abs_r).item()
                 return weight
             else:
                 print(f"Outlier rejection due to invalid option outlier_rejection [{self.outlier_rejection}].")
-                return torch.tensor([1.0])
+                return 1.0
         else:
-            return torch.tensor([1.0])
+            return 1.0
 
     def forward(self, state, state_cov, meas, control=None):
         state, state_cov = self.prediction(state, state_cov, control)
