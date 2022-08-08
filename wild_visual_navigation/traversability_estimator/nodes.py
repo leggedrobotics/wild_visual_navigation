@@ -1,5 +1,5 @@
 from wild_visual_navigation.image_projector import ImageProjector
-from wild_visual_navigation.utils import make_box, make_plane
+from wild_visual_navigation.utils import make_box, make_plane, make_polygon_from_points
 from liegroups.torch import SE3, SO3
 from torch_geometric.data import Data
 import os
@@ -130,7 +130,7 @@ class MissionNode(BaseNode):
         self._supervision_mask = None
         self._supervision_signal = None
         self._supervision_signal_valid = None
-        self._corrospondence = None
+        self._correspondence = None
 
     def change_device(self, device):
         """Changes the device of all the class members
@@ -160,8 +160,8 @@ class MissionNode(BaseNode):
             self._supervision_signal = self._supervision_signal.to(device)
         if self._supervision_signal_valid is not None:
             self._supervision_signal_valid = self._supervision_signal_valid.to(device)
-        if self._corrospondence is not None:
-            self._corrospondence = self._corrospondence.to(device)
+        if self._correspondence is not None:
+            self._correspondence = self._correspondence.to(device)
 
     def as_pyg_data(self, previous_node: Optional[BaseNode] = None, aux: bool = False):
         if aux:
@@ -181,14 +181,14 @@ class MissionNode(BaseNode):
                 y_valid=self._supervision_signal_valid,
                 x_previous=previous_node.features,
                 edge_index_previous=previous_node._feature_edges,
-                corrospondence=self._corrospondence,
+                correspondence=self._correspondence,
             )
 
     def is_valid(self):
         return (
             isinstance(self._features, torch.Tensor)
             and isinstance(self._supervision_signal, torch.Tensor)
-            and isinstance(self._corrospondence, torch.Tensor)
+            and isinstance(self._correspondence, torch.Tensor)
         )
 
     @property
@@ -240,8 +240,8 @@ class MissionNode(BaseNode):
         return self._supervision_mask
 
     @property
-    def corrospondence(self):
-        return self._corrospondence
+    def correspondence(self):
+        return self._correspondence
 
     @features.setter
     def features(self, features):
@@ -291,9 +291,9 @@ class MissionNode(BaseNode):
     def supervision_mask(self, supervision_mask):
         self._supervision_mask = supervision_mask
 
-    @corrospondence.setter
-    def corrospondence(self, corrospondence):
-        self._corrospondence = corrospondence
+    @correspondence.setter
+    def correspondence(self, correspondence):
+        self._correspondence = correspondence
 
     def save(self, output_path: str, index: int, graph_only: bool = False, previous_node: Optional[BaseNode] = None):
         if self._feature_positions is not None:
@@ -309,6 +309,13 @@ class MissionNode(BaseNode):
 
                 p = path.replace("graph", "seg")
                 torch.save(self._feature_segments.cpu(), p)
+
+    def project_footprint(self, footprint: torch.tensor, color: torch.tensor = torch.FloatTensor([1.0, 1.0, 1.0])):
+        mask, image_overlay, projected_points, valid_points = self._image_projector.project_and_render(
+            self._pose_cam_in_world[None], footprint, color
+        )
+
+        return mask, image_overlay, projected_points, valid_points
 
     def update_supervision_signal(self):
         if self._supervision_mask is None:
@@ -355,7 +362,7 @@ class ProprioceptionNode(BaseNode):
         height: float = 0.1,
         proprioception: torch.tensor = None,
         traversability: torch.tensor = torch.FloatTensor([0.0]),
-        traversability_var: torch.tensor = torch.FloatTensor([0.0]),
+        traversability_var: torch.tensor = torch.FloatTensor([1.0]),
     ):
         assert isinstance(pose_base_in_world, torch.Tensor)
         assert isinstance(pose_footprint_in_base, torch.Tensor)
@@ -400,11 +407,21 @@ class ProprioceptionNode(BaseNode):
             self._pose_footprint_in_world.device
         )
 
+    def make_footprint_with_node(self, other: BaseNode, grid_size: int = 20):
+        # Get side points
+        other_side_points = other.get_side_points()
+        this_side_points = self.get_side_points()
+        # Concat points to define the polygon
+        points = torch.concat((other_side_points, this_side_points), dim=0)
+        # Make footprint
+        footprint = make_polygon_from_points(points, grid_size=grid_size)
+        return footprint
+
     def update_traversability(self, traversability: torch.tensor, traversability_var: torch.tensor):
-        self._traversability_var = 1.0 / (1.0 / self._traversability_var ** 2 + 1.0 / traversability_var ** 2)
-        self._traversability = self.traversability_var * (
-            1.0 / self._traversability_var * self._traversability + 1.0 / traversability_var * traversability
-        )
+        # Pessimistic rule: choose the less traversable one
+        if (traversability < self._traversability).any():
+            self._traversability = traversability
+            self._traversability_var = traversability_var
 
     @property
     def traversability(self):

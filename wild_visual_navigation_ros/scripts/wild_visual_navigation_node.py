@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.image_projector import ImageProjector
+from wild_visual_navigation.affordance_generator import AffordanceGenerator
 from wild_visual_navigation.traversability_estimator import TraversabilityEstimator
 from wild_visual_navigation.traversability_estimator import MissionNode, ProprioceptionNode
 import wild_visual_navigation_ros.ros_converter as rc
@@ -10,7 +11,7 @@ from wild_visual_navigation_msgs.srv import SaveLoadData, SaveLoadDataResponse
 from geometry_msgs.msg import PoseStamped, Point, TwistStamped
 from nav_msgs.msg import Path
 from sensor_msgs.msg import Image, CameraInfo
-from std_msgs.msg import ColorRGBA
+from std_msgs.msg import ColorRGBA, Float32
 from std_srvs.srv import Trigger, TriggerResponse
 from threading import Thread
 from visualization_msgs.msg import Marker
@@ -40,8 +41,12 @@ class WvnRosInterface:
             max_distance=self.traversability_radius,
             image_distance_thr=self.image_graph_dist_thr,
             proprio_distance_thr=self.proprio_graph_dist_thr,
-            optical_flow_estimatior_type=self.optical_flow_estimatior_type,
+            optical_flow_estimator_type=self.optical_flow_estimator_type,
         )
+
+        # Initialize affordance generator to process velocity commands
+        self.affordance_generator = AffordanceGenerator(self.device)
+
         # Setup ros
         self.setup_ros()
         # Launch processes
@@ -66,7 +71,7 @@ class WvnRosInterface:
     def read_params(self):
         """Reads all the parameters from the parameter server"""
         # Topics
-        self.robot_state_topic = rospy.get_param("~robot_state_topic", "/wild_visual_navigation_ros/robot_state")
+        self.robot_state_topic = rospy.get_param("~robot_state_topic", "/wild_visual_navigation_node/robot_state")
         self.image_topic = rospy.get_param("~image_topic", "/alphasense_driver_ros/cam4/debayered")
         self.info_topic = rospy.get_param("~camera_info_topic", "/alphasense_driver_ros/cam4/camera_info")
         self.desired_twist_topic = rospy.get_param("~desired_twist_topic", "/log/state/desiredRobotTwist")
@@ -91,7 +96,7 @@ class WvnRosInterface:
         self.network_input_image_width = rospy.get_param("~network_input_image_width", 448)
 
         # Optical flow params
-        self.optical_flow_estimatior_type = rospy.get_param("optical_flow_estimatior_type", "sparse")
+        self.optical_flow_estimator_type = rospy.get_param("optical_flow_estimator_type", "sparse")
 
         # Threads
         self.run_online_learning = rospy.get_param("~run_online_learning", True)
@@ -148,6 +153,10 @@ class WvnRosInterface:
         self.pub_graph_footprints = rospy.Publisher(
             "/wild_visual_navigation_node/graph_footprints", Marker, queue_size=10
         )
+        self.pub_instant_traversability = rospy.Publisher(
+            "/wild_visual_navigation_node/instant_traversability", Float32, queue_size=10
+        )
+        self.pub_training_loss = rospy.Publisher("/wild_visual_navigation_node/training_loss", Float32, queue_size=10)
 
         # Services
         # Like, reset graph or the like
@@ -252,15 +261,6 @@ class WvnRosInterface:
             state_msg (wild_visual_navigation_msgs/RobotState): Robot state message
             desired_twist_msg (geometry_msgs/TwistStamped): Desired twist message
         """
-        # Compute current velocity tracking error
-        current = state_msg.twist.twist.linear
-        target = desired_twist_msg.twist.linear
-        target_v = torch.tensor([target.x, target.y], device=self.device)
-        current_v = torch.tensor([current.x, current.y], device=self.device)
-        error = torch.nn.functional.mse_loss(current_v, target_v) / self.robot_max_velocity
-        error = 1.0 - error.clip(0, 1)
-        error_var = torch.FloatTensor(1).to(self.device)
-
         ts = state_msg.header.stamp.to_sec()
 
         # Query transforms from TF
@@ -274,6 +274,13 @@ class WvnRosInterface:
 
         # Convert state to tensor
         proprio_tensor, proprio_labels = rc.wvn_robot_state_to_torch(state_msg, device=self.device)
+        current_twist_tensor = rc.twist_stamped_to_torch(state_msg.twist, components=["vx", "vy"], device=self.device)
+        desired_twist_tensor = rc.twist_stamped_to_torch(desired_twist_msg, components=["vx", "vy"], device=self.device)
+
+        # Update affordance
+        affordance, affordance_var = self.affordance_generator.update_with_velocities(
+            current_twist_tensor, desired_twist_tensor
+        )
 
         # Create proprioceptive node for the graph
         proprio_node = ProprioceptionNode(
@@ -284,8 +291,8 @@ class WvnRosInterface:
             length=self.robot_length,
             height=self.robot_width,
             proprioception=proprio_tensor,
-            traversability=error,
-            traversability_var=error_var,
+            traversability=affordance,
+            traversability_var=affordance_var,
         )
         # Add node to graph
         self.traversability_estimator.add_proprio_node(proprio_node)
@@ -349,7 +356,10 @@ class WvnRosInterface:
         # Main loop
         while not rospy.is_shutdown():
             # Optimize model
-            self.traversability_estimator.train()
+            loss = self.traversability_estimator.train()
+
+            # Publish loss
+            self.pub_training_loss.publish(loss)
             rate.sleep()
 
     def visualize_proprioception(self):
@@ -391,7 +401,7 @@ class WvnRosInterface:
 
             # Color for traversability
             r, g, b, _ = self.color_palette(node.traversability.item())
-            c = ColorRGBA(r, g, b, 0.8)
+            c = ColorRGBA(r, g, b, 0.95)
 
             # Rainbow path
             side_points = node.get_side_points()
@@ -437,6 +447,9 @@ class WvnRosInterface:
             return
         self.pub_graph_footprints.publish(footprints_marker)
         self.pub_debug_proprio_graph.publish(proprio_graph_msg)
+
+        # Publish latest affordance/traversability
+        self.pub_instant_traversability.publish(self.affordance_generator.affordance)
 
     def visualize_mission(self, mission_node: MissionNode = None):
         """Publishes all the visualizations related to mission graph, like the graph

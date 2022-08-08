@@ -27,5 +27,5 @@ class SimpleMLP(torch.nn.Module):
         # If you change something in the dataloader make sure this is still working
         x = x.reshape((data.batch.max().item() + 1, -1, x.shape[1]))
         x = self.layers(x)
-        x[:, :, 0] = F.sigmoid(x[:, :, 0])
+        x[:, :, 0] = torch.sigmoid(x[:, :, 0])
         return x.reshape((-1, self.output_features))
