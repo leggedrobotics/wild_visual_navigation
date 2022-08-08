@@ -138,7 +138,7 @@ class FeatureExtractor:
     def dino_slic(
         self,
         img: torch.tensor,
-        n_segments: int = 200,
+        n_segments: int = 100,
         compactness: float = 10.0,
         return_centers: bool = False,
         return_image: bool = False,
@@ -194,7 +194,7 @@ class FeatureExtractor:
         for i in range(seg.max() + 1):
             m = seg == i
             x, y = torch.where(m)
-            feat = feat_dino[0, :, x, y].mean(dim=1)
+            feat = feat_dino[0, :, x, y].median(dim=1)[0]
             features.append(feat)
 
         ret = (adjacency_list.T, torch.stack(features, dim=1).T, seg)

@@ -41,10 +41,10 @@ class WvnRosInterface:
             max_distance=self.traversability_radius,
             image_distance_thr=self.image_graph_dist_thr,
             proprio_distance_thr=self.proprio_graph_dist_thr,
-            optical_flow_estimatior_type=self.optical_flow_estimatior_type,
+            optical_flow_estimator_type=self.optical_flow_estimator_type,
         )
 
-        # Affordance generator
+        # Initialize affordance generator to process velocity commands
         self.affordance_generator = AffordanceGenerator(self.device)
 
         # Setup ros
@@ -96,7 +96,7 @@ class WvnRosInterface:
         self.network_input_image_width = rospy.get_param("~network_input_image_width", 448)
 
         # Optical flow params
-        self.optical_flow_estimatior_type = rospy.get_param("optical_flow_estimatior_type", "sparse")
+        self.optical_flow_estimator_type = rospy.get_param("optical_flow_estimator_type", "sparse")
 
         # Threads
         self.run_online_learning = rospy.get_param("~run_online_learning", True)

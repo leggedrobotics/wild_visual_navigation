@@ -446,7 +446,7 @@ class LearningVisualizer:
         return np.array(pil_img).astype(np.uint8)
 
     @image_functionality
-    def plot_corrospondence_segment(
+    def plot_correspondence_segment(
         self,
         seg_prev: torch.Tensor,
         seg_current: torch.Tensor,
@@ -454,7 +454,7 @@ class LearningVisualizer:
         img_current: torch.Tensor,
         center_prev: torch.Tensor,
         center_current: torch.Tensor,
-        corrospondence: torch.Tensor,
+        correspondence: torch.Tensor,
         **kwargs,
     ):
         """_summary_
@@ -466,7 +466,7 @@ class LearningVisualizer:
             img_current (torch.Tensor,  dtype=torch.float32, shape=(C,H,W) or (H,W,C)): Image
             center_prev (torch.Tensor,  dtype=torch.float32, shape=(N,2)): Center positions to index seg reverse order
             center_current (torch.Tensor,  dtype=torch.float32, shape=(N,2)): Center positions to index seg reverse order
-            corrospondence (torch.Tensor,  dtype=torch.long, shape=(N,2)): 0 previous seg, 1 current seg
+            correspondence (torch.Tensor,  dtype=torch.long, shape=(N,2)): 0 previous seg, 1 current seg
 
         Returns:
             (np.array, dtype=np.uint8, shape=(H,2xW,C)): Concatenated image with segments and connected centers
@@ -480,7 +480,7 @@ class LearningVisualizer:
         pil_img = Image.fromarray(img, "RGB")
         draw = ImageDraw.Draw(pil_img)
         col = (0, 255, 0)
-        for cp, cc in zip(center_prev[corrospondence[:, 0]], center_current[corrospondence[:, 1]]):
+        for cp, cc in zip(center_prev[correspondence[:, 0]], center_current[correspondence[:, 1]]):
             try:
                 draw.line(
                     [(cp[0].item(), cp[1].item()), (cc[0].item() + img_prev.shape[1], cc[1].item())], fill=col, width=2

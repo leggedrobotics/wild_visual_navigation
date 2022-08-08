@@ -130,7 +130,7 @@ class MissionNode(BaseNode):
         self._supervision_mask = None
         self._supervision_signal = None
         self._supervision_signal_valid = None
-        self._corrospondence = None
+        self._correspondence = None
 
     def change_device(self, device):
         """Changes the device of all the class members
@@ -160,8 +160,8 @@ class MissionNode(BaseNode):
             self._supervision_signal = self._supervision_signal.to(device)
         if self._supervision_signal_valid is not None:
             self._supervision_signal_valid = self._supervision_signal_valid.to(device)
-        if self._corrospondence is not None:
-            self._corrospondence = self._corrospondence.to(device)
+        if self._correspondence is not None:
+            self._correspondence = self._correspondence.to(device)
 
     def as_pyg_data(self, previous_node: Optional[BaseNode] = None, aux: bool = False):
         if aux:
@@ -181,14 +181,14 @@ class MissionNode(BaseNode):
                 y_valid=self._supervision_signal_valid,
                 x_previous=previous_node.features,
                 edge_index_previous=previous_node._feature_edges,
-                corrospondence=self._corrospondence,
+                correspondence=self._correspondence,
             )
 
     def is_valid(self):
         return (
             isinstance(self._features, torch.Tensor)
             and isinstance(self._supervision_signal, torch.Tensor)
-            and isinstance(self._corrospondence, torch.Tensor)
+            and isinstance(self._correspondence, torch.Tensor)
         )
 
     @property
@@ -240,8 +240,8 @@ class MissionNode(BaseNode):
         return self._supervision_mask
 
     @property
-    def corrospondence(self):
-        return self._corrospondence
+    def correspondence(self):
+        return self._correspondence
 
     @features.setter
     def features(self, features):
@@ -291,9 +291,9 @@ class MissionNode(BaseNode):
     def supervision_mask(self, supervision_mask):
         self._supervision_mask = supervision_mask
 
-    @corrospondence.setter
-    def corrospondence(self, corrospondence):
-        self._corrospondence = corrospondence
+    @correspondence.setter
+    def correspondence(self, correspondence):
+        self._correspondence = correspondence
 
     def save(self, output_path: str, index: int, graph_only: bool = False, previous_node: Optional[BaseNode] = None):
         if self._feature_positions is not None:
