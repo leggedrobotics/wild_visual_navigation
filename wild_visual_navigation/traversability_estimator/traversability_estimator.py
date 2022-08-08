@@ -33,7 +33,7 @@ class TraversabilityEstimator:
         image_distance_thr: float = None,
         proprio_distance_thr: float = None,
         feature_extractor_type: str = "dino_slic",
-        optical_flow_estimatior_type: str = "none",
+        optical_flow_estimator_type: str = "none",
         min_samples_for_training: int = 10,
     ):
         self.device = device
@@ -48,10 +48,10 @@ class TraversabilityEstimator:
         self._feature_extractor_type = feature_extractor_type
         self._feature_extractor = FeatureExtractor(device, extractor_type=self._feature_extractor_type)
         # Optical flow
-        self._optical_flow_estimatior_type = optical_flow_estimatior_type
+        self._optical_flow_estimator_type = optical_flow_estimator_type
 
-        if optical_flow_estimatior_type == "sparse":
-            self._optical_flow_estimatior = KLTTrackerOpenCV(device=device)
+        if optical_flow_estimator_type == "sparse":
+            self._optical_flow_estimator = KLTTrackerOpenCV(device=device)
 
         # Mutex
         self._lock = Lock()
@@ -86,6 +86,10 @@ class TraversabilityEstimator:
         self._lock = Lock()
 
     @property
+    def loss(self):
+        return self._loss.detach().item()
+
+    @property
     def pause_learning(self):
         return self._pause_training
 
@@ -103,8 +107,8 @@ class TraversabilityEstimator:
         self._mission_graph.change_device(device)
         self._feature_extractor.change_device(device)
         self._model = self._model.to(device)
-        if self._optical_flow_estimatior_type != "none":
-            self._optical_flow_estimatior = self._optical_flow_estimatior.to(device)
+        if self._optical_flow_estimator_type != "none":
+            self._optical_flow_estimator = self._optical_flow_estimator.to(device)
 
         self._last_trained_model = self._last_trained_model.to(device)
 
@@ -132,10 +136,8 @@ class TraversabilityEstimator:
                 with torch.inference_mode():
                     node.prediction = self._last_trained_model(data)
 
-    def add_corrospondences_dense_optical_flow(self, node: MissionNode, previous_node: MissionNode, debug=False):
-        flow_previous_to_current = self._optical_flow_estimatior.forward(
-            previous_node.image.clone(), node.image.clone()
-        )
+    def add_correspondences_dense_optical_flow(self, node: MissionNode, previous_node: MissionNode, debug=False):
+        flow_previous_to_current = self._optical_flow_estimator.forward(previous_node.image.clone(), node.image.clone())
         grid_x, grid_y = torch.meshgrid(
             torch.arange(0, previous_node.image.shape[1], device=self.device, dtype=torch.float32),
             torch.arange(0, previous_node.image.shape[2], device=self.device, dtype=torch.float32),
@@ -167,22 +169,22 @@ class TraversabilityEstimator:
         if len(current) != 0:
             current = torch.stack(current)
             previous = torch.stack(previous)
-            corrospondence = torch.stack([previous, current], dim=1)
-            node.corrospondence = corrospondence
+            correspondence = torch.stack([previous, current], dim=1)
+            node.correspondence = correspondence
 
             if debug:
                 from wild_visual_navigation import WVN_ROOT_DIR
                 from wild_visual_navigation.visu import LearningVisualizer
 
                 visu = LearningVisualizer(p_visu=os.path.join(WVN_ROOT_DIR, "results/test_visu"), store=True)
-                visu.plot_corrospondence_segment(
+                visu.plot_correspondence_segment(
                     seg_prev=previous_node.feature_segments,
                     seg_current=node.feature_segments,
                     img_prev=previous_node.image,
                     img_current=node.image,
                     center_prev=previous_node.feature_positions,
                     center_current=node.feature_positions,
-                    corrospondence=node.corrospondence,
+                    correspondence=node.correspondence,
                     tag="centers",
                 )
 
@@ -190,10 +192,10 @@ class TraversabilityEstimator:
                     flow=flow_previous_to_current, img1=previous_node.image, img2=node.image, tag="flow", s=50
                 )
 
-    def add_corrospondences_sparse_optical_flow(self, node: MissionNode, previous_node: MissionNode, debug=False):
+    def add_correspondences_sparse_optical_flow(self, node: MissionNode, previous_node: MissionNode, debug=False):
         # Transform previous_nodes feature locations into current image using KLT
         pre_pos = previous_node.feature_positions
-        cur_pos = self._optical_flow_estimatior(
+        cur_pos = self._optical_flow_estimator(
             previous_node.feature_positions[:, 0].clone(),
             previous_node.feature_positions[:, 1].clone(),
             previous_node.image,
@@ -211,13 +213,13 @@ class TraversabilityEstimator:
         )
 
         # Can enumerate previous segments and use mask to get segment index
-        pre = torch.arange(previous_node.feature_positions.shape[0], device=self.device)[m]
-        cor_pre = pre[m]
+        cor_pre = torch.arange(previous_node.feature_positions.shape[0], device=self.device)[m]
+        # cor_pre = pre[m]
 
         # Check feature_segmentation mask to index correct segment index
         cur_pos = cur_pos[m].type(torch.long)
         cor_cur = node.feature_segments[cur_pos[:, 1], cur_pos[:, 0]]
-        node.corrospondence = torch.stack([cor_pre, cor_cur], dim=1)
+        node.correspondence = torch.stack([cor_pre, cor_cur], dim=1)
 
         if debug:
             from wild_visual_navigation import WVN_ROOT_DIR
@@ -231,14 +233,14 @@ class TraversabilityEstimator:
                 img2=node.image,
                 tag="flow",
             )
-            visu.plot_corrospondence_segment(
+            visu.plot_correspondence_segment(
                 seg_prev=previous_node.feature_segments,
                 seg_current=node.feature_segments,
                 img_prev=previous_node.image,
                 img_current=node.image,
                 center_prev=previous_node.feature_positions,
                 center_current=node.feature_positions,
-                corrospondence=node.corrospondence,
+                correspondence=node.correspondence,
                 tag="centers",
             )
 
@@ -260,36 +262,36 @@ class TraversabilityEstimator:
             s += " " * (48 - len(s)) + f"total nodes [{total_nodes}]"
             print(s)
             # Set optical flow
-            if self._optical_flow_estimatior_type == "dense" and previous_node is not None:
+            if self._optical_flow_estimator_type == "dense" and previous_node is not None:
                 raise Exception("Not working")
-                self.add_corrospondences_dense_optical_flow(node, previous_node, debug=False)
+                self.add_correspondences_dense_optical_flow(node, previous_node, debug=False)
 
-            elif self._optical_flow_estimatior_type == "sparse" and previous_node is not None:
-                self.add_corrospondences_sparse_optical_flow(node, previous_node, debug=False)
+            elif self._optical_flow_estimator_type == "sparse" and previous_node is not None:
+                self.add_correspondences_sparse_optical_flow(node, previous_node, debug=False)
 
             # Project past footprints on current image
-            image_projector = node.image_projector
-            pose_cam_in_world = node.pose_cam_in_world[None]
-            supervision_mask = torch.ones(node.image.shape).to(node.image.device) * torch.nan
+            device = node.image.device
+            supervision_mask = torch.ones(node.image.shape).to(device) * torch.nan
 
             proprio_nodes = self._proprio_graph.get_nodes()
-            for pnode, next_pnode in zip(proprio_nodes[:-1], proprio_nodes[1:]):
-                side_points = pnode.get_side_points()
-                next_side_points = next_pnode.get_side_points()
-                points = torch.concat((side_points, next_side_points), dim=0)
-                footprint = make_polygon_from_points(points, grid_size=10)[None]
-                # footprint = pnode.get_footprint_points()[None]
-                color = torch.FloatTensor([1.0, 1.0, 1.0]) * pnode.traversability.cpu()  # TODO fix this
+            for last_pnode, pnode in zip(proprio_nodes[:-1], proprio_nodes[1:]):
+                # Make footprint
+                footprint = pnode.make_footprint_with_node(last_pnode)
 
-                # Project and render mask
-                mask, _, _, _ = image_projector.project_and_render(pose_cam_in_world, footprint, color)
-                mask = mask[0]
+                # Project mask
+                mask, _, _, _ = node.project_footprint(footprint)
+                if mask is None:
+                    continue
 
-                # Update supervision mask
-                supervision_mask = torch.fmax(supervision_mask, mask.to(supervision_mask.device))
+                # Update mask with traversability
+                mask = mask[0] * pnode.traversability.cpu()
+
+                # Get global node and update supervision signal
+                supervision_mask = torch.fmin(supervision_mask, mask.to(device))
 
             # Finally overwrite the current mask
             node.supervision_mask = supervision_mask
+            node.update_supervision_signal()
             return True
         else:
             return False
@@ -309,7 +311,8 @@ class TraversabilityEstimator:
 
         if not self._proprio_graph.add_node(pnode):
             # Update traversability of latest node
-            last_pnode.update_traversability(pnode.traversability, pnode.traversability_var)
+            if last_pnode is not None:
+                last_pnode.update_traversability(pnode.traversability, pnode.traversability_var)
             return False
 
         else:
@@ -317,15 +320,12 @@ class TraversabilityEstimator:
             if last_pnode is None or not last_pnode.is_valid():
                 return False
 
-            # update footprint
-            last_side_points = last_pnode.get_side_points()
-            side_points = pnode.get_side_points()
-            points = torch.concat((last_side_points, side_points), dim=0)
-            footprint = make_polygon_from_points(points, grid_size=20)[None]
-            color = torch.FloatTensor([1.0, 1.0, 1.0]) * pnode.traversability.cpu()  # TODO fix this
+            # Update footprint
+            footprint = pnode.make_footprint_with_node(last_pnode)[None]
 
             # Get last mission node
             last_mission_node = self._mission_graph.get_last_node()
+
             if last_mission_node is None:
                 return False
 
@@ -334,22 +334,15 @@ class TraversabilityEstimator:
             )
             # Project footprint onto all the image nodes
             for mnode in mission_nodes:
-                # Project
-                image_projector = mnode.image_projector
-                pose_cam_in_world = mnode.pose_cam_in_world[None]
-                supervision_mask = mnode.supervision_mask
-
-                mask, _, _, _ = image_projector.project_and_render(pose_cam_in_world, footprint, color)
-
-                if mask is None or supervision_mask is None:
+                mask, _, _, _ = mnode.project_footprint(footprint)
+                if mask is None:
                     continue
 
-                # Update traversability mask
-                mask = mask[0]
-                supervision_mask = torch.fmax(supervision_mask, mask.to(supervision_mask.device))
+                # Update mask with traversability
+                mask = mask[0] * pnode.traversability.cpu()
 
                 # Get global node and update supervision signal
-                mnode.supervision_mask = supervision_mask
+                mnode.supervision_mask = torch.fmin(mnode.supervision_mask, mask.to(mnode.supervision_mask.device))
                 mnode.update_supervision_signal()
 
             return True
@@ -487,20 +480,20 @@ class TraversabilityEstimator:
         """
         # Get all the current nodes
 
-        if self._optical_flow_estimatior_type != "none":
+        if self._optical_flow_estimator_type != "none":
             mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
             ls = [
                 x.as_pyg_data(self._mission_graph.get_previous_node(x))
                 for x in mission_nodes
-                if x.corrospondence is not None
+                if x.correspondence is not None
             ]
 
             ls_aux = [self._mission_graph.get_previous_node(x).as_pyg_data(aux=True) for x in mission_nodes]
 
-            # Make sure to only use nodes with valid corrospondences
+            # Make sure to only use nodes with valid correspondences
             while len(ls) < batch_size:
                 mn = self._mission_graph.get_n_random_valid_nodes(n=1)[0]
-                if mn.corrospondence is not None:
+                if mn.correspondence is not None:
                     ls.append(mn.as_pyg_data(self._mission_graph.get_previous_node(mn)))
                     ls_aux.append(self._mission_graph.get_previous_node(mn).as_pyg_data(aux=True))
 
@@ -546,6 +539,9 @@ class TraversabilityEstimator:
             # Update model
             with self._lock:
                 self.last_trained_model = self._model
+
+            # Return loss
+            return self._loss.item()
 
     def plot_mission_node_prediction(self, node: MissionNode):
         return self._visualizer.plot_mission_node_prediction(node)

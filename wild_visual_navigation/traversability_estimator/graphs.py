@@ -211,9 +211,9 @@ class TemporalWindowGraph(BaseGraph):
 
     def add_node(self, node: BaseNode):
         """Adds a node to the graph and removes old nodes"""
-        if self._edge_distance is not None and self.get_last_node() is not None:
+        if self._last_added_node is not None:
             # compute distance to last node and do not add the node if it's too close
-            d = node.distance_to(self.get_last_node())
+            d = node.distance_to(self._last_added_node)
             if d < self._edge_distance:
                 return False
 
@@ -248,9 +248,9 @@ class DistanceWindowGraph(BaseGraph):
 
     def add_node(self, node: BaseNode):
         """Adds a node to the graph and removes far nodes"""
-        if self._edge_distance is not None and self.get_last_node() is not None:
-            # compute distance to last node and do not add the node if it's too close
-            d = node.distance_to(self.get_last_node())
+        if self._last_added_node is not None:
+            # Compute distance to last node and do not add the node if it's too close
+            d = node.distance_to(self._last_added_node)
             if d < self._edge_distance:
                 return False
 
