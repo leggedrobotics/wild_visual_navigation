@@ -33,7 +33,7 @@ class TraversabilityEstimator:
         image_distance_thr: float = None,
         proprio_distance_thr: float = None,
         feature_extractor_type: str = "dino_slic",
-        optical_flow_estimatior_type: str = "none",
+        optical_flow_estimator_type: str = "none",
         min_samples_for_training: int = 10,
     ):
         self.device = device
@@ -48,10 +48,10 @@ class TraversabilityEstimator:
         self._feature_extractor_type = feature_extractor_type
         self._feature_extractor = FeatureExtractor(device, extractor_type=self._feature_extractor_type)
         # Optical flow
-        self._optical_flow_estimatior_type = optical_flow_estimatior_type
+        self._optical_flow_estimator_type = optical_flow_estimator_type
 
-        if optical_flow_estimatior_type == "sparse":
-            self._optical_flow_estimatior = KLTTrackerOpenCV(device=device)
+        if optical_flow_estimator_type == "sparse":
+            self._optical_flow_estimator = KLTTrackerOpenCV(device=device)
 
         # Mutex
         self._lock = Lock()
@@ -107,8 +107,8 @@ class TraversabilityEstimator:
         self._mission_graph.change_device(device)
         self._feature_extractor.change_device(device)
         self._model = self._model.to(device)
-        if self._optical_flow_estimatior_type != "none":
-            self._optical_flow_estimatior = self._optical_flow_estimatior.to(device)
+        if self._optical_flow_estimator_type != "none":
+            self._optical_flow_estimator = self._optical_flow_estimator.to(device)
 
         self._last_trained_model = self._last_trained_model.to(device)
 
@@ -136,8 +136,8 @@ class TraversabilityEstimator:
                 with torch.inference_mode():
                     node.prediction = self._last_trained_model(data)
 
-    def add_corrospondences_dense_optical_flow(self, node: MissionNode, previous_node: MissionNode, debug=False):
-        flow_previous_to_current = self._optical_flow_estimatior.forward(
+    def add_correspondences_dense_optical_flow(self, node: MissionNode, previous_node: MissionNode, debug=False):
+        flow_previous_to_current = self._optical_flow_estimator.forward(
             previous_node.image.clone(), node.image.clone()
         )
         grid_x, grid_y = torch.meshgrid(
@@ -171,22 +171,22 @@ class TraversabilityEstimator:
         if len(current) != 0:
             current = torch.stack(current)
             previous = torch.stack(previous)
-            corrospondence = torch.stack([previous, current], dim=1)
-            node.corrospondence = corrospondence
+            correspondence = torch.stack([previous, current], dim=1)
+            node.correspondence = correspondence
 
             if debug:
                 from wild_visual_navigation import WVN_ROOT_DIR
                 from wild_visual_navigation.visu import LearningVisualizer
 
                 visu = LearningVisualizer(p_visu=os.path.join(WVN_ROOT_DIR, "results/test_visu"), store=True)
-                visu.plot_corrospondence_segment(
+                visu.plot_correspondence_segment(
                     seg_prev=previous_node.feature_segments,
                     seg_current=node.feature_segments,
                     img_prev=previous_node.image,
                     img_current=node.image,
                     center_prev=previous_node.feature_positions,
                     center_current=node.feature_positions,
-                    corrospondence=node.corrospondence,
+                    correspondence=node.correspondence,
                     tag="centers",
                 )
 
@@ -194,10 +194,10 @@ class TraversabilityEstimator:
                     flow=flow_previous_to_current, img1=previous_node.image, img2=node.image, tag="flow", s=50
                 )
 
-    def add_corrospondences_sparse_optical_flow(self, node: MissionNode, previous_node: MissionNode, debug=False):
+    def add_correspondences_sparse_optical_flow(self, node: MissionNode, previous_node: MissionNode, debug=False):
         # Transform previous_nodes feature locations into current image using KLT
         pre_pos = previous_node.feature_positions
-        cur_pos = self._optical_flow_estimatior(
+        cur_pos = self._optical_flow_estimator(
             previous_node.feature_positions[:, 0].clone(),
             previous_node.feature_positions[:, 1].clone(),
             previous_node.image,
@@ -215,13 +215,13 @@ class TraversabilityEstimator:
         )
 
         # Can enumerate previous segments and use mask to get segment index
-        pre = torch.arange(previous_node.feature_positions.shape[0], device=self.device)[m]
-        cor_pre = pre[m]
-
+        cor_pre = torch.arange(previous_node.feature_positions.shape[0], device=self.device)[m]
+        # cor_pre = pre[m]
+        
         # Check feature_segmentation mask to index correct segment index
         cur_pos = cur_pos[m].type(torch.long)
         cor_cur = node.feature_segments[cur_pos[:, 1], cur_pos[:, 0]]
-        node.corrospondence = torch.stack([cor_pre, cor_cur], dim=1)
+        node.correspondence = torch.stack([cor_pre, cor_cur], dim=1)
 
         if debug:
             from wild_visual_navigation import WVN_ROOT_DIR
@@ -235,14 +235,14 @@ class TraversabilityEstimator:
                 img2=node.image,
                 tag="flow",
             )
-            visu.plot_corrospondence_segment(
+            visu.plot_correspondence_segment(
                 seg_prev=previous_node.feature_segments,
                 seg_current=node.feature_segments,
                 img_prev=previous_node.image,
                 img_current=node.image,
                 center_prev=previous_node.feature_positions,
                 center_current=node.feature_positions,
-                corrospondence=node.corrospondence,
+                correspondence=node.correspondence,
                 tag="centers",
             )
 
@@ -264,12 +264,12 @@ class TraversabilityEstimator:
             s += " " * (48 - len(s)) + f"total nodes [{total_nodes}]"
             print(s)
             # Set optical flow
-            if self._optical_flow_estimatior_type == "dense" and previous_node is not None:
+            if self._optical_flow_estimator_type == "dense" and previous_node is not None:
                 raise Exception("Not working")
-                self.add_corrospondences_dense_optical_flow(node, previous_node, debug=False)
+                self.add_correspondences_dense_optical_flow(node, previous_node, debug=False)
 
-            elif self._optical_flow_estimatior_type == "sparse" and previous_node is not None:
-                self.add_corrospondences_sparse_optical_flow(node, previous_node, debug=False)
+            elif self._optical_flow_estimator_type == "sparse" and previous_node is not None:
+                self.add_correspondences_sparse_optical_flow(node, previous_node, debug=False)
 
             # Project past footprints on current image
             image_projector = node.image_projector
@@ -492,20 +492,20 @@ class TraversabilityEstimator:
         """
         # Get all the current nodes
 
-        if self._optical_flow_estimatior_type != "none":
+        if self._optical_flow_estimator_type != "none":
             mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
             ls = [
                 x.as_pyg_data(self._mission_graph.get_previous_node(x))
                 for x in mission_nodes
-                if x.corrospondence is not None
+                if x.correspondence is not None
             ]
 
             ls_aux = [self._mission_graph.get_previous_node(x).as_pyg_data(aux=True) for x in mission_nodes]
 
-            # Make sure to only use nodes with valid corrospondences
+            # Make sure to only use nodes with valid correspondences
             while len(ls) < batch_size:
                 mn = self._mission_graph.get_n_random_valid_nodes(n=1)[0]
-                if mn.corrospondence is not None:
+                if mn.correspondence is not None:
                     ls.append(mn.as_pyg_data(self._mission_graph.get_previous_node(mn)))
                     ls_aux.append(self._mission_graph.get_previous_node(mn).as_pyg_data(aux=True))
 
