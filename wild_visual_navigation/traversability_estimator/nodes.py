@@ -432,7 +432,7 @@ class ProprioceptionNode(BaseNode):
         pose_plane_in_world = self._pose_base_in_world @ pose_plane_in_base  # Pose of plane in world frame
 
         # Make plane
-        return make_plane(y=0.5*self._width, z=self._height, pose=pose_plane_in_world, grid_size=grid_size).to(device)
+        return make_plane(y=0.5 * self._width, z=self._height, pose=pose_plane_in_world, grid_size=grid_size).to(device)
 
     def make_footprint_with_node(self, other: BaseNode, grid_size: int = 20):
         if self.is_untraversable:
