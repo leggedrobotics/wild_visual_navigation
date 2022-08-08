@@ -406,7 +406,7 @@ class ProprioceptionNode(BaseNode):
         return make_plane(x=0.0, y=self._width, pose=self._pose_footprint_in_world, grid_size=2).to(
             self._pose_footprint_in_world.device
         )
-    
+
     def make_footprint_with_node(self, other: BaseNode, grid_size: int = 20):
         # Get side points
         other_side_points = other.get_side_points()

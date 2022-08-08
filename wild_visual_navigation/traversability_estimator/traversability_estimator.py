@@ -282,13 +282,13 @@ class TraversabilityEstimator:
                 mask, _, _, _ = node.project_footprint(footprint)
                 if mask is None:
                     continue
-                    
+
                 # Update mask with traversability
                 mask = mask[0] * pnode.traversability.cpu()
 
                 # Get global node and update supervision signal
                 supervision_mask = torch.fmin(supervision_mask, mask.to(device))
-                
+
             # Finally overwrite the current mask
             node.supervision_mask = supervision_mask
             node.update_supervision_signal()
