@@ -48,12 +48,12 @@ class WvnRosInterface:
         self.affordance_generator = AffordanceGenerator(
             self.device,
             kf_process_cov=0.1,
-            kf_meas_cov=1000,
+            kf_meas_cov=100,
             kf_outlier_rejection="huber",
             kf_outlier_rejection_delta=0.5,
-            sigmoid_slope=25,
-            sigmoid_cutoff=0.5,
-            unaffordable_thr=0.1,
+            sigmoid_slope=30,
+            sigmoid_cutoff=0.1,  # 0.2
+            unaffordable_thr=0.1,  # 0.1
         )
 
         # Setup ros
@@ -296,12 +296,14 @@ class WvnRosInterface:
             timestamp=ts,
             pose_base_in_world=pose_base_in_world,
             pose_footprint_in_base=pose_footprint_in_base,
+            twist_in_base=current_twist_tensor,
             width=self.robot_width,
             length=self.robot_length,
             height=self.robot_width,
             proprioception=proprio_tensor,
             traversability=affordance,
             traversability_var=affordance_var,
+            is_untraversable=is_unaffordable,
         )
         # Add node to graph
         self.traversability_estimator.add_proprio_node(proprio_node)
@@ -447,6 +449,18 @@ class WvnRosInterface:
 
                 # Add all the points and colors
                 for p in points_to_add:
+                    footprints_marker.points.append(p)
+                    footprints_marker.colors.append(c)
+
+            # Untraversable plane
+            if node.is_untraversable:
+                untraversable_plane = node.get_untraversable_plane(grid_size=2)
+                N, D = untraversable_plane.shape
+                for n in [0, 1, 3, 2, 0, 3]:  # this is a hack to show the triangles correctly
+                    p = Point()
+                    p.x = untraversable_plane[n, 0]
+                    p.y = untraversable_plane[n, 1]
+                    p.z = untraversable_plane[n, 2]
                     footprints_marker.points.append(p)
                     footprints_marker.colors.append(c)
 
