@@ -138,7 +138,7 @@ class FeatureExtractor:
     def dino_slic(
         self,
         img: torch.tensor,
-        n_segments: int = 100,
+        n_segments: int = 200,
         compactness: float = 10.0,
         return_centers: bool = False,
         return_image: bool = False,

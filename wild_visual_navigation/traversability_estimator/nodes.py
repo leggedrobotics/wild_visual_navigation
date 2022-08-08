@@ -357,12 +357,14 @@ class ProprioceptionNode(BaseNode):
         pose_base_in_world: torch.tensor = torch.eye(4),
         pose_footprint_in_base: torch.tensor = torch.eye(4),
         pose_footprint_in_world: torch.tensor = None,
+        twist_in_base: torch.tensor = None,
         length: float = 0.1,
         width: float = 0.1,
         height: float = 0.1,
         proprioception: torch.tensor = None,
         traversability: torch.tensor = torch.FloatTensor([0.0]),
         traversability_var: torch.tensor = torch.FloatTensor([1.0]),
+        is_untraversable: bool = False,
     ):
         assert isinstance(pose_base_in_world, torch.Tensor)
         assert isinstance(pose_footprint_in_base, torch.Tensor)
@@ -374,12 +376,14 @@ class ProprioceptionNode(BaseNode):
             if pose_footprint_in_world is None
             else pose_footprint_in_world
         )
+        self._twist_in_base = twist_in_base
         self._length = length
         self._width = width
         self._height = height
         self._proprioceptive_state = proprioception
         self._traversability = traversability
         self._traversability_var = traversability_var
+        self._is_untraversable = is_untraversable
 
     def change_device(self, device):
         """Changes the device of all the class members
@@ -407,14 +411,40 @@ class ProprioceptionNode(BaseNode):
             self._pose_footprint_in_world.device
         )
 
+    def get_untraversable_plane(self, grid_size=5):
+        device = self._pose_footprint_in_world.device
+        motion_direction = self._twist_in_base / self._twist_in_base.norm()
+
+        dim_twist = motion_direction.shape[-1]
+        if dim_twist != 2:
+            print(f"Warning: input twist has dimension [{dim_twist}], will assume that twist[0]=vx, twist[1]=vy")
+
+        # Compute angle of motion
+        z_angle = torch.atan2(motion_direction[1], motion_direction[0]).item()
+
+        # Prepare transformation of plane in base frame
+        rho = torch.FloatTensor(
+            [0.5 * self._length * motion_direction[0], 0.5 * self._length * motion_direction[1], -self._height / 2]
+        )  # Translation vector (x, y, z)
+        phi = torch.FloatTensor([0.0, 0.0, z_angle])  # roll-pitch-yaw
+        R_BP = SO3.from_rpy(phi)
+        pose_plane_in_base = SE3(R_BP, rho).as_matrix().to(device)  # Pose matrix of plane in base frame
+        pose_plane_in_world = self._pose_base_in_world @ pose_plane_in_base  # Pose of plane in world frame
+
+        # Make plane
+        return make_plane(y=0.5*self._width, z=self._height, pose=pose_plane_in_world, grid_size=grid_size).to(device)
+
     def make_footprint_with_node(self, other: BaseNode, grid_size: int = 20):
-        # Get side points
-        other_side_points = other.get_side_points()
-        this_side_points = self.get_side_points()
-        # Concat points to define the polygon
-        points = torch.concat((other_side_points, this_side_points), dim=0)
-        # Make footprint
-        footprint = make_polygon_from_points(points, grid_size=grid_size)
+        if self.is_untraversable:
+            footprint = self.get_untraversable_plane(grid_size=grid_size)
+        else:
+            # Get side points
+            other_side_points = other.get_side_points()
+            this_side_points = self.get_side_points()
+            # Concat points to define the polygon
+            points = torch.concat((other_side_points, this_side_points), dim=0)
+            # Make footprint
+            footprint = make_polygon_from_points(points, grid_size=grid_size)
         return footprint
 
     def update_traversability(self, traversability: torch.tensor, traversability_var: torch.tensor):
@@ -430,6 +460,10 @@ class ProprioceptionNode(BaseNode):
     @property
     def traversability_var(self):
         return self._traversability_var
+
+    @property
+    def is_untraversable(self):
+        return self._is_untraversable
 
     @property
     def pose_footprint_in_world(self):

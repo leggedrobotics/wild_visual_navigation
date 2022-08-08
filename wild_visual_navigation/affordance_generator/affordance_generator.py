@@ -91,7 +91,7 @@ class AffordanceGenerator:
         )  # This needs to be improved, the KF can help
 
         # Apply threshold to detect hard obstacles
-        self._is_unaffordable = self._affordance < self._unaffordable_thr
+        self._is_unaffordable = (self._affordance < self._unaffordable_thr).item()
 
         # Return
         return self._affordance, self._affordance_var, self._is_unaffordable
