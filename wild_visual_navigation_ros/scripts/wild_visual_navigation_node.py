@@ -48,12 +48,12 @@ class WvnRosInterface:
         self.affordance_generator = AffordanceGenerator(
             self.device,
             kf_process_cov=0.1,
-            kf_meas_cov=100,
+            kf_meas_cov=10,
             kf_outlier_rejection="huber",
             kf_outlier_rejection_delta=0.5,
-            sigmoid_slope=30,
-            sigmoid_cutoff=0.1,  # 0.2
-            unaffordable_thr=0.1,  # 0.1
+            sigmoid_slope=20,
+            sigmoid_cutoff=0.25,  # 0.2
+            unaffordable_thr=0.05,  # 0.1
         )
 
         # Setup ros

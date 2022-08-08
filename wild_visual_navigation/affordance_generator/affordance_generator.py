@@ -129,8 +129,8 @@ def run_affordance_generator():
         kf_meas_cov=1000,
         kf_outlier_rejection="huber",
         kf_outlier_rejection_delta=0.5,
-        sigmoid_slope=25,
-        sigmoid_cutoff=0.5,
+        sigmoid_slope=30,
+        sigmoid_cutoff=0.2,
         unaffordable_thr=0.1,
     )
 
@@ -144,24 +144,44 @@ def run_affordance_generator():
 
         # Update affordance
         aff, aff_cov, is_unaff = ag.update_with_velocities(curr[0], des[0], max_velocity=0.8)
-        saved_data.append(
-            [t.item(), curr.norm().item(), des.norm().item(), aff.item(), aff_cov.item(), is_unaff.item()]
-        )
+        saved_data.append([t.item(), curr.norm().item(), des.norm().item(), aff.item(), aff_cov.item(), is_unaff])
 
     df = pd.DataFrame(saved_data, columns=["ts", "curr", "des", "aff", "aff_cov", "is_unaffordable"])
+    df["ts"] = df["ts"] - df["ts"][0]
 
     df["aff_upper"] = df["aff"] + df["aff_cov"]
     df["aff_lower"] = df["aff"] - df["aff_cov"]
-    plt.plot(df["ts"], df["curr"], label="Current twist", color="m")
-    plt.plot(df["ts"], df["des"], label="Desired twist", color="k")
-    plt.plot(df["ts"], df["aff"], label="Affordance", color="b")
-    # plt.plot(df["ts"], df["aff_cov"], label="Affordance Cov", color="m")
-    plt.plot(df["ts"], np.ones(df["ts"].shape) * ag.unaffordable_thr, label="Unaffordable Thr", color="r")
-    # plt.fill_between(df["ts"], df["aff_lower"], df["aff_upper"], alpha=0.3, label="1$\sigma$", color="b")
-    plt.fill_between(
-        df["ts"], df["is_unaffordable"] * 0, df["is_unaffordable"], alpha=0.3, label="Unaffordable", color="k"
+
+    fig, axs = plt.subplots(2, 1, sharex=True)
+    # Top plot
+    axs[0].plot(df["ts"], df["curr"], label="Current twist", color="tab:orange")
+    axs[0].plot(df["ts"], df["des"], label="Desired twist", color="k", linewidth=1.5)
+    axs[0].fill_between(
+        df["ts"],
+        df["is_unaffordable"] * 0,
+        df["is_unaffordable"],
+        alpha=0.3,
+        label="Unaffordable",
+        color="k",
+        linewidth=0.0,
     )
-    plt.legend()
+    axs[0].set_ylabel("Velocity [m/s]")
+    axs[0].set_title("Velocity tracking")
+    axs[0].legend(loc="upper right")
+
+    # Bottom plot
+    axs[1].plot(df["ts"], df["aff"], label="Affordance", color="tab:blue", linewidth=2)
+    axs[1].plot(
+        df["ts"], np.ones(df["ts"].shape) * ag.unaffordable_thr, label="Unaffordable Thr", color="r", linestyle="dashed"
+    )
+    axs[1].set_ylabel("Affordance")
+    axs[1].set_title("Affordance")
+    axs[1].legend(loc="upper right")
+    # plt.plot(df["ts"], df["aff_cov"], label="Affordance Cov", color="m")
+    # plt.fill_between(df["ts"], df["aff_lower"], df["aff_upper"], alpha=0.3, label="1$\sigma$", color="b")
+
+    plt.xlabel("Time [s]")
+    plt.tight_layout()
     plt.show()
 
 
