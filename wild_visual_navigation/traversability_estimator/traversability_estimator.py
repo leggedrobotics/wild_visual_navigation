@@ -335,7 +335,7 @@ class TraversabilityEstimator:
             # Project footprint onto all the image nodes
             for mnode in mission_nodes:
                 mask, _, _, _ = mnode.project_footprint(footprint)
-                if mask is None:
+                if mask is None or mnode.supervision_mask is None:
                     continue
 
                 # Update mask with traversability

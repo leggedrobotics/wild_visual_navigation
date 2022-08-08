@@ -72,6 +72,7 @@ class LearningVisualizer:
             node.feature_positions,
             node.image.clone(),
             colormap="RdYlBu",
+            colorize_invalid_centers=True,
         )
         conf_img = self.plot_traversability_graph_on_seg(
             conf_pred,
@@ -80,6 +81,7 @@ class LearningVisualizer:
             node.feature_positions,
             node.image.clone(),
             colormap="RdYlBu",
+            colorize_invalid_centers=True,
         )
         return trav_img, conf_img
 
@@ -115,7 +117,16 @@ class LearningVisualizer:
 
     @image_functionality
     def plot_traversability_graph_on_seg(
-        self, prediction, seg, graph, center, img, max_val=1.0, colormap="RdYlBu", **kwargs
+        self,
+        prediction,
+        seg,
+        graph,
+        center,
+        img,
+        max_val=1.0,
+        colormap="RdYlBu",
+        colorize_invalid_centers=False,
+        **kwargs,
     ):
 
         # Transfer the node traversbility score to the segment
@@ -129,10 +140,20 @@ class LearningVisualizer:
         )
         i2 = (torch.from_numpy(i1).type(torch.float32) / 255).permute(2, 0, 1)
         # Plot Graph on Image
-        return self.plot_traversability_graph(prediction, graph, center, i2, not_log=True, colormap=colormap)
+        return self.plot_traversability_graph(
+            prediction,
+            graph,
+            center,
+            i2,
+            not_log=True,
+            colormap=colormap,
+            colorize_invalid_centers=colorize_invalid_centers,
+        )
 
     @image_functionality
-    def plot_traversability_graph(self, prediction, graph, center, img, max_val=1.0, colormap="RdYlBu", **kwargs):
+    def plot_traversability_graph(
+        self, prediction, graph, center, img, max_val=1.0, colormap="RdYlBu", colorize_invalid_centers=False, **kwargs
+    ):
         """Plot prediction on graph
 
         Args:
@@ -174,7 +195,7 @@ class LearningVisualizer:
         for i in range(center.shape[0]):
             params = center[i].tolist()
             params = [p - elipse_size for p in params] + [p + elipse_size for p in params]
-            if node_validity[i]:
+            if node_validity[i] or colorize_invalid_centers:
                 img_draw.ellipse(params, width=10, fill=tuple(c_map[prediction[i]].tolist()))
             else:
                 img_draw.ellipse(params, width=1, fill=(127, 127, 127))

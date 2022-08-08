@@ -179,9 +179,9 @@ class TwistDataModule(pl.LightningDataModule):
 
 
 if __name__ == "__main__":
-    root = str(os.path.join(WVN_ROOT_DIR, "results/arche_loop"))
-    current_filename = "current_robot_twist.csv"
-    desired_filename = "desired_robot_twist.csv"
+    root = str(os.path.join(WVN_ROOT_DIR, "assets/twist_measurements"))
+    current_filename = "current_robot_twist_short.csv"
+    desired_filename = "desired_robot_twist_short.csv"
     dataset = TwistDataset(root, current_filename, desired_filename)
     pl_datamodule = TwistDataModule(root, current_filename, desired_filename)
     print(pl_datamodule)
