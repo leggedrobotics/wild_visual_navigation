@@ -61,7 +61,7 @@ class BaseGraph:
                 d = node.distance_to(self._last_added_node)
                 if d < self._edge_distance:
                     return False
-            
+
             # Add node
             self._graph.add_node(node, timestamp=node.timestamp)
 

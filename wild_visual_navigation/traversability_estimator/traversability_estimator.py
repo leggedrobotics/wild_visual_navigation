@@ -142,7 +142,7 @@ class TraversabilityEstimator:
                 data = Data(x=node.features, edge_index=node.feature_edges)
                 with torch.inference_mode():
                     node.prediction = self._last_trained_model(data)
-    
+
     def update_visualization_node(self):
         # For the first nodes we choose the visualization node as the last node available
         if self._mission_graph.get_num_nodes() <= self._vis_node_index:
@@ -378,7 +378,7 @@ class TraversabilityEstimator:
             if node.is_valid():
                 last_valid_node = node
         return last_valid_node
-    
+
     def get_mission_node_for_visualization(self):
         return self._vis_mission_node
 

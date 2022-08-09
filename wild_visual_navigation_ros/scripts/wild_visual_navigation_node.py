@@ -42,7 +42,7 @@ class WvnRosInterface:
             image_distance_thr=self.image_graph_dist_thr,
             proprio_distance_thr=self.proprio_graph_dist_thr,
             optical_flow_estimator_type=self.optical_flow_estimator_type,
-            online_mode = self.online_mode,
+            online_mode=self.online_mode,
         )
 
         # Initialize affordance generator to process velocity commands
