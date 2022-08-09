@@ -136,6 +136,7 @@ class MissionNode(BaseNode):
         """Removes all data not required for training"""
         try:
             del self._image
+            del self._supervision_mask
         except Exception as e:
             pass  # Image already removed
 
