@@ -6,11 +6,11 @@ import networkx
 
 
 class BaseGraph:
-    def __init__(self):
+    def __init__(self, edge_distance: float = 0.0):
         """Initializes a graph with basic functionalities
 
         Args:
-            None
+            edge_distance (float): It only adds nodes that are farther than this value
 
         Returns:
             A BaseGraph object
@@ -20,6 +20,7 @@ class BaseGraph:
         self._graph = nx.Graph()
         self._first_node = None
         self._last_added_node = None
+        self._edge_distance = edge_distance
 
         # Mutex
         self._lock = Lock()
@@ -55,6 +56,13 @@ class BaseGraph:
         """
         # Add node
         with self._lock:
+            if self._last_added_node is not None:
+                # Compute distance to last node and do not add the node if it's too close
+                d = node.distance_to(self._last_added_node)
+                if d < self._edge_distance:
+                    return False
+            
+            # Add node
             self._graph.add_node(node, timestamp=node.timestamp)
 
             # Add edge to latest
@@ -195,28 +203,21 @@ class BaseGraph:
 
 
 class TemporalWindowGraph(BaseGraph):
-    def __init__(self, time_window: float, edge_distance: float = None):
+    def __init__(self, edge_distance: float = None, time_window: float = float("inf")):
         """Initializes a graph that keeps nodes within a time window
 
         Args:
-            time_window (float): maximum time to keep nodes (counting from the last added node)
             edge_distance (float): threshold to avoid adding nodes that are too close
+            time_window (float): maximum time to keep nodes (counting from the last added node)
 
         Returns:
             A TemporalWindowGraph
         """
-        super().__init__()
+        super().__init__(edge_distance=edge_distance)
         self._time_window = time_window
-        self._edge_distance = edge_distance
 
     def add_node(self, node: BaseNode):
         """Adds a node to the graph and removes old nodes"""
-        if self._last_added_node is not None:
-            # compute distance to last node and do not add the node if it's too close
-            d = node.distance_to(self._last_added_node)
-            if d < self._edge_distance:
-                return False
-
         # Add node
         out = super().add_node(node)
 
@@ -227,20 +228,18 @@ class TemporalWindowGraph(BaseGraph):
 
 
 class DistanceWindowGraph(BaseGraph):
-    def __init__(self, max_distance: float, edge_distance: float = None):
-        super().__init__()
+    def __init__(self, edge_distance: float = None, max_distance: float = float("inf")):
         """Initializes a graph that keeps nodes within a max distance
 
         Args:
-            max_distance (float): maximum distance to keep nodes (measured from last added node)
             edge_distance (float): threshold to avoid adding nodes that are too close
+            max_distance (float): maximum distance to keep nodes (measured from last added node)
 
         Returns:
             A DistanceWindowGraph
         """
-
+        super().__init__(edge_distance=edge_distance)
         self._max_distance = max_distance
-        self._edge_distance = edge_distance
 
     @property
     def max_distance(self):
@@ -248,12 +247,6 @@ class DistanceWindowGraph(BaseGraph):
 
     def add_node(self, node: BaseNode):
         """Adds a node to the graph and removes far nodes"""
-        if self._last_added_node is not None:
-            # Compute distance to last node and do not add the node if it's too close
-            d = node.distance_to(self._last_added_node)
-            if d < self._edge_distance:
-                return False
-
         # Add node
         out = super().add_node(node)
 

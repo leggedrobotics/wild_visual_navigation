@@ -131,6 +131,13 @@ class MissionNode(BaseNode):
         self._supervision_signal = None
         self._supervision_signal_valid = None
         self._correspondence = None
+    
+    def clear_debug_data(self):
+        """ Removes all data not required for training """
+        try:
+            del self._image
+        except Exception as e:
+            pass # Image already removed
 
     def change_device(self, device):
         """Changes the device of all the class members

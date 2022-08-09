@@ -42,6 +42,7 @@ class WvnRosInterface:
             image_distance_thr=self.image_graph_dist_thr,
             proprio_distance_thr=self.proprio_graph_dist_thr,
             optical_flow_estimator_type=self.optical_flow_estimator_type,
+            online_mode = self.online_mode,
         )
 
         # Initialize affordance generator to process velocity commands
@@ -118,6 +119,9 @@ class WvnRosInterface:
         self.mission_name = rospy.get_param(
             "~mission_name", "default_mission"
         )  # Note: We may want to send this in the service call
+
+        # Online mode
+        self.online_mode = rospy.get_param("online_mode", True)
 
         # Torch device
         self.device = rospy.get_param("device", "cuda")
@@ -356,6 +360,7 @@ class WvnRosInterface:
 
         # rospy.loginfo("[main thread] update visualizations")
         self.visualize_mission(mission_node)
+        self.traversability_estimator.update_visualization_node()
 
     def learning_thread_loop(self):
         """This implements the main thread that runs the training procedure
@@ -490,23 +495,13 @@ class WvnRosInterface:
             self.pub_image_prediction_uncertainty.publish(rc.numpy_to_ros_image(np_uncertainty_image))
 
         # Publish reprojections of last node in graph
-        # TODO: change visualization for a better node
-        if len(self.traversability_estimator.get_mission_nodes()) > 0:
-            nodes = self.traversability_estimator.get_mission_nodes()
-            try:
-                mission_node = nodes[-10]
-            except Exception:
-                mission_node = self.traversability_estimator.get_last_valid_mission_node()
-
-            if mission_node is not None:
-                # torch_mask = mission_node.supervision_mask
-                # self.pub_image_mask.publish(rc.torch_to_ros_image(torch_mask))
-
-                np_labeled_image, np_mask_image = self.traversability_estimator.plot_mission_node_training(mission_node)
-                if np_labeled_image is None or np_mask_image is None:
-                    return
-                self.pub_image_labeled.publish(rc.numpy_to_ros_image(np_labeled_image))
-                self.pub_image_mask.publish(rc.numpy_to_ros_image(np_mask_image))
+        vis_node = self.traversability_estimator.get_mission_node_for_visualization()
+        if vis_node is not None:
+            np_labeled_image, np_mask_image = self.traversability_estimator.plot_mission_node_training(vis_node)
+            if np_labeled_image is None or np_mask_image is None:
+                return
+            self.pub_image_labeled.publish(rc.numpy_to_ros_image(np_labeled_image))
+            self.pub_image_mask.publish(rc.numpy_to_ros_image(np_mask_image))
 
         # Publish local graph
         mission_graph_msg = Path()
