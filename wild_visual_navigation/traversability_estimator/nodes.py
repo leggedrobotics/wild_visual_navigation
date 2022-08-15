@@ -493,6 +493,53 @@ class ProprioceptionNode(BaseNode):
         return isinstance(self._proprioceptive_state, torch.Tensor)
 
 
+class TwistNode(BaseNode):
+    """Stores twist information"""
+
+    _name = "twist_node"
+
+    def __init__(
+        self,
+        timestamp: float = 0.0,
+        pose_base_in_world: torch.tensor = torch.eye(4),
+        desired_twist: torch.tensor = torch.zeros(6),
+        current_twist: torch.tensor = torch.zeros(6),
+    ):
+        assert isinstance(pose_base_in_world, torch.Tensor)
+        assert isinstance(desired_twist, torch.Tensor)
+        assert isinstance(current_twist, torch.Tensor)
+        super().__init__(timestamp=timestamp, pose_base_in_world=pose_base_in_world)
+
+        self._desired_twist = desired_twist
+        self._current_twist = current_twist
+
+    def change_device(self, device):
+        """Changes the device of all the class members
+
+        Args:
+            device (str): new device
+        """
+        super().change_device(device)
+        self._desired_twist = self._desired_twist.to(device)
+        self._current_twist = self._current_twist.to(device)
+
+    @property
+    def desired_twist(self):
+        return self._desired_twist
+
+    @property
+    def current_twist(self):
+        return self._current_twist
+
+    @desired_twist.setter
+    def desired_twist(self, desired_twist):
+        self._desired_twist = desired_twist
+
+    @current_twist.setter
+    def current_twist(self, current_twist):
+        self._current_twist = current_twist
+
+
 def run_base_state():
     """TODO."""
 
