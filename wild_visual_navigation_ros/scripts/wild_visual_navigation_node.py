@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.image_projector import ImageProjector
-from wild_visual_navigation.affordance_generator import AffordanceGenerator
+from wild_visual_navigation.supervision_generator import SupervisionGenerator
 from wild_visual_navigation.traversability_estimator import TraversabilityEstimator
-from wild_visual_navigation.traversability_estimator import MissionNode, ProprioceptionNode
+from wild_visual_navigation.traversability_estimator import MissionNode, ProprioceptionNode, DesiredTwistNode
 import wild_visual_navigation_ros.ros_converter as rc
 
 from wild_visual_navigation_msgs.msg import RobotState
@@ -45,8 +45,8 @@ class WvnRosInterface:
             online_mode=self.online_mode,
         )
 
-        # Initialize affordance generator to process velocity commands
-        self.affordance_generator = AffordanceGenerator(
+        # Initialize traversability generator to process velocity commands
+        self.traversability_generator = SupervisionGenerator(
             self.device,
             kf_process_cov=0.1,
             kf_meas_cov=10,
@@ -54,7 +54,7 @@ class WvnRosInterface:
             kf_outlier_rejection_delta=0.5,
             sigmoid_slope=20,
             sigmoid_cutoff=0.25,  # 0.2
-            unaffordable_thr=0.05,  # 0.1
+            untraversable_thr=0.05,  # 0.1
         )
 
         # Setup ros
@@ -287,13 +287,16 @@ class WvnRosInterface:
 
         # Convert state to tensor
         proprio_tensor, proprio_labels = rc.wvn_robot_state_to_torch(state_msg, device=self.device)
-        current_twist_tensor = rc.twist_stamped_to_torch(state_msg.twist, components=["vx", "vy"], device=self.device)
-        desired_twist_tensor = rc.twist_stamped_to_torch(desired_twist_msg, components=["vx", "vy"], device=self.device)
+        current_twist_tensor = rc.twist_stamped_to_torch(state_msg.twist, device=self.device)
+        desired_twist_tensor = rc.twist_stamped_to_torch(desired_twist_msg, device=self.device)
 
-        # Update affordance
-        affordance, affordance_var, is_unaffordable = self.affordance_generator.update_with_velocities(
-            current_twist_tensor, desired_twist_tensor
+        # Update traversability
+        traversability, traversability_var, is_untraversable = self.supervision_generator.update_velocity_tracking(
+            current_twist_tensor, desired_twist_tensor, velocities=["vx", "vy"]
         )
+
+        # Create twist node
+        twist_node = DesiredTwistNode()
 
         # Create proprioceptive node for the graph
         proprio_node = ProprioceptionNode(
@@ -305,9 +308,9 @@ class WvnRosInterface:
             length=self.robot_length,
             height=self.robot_width,
             proprioception=proprio_tensor,
-            traversability=affordance,
-            traversability_var=affordance_var,
-            is_untraversable=is_unaffordable,
+            traversability=traversability,
+            traversability_var=traversability_var,
+            is_untraversable=is_untraversable,
         )
         # Add node to graph
         self.traversability_estimator.add_proprio_node(proprio_node)
@@ -476,8 +479,8 @@ class WvnRosInterface:
         self.pub_graph_footprints.publish(footprints_marker)
         self.pub_debug_proprio_graph.publish(proprio_graph_msg)
 
-        # Publish latest affordance/traversability
-        self.pub_instant_traversability.publish(self.affordance_generator.affordance)
+        # Publish latest traversability/traversability
+        self.pub_instant_traversability.publish(self.traversability_generator.traversability)
 
     def visualize_mission(self, mission_node: MissionNode = None):
         """Publishes all the visualizations related to mission graph, like the graph
