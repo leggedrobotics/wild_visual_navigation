@@ -45,7 +45,7 @@ class TraversabilityEstimator:
 
         # Local graphs
         self._proprio_graph = DistanceWindowGraph(max_distance=max_distance, edge_distance=proprio_distance_thr)
-        
+
         # Experience graph
         self._mission_graph = BaseGraph(edge_distance=image_distance_thr)
 
