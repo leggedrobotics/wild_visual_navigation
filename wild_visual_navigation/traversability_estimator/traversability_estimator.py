@@ -130,7 +130,7 @@ class TraversabilityEstimator:
         edges, feat, seg, center = self._feature_extractor.extract(img=node.image.clone()[None], return_centers=True)
 
         # Set features in node
-        node.feature_type = self._feature_extractor.get_type()
+        node.feature_type = self._feature_extractor.get_extractor_type()
         node.features = feat
         node.feature_edges = edges
         node.feature_segments = seg
