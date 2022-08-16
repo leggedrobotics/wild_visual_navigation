@@ -2,6 +2,7 @@
 
 import torch
 
+
 class SegmentExtractor(torch.nn.Module):
     @torch.no_grad()
     def __init__(self):

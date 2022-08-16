@@ -44,7 +44,9 @@ class FeatureExtractor:
 
         # Compute features
         dense_feat = self.compute_features(img, seg, center)
-        assert len(dense_feat.shape) == 4, f"dense_feat has incorrect shape size {dense_feat.shape} (should be B, C, H, W)"
+        assert (
+            len(dense_feat.shape) == 4
+        ), f"dense_feat has incorrect shape size {dense_feat.shape} (should be B, C, H, W)"
 
         # Sparsify features to match the centers if required
         feat = self.sparsify_features(dense_feat, seg)
@@ -67,7 +69,7 @@ class FeatureExtractor:
     def compute_segments(self, img: torch.tensor, **kwargs):
         if self.segmentation_type == "none" or self.segmentation_type is None:
             edges, seg, center = self.segment_pixelwise(img, **kwargs)
-            
+
         elif self.segmentation_type == "grid":
             edges, seg, center = self.segment_grid(img, **kwargs)
 
@@ -79,7 +81,7 @@ class FeatureExtractor:
         else:
             raise f"segmentation_type [{self.segmentation_type}] not supported"
 
-        return edges, seg, center 
+        return edges, seg, center
 
     def segment_pixelwise(self, img, **kwargs):
         return edges, seg, centers
@@ -92,7 +94,7 @@ class FeatureExtractor:
             n_segments = kwargs["n_segments"]
         else:
             n_segments = 200
-        
+
         if kwargs.get("compactness", None) is not None:
             compactness = kwargs["compactness"]
         else:
@@ -119,7 +121,6 @@ class FeatureExtractor:
         self.extractor.inference(img_internal)
         seg = self.extractor.segments
 
-        
         assert False, "We need to make the segments as in SLIC, applying the linear probe"
 
         # Extract adjacency_list based on segments
@@ -129,7 +130,7 @@ class FeatureExtractor:
         centers = self.segment_extractor.centers(seg[None, None])
 
         return edges, seg, centers
-        
+
     def compute_features(self, img: torch.tensor, seg: torch.tensor, center: torch.tensor, **kwargs):
         if self.feature_type == "histogram":
             feat = self.compute_histogram(img, seg, center, **kwargs)
@@ -146,10 +147,10 @@ class FeatureExtractor:
             raise f"segmentation_type [{self.segmentation_type}] not supported"
 
         return feat
-    
+
     def compute_histogram(self, img: torch.tensor, seg: torch.tensor, **kwargs):
         pass
-    
+
     @torch.no_grad()
     def compute_sift(self, img: torch.tensor, seg: torch.tensor, center: torch.tensor, **kwargs):
         B, C, H, W = img.shape
