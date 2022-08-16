@@ -135,9 +135,11 @@ class MissionNode(BaseNode):
     def clear_debug_data(self):
         """Removes all data not required for training"""
         try:
+            print(f"clear_debug_data {self}")
             del self._image
             del self._supervision_mask
         except Exception as e:
+            print(e)
             pass  # Image already removed
 
     def change_device(self, device):
@@ -424,8 +426,8 @@ class ProprioceptionNode(BaseNode):
         motion_direction = self._twist_in_base / self._twist_in_base.norm()
 
         dim_twist = motion_direction.shape[-1]
-        if dim_twist != 2:
-            print(f"Warning: input twist has dimension [{dim_twist}], will assume that twist[0]=vx, twist[1]=vy")
+        # if dim_twist != 2:
+        #     print(f"Warning: input twist has dimension [{dim_twist}], will assume that twist[0]=vx, twist[1]=vy")
 
         # Compute angle of motion
         z_angle = torch.atan2(motion_direction[1], motion_direction[0]).item()
