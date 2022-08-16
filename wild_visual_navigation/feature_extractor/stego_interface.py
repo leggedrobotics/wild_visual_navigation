@@ -105,7 +105,7 @@ class StegoInterface:
     @property
     def segments(self):
         return self._segments
-    
+
     @property
     def features(self):
         return self._code
