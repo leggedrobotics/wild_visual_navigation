@@ -75,12 +75,13 @@ class StegoInterface:
         code1 = self.model(img)
         code2 = self.model(img.flip(dims=[3]))
         code = (code1 + code2.flip(dims=[3])) / 2
-        self._code = F.interpolate(code, img.shape[-2:], mode="bilinear", align_corners=False)
+        code = F.interpolate(code, img.shape[-2:], mode="bilinear", align_corners=False)
         linear_probs = torch.log_softmax(self.model.linear_probe(code), dim=1)
 
         cluster_probs = self.model.cluster_probe(code, 2, log_probs=True)
 
         # Save segments
+        self._code = code
         self._segments = linear_probs
         return linear_probs, cluster_probs
 
