@@ -3,7 +3,7 @@ from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation.supervision_generator import SupervisionGenerator
 from wild_visual_navigation.traversability_estimator import TraversabilityEstimator
-from wild_visual_navigation.traversability_estimator import MissionNode, ProprioceptionNode, DesiredTwistNode
+from wild_visual_navigation.traversability_estimator import MissionNode, ProprioceptionNode
 import wild_visual_navigation_ros.ros_converter as rc
 
 from wild_visual_navigation_msgs.msg import RobotState
@@ -46,7 +46,7 @@ class WvnRosInterface:
         )
 
         # Initialize traversability generator to process velocity commands
-        self.traversability_generator = SupervisionGenerator(
+        self.supervision_generator = SupervisionGenerator(
             self.device,
             kf_process_cov=0.1,
             kf_meas_cov=10,
@@ -121,7 +121,9 @@ class WvnRosInterface:
         )  # Note: We may want to send this in the service call
 
         # Online mode
-        self.online_mode = rospy.get_param("online_mode", True)
+        self.online_mode = rospy.get_param("online_mode", False)
+        if self.online_mode:
+            print("\nWARNING: online_mode enabled. The graph will not store any debug/training data such as images\n")
 
         # Torch device
         self.device = rospy.get_param("device", "cuda")
@@ -153,6 +155,9 @@ class WvnRosInterface:
             "/wild_visual_navigation_node/last_node_image_labeled", Image, queue_size=10
         )
         self.pub_image_mask = rospy.Publisher("/wild_visual_navigation_node/last_node_image_mask", Image, queue_size=10)
+        self.pub_image_prediction_input = rospy.Publisher(
+            "/wild_visual_navigation_node/current_prediction_input", Image, queue_size=10
+        )
         self.pub_image_prediction = rospy.Publisher(
             "/wild_visual_navigation_node/current_prediction", Image, queue_size=10
         )
@@ -295,9 +300,6 @@ class WvnRosInterface:
             current_twist_tensor, desired_twist_tensor, velocities=["vx", "vy"]
         )
 
-        # Create twist node
-        twist_node = DesiredTwistNode()
-
         # Create proprioceptive node for the graph
         proprio_node = ProprioceptionNode(
             timestamp=ts,
@@ -356,14 +358,15 @@ class WvnRosInterface:
         )
 
         # Add node to graph
-        self.traversability_estimator.add_mission_node(mission_node)
+        added_new_node = self.traversability_estimator.add_mission_node(mission_node)
 
         # Update prediction for current image
         self.traversability_estimator.update_prediction(mission_node)
 
         # rospy.loginfo("[main thread] update visualizations")
         self.visualize_mission(mission_node)
-        self.traversability_estimator.update_visualization_node()
+        if added_new_node:
+            self.traversability_estimator.update_visualization_node()
 
     def learning_thread_loop(self):
         """This implements the main thread that runs the training procedure
@@ -479,8 +482,8 @@ class WvnRosInterface:
         self.pub_graph_footprints.publish(footprints_marker)
         self.pub_debug_proprio_graph.publish(proprio_graph_msg)
 
-        # Publish latest traversability/traversability
-        self.pub_instant_traversability.publish(self.traversability_generator.traversability)
+        # Publish latest traversability
+        self.pub_instant_traversability.publish(self.supervision_generator.traversability)
 
     def visualize_mission(self, mission_node: MissionNode = None):
         """Publishes all the visualizations related to mission graph, like the graph
@@ -494,6 +497,7 @@ class WvnRosInterface:
             np_prediction_image, np_uncertainty_image = self.traversability_estimator.plot_mission_node_prediction(
                 mission_node
             )
+            self.pub_image_prediction_input.publish(rc.torch_to_ros_image(mission_node.image))
             self.pub_image_prediction.publish(rc.numpy_to_ros_image(np_prediction_image))
             self.pub_image_prediction_uncertainty.publish(rc.numpy_to_ros_image(np_uncertainty_image))
 
