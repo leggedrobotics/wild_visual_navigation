@@ -9,7 +9,6 @@ channels:
 dependencies:
   - python=3.8
   - kornia=0.6.6
-  - libopencv
   - pip
   - torchvision
   - pytorch=1.11.0
@@ -21,6 +20,7 @@ dependencies:
   - scikit-learn
   - ros-noetic-ros-base
   - ros-noetic-cv-bridge
+  - libopencv
   - compilers
   - cmake
   - pkg-config
@@ -30,6 +30,9 @@ dependencies:
   - pyg
   - neptune-client
   - simple-parsing
+  - matplotlib
+  - seaborn
+  - pandas
   - pip:
     - neptune-client[optuna]
     - wandb
