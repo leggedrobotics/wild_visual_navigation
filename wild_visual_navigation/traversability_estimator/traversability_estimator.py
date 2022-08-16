@@ -45,6 +45,7 @@ class TraversabilityEstimator:
 
         # Local graphs
         self._proprio_graph = DistanceWindowGraph(max_distance=max_distance, edge_distance=proprio_distance_thr)
+
         # Experience graph
         self._mission_graph = BaseGraph(edge_distance=image_distance_thr)
 
@@ -354,7 +355,7 @@ class TraversabilityEstimator:
             # Project footprint onto all the image nodes
             for mnode in mission_nodes:
                 mask, _, _, _ = mnode.project_footprint(footprint)
-                if mask is None or mnode.supervision_mask is None:
+                if (not hasattr(mnode, "supervision_mask")) or (mask is None) or (mnode.supervision_mask is None):
                     continue
 
                 # Update mask with traversability
@@ -380,6 +381,10 @@ class TraversabilityEstimator:
         return last_valid_node
 
     def get_mission_node_for_visualization(self):
+        print(f"get_mission_node_for_visualization: {self._vis_mission_node}")
+        if self._vis_mission_node is not None:
+            print(f"  has image {hasattr(self._vis_mission_node, 'image')}")
+            print(f"  has supervision_mask {hasattr(self._vis_mission_node, 'supervision_mask')}")
         return self._vis_mission_node
 
     def save(self, mission_path: str, filename: str):
