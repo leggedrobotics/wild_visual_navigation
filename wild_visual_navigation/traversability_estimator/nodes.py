@@ -135,9 +135,11 @@ class MissionNode(BaseNode):
     def clear_debug_data(self):
         """Removes all data not required for training"""
         try:
+            print(f"clear_debug_data {self}")
             del self._image
             del self._supervision_mask
         except Exception as e:
+            print(e)
             pass  # Image already removed
 
     def change_device(self, device):
@@ -424,8 +426,8 @@ class ProprioceptionNode(BaseNode):
         motion_direction = self._twist_in_base / self._twist_in_base.norm()
 
         dim_twist = motion_direction.shape[-1]
-        if dim_twist != 2:
-            print(f"Warning: input twist has dimension [{dim_twist}], will assume that twist[0]=vx, twist[1]=vy")
+        # if dim_twist != 2:
+        #     print(f"Warning: input twist has dimension [{dim_twist}], will assume that twist[0]=vx, twist[1]=vy")
 
         # Compute angle of motion
         z_angle = torch.atan2(motion_direction[1], motion_direction[0]).item()
@@ -491,6 +493,53 @@ class ProprioceptionNode(BaseNode):
 
     def is_valid(self):
         return isinstance(self._proprioceptive_state, torch.Tensor)
+
+
+class TwistNode(BaseNode):
+    """Stores twist information"""
+
+    _name = "twist_node"
+
+    def __init__(
+        self,
+        timestamp: float = 0.0,
+        pose_base_in_world: torch.tensor = torch.eye(4),
+        desired_twist: torch.tensor = torch.zeros(6),
+        current_twist: torch.tensor = torch.zeros(6),
+    ):
+        assert isinstance(pose_base_in_world, torch.Tensor)
+        assert isinstance(desired_twist, torch.Tensor)
+        assert isinstance(current_twist, torch.Tensor)
+        super().__init__(timestamp=timestamp, pose_base_in_world=pose_base_in_world)
+
+        self._desired_twist = desired_twist
+        self._current_twist = current_twist
+
+    def change_device(self, device):
+        """Changes the device of all the class members
+
+        Args:
+            device (str): new device
+        """
+        super().change_device(device)
+        self._desired_twist = self._desired_twist.to(device)
+        self._current_twist = self._current_twist.to(device)
+
+    @property
+    def desired_twist(self):
+        return self._desired_twist
+
+    @property
+    def current_twist(self):
+        return self._current_twist
+
+    @desired_twist.setter
+    def desired_twist(self, desired_twist):
+        self._desired_twist = desired_twist
+
+    @current_twist.setter
+    def current_twist(self, current_twist):
+        self._current_twist = current_twist
 
 
 def run_base_state():
