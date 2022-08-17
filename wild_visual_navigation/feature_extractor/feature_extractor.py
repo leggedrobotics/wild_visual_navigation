@@ -132,7 +132,9 @@ class FeatureExtractor:
 
         B, C, H, W = img.shape
         patches = extract_tensor_patches(
-            input=torch.ones((1, 1, H, W), dtype=torch.int32).to(self._device), window_size=patch_size, stride=patch_size
+            input=torch.ones((1, 1, H, W), dtype=torch.int32).to(self._device),
+            window_size=patch_size,
+            stride=patch_size,
         )
         for i in range(patches.shape[1]):
             patches[:, i, :, :, :] = i
@@ -230,4 +232,3 @@ class FeatureExtractor:
             return torch.stack(sparse_features, dim=1).T
         else:
             return dense_features
-

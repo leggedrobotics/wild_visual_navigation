@@ -108,7 +108,7 @@ class WvnRosInterface:
         self.network_input_image_width = rospy.get_param("~network_input_image_width", 448)
         self.segmentation_type = rospy.get_param("~segmentation_type", "slic")
         self.feature_type = rospy.get_param("~feature_type", "dino")
-        
+
         # Optical flow params
         self.optical_flow_estimator_type = rospy.get_param("optical_flow_estimator_type", "sparse")
 
