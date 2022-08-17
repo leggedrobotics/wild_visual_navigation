@@ -26,6 +26,13 @@ class StegoInterface:
             ]
         )
 
+        self.crop = T.Compose(
+            [
+                T.Resize(448, T.InterpolationMode.NEAREST),
+                T.CenterCrop(448),
+            ]
+        )
+
         # Just normalization
         self.norm = T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
@@ -77,12 +84,12 @@ class StegoInterface:
         code = (code1 + code2.flip(dims=[3])) / 2
         code = F.interpolate(code, img.shape[-2:], mode="bilinear", align_corners=False)
         linear_probs = torch.log_softmax(self.model.linear_probe(code), dim=1)
-
         cluster_probs = self.model.cluster_probe(code, 2, log_probs=True)
 
         # Save segments
         self._code = code
         self._segments = linear_probs
+
         return linear_probs, cluster_probs
 
     @torch.no_grad()
@@ -100,11 +107,19 @@ class StegoInterface:
         single_img = img[0].cpu()
         linear_pred = dense_crf(single_img, linear_probs[0]).argmax(0)
         cluster_pred = dense_crf(single_img, cluster_probs[0]).argmax(0)
+
+        # Overwrite segments for refined CRF ones
+        self._linear_segments = self.model.label_cmap[linear_pred]
+        self._cluster_segments = self.model.label_cmap[cluster_pred]
         return linear_pred, cluster_pred
 
     @property
-    def segments(self):
-        return self._segments
+    def linear_segments(self):
+        return self._linear_segments
+
+    @property
+    def cluster_segments(self):
+        return self._cluster_segments
 
     @property
     def features(self):
@@ -132,11 +147,11 @@ def run_stego_interfacer():
     img = img.permute(2, 0, 1)
     img = (img.type(torch.float32) / 255)[None]
 
-    linear_pred, cluster_pred = si.inference_crf(si.transform(img))
+    linear_pred, cluster_pred = si.inference_crf(si.crop(img))
     # Plot result as in colab
     fig, ax = plt.subplots(1, 3, figsize=(5 * 3, 5))
 
-    ax[0].imshow(unnorm(si.norm(img)).permute(0, 2, 3, 1)[0].cpu())
+    ax[0].imshow(si.crop(img).permute(0, 2, 3, 1)[0].cpu())
     ax[0].set_title("Image")
     ax[1].imshow(si.model.label_cmap[cluster_pred])
     ax[1].set_title("Cluster Predictions")
