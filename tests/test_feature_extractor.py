@@ -11,7 +11,7 @@ import cv2
 
 def test_feature_extractor():
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    fe = FeatureExtractor(device, segmentation_type="stego", feature_type="stego")
+    fe = FeatureExtractor(device, segmentation_type="grid", feature_type="sift")
 
     transform = T.Compose(
         [

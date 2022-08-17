@@ -38,6 +38,8 @@ class WvnRosInterface:
         # Initialize traversability estimator
         self.traversability_estimator = TraversabilityEstimator(
             device=self.device,
+            segmentation_type=self.segmentation_type,
+            feature_type=self.feature_type,
             max_distance=self.traversability_radius,
             image_distance_thr=self.image_graph_dist_thr,
             proprio_distance_thr=self.proprio_graph_dist_thr,
@@ -104,7 +106,9 @@ class WvnRosInterface:
         self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.1)
         self.network_input_image_height = rospy.get_param("~network_input_image_height", 448)
         self.network_input_image_width = rospy.get_param("~network_input_image_width", 448)
-
+        self.segmentation_type = rospy.get_param("~segmentation_type", "slic")
+        self.feature_type = rospy.get_param("~feature_type", "dino")
+        
         # Optical flow params
         self.optical_flow_estimator_type = rospy.get_param("optical_flow_estimator_type", "sparse")
 

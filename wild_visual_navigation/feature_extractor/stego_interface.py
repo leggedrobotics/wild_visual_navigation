@@ -105,21 +105,18 @@ class StegoInterface:
 
         linear_probs, cluster_probs = self.inference(img)
         single_img = img[0].cpu()
-        linear_pred = dense_crf(single_img, linear_probs[0]).argmax(0)
-        cluster_pred = dense_crf(single_img, cluster_probs[0]).argmax(0)
+        self._linear_pred = dense_crf(single_img, linear_probs[0]).argmax(0)
+        self._cluster_pred = dense_crf(single_img, cluster_probs[0]).argmax(0)
 
-        # Overwrite segments for refined CRF ones
-        self._linear_segments = self.model.label_cmap[linear_pred]
-        self._cluster_segments = self.model.label_cmap[cluster_pred]
-        return linear_pred, cluster_pred
+        return self._linear_pred, self._cluster_pred
 
     @property
     def linear_segments(self):
-        return self._linear_segments
+        return self._linear_pred
 
     @property
     def cluster_segments(self):
-        return self._cluster_segments
+        return self._cluster_pred
 
     @property
     def features(self):
@@ -139,8 +136,7 @@ def run_stego_interfacer():
 
     # Inference model
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    with torch.no_grad():
-        si = StegoInterface(device=device)
+    si = StegoInterface(device=device)
     p = join(WVN_ROOT_DIR, "assets/images/forest_clean.png")
     np_img = cv2.imread(p)
     img = torch.from_numpy(cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB)).to(device)
