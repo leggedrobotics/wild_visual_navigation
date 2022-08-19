@@ -30,7 +30,7 @@ class ExperimentParams(Serializable):
             weight_decay: float = 4.0e-05
 
         name: str = "ADAMW"
-        lr: float = 0.01
+        lr: float = 0.001
         adamw_cfg: AdamwCfgParams = AdamwCfgParams()
 
     optimizer: OptimizerParams = OptimizerParams()

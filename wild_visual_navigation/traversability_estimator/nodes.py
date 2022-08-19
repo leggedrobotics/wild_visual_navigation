@@ -72,8 +72,8 @@ class BaseNode:
         Returns:
             distance (float): absolute distance between the states
         """
-        # Compute pose difference, then log() to get a vector, then extract position coordinates, finally get norm
-        return SE3.from_matrix(self.pose_base_in_world.inverse() @ other.pose_base_in_world).log()[:3].norm()
+        # Compute pose difference, then log() to get a vector, then extract position coordinates, finally get norm        
+        return SE3.from_matrix(self.pose_base_in_world.inverse() @ other.pose_base_in_world, normalize=True).log()[:3].norm()
 
     @property
     def name(self):
@@ -131,7 +131,8 @@ class MissionNode(BaseNode):
         self._supervision_signal = None
         self._supervision_signal_valid = None
         self._correspondence = None
-
+        self._confidence = None
+        
     def clear_debug_data(self):
         """Removes all data not required for training"""
         try:
@@ -172,6 +173,8 @@ class MissionNode(BaseNode):
             self._supervision_signal_valid = self._supervision_signal_valid.to(device)
         if self._correspondence is not None:
             self._correspondence = self._correspondence.to(device)
+        if self._confidence is not None:
+            self._confidence = self._confidence.to(device)
 
     def as_pyg_data(self, previous_node: Optional[BaseNode] = None, aux: bool = False):
         if aux:
@@ -200,7 +203,15 @@ class MissionNode(BaseNode):
             and isinstance(self._supervision_signal, torch.Tensor)
             and isinstance(self._correspondence, torch.Tensor)
         )
-
+        
+    @property
+    def confidence(self):
+        return self._confidence
+    
+    @property
+    def correspondence(self):
+        return self._correspondence
+    
     @property
     def features(self):
         return self._features
@@ -235,7 +246,7 @@ class MissionNode(BaseNode):
 
     @property
     def prediction(self):
-        return self.prediction
+        return self._prediction
 
     @property
     def supervision_signal(self):
@@ -249,9 +260,13 @@ class MissionNode(BaseNode):
     def supervision_mask(self):
         return self._supervision_mask
 
-    @property
-    def correspondence(self):
-        return self._correspondence
+    @confidence.setter
+    def confidence(self, confidence):
+        self._confidence = confidence
+        
+    @correspondence.setter
+    def correspondence(self, correspondence):
+        self._correspondence = correspondence
 
     @features.setter
     def features(self, features):
@@ -300,10 +315,6 @@ class MissionNode(BaseNode):
     @supervision_mask.setter
     def supervision_mask(self, supervision_mask):
         self._supervision_mask = supervision_mask
-
-    @correspondence.setter
-    def correspondence(self, correspondence):
-        self._correspondence = correspondence
 
     def save(self, output_path: str, index: int, graph_only: bool = False, previous_node: Optional[BaseNode] = None):
         if self._feature_positions is not None:
