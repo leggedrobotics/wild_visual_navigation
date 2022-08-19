@@ -32,7 +32,8 @@ class TraversabilityEstimator:
         max_distance: float = 3,
         image_distance_thr: float = None,
         proprio_distance_thr: float = None,
-        feature_extractor_type: str = "dino_slic",
+        segmentation_type: str = "slic",
+        feature_type: str = "dino",
         optical_flow_estimator_type: str = "none",
         min_samples_for_training: int = 10,
         online_mode: bool = False,
@@ -53,8 +54,11 @@ class TraversabilityEstimator:
         self._vis_mission_node = None
 
         # Feature extractor
-        self._feature_extractor_type = feature_extractor_type
-        self._feature_extractor = FeatureExtractor(device, extractor_type=self._feature_extractor_type)
+        self._segmentation_type = segmentation_type
+        self._feature_type = feature_type
+        self._feature_extractor = FeatureExtractor(
+            device, segmentation_type=self._segmentation_type, feature_type=self._feature_type
+        )
         # Optical flow
         self._optical_flow_estimator_type = optical_flow_estimator_type
 
@@ -134,7 +138,7 @@ class TraversabilityEstimator:
         edges, feat, seg, center = self._feature_extractor.extract(img=node.image.clone()[None], return_centers=True)
 
         # Set features in node
-        node.feature_type = self._feature_extractor.get_type()
+        node.feature_type = self._feature_extractor.feature_type
         node.features = feat
         node.feature_edges = edges
         node.feature_segments = seg
@@ -385,10 +389,10 @@ class TraversabilityEstimator:
         return last_valid_node
 
     def get_mission_node_for_visualization(self):
-        print(f"get_mission_node_for_visualization: {self._vis_mission_node}")
-        if self._vis_mission_node is not None:
-            print(f"  has image {hasattr(self._vis_mission_node, 'image')}")
-            print(f"  has supervision_mask {hasattr(self._vis_mission_node, 'supervision_mask')}")
+        # print(f"get_mission_node_for_visualization: {self._vis_mission_node}")
+        # if self._vis_mission_node is not None:
+        #     print(f"  has image {hasattr(self._vis_mission_node, 'image')}")
+        #     print(f"  has supervision_mask {hasattr(self._vis_mission_node, 'supervision_mask')}")
         return self._vis_mission_node
 
     def save(self, mission_path: str, filename: str):

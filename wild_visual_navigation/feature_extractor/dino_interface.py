@@ -29,6 +29,7 @@ class DinoInterface:
         self.model.to(device)
         self.device = device
 
+        # Transformation for testing
         self.transform = T.Compose(
             [
                 T.Resize(448, T.InterpolationMode.NEAREST),
@@ -36,6 +37,9 @@ class DinoInterface:
                 T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
             ]
         )
+
+        # Just normalization
+        self.norm = T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
     def change_device(self, device):
         """Changes the device of all the class members
@@ -92,12 +96,17 @@ class DinoInterface:
             features (torch.tensor, dtype=torch.float32, shape=(BS,D,H,W)): per-pixel D-dimensional features
         """
         # assert 1 == img.shape[0]
-        assert img.device.type == self.device
+        img = self.norm(img).to(self.device)
 
         # Extract features
         features = self.model(img)[1]
 
         # resize and interpolate features
+        B, D, H, W = img.shape
+        new_size = (H, H)
+        pad = int((W - H) / 2)
+        features = F.interpolate(features, new_size, mode="bilinear", align_corners=True)
+        features = F.pad(features, pad=[pad, pad, 0, 0])
         # features = F.interpolate(features, img.shape[-2:], mode="bilinear", align_corners=True)
 
         return features

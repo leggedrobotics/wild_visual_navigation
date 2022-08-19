@@ -1,4 +1,4 @@
-from wild_visual_navigation.feature_extractor import StegoInterface, DinoInterface
+from wild_visual_navigation.feature_extractor import StegoInterface, DinoInterface, SegmentExtractor
 from wild_visual_navigation.utils import PlotHelper
 
 import torch.nn.functional as F
@@ -6,96 +6,14 @@ import skimage
 import torch
 import numpy as np
 import kornia
+from kornia.feature import DenseSIFTDescriptor
+from kornia.contrib import extract_tensor_patches, combine_tensor_patches
 from torchvision import transforms as T
 from PIL import Image, ImageDraw
 
 
-class SegmentExtractor(torch.nn.Module):
-    @torch.no_grad()
-    def __init__(self):
-        super().__init__()
-        # Use Convolutional Filter to Extract Edges
-        self.f1 = torch.nn.Conv2d(1, 4, (3, 3), padding_mode="replicate", padding=(3, 3), bias=False)
-        self.f1.weight[:, :, :, :] = 0
-        # 0  0  0
-        # 0  1 -1
-        # 0  0  0
-        self.f1.weight[0, 0, 1, 1] = 1
-        self.f1.weight[0, 0, 1, 2] = -1
-        # 0  0  0
-        # 1 -1  0
-        # 0  0  0
-        self.f1.weight[1, 0, 1, 0] = 1
-        self.f1.weight[1, 0, 1, 1] = -1
-        # 0  0  0
-        # 0  1  0
-        # 0 -1  0
-        self.f1.weight[2, 0, 1, 1] = 1
-        self.f1.weight[2, 0, 2, 1] = -1
-        # 0  0  0
-        # 0 -1  0
-        # 0  1  0
-        self.f1.weight[3, 0, 0, 1] = 1
-        self.f1.weight[3, 0, 1, 1] = -1
-
-    @torch.no_grad()
-    def adjacency_list(self, seg: torch.tensor):
-        """Extracts a adjacency list based on neigboring classes.
-
-        Args:
-            seg (torch.Tensor, dtype=torch.long, shape=(BS, 1, H, W)): Segmentation
-
-        Returns:
-            adjacency_list (torch.Tensor, dtype=torch.long, shape=(N, 2): Adjacency list of undirected graph
-        """
-        assert seg.shape[0] == 1 and len(seg.shape) == 4
-
-        res = self.f1(seg.type(torch.float32))
-        boundary_mask = (res != 0)[0, :, 2:-2, 2:-2]
-
-        # Shifting the filter allows to index the left and right segment of a bordered
-        left_idx = torch.cat([seg[0, 0, boundary_mask[0]], seg[0, 0, boundary_mask[2]]])
-        right_idx = torch.cat([seg[0, 0, boundary_mask[1]], seg[0, 0, boundary_mask[3]]])
-
-        # Create adjacency_list based on the given pairs (crucial to use float64 here)
-        div = seg.max() + 1
-        unique_key = (left_idx + (right_idx * (div))).type(torch.float64)
-        m = torch.unique(unique_key)
-
-        le_idx = (m % div).type(torch.long)
-        ri_idx = torch.floor(m / div).type(torch.long)
-        adjacency_list = torch.stack([le_idx, ri_idx], dim=1)
-
-        return adjacency_list
-
-    @torch.no_grad()
-    def centers(self, seg: torch.tensor):
-        """Extracts a center position in image plane of clusters.
-
-        Args:
-            seg (torch.Tensor, dtype=torch.long, shape=(BS, 1, H, W)): Segmentation
-
-        Returns:
-            centers (torch.Tensor, dtype=torch.long, shape=(N, 2): Center position in image plane of clusters.
-        """
-
-        assert seg.shape[0] == 1 and len(seg.shape) == 4
-
-        centers = []
-        tmp_seg = seg.permute(
-            *torch.arange(seg.ndim - 1, -1, -1)
-        )  # complicated command because seg.T will be deprecated
-        for s in range(seg.max() + 1):
-            indices = torch.nonzero((s == tmp_seg)[:, :, 0, 0])
-            res = indices.type(torch.float32).mean(dim=0)
-            centers.append(res)
-        centers = torch.stack(centers)
-
-        return centers
-
-
 class FeatureExtractor:
-    def __init__(self, device: str, extractor_type: str = "dino_slic"):
+    def __init__(self, device: str, segmentation_type: str = "slic", feature_type: str = "dino"):
         """Feature extraction from image
 
         Args:
@@ -103,27 +21,55 @@ class FeatureExtractor:
             extractor (str): Extractor model: stego, dino_slic
         """
 
-        self.device = device
-        self.extractor_type = extractor_type
+        self._device = device
+        self._segmentation_type = segmentation_type
+        self._feature_type = feature_type
+
+        # Prepare segment extractor
+        self.segment_extractor = SegmentExtractor().to(self._device)
 
         # Prepare extractor depending on the type
-        if self.extractor_type == "stego":
+        if self._feature_type == "stego":
+            self._feature_dim = 90
             self.extractor = StegoInterface(device=device)
-        elif self.extractor_type == "dino_slic":
+        elif self._feature_type == "dino":
+            self._feature_dim = 90
             self.extractor = DinoInterface(device=device)
+        elif self._feature_type == "sift":
+            self._feature_dim = 128
+            self.extractor = DenseSIFTDescriptor().to(device)
+        elif self._feature_type == "histogram":
+            self._feature_dim = 90
         else:
-            raise f"Extractor[{self.extractor_type}] not supported!"
-
-        self.crop = T.Compose([T.Resize(448, T.InterpolationMode.NEAREST), T.CenterCrop(448)])
-        self.norm = T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-        self.se = SegmentExtractor()
-        self.se.to(self.device)
+            raise f"Extractor[{self._feature_type}] not supported!"
 
     def extract(self, img, **kwargs):
-        return getattr(self, self.extractor_type)(img, **kwargs)
+        # Compute segments, their centers, and edges connecting them (graph structure)
+        edges, seg, center = self.compute_segments(img, **kwargs)
 
-    def get_type(self):
-        return self.extractor_type
+        # Compute features
+        dense_feat = self.compute_features(img, seg, center, **kwargs)
+        assert (
+            len(dense_feat.shape) == 4
+        ), f"dense_feat has incorrect shape size {dense_feat.shape} (should be B, C, H, W)"
+
+        # Sparsify features to match the centers if required
+        feat = self.sparsify_features(dense_feat, seg)
+
+        return edges, feat, seg, center
+        # return getattr(self, self._feature_type)(img, **kwargs)
+
+    @property
+    def feature_type(self):
+        return self._feature_type
+
+    @property
+    def feature_dim(self):
+        return self._feature_dim
+
+    @property
+    def segmentation_type(self):
+        return self._segmentation_type
 
     def change_device(self, device):
         """Changes the device of all the class members
@@ -131,119 +77,158 @@ class FeatureExtractor:
         Args:
             device (str): new device
         """
-        self.device = device
+        self._device = device
         self.extractor.change_device(device)
 
-    @torch.no_grad()
-    def dino_slic(
-        self,
-        img: torch.tensor,
-        n_segments: int = 200,
-        compactness: float = 10.0,
-        return_centers: bool = False,
-        return_image: bool = False,
-        show: bool = False,
-    ):
-        """Extract dino feature form image
+    def compute_segments(self, img: torch.tensor, **kwargs):
+        if self._segmentation_type == "none" or self._segmentation_type is None:
+            edges, seg, centers = self.segment_pixelwise(img, **kwargs)
 
-        Args:
-            img (torch.Tensor, dtype=torch.float32, shape=(BS, C, H, W)): Image
-            n_segments (int, optional): Defaults to 100.
-            compactness (float, optional): Defaults to 100.0.
-            return_centers (bool, optional): Defaults to False.
-            return_image (bool, optional): Defaults to False.
-            show (bool, optional): Defaults to False.
+        elif self._segmentation_type == "grid":
+            seg = self.segment_grid(img, **kwargs)
 
-        Returns:
-            adj (torch.Tensor, dtype=torch.uint32, shape=(2,N)): Graph Structure
-            feat (torch.Tensor, dtype=torch.float32, shape=(N, C)): Features
-            seg (torch.Tensor, dtype=torch.uint32, shape=(H, W)): Segmentation
-            center (torch.Tensor, dtype=torch.float32, shape=(2,N)): Center of custer in image plane
-        """
+        elif self._segmentation_type == "slic":
+            seg = self.segment_slic(img, **kwargs)
 
-        # Currently on BS=1 supported
-        assert img.shape[0] == 1 and len(img.shape) == 4
+        elif self._segmentation_type == "stego":
+            seg = self.segment_stego(img, **kwargs)
+        else:
+            raise f"segmentation_type [{self._segmentation_type}] not supported"
 
-        # Prepare input image
-        img_internal = img.clone()
-        # img_internal = self.crop(img_internal.to(self.device))
-        img_internal = self.norm(img_internal)
+        # Compute edges and centers
+        if self._segmentation_type != "none" and self._segmentation_type is not None:
+            # Extract adjacency_list based on segments
+            edges = self.segment_extractor.adjacency_list(seg[None, None])
+            # Extract centers
+            centers = self.segment_extractor.centers(seg[None, None])
 
-        # Extract dino features
-        feat_dino = self.extractor.inference(img_internal, interpolate=False)
+        return edges.T, seg, centers
 
-        # Fix size of DINO features to match input image's size
-        B, D, H, W = img.shape
-        new_size = (H, H)
-        pad = int((W - H) / 2)
-        feat_dino = F.interpolate(feat_dino, new_size, mode="bilinear", align_corners=True)
-        feat_dino = F.pad(feat_dino, pad=[pad, pad, 0, 0])
+    def segment_pixelwise(self, img, **kwargs):
+        # Generate pixel-wise segmentation
+        B, C, H, W = img.shape
+        seg = torch.arange(0, H * W, 1).reshape(H, W).to(self._device)
+
+        # Centers
+        seg_x = torch.ones((1, 1, H, W), dtype=torch.int32).to(self._device)
+        seg_y = torch.ones((1, 1, H, W), dtype=torch.int32).to(self._device)
+        seg_x = (seg_x.cumsum(dim=-1) - 1).reshape(-1, 1)
+        seg_y = (seg_y.cumsum(dim=-2) - 1).reshape(-1, 1)
+        centers = torch.cat((seg_y, seg_x), dim=1)
+
+        # Edges
+        hor_edges = torch.cat((seg[:, :-1].reshape(-1, 1), seg[:, 1:].reshape(-1, 1)), dim=1)
+        ver_edges = torch.cat((seg[:-1, :].reshape(-1, 1), seg[1:, :].reshape(-1, 1)), dim=1)
+        edges = torch.cat((hor_edges, ver_edges), dim=0)
+
+        return edges, seg, centers
+
+    def segment_grid(self, img, **kwargs):
+        if kwargs.get("cell_size", None) is not None:
+            cell_size = kwargs["cell_size"]
+        else:
+            cell_size = 16
+        patch_size = (cell_size, cell_size)
+
+        B, C, H, W = img.shape
+        patches = extract_tensor_patches(
+            input=torch.ones((1, 1, H, W), dtype=torch.int32).to(self._device),
+            window_size=patch_size,
+            stride=patch_size,
+        )
+        for i in range(patches.shape[1]):
+            patches[:, i, :, :, :] = i
+
+        combine_patch_size = (int(H / cell_size), int(W / cell_size))
+        seg = combine_tensor_patches(
+            patches=patches, original_size=(H, W), window_size=combine_patch_size, stride=combine_patch_size
+        )
+
+        return seg[0, 0].to(self._device)
+
+    def segment_slic(self, img, **kwargs):
+        if kwargs.get("n_segments", None) is not None:
+            n_segments = kwargs["n_segments"]
+        else:
+            n_segments = 200
+
+        if kwargs.get("compactness", None) is not None:
+            compactness = kwargs["compactness"]
+        else:
+            compactness = 10.0
 
         # Get slic clusters
         img_np = kornia.utils.tensor_to_image(img)
         seg = skimage.segmentation.slic(
             img_np, n_segments=n_segments, compactness=compactness, start_label=0, channel_axis=2
         )
+        seg = torch.from_numpy(seg).to(self._device)
 
-        # extract adjacency_list based on clusters
-        seg = torch.from_numpy(seg).to(self.device)
-        adjacency_list = self.se.adjacency_list(seg[None, None])
+        return seg
 
-        # get mean dino features for each cluster
-        features = []
-        for i in range(seg.max() + 1):
-            m = seg == i
-            x, y = torch.where(m)
-            feat = feat_dino[0, :, x, y].median(dim=1)[0]
-            features.append(feat)
-
-        ret = (adjacency_list.T, torch.stack(features, dim=1).T, seg)
-
-        if return_centers:
-            ret += (self.se.centers(seg[None, None]),)
-
-        if show or return_image:
-            ph = PlotHelper()
-            ph.add(img_np, "Input Image Cropped")
-            ph.add(seg, "SLIC Segmentation")
-
-            img_pil = Image.fromarray(np.uint8(img_np * 255))
-            seg_pil = Image.fromarray(np.uint8(seg.cpu().numpy()[0, 0]))
-            img_draw = ImageDraw.Draw(img_pil)
-            seg_draw = ImageDraw.Draw(seg_pil)
-
-            centers = self.se.centers(seg)
-            fil_col = (seg.max() + 5).item()
-            for i in range(adjacency_list.shape[1]):
-                a, b = adjacency_list[0, i], adjacency_list[1, i]
-                line_params = centers[a].tolist() + centers[b].tolist()
-                img_draw.line(line_params, fill=fil_col)
-                seg_draw.line(line_params, fill=fil_col)
-
-            for i in range(centers.shape[0]):
-                params = centers[i].tolist()
-                params = [p - 2 for p in params] + [p + 2 for p in params]
-                img_draw.ellipse(params, width=10, fill=fil_col + 1)
-                seg_draw.ellipse(params, width=10, fill=fil_col + 1)
-
-            ph.add(np.array(img_pil), "Image Feature-Graph")
-            ph.add(np.array(seg_pil), "SLIC Feature-Graph")
-
-            if show:
-                ph.show()
-
-            if return_image:
-                ret += (ph.get_img(),)
-
-        return ret
-
-    def stego(self, img: torch.tensor):
-        # currently on BS=1 supported
-        assert img.shape[0] == 1 and len(img.shape) == 4
-
+    def segment_stego(self, img, **kwargs):
         # Prepare input image
         img_internal = img.clone()
-        # img_internal = self.crop(img_internal.to(self.device))
-        img_internal = self.norm(img_internal)
+        self.extractor.inference_crf(img_internal)
+        seg = torch.from_numpy(self.extractor.linear_segments).to(self._device)
 
-        return self.extractor.inference(img_internal)
+        # Change the segment indices by numbers from 0 to N
+        for i, k in enumerate(seg.unique()):
+            seg[seg == k.item()] = i
+
+        return seg
+
+    def compute_features(self, img: torch.tensor, seg: torch.tensor, center: torch.tensor, **kwargs):
+        if self._feature_type == "histogram":
+            feat = self.compute_histogram(img, seg, center, **kwargs)
+
+        elif self._feature_type == "sift":
+            feat = self.compute_sift(img, seg, center, **kwargs)
+
+        elif self._feature_type == "dino":
+            feat = self.compute_dino(img, seg, center, **kwargs)
+
+        elif self._feature_type == "stego":
+            feat = self.compute_stego(img, seg, center, **kwargs)
+        else:
+            raise f"segmentation_type [{self._segmentation_type}] not supported"
+
+        return feat
+
+    def compute_histogram(self, img: torch.tensor, seg: torch.tensor, **kwargs):
+        raise NotImplementedError("compute_histogram is not implemented yet")
+
+    @torch.no_grad()
+    def compute_sift(self, img: torch.tensor, seg: torch.tensor, center: torch.tensor, **kwargs):
+        B, C, H, W = img.shape
+        if C == 3:
+            feat_r = self.extractor(img[:, 0, :, :][None])
+            feat_g = self.extractor(img[:, 1, :, :][None])
+            feat_b = self.extractor(img[:, 2, :, :][None])
+            features = torch.cat([feat_r, feat_r, feat_b], dim=1)
+        else:
+            features = self.extractor(img)
+        return features
+
+    @torch.no_grad()
+    def compute_dino(self, img: torch.tensor, seg: torch.tensor, center: torch.tensor, **kwargs):
+        img_internal = img.clone()
+        features = self.extractor.inference(img_internal)
+        return features
+
+    @torch.no_grad()
+    def compute_stego(self, img: torch.tensor, seg: torch.tensor, center: torch.tensor, **kwargs):
+        return self.extractor.features
+
+    def sparsify_features(self, dense_features: torch.tensor, seg: torch.tensor):
+        if self._feature_type not in ["histogram"] and self._segmentation_type not in ["none"]:
+            # Get median features for each cluster
+            sparse_features = []
+            for i in range(seg.max() + 1):
+                m = seg == i
+                x, y = torch.where(m)
+                feat = dense_features[0, :, x, y].median(dim=1)[0]
+                sparse_features.append(feat)
+            return torch.stack(sparse_features, dim=1).T
+        else:
+            return dense_features
