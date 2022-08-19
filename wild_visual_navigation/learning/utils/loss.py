@@ -7,7 +7,8 @@ from typing import Optional
 def compute_loss(
     batch: Data, res: torch.Tensor, loss_cfg: any, model: torch.nn.Module, batch_aux: Optional[Data] = None
 ):
-    loss_trav = F.mse_loss(res[batch.y_valid, 0], batch.y[batch.y_valid])
+    # batch.y_valid
+    loss_trav = F.mse_loss(res[:, 0], batch.y[:])
     nc = 1
     loss_reco = F.mse_loss(res[batch.y_valid][:, nc:], batch.x[batch.y_valid])
 

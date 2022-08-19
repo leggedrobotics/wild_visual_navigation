@@ -1,5 +1,6 @@
 .neptune*
 wild_visual_navigation/.neptune*
+wild_visual_navigation/notebooks*
 results/*
 assets/dino/*
 assets/stego/cocostuff27_vit_base_5.ckpt

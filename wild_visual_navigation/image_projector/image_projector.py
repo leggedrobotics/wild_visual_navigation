@@ -72,6 +72,10 @@ class ImageProjector:
         sh = torch.IntTensor([sh]).to(device)
         sw = torch.IntTensor([sw]).to(device)
         self.camera = PinholeCamera(sK, E, sh, sw)
+    
+    @property
+    def scaled_camera_matrix(self):
+        return self.camera.intrinsics.clone()[:3,:3]
 
     def change_device(self, device):
         """Changes the device of all the class members
