@@ -9,7 +9,7 @@ from wild_visual_navigation.traversability_estimator import (
 )
 
 from wild_visual_navigation.learning.utils import compute_loss
-from wild_visual_navigation.utils import make_polygon_from_points
+from wild_visual_navigation.utils import make_polygon_from_points, ConfidenceGenerator
 from wild_visual_navigation.visu import LearningVisualizer
 from wild_visual_navigation.utils import KLTTracker, KLTTrackerOpenCV
 from pytorch_lightning import seed_everything
@@ -65,6 +65,9 @@ class TraversabilityEstimator:
         if optical_flow_estimator_type == "sparse":
             self._optical_flow_estimator = KLTTrackerOpenCV(device=device)
 
+        # Confidence Generator
+        self._confidence_generator = ConfidenceGenerator(device=self._device)
+        
         # Mutex
         self._lock = Lock()
         self._pause_training = False
@@ -147,6 +150,8 @@ class TraversabilityEstimator:
                 data = Data(x=node.features, edge_index=node.feature_edges)
                 with torch.inference_mode():
                     node.prediction = self._last_trained_model(data)
+                    x = F.mse_loss(node.prediction[:,1:], node.features,reduction='none').mean(dim=1)
+                    node.confidence = self._confidence_generator.update(x) 
 
     def update_visualization_node(self):
         # For the first nodes we choose the visualization node as the last node available
@@ -332,7 +337,6 @@ class TraversabilityEstimator:
 
         # Get last added proprio node
         last_pnode = self._proprio_graph.get_last_node()
-
         if not self._proprio_graph.add_node(pnode):
             # Update traversability of latest node
             if last_pnode is not None:
