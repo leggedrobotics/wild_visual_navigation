@@ -16,6 +16,8 @@ class StegoInterface:
         self.model = self.load()
         self.model.to(device)
         self.device = device
+
+        # Transformation for testing
         self.transform = T.Compose(
             [
                 T.Resize(448, T.InterpolationMode.NEAREST),
@@ -23,6 +25,20 @@ class StegoInterface:
                 T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
             ]
         )
+
+        self.crop = T.Compose(
+            [
+                T.Resize(448, T.InterpolationMode.NEAREST),
+                T.CenterCrop(448),
+            ]
+        )
+
+        # Just normalization
+        self.norm = T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+
+        # Internal variables to access internal data
+        self._features = None
+        self._segments = None
 
     def change_device(self, device):
         """Changes the device of all the class members
@@ -62,14 +78,17 @@ class StegoInterface:
         """
         assert 1 == img.shape[0]
 
-        img = self.transform(img).to(self.device)
+        img = self.norm(img).to(self.device)
         code1 = self.model(img)
         code2 = self.model(img.flip(dims=[3]))
         code = (code1 + code2.flip(dims=[3])) / 2
         code = F.interpolate(code, img.shape[-2:], mode="bilinear", align_corners=False)
         linear_probs = torch.log_softmax(self.model.linear_probe(code), dim=1)
-
         cluster_probs = self.model.cluster_probe(code, 2, log_probs=True)
+
+        # Save segments
+        self._code = code
+        self._segments = linear_probs
 
         return linear_probs, cluster_probs
 
@@ -86,9 +105,22 @@ class StegoInterface:
 
         linear_probs, cluster_probs = self.inference(img)
         single_img = img[0].cpu()
-        linear_pred = dense_crf(single_img, linear_probs[0]).argmax(0)
-        cluster_pred = dense_crf(single_img, cluster_probs[0]).argmax(0)
-        return linear_pred, cluster_pred
+        self._linear_pred = dense_crf(single_img, linear_probs[0]).argmax(0)
+        self._cluster_pred = dense_crf(single_img, cluster_probs[0]).argmax(0)
+
+        return self._linear_pred, self._cluster_pred
+
+    @property
+    def linear_segments(self):
+        return self._linear_pred
+
+    @property
+    def cluster_segments(self):
+        return self._cluster_pred
+
+    @property
+    def features(self):
+        return self._code
 
 
 def run_stego_interfacer():
@@ -111,11 +143,11 @@ def run_stego_interfacer():
     img = img.permute(2, 0, 1)
     img = (img.type(torch.float32) / 255)[None]
 
-    linear_pred, cluster_pred = si.inference_crf(si.transform(img))
+    linear_pred, cluster_pred = si.inference_crf(si.crop(img))
     # Plot result as in colab
     fig, ax = plt.subplots(1, 3, figsize=(5 * 3, 5))
 
-    ax[0].imshow(unnorm(si.transform(img)).permute(0, 2, 3, 1)[0].cpu())
+    ax[0].imshow(si.crop(img).permute(0, 2, 3, 1)[0].cpu())
     ax[0].set_title("Image")
     ax[1].imshow(si.model.label_cmap[cluster_pred])
     ax[1].set_title("Cluster Predictions")
