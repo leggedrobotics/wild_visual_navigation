@@ -8,6 +8,8 @@ import wild_visual_navigation_ros.ros_converter as rc
 from wild_visual_navigation.utils import accumulate_time
 from wild_visual_navigation_msgs.msg import RobotState
 from wild_visual_navigation_msgs.srv import SaveLoadData, SaveLoadDataResponse
+from wild_visual_navigation.utils import Timer
+from wild_visual_navigation.utils import WVNMode
 from geometry_msgs.msg import PoseStamped, Point, TwistStamped
 from nav_msgs.msg import Path
 from sensor_msgs.msg import Image, CameraInfo
@@ -28,9 +30,6 @@ class WvnRosInterface:
     def __init__(self):
         self.last_ts = rospy.get_time()
         
-        # Use this flag to change if the time is printed
-        self.not_time = False
-        
         # Read params
         self.read_params()
 
@@ -46,7 +45,8 @@ class WvnRosInterface:
             image_distance_thr=self.image_graph_dist_thr,
             proprio_distance_thr=self.proprio_graph_dist_thr,
             optical_flow_estimator_type=self.optical_flow_estimator_type,
-            online_mode=self.online_mode,
+            mode=self.mode,
+            running_store_folder=self.running_store_folder,
         )
 
         # Initialize traversability generator to process velocity commands
@@ -134,10 +134,25 @@ class WvnRosInterface:
             "~mission_name", "default_mission"
         )  # Note: We may want to send this in the service call
 
-        # Online mode
-        self.online_mode = rospy.get_param("online_mode", False)
-        if self.online_mode:
+
+        # Print timings
+        self.not_time = rospy.get_param("~not_time", True)
+        
+        # Select mode: # debug, online, extract_labels 
+        self.mode = WVNMode.from_string(rospy.get_param("~mode", "default"))
+        s = "/media/Data/Datasets/2022_Perugia/wvn_output/day3/2022-05-12T11:56:13_mission_0_day_3"
+        self.running_store_folder = rospy.get_param("~running_store_folder", s)
+        if self.mode == WVNMode.ONLINE:
             print("\nWARNING: online_mode enabled. The graph will not store any debug/training data such as images\n")
+        elif self.mode == WVNMode.EXTRACT_LABELS:
+            self.run_online_learning = False
+            self.image_callback_rate = 100 
+            self.optical_flow_estimator_type = False
+            self.image_graph_dist_thr = 0.01
+            self.proprio_graph_dist_thr = 0.2
+            
+            os.makedirs(os.path.join(self.running_store_folder,"image"), exist_ok=True)
+            os.makedirs(os.path.join(self.running_store_folder,"supervision_mask"), exist_ok=True)
 
         # Torch device
         self.device = rospy.get_param("device", "cuda")
@@ -324,6 +339,7 @@ class WvnRosInterface:
         # The footprint requires a correction: we use the same orientation as the base
         pose_footprint_in_base[:3, :3] = torch.eye(3, device=self.device)
 
+        
         # Convert state to tensor
         proprio_tensor, proprio_labels = rc.wvn_robot_state_to_torch(state_msg, device=self.device)
         current_twist_tensor = rc.twist_stamped_to_torch(state_msg.twist, device=self.device)
@@ -333,7 +349,7 @@ class WvnRosInterface:
         traversability, traversability_var, is_untraversable = self.supervision_generator.update_velocity_tracking(
             current_twist_tensor, desired_twist_tensor, velocities=["vx", "vy"]
         )
-
+        
         # Create proprioceptive node for the graph
         proprio_node = ProprioceptionNode(
             timestamp=ts,
@@ -348,10 +364,11 @@ class WvnRosInterface:
             traversability_var=traversability_var,
             is_untraversable=is_untraversable,
         )
-        # Add node to graph
+        
         self.traversability_estimator.add_proprio_node(proprio_node)
 
-        # Visualizations
+        
+        # Visualizations (45ms)
         self.visualize_proprioception()
 
     @accumulate_time
@@ -395,12 +412,13 @@ class WvnRosInterface:
     
         # Add node to graph
         added_new_node = self.traversability_estimator.add_mission_node(mission_node)
-        # Update prediction for current image
-        self.traversability_estimator.update_prediction(mission_node)
+        
+        if self.mode != WVNMode.EXTRACT_LABELS:
+            # Update prediction for current image
+            self.traversability_estimator.update_prediction(mission_node)
+        
+            self.publish_predictions(mission_node, image_msg, info_msg, image_projector.scaled_camera_matrix)
 
-        self.publish_predictions(mission_node, image_msg, info_msg, image_projector.scaled_camera_matrix)
-
-        # rospy.loginfo("[main thread] update visualizations")
         self.visualize_mission(mission_node)
         
         
