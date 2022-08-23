@@ -119,6 +119,7 @@ for d in perguia_dataset:
 
     pub = rospy.Publisher("/alphasense_driver_ros/cam4", Image, queue_size=1)
     wvn_ros_interface = WvnRosInterface()
+    print("-" * 80)
 
     print("start loading tf")
     tf_listener = BagTfTransformerWrapper(output_bag_tf)
