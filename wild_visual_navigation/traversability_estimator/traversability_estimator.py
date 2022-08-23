@@ -393,8 +393,6 @@ class TraversabilityEstimator:
                     )
                     torch.save(mnode.supervision_mask, p)
 
-                    print("I should update mask here")
-
             return True
 
     def get_mission_nodes(self):
