@@ -72,8 +72,12 @@ class BaseNode:
         Returns:
             distance (float): absolute distance between the states
         """
-        # Compute pose difference, then log() to get a vector, then extract position coordinates, finally get norm        
-        return SE3.from_matrix(self.pose_base_in_world.inverse() @ other.pose_base_in_world, normalize=True).log()[:3].norm()
+        # Compute pose difference, then log() to get a vector, then extract position coordinates, finally get norm
+        return (
+            SE3.from_matrix(self.pose_base_in_world.inverse() @ other.pose_base_in_world, normalize=True)
+            .log()[:3]
+            .norm()
+        )
 
     @property
     def name(self):
@@ -132,7 +136,7 @@ class MissionNode(BaseNode):
         self._supervision_signal_valid = None
         self._correspondence = None
         self._confidence = None
-        
+
     def clear_debug_data(self):
         """Removes all data not required for training"""
         try:
@@ -203,15 +207,15 @@ class MissionNode(BaseNode):
             and isinstance(self._supervision_signal, torch.Tensor)
             and isinstance(self._correspondence, torch.Tensor)
         )
-        
+
     @property
     def confidence(self):
         return self._confidence
-    
+
     @property
     def correspondence(self):
         return self._correspondence
-    
+
     @property
     def features(self):
         return self._features
@@ -263,7 +267,7 @@ class MissionNode(BaseNode):
     @confidence.setter
     def confidence(self, confidence):
         self._confidence = confidence
-        
+
     @correspondence.setter
     def correspondence(self, correspondence):
         self._correspondence = correspondence
