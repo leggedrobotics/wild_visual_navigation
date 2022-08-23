@@ -81,12 +81,12 @@ for d in perguia_dataset:
 
     # Setup WVN node
     rospy.init_node("wild_visual_navigation_node")
-    rosparam.set_param("wild_visual_navigation_node/mode", "extract_labels")
+
     running_store_folder = "/media/Data/Datasets/2022_Perugia/day3/mission_data/2022-05-12T09:57:13_mission_0_day_3"
     running_store_folder.replace("2022_Perugia/day3/mission_data", "2022_Perugia/wvn_output/day3")
-    rosparam.set_param(
-        "'wild_visual_navigation_node/running_store_folder",
-    )
+
+    rosparam.set_param("wild_visual_navigation_node/mode", "extract_labels")
+    rosparam.set_param("'wild_visual_navigation_node/running_store_folder", running_store_folder)
 
     # for proprioceptive callback
     state_msg_valid = False
