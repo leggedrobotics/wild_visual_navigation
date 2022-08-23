@@ -6,6 +6,7 @@ import networkx
 import torch
 from wild_visual_navigation.utils import Timer
 
+
 class BaseGraph:
     def __init__(self, edge_distance: float = 0.0):
         """Initializes a graph with basic functionalities
@@ -196,11 +197,11 @@ class BaseGraph:
         # Significantly faster then checking all the nodes
         nodes_to_remove = []
         for n in self._graph.nodes()._nodes.keys():
-            if torch.linalg.norm(n.pose_base_in_world[:3,3]-node.pose_base_in_world[:3,3]) > min_radius:
+            if torch.linalg.norm(n.pose_base_in_world[:3, 3] - node.pose_base_in_world[:3, 3]) > min_radius:
                 nodes_to_remove.append(n)
             else:
                 break
-        
+
         # nodes_to_remove = self.get_nodes_within_radius_range(
         #     node, min_radius=min_radius, max_radius=max_radius, metric=metric
         # )
@@ -209,6 +210,7 @@ class BaseGraph:
     def remove_nodes_within_timestamp(self, t_ini: float, t_end: float):
         nodes_to_remove = self.get_nodes_within_timespan(t_ini, t_end, open_interval=False)
         self.remove_nodes(nodes_to_remove)
+
 
 class MaxElementsGraph(BaseGraph):
     def __init__(self, edge_distance: float = None, max_elements: int = -1):
@@ -223,7 +225,7 @@ class MaxElementsGraph(BaseGraph):
         """
         super().__init__(edge_distance=edge_distance)
         self._max_elements = max_elements
-    
+
     def add_node(self, node: BaseNode):
         """Adds a node to the graph and removes old nodes"""
         # Add node
@@ -233,13 +235,14 @@ class MaxElementsGraph(BaseGraph):
             # Remove oldest node
             # This is the proper way with using the sort.
             # oldest_node = sorted(self._graph._node.keys())[0]
-            
+
             # Throws away the oldest node
             oldest_node = next(iter(self._graph._node))
-            
+
             self.remove_nodes([oldest_node])
-        
+
         return out
+
 
 class TemporalWindowGraph(BaseGraph):
     def __init__(self, edge_distance: float = None, time_window: float = float("inf")):
