@@ -68,6 +68,15 @@ class ExperimentParams(Serializable):
     data_module: DataModuleParams = DataModuleParams()
 
     @dataclass
+    class AbblationDataModuleParams:
+        batch_size: int = 8
+        num_workers: int = 0
+        env: str = "forest"
+        feature_key: str = "slic_dino"
+        
+    abblation_data_module: DataModuleParams = AbblationDataModuleParams()
+
+    @dataclass
     class ModelParams:
         name: str = "SimpleGCN"
 
