@@ -13,7 +13,7 @@ from wild_visual_navigation.utils import WVNMode
 from geometry_msgs.msg import PoseStamped, Point, TwistStamped
 from nav_msgs.msg import Path
 from sensor_msgs.msg import Image, CameraInfo
-from std_msgs.msg import ColorRGBA, Float32
+from std_msgs.msg import ColorRGBA, Float32, Float32MultiArray
 from std_srvs.srv import Trigger, TriggerResponse
 from threading import Thread
 from visualization_msgs.msg import Marker
@@ -61,7 +61,8 @@ class WvnRosInterface:
             kf_outlier_rejection_delta=0.5,
             sigmoid_slope=20,
             sigmoid_cutoff=0.25,  # 0.2
-            untraversable_thr=0.05,  # 0.1
+            untraversable_thr=self.untraversable_thr,  # 0.1
+            time_horizon=0.05,
         )
 
         # Setup ros
@@ -124,6 +125,9 @@ class WvnRosInterface:
         self.segmentation_type = rospy.get_param("~segmentation_type", "slic")
         self.feature_type = rospy.get_param("~feature_type", "dino")
 
+        # Supervision Generator
+        self.untraversable_thr = rospy.get_param("~untraversable_thr", 0)
+
         # Optical flow params
         self.optical_flow_estimator_type = rospy.get_param("optical_flow_estimator_type", "sparse")
 
@@ -143,17 +147,17 @@ class WvnRosInterface:
         self.not_time = rospy.get_param("~not_time", True)
 
         # Select mode: # debug, online, extract_labels
+        self.use_debug_for_desired = rospy.get_param("~use_debug_for_desired", True)
         self.mode = WVNMode.from_string(rospy.get_param("~mode", "default"))
-        s = "/media/Data/Datasets/2022_Perugia/wvn_output/day3/2022-05-12T11:56:13_mission_0_day_3"
-        self.running_store_folder = rospy.get_param("~running_store_folder", s)
+        self.running_store_folder = rospy.get_param("~running_store_folder", "nan")
         if self.mode == WVNMode.ONLINE:
             print("\nWARNING: online_mode enabled. The graph will not store any debug/training data such as images\n")
         elif self.mode == WVNMode.EXTRACT_LABELS:
             self.run_online_learning = False
-            self.image_callback_rate = 100
+            self.image_callback_rate = 3
             self.optical_flow_estimator_type = False
-            self.image_graph_dist_thr = 0.01
-            self.proprio_graph_dist_thr = 0.2
+            self.image_graph_dist_thr = 0.2
+            self.proprio_graph_dist_thr = 0.1
 
             os.makedirs(os.path.join(self.running_store_folder, "image"), exist_ok=True)
             os.makedirs(os.path.join(self.running_store_folder, "supervision_mask"), exist_ok=True)
@@ -164,29 +168,36 @@ class WvnRosInterface:
         # Visualization
         self.colormap = rospy.get_param("colormap", "RdYlBu")
 
-    @accumulate_time
     def setup_rosbag_replay(self, tf_listener):
         self.tf_listener = tf_listener
 
-    @accumulate_time
     def setup_ros(self, setup_fully=True):
         """Main function to setup ROS-related stuff: publishers, subscribers and services"""
         if setup_fully:
             # Initialize TF listener
             self.tf_listener = tf.TransformListener()
 
-            # Robot state callback
+            # Robot state callback    
             robot_state_sub = message_filters.Subscriber(self.robot_state_topic, RobotState)
+            cache1 = message_filters.Cache(robot_state_sub, 1)
             desired_twist_sub = message_filters.Subscriber(self.desired_twist_topic, TwistStamped)
+            cache2 = message_filters.Cache(desired_twist_sub, 1)
+            
             self.robot_state_sub = message_filters.ApproximateTimeSynchronizer(
                 [robot_state_sub, desired_twist_sub], queue_size=10, slop=0.1
             )
             self.robot_state_sub.registerCallback(self.robot_state_callback)
-
+            
+            # policy_debug_info_sub = message_filters.Subscriber("/debug_info", Float32MultiArray, queue_size=10)
+            # self.robot_state_policy_debug_info_sub = message_filters.ApproximateTimeSynchronizer(
+            #    [robot_state_sub, policy_debug_info_sub], queue_size=1, slop=9999999999999, allow_headerless=True, 
+            #)
+            #self.robot_state_policy_debug_info_sub.registerCallback(self.robot_state_policy_debug_info_callback)
+            
             # Image callback
             self.image_sub = message_filters.Subscriber(self.image_topic, Image)
             self.info_sub = message_filters.Subscriber(self.info_topic, CameraInfo)
-            self.ts = message_filters.ApproximateTimeSynchronizer([self.image_sub, self.info_sub], 2, slop=0.1)
+            self.ts = message_filters.ApproximateTimeSynchronizer([self.image_sub, self.info_sub], queue_size=2, slop=0.1)
             self.ts.registerCallback(self.image_callback)
 
         # Publishers
@@ -287,7 +298,6 @@ class WvnRosInterface:
         self.traversability_estimator.save_checkpoint(mission_path, checkpoint_file)
         return SaveLoadDataResponse(success=True, message=f"Checkpoint [{checkpoint_file}] saved in {mission_path}")
 
-    @accumulate_time
     def load_checkpoint_callback(self, req):
         """Service call to load a learned model
 
@@ -317,15 +327,26 @@ class WvnRosInterface:
         if stamp is None:
             stamp = rospy.Time(0)
         # Wait for required tfs
-        self.tf_listener.waitForTransform(parent_frame, child_frame, stamp, rospy.Duration(1.0))
-
+        try:
+            self.tf_listener.waitForTransform(parent_frame, child_frame, stamp, rospy.Duration(1.0))
+        except:
+            return (None, None)
+            
         try:
             (trans, rot) = self.tf_listener.lookupTransform(parent_frame, child_frame, stamp)
             return (trans, rot)
-        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+        except: 
+            # (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException): avoid all errors
             rospy.logwarn(f"Couldn't get between {parent_frame} and {child_frame}")
             return (None, None)
 
+    def robot_state_policy_debug_info_callback(self, state_msg, debug_info_msg):
+        desired_twist_msg = TwistStamped()
+        desired_twist_msg.twist.linear.x = debug_info_msg.data[0]
+        desired_twist_msg.twist.linear.y = debug_info_msg.data[1]
+        desired_twist_msg.twist.angular.z = debug_info_msg.data[2]
+        self.robot_state_callback(state_msg, desired_twist_msg)
+        
     @accumulate_time
     def robot_state_callback(self, state_msg, desired_twist_msg: TwistStamped):
         """Main callback to process proprioceptive info (robot state)
@@ -339,14 +360,17 @@ class WvnRosInterface:
             if ts - self.ts < self.min_dt:
                 return
         self.ts = ts
-
+        
         # Query transforms from TF
-        pose_base_in_world = rc.ros_tf_to_torch(
+        suc, pose_base_in_world = rc.ros_tf_to_torch(
             self.query_tf(self.fixed_frame, self.base_frame, state_msg.header.stamp), device=self.device
         )
-        pose_footprint_in_base = rc.ros_tf_to_torch(
+        if not suc: return
+        
+        suc, pose_footprint_in_base = rc.ros_tf_to_torch(
             self.query_tf(self.base_frame, self.footprint_frame, state_msg.header.stamp), device=self.device
         )
+        if not suc: return
 
         # The footprint requires a correction: we use the same orientation as the base
         pose_footprint_in_base[:3, :3] = torch.eye(3, device=self.device)
@@ -397,12 +421,14 @@ class WvnRosInterface:
         self.last_ts = ts
 
         # Query transforms from TF
-        pose_base_in_world = rc.ros_tf_to_torch(
+        suc, pose_base_in_world = rc.ros_tf_to_torch(
             self.query_tf(self.fixed_frame, self.base_frame, image_msg.header.stamp), device=self.device
         )
-        pose_cam_in_base = rc.ros_tf_to_torch(
+        if not suc: return
+        suc, pose_cam_in_base = rc.ros_tf_to_torch(
             self.query_tf(self.base_frame, self.camera_frame, image_msg.header.stamp), device=self.device
         )
+        if not suc: return
 
         # Prepare image projector
         K, H, W = rc.ros_cam_info_to_tensors(info_msg, device=self.device)
@@ -603,7 +629,7 @@ class WvnRosInterface:
         self.pub_instant_traversability.publish(self.supervision_generator.traversability)
 
     @accumulate_time
-    def visualize_mission(self, mission_node: MissionNode = None, fast: bool = True):
+    def visualize_mission(self, mission_node: MissionNode = None, fast: bool = False):
         """Publishes all the visualizations related to mission graph, like the graph
         itself, visual features, supervision signals, and traversability estimates
         """

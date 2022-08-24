@@ -78,31 +78,78 @@ class GraphTravVisuDataset(Dataset):
         return graph, graph2
 
 
-class GraphTravOnlineDataset(InMemoryDataset):
+class GraphTravAbblationDataset(Dataset):
     def __init__(
         self,
-        root: str,
+        perugia_root: str = "/media/Data/Datasets/2022_Perugia",
         transform: Optional[Callable] = None,
         pre_transform: Optional[Callable] = None,
         pre_filter: Optional[Callable] = None,
-        mode="train",
-        percentage=0.8,
+        mode: str = "train",
+        feature_key: str = "slic_dino",
+        env: str = "hilly"
     ):
-        super().__init__(root, transform)
-        self.data_list = []
-        self.paths = []
+        super().__init__()
+        
+        ls = []
+        with open(os.path.join(perugia_root, "wvn_output/split" , "{env}_{mode}.txt"), "r") as f:
+            while True:
+                line = f.readline()
+                if not line:
+                    break
+                ls.append(line.strip())
 
-    def add(self, data, index):
-        # Add new data point to the list
-        self.data_list.append(data)
+        self.paths = ls
+        self.perugia_root = perugia_root
+        self.feature_key = feature_key
+        self.crop = T.Compose([T.Resize(448, T.InterpolationMode.NEAREST), T.CenterCrop(448)])
 
-    def clear(self):
-        self.data_list.clear()
+    def len(self) -> int:
+        return len(self.paths)
 
-    def set_ready(self):
-        # Collate the data
-        self.data, self.slices = self.collate(self.data_list)
+    def get(self, idx: int) -> any:
+        # TODO update the dataset generation to avoid 0,0 and the cropping operation
+        img_p = os.path.join(self.perugia_root, self.paths[idx] )
+        graph_p = img_p.replace("image", f"features/{self.featue_key}/graph")
+        seg_p = img_p.replace("image", f"features/{self.featue_key}/seg")
+        center_p = img_p.replace("image", f"features/{self.featue_key}/center")
+        
+        graph = torch.load( graph_p )
+        center = torch.load( center_p )
+        img = torch.load( img_p )
+        seg = torch.load( seg_p )
+        graph.img = img[None]
+        graph.center = center
+        graph.seg = seg[None]
+        
+        graph2 = Data()
+        return graph, None
 
+
+def get_abblation_module(
+    perugia_root: str,
+    batch_size: int = 1,
+    num_workers: int = 0,
+    visu: bool = False,
+    env: str = "forest",
+    feature_key: str = "slic_dino",
+    **kwargs
+) -> LightningDataset:
+    
+    train_dataset = GraphTravAbblationDataset(root=perugia_root, mode="train", feature_key=feature_key, env= env)
+    val_dataset = GraphTravAbblationDataset(root=perugia_root, mode="val", feature_key=feature_key, env= env)
+    test_dataset = GraphTravAbblationDataset(root=perugia_root, mode="test", feature_key=feature_key, env= env)
+    
+    return LightningDataset(
+        train_dataset=train_dataset,
+        val_dataset=val_dataset,
+        test_dataset=test_dataset,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        pin_memory=False,
+        *kwargs
+    )
+    
 
 def get_pl_graph_trav_module(
     batch_size: int = 1,
