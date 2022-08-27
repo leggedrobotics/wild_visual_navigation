@@ -8,7 +8,7 @@ from os.path import join
 from wild_visual_navigation.visu import LearningVisualizer
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 from torch_geometric.data import Data
-from torchmetrics import ROC
+from torchmetrics import ROC, AUROC
 
 
 class LightningTrav(pl.LightningModule):
@@ -24,7 +24,13 @@ class LightningTrav(pl.LightningModule):
         self._env = env
         self._mode = "train"
         self._log = log
-        self._validation_roc = ROC()
+        self._validation_roc_proprioceptive = ROC()
+        self._validation_auroc_proprioceptive = AUROC()
+
+        self._test_roc_proprioceptive = ROC()
+        self._test_roc_gt = ROC()
+        self._test_auroc_proprioceptive = AUROC()
+        self._test_auroc_gt = AUROC()
 
     def forward(self, data: torch.tensor):
         return self._model(data)
@@ -42,9 +48,6 @@ class LightningTrav(pl.LightningModule):
         res = self._model(graph)
 
         loss, loss_aux = compute_loss(graph, res, self._exp["loss"], self._model, graph_aux)
-
-        if self._mode == "val":
-            self._validation_roc.update(preds=res[:, 0], target=graph.y)
 
         self.log(f"{self._mode}_loss_trav", loss_aux["loss_trav"].item(), on_epoch=True, prog_bar=True)
         self.log(f"{self._mode}_loss_reco", loss_aux["loss_reco"].item(), on_epoch=True, prog_bar=True)
@@ -104,28 +107,77 @@ class LightningTrav(pl.LightningModule):
         self._mode = "val"
         self._visu_count[self._mode] = 0
 
-    def validation_step(self, batch: any, batch_idx: int):
-        # LAZY implementation of validation and test by calling the training method
-        # Usually you want to have a different behaviour
-        return self.training_step(batch, batch_idx)
+    def validation_step(self, batch: any, batch_idx: int) -> torch.Tensor:
+        graph = batch[0]
+        graph_aux = batch[1]
+
+        res = self._model(graph)
+
+        loss, loss_aux = compute_loss(graph, res, self._exp["loss"], self._model, graph_aux)
+
+        self._validation_roc_proprioceptive.update(preds=res[:, 0], target=(graph.y > 0).type(torch.long))
+        self._validation_auroc_proprioceptive.update(res[:, 0], (graph.y > 0).type(torch.long))
+
+        self.log(f"{self._mode}_loss_trav", loss_aux["loss_trav"].item(), on_epoch=True, prog_bar=True)
+        self.log(f"{self._mode}_loss_reco", loss_aux["loss_reco"].item(), on_epoch=True, prog_bar=True)
+        self.log(f"{self._mode}_loss_temp", loss_aux["loss_temp"].item(), on_epoch=True, prog_bar=True)
+        self.log(f"{self._mode}_loss", loss.item(), on_epoch=True, prog_bar=True)
+
+        self.visu(graph, res)
+        return loss
 
     def validation_epoch_end(self, outputs: EPOCH_OUTPUT):
-        fpr, tpr, thresholds = self._validation_roc.compute()
+        fpr, tpr, thresholds = self._validation_roc_proprioceptive.compute()
+        auroc = self._validation_auroc_proprioceptive.compute().item()
 
-        self._visualizer.plot_roc(x=fpr, y=tpr, tag=f"C{c}_{self._mode}_")
+        self._visualizer.plot_roc(
+            x=fpr.cpu().numpy(), y=tpr.cpu().numpy(), y_tag=f"AUCROC_{auroc:.4f}", tag=f"ROC_{self._mode}"
+        )
 
-        self.log
+        self.log(f"{self._mode}_auroc", auroc, on_epoch=True, prog_bar=False)
 
     # TESTING
     def on_test_epoch_start(self):
         self._mode = "test"
         self._visu_count[self._mode] = 0
 
-    def test_step(self, batch: any, batch_idx: int) -> None:
-        return self.training_step(batch, batch_idx)
+    def test_step(self, batch: any, batch_idx: int) -> torch.Tensor:
+        graph = batch[0]
+        graph_aux = batch[1]
+
+        res = self._model(graph)
+
+        loss, loss_aux = compute_loss(graph, res, self._exp["loss"], self._model, graph_aux)
+
+        self._test_roc_proprioceptive.update(preds=res[:, 0], target=(graph.y > 0).type(torch.long))
+        self._test_roc_gt.update(preds=res[:, 0], target=(graph.y_gt > 0).type(torch.long))
+        self._test_auroc_proprioceptive.update(preds=res[:, 0], target=(graph.y > 0).type(torch.long))
+        self._test_auroc_gt.update(preds=res[:, 0], target=(graph.y_gt > 0).type(torch.long))
+        self.log(f"{self._mode}_loss_trav", loss_aux["loss_trav"].item(), on_epoch=True, prog_bar=True)
+        self.log(f"{self._mode}_loss_reco", loss_aux["loss_reco"].item(), on_epoch=True, prog_bar=True)
+        self.log(f"{self._mode}_loss_temp", loss_aux["loss_temp"].item(), on_epoch=True, prog_bar=True)
+        self.log(f"{self._mode}_loss", loss.item(), on_epoch=True, prog_bar=True)
+
+        self.visu(graph, res)
+        return loss
 
     def test_epoch_end(self, outputs: any):
-        pass
+        fpr, tpr, thresholds = self._test_roc_proprioceptive.compute()
+        auroc = self._test_auroc_proprioceptive.compute().item()
+        self._visualizer.plot_roc(
+            x=fpr.cpu().numpy(),
+            y=tpr.cpu().numpy(),
+            y_tag=f"AUCROC_{auroc:.4f}",
+            tag=f"{self._mode}_ROC_proprioceptive",
+        )
+        self.log(f"{self._mode}_auroc_proprioceptive", auroc, on_epoch=True, prog_bar=False)
+
+        fpr, tpr, thresholds = self._test_roc_gt.compute()
+        auroc = self._test_auroc_gt.compute().item()
+        self._visualizer.plot_roc(
+            x=fpr.cpu().numpy(), y=tpr.cpu().numpy(), y_tag=f"AUCROC_{auroc:.4f}", tag=f"{self._mode}_ROC_gt"
+        )
+        self.log(f"{self._mode}_auroc_gt", auroc, on_epoch=True, prog_bar=False)
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
         return torch.optim.Adam(self._model.parameters(), lr=self._exp["optimizer"]["lr"])

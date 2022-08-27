@@ -1,3 +1,11 @@
 abblation_data_module:
   env: forest
   feature_key: slic_dino
+
+loss:
+  temp: 0
+
+trainer:
+  max_epochs: 10
+  # limit_train_batches: 8
+  check_val_every_n_epoch: 1
