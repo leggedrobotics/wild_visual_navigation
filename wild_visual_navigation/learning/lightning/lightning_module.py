@@ -44,8 +44,7 @@ class LightningTrav(pl.LightningModule):
         loss, loss_aux = compute_loss(graph, res, self._exp["loss"], self._model, graph_aux)
 
         if self._mode == "val":
-            self._validation_roc.update(preds = res[:, 0], target= graph.y)
-
+            self._validation_roc.update(preds=res[:, 0], target=graph.y)
 
         self.log(f"{self._mode}_loss_trav", loss_aux["loss_trav"].item(), on_epoch=True, prog_bar=True)
         self.log(f"{self._mode}_loss_reco", loss_aux["loss_reco"].item(), on_epoch=True, prog_bar=True)
@@ -112,10 +111,9 @@ class LightningTrav(pl.LightningModule):
 
     def validation_epoch_end(self, outputs: EPOCH_OUTPUT):
         fpr, tpr, thresholds = self._validation_roc.compute()
-        
-        
+
         self._visualizer.plot_roc(x=fpr, y=tpr, tag=f"C{c}_{self._mode}_")
-        
+
         self.log
 
     # TESTING

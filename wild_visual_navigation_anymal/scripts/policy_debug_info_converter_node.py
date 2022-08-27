@@ -4,13 +4,15 @@ from std_msgs.msg import Float32MultiArray
 
 desired_twist_msg = TwistStamped()
 
+
 def policy_debug_info_callback(debug_info_msg: Float32MultiArray):
     desired_twist_msg.twist.linear.x = debug_info_msg.data[0]
     desired_twist_msg.twist.linear.y = debug_info_msg.data[1]
     desired_twist_msg.twist.angular.z = debug_info_msg.data[2]
     desired_twist_msg.header.stamp = rospy.Time.now()
     pub.publish(desired_twist_msg)
-    
+
+
 if __name__ == "__main__":
     rospy.init_node("policy_debug_info_converter_node")
     # Set publishers and subscribers

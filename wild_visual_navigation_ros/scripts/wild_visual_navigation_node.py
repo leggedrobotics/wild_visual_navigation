@@ -177,27 +177,29 @@ class WvnRosInterface:
             # Initialize TF listener
             self.tf_listener = tf.TransformListener()
 
-            # Robot state callback    
+            # Robot state callback
             robot_state_sub = message_filters.Subscriber(self.robot_state_topic, RobotState)
             cache1 = message_filters.Cache(robot_state_sub, 1)
             desired_twist_sub = message_filters.Subscriber(self.desired_twist_topic, TwistStamped)
             cache2 = message_filters.Cache(desired_twist_sub, 1)
-            
+
             self.robot_state_sub = message_filters.ApproximateTimeSynchronizer(
                 [robot_state_sub, desired_twist_sub], queue_size=10, slop=0.1
             )
             self.robot_state_sub.registerCallback(self.robot_state_callback)
-            
+
             # policy_debug_info_sub = message_filters.Subscriber("/debug_info", Float32MultiArray, queue_size=10)
             # self.robot_state_policy_debug_info_sub = message_filters.ApproximateTimeSynchronizer(
-            #    [robot_state_sub, policy_debug_info_sub], queue_size=1, slop=9999999999999, allow_headerless=True, 
-            #)
-            #self.robot_state_policy_debug_info_sub.registerCallback(self.robot_state_policy_debug_info_callback)
-            
+            #    [robot_state_sub, policy_debug_info_sub], queue_size=1, slop=9999999999999, allow_headerless=True,
+            # )
+            # self.robot_state_policy_debug_info_sub.registerCallback(self.robot_state_policy_debug_info_callback)
+
             # Image callback
             self.image_sub = message_filters.Subscriber(self.image_topic, Image)
             self.info_sub = message_filters.Subscriber(self.info_topic, CameraInfo)
-            self.ts = message_filters.ApproximateTimeSynchronizer([self.image_sub, self.info_sub], queue_size=2, slop=0.1)
+            self.ts = message_filters.ApproximateTimeSynchronizer(
+                [self.image_sub, self.info_sub], queue_size=2, slop=0.1
+            )
             self.ts.registerCallback(self.image_callback)
 
         # Publishers
@@ -332,11 +334,11 @@ class WvnRosInterface:
         except Exception as e:
             print("Error in querry tf: ", e)
             return (None, None)
-            
+
         try:
             (trans, rot) = self.tf_listener.lookupTransform(parent_frame, child_frame, stamp)
             return (trans, rot)
-        except Exception as e: 
+        except Exception as e:
             print("Error in querry tf: ", e)
             # (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException): avoid all errors
             rospy.logwarn(f"Couldn't get between {parent_frame} and {child_frame}")
@@ -348,7 +350,7 @@ class WvnRosInterface:
         desired_twist_msg.twist.linear.y = debug_info_msg.data[1]
         desired_twist_msg.twist.angular.z = debug_info_msg.data[2]
         self.robot_state_callback(state_msg, desired_twist_msg)
-        
+
     @accumulate_time
     def robot_state_callback(self, state_msg, desired_twist_msg: TwistStamped):
         """Main callback to process proprioceptive info (robot state)
@@ -362,17 +364,19 @@ class WvnRosInterface:
             if ts - self.ts < self.min_dt:
                 return
         self.ts = ts
-        
+
         # Query transforms from TF
         suc, pose_base_in_world = rc.ros_tf_to_torch(
             self.query_tf(self.fixed_frame, self.base_frame, state_msg.header.stamp), device=self.device
         )
-        if not suc: return
-        
+        if not suc:
+            return
+
         suc, pose_footprint_in_base = rc.ros_tf_to_torch(
             self.query_tf(self.base_frame, self.footprint_frame, state_msg.header.stamp), device=self.device
         )
-        if not suc: return
+        if not suc:
+            return
 
         # The footprint requires a correction: we use the same orientation as the base
         pose_footprint_in_base[:3, :3] = torch.eye(3, device=self.device)
@@ -426,11 +430,13 @@ class WvnRosInterface:
         suc, pose_base_in_world = rc.ros_tf_to_torch(
             self.query_tf(self.fixed_frame, self.base_frame, image_msg.header.stamp), device=self.device
         )
-        if not suc: return
+        if not suc:
+            return
         suc, pose_cam_in_base = rc.ros_tf_to_torch(
             self.query_tf(self.base_frame, self.camera_frame, image_msg.header.stamp), device=self.device
         )
-        if not suc: return
+        if not suc:
+            return
 
         # Prepare image projector
         K, H, W = rc.ros_cam_info_to_tensors(info_msg, device=self.device)

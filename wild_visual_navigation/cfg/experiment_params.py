@@ -73,7 +73,7 @@ class ExperimentParams(Serializable):
         num_workers: int = 0
         env: str = "forest"
         feature_key: str = "slic_dino"
-        
+
     abblation_data_module: AbblationDataModuleParams = AbblationDataModuleParams()
 
     @dataclass

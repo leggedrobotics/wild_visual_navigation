@@ -392,7 +392,7 @@ class TraversabilityEstimator:
                     p = os.path.join(
                         self._running_store_folder, "supervision_mask", str(mnode.timestamp).replace(".", "_") + ".pt"
                     )
-                    store = torch.nan_to_num(mnode.supervision_mask.nanmean(axis=0) ) != 0
+                    store = torch.nan_to_num(mnode.supervision_mask.nanmean(axis=0)) != 0
                     torch.save(store, p)
 
             return True

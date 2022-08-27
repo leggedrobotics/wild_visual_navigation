@@ -54,15 +54,16 @@ class BagTfTransformerWrapper:
         except:
             return (None, None)
 
+
 def do(n, dry_run):
     d = perguia_dataset[n]
-    
+
     if bool(dry_run):
         print(d)
         return
-    
+
     s = os.path.join(ROOT_DIR, d["name"])
-    
+
     valid_topics = ["/state_estimator/anymal_state", "/alphasense_driver_ros/cam4", "/log/state/desiredRobotTwist"]
 
     # Merge rosbags if necessary
@@ -77,16 +78,16 @@ def do(n, dry_run):
         rosbags.sort(key=lambda x: int(x.split("/")[-1][-5]))
     except:
         pass
-    
+
     output_bag_wvn = s + "_wvn.bag"
     output_bag_tf = s + "_tf.bag"
     tf_bags = [b for b in rosbags if b.find("lpc_robot_state") != -1]
 
-
+    # jetson locomotion robot
     if not os.path.exists(output_bag_tf):
         total_included_count, total_skipped_count = merge_bags_single(
             input_bag=tf_bags, output_bag=output_bag_tf, topics="/tf /tf_static", verbose=True
-        )            
+        )
     if not os.path.exists(output_bag_wvn):
         total_included_count, total_skipped_count = merge_bags_single(
             input_bag=rosbags, output_bag=output_bag_wvn, topics=" ".join(valid_topics), verbose=True
@@ -96,14 +97,14 @@ def do(n, dry_run):
     rospy.init_node("wild_visual_navigation_node")
 
     mission = s.split("/")[-1]
-    
+
     # 2022-05-12T11:56:13_mission_0_day_3
     running_store_folder = f"/media/Data/Datasets/2022_Perugia/wvn_output/day3/{mission}"
-    
+
     if os.path.exists(running_store_folder):
         print("Stopped because folder already exists")
         return
-    
+
     rosparam.set_param("wild_visual_navigation_node/mode", "extract_labels")
     rosparam.set_param("wild_visual_navigation_node/running_store_folder", running_store_folder)
 
@@ -143,10 +144,10 @@ def do(n, dry_run):
 
     rosbag_info_dict = get_bag_info(output_bag_wvn)
     total_msgs = sum([x["messages"] for x in rosbag_info_dict["topics"] if x["topic"] in valid_topics])
-    total_time_img = 0 
-    total_time_state = 0 
+    total_time_img = 0
+    total_time_state = 0
     n = 0
-    
+
     with rosbag.Bag(output_bag_wvn, "r") as bag:
         start_time = rospy.Time.from_sec(bag.get_start_time() + d["start"])
         end_time = rospy.Time.from_sec(bag.get_start_time() + d["stop"])
@@ -159,7 +160,7 @@ def do(n, dry_run):
         ) as pbar:
             for (topic, msg, ts) in bag.read_messages(topics=None, start_time=start_time, end_time=end_time):
                 pbar.update(1)
-                
+
                 st = time.time()
                 if topic == "/state_estimator/anymal_state":
                     state_msg = anymal_msg_callback(msg, return_msg=True)
@@ -185,32 +186,34 @@ def do(n, dry_run):
                                 break
                         if i >= 99:
                             raise Exception("Timeout waiting for debayerd image message")
-                        
+
                     info_msg.header = msg.header
                     try:
                         wvn_ros_interface.image_callback(image_msg, info_msg)
                     except Exception as e:
                         print("Bad image_callback", e)
-                    
+
                     total_time_img += time.time() - st
                     # print(f"image time: {total_time_img} , state time: {total_time_state}")
-
+                    print("add image")
                 if state_msg_valid and desired_twist_msg_valid:
                     try:
                         wvn_ros_interface.robot_state_callback(state_msg, desired_twist_msg)
                     except Exception as e:
                         print("Bad robot_state callback ", e)
-                    
+
                     state_msg_valid = False
                     desired_twist_msg_valid = True
                     total_time_state += time.time() - st
-    
+                    print("add supervision")
+
     print("Finished with converting the dataset")
     rospy.signal_shutdown("stop the node")
-    
-    
+
+
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--n", type=int, default=6, help="Store data")
     parser.add_argument("--dry_run", type=int, default=0, help="Store data")
