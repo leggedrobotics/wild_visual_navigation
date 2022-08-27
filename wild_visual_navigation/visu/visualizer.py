@@ -91,9 +91,10 @@ class LearningVisualizer:
         palette = ["tab:blue", "tab:orange"]
         for j, (_x, _y, _y_lower, _y_upper, _y_tag) in enumerate(zip(x, y, y_lower, y_upper, y_tag)):
             ax.plot(_x, _y, label=_y_tag)
-            ax.plot(_x, _y_lower, color=palette[j], alpha=0.1)
-            ax.plot(_x, _y_upper, color=palette[j], alpha=0.1)
-            ax.fill_between(_x, _y_lower, _y_upper, color=palette[j], alpha=0.2)
+            if _y_lower != None:
+                ax.plot(_x, _y_lower, color=palette[j], alpha=0.1)
+                ax.plot(_x, _y_upper, color=palette[j], alpha=0.1)
+                ax.fill_between(_x, _y_lower, _y_upper, color=palette[j], alpha=0.2)
 
         ax.plot(np.linspace(0, 1, 100), np.linspace(0, 1, 100), linestyle="--", color="gray")
         ax.set_xlabel("False postive rate")
@@ -104,7 +105,9 @@ class LearningVisualizer:
         plt.ylim(0, 1)
         plt.legend(loc="lower right")
         plt.tight_layout()
-        return get_img_from_fig(fig)
+        res = np.array(get_img_from_fig(fig))
+        plt.close()
+        return res
 
     def plot_mission_node_prediction(self, node: any):
         if node._image is None or node._prediction is None:

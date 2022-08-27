@@ -99,6 +99,8 @@ class GraphTravAbblationDataset(Dataset):
                     break
                 ls.append(line.strip())
 
+        self.mode = mode
+        self.env = env
         self.paths = ls
         self.perugia_root = perugia_root
         self.feature_key = feature_key
@@ -110,9 +112,9 @@ class GraphTravAbblationDataset(Dataset):
     def get(self, idx: int) -> any:
         # TODO update the dataset generation to avoid 0,0 and the cropping operation
         img_p = os.path.join(self.perugia_root, self.paths[idx])
-        graph_p = img_p.replace("image", f"features/{self.featue_key}/graph")
-        seg_p = img_p.replace("image", f"features/{self.featue_key}/seg")
-        center_p = img_p.replace("image", f"features/{self.featue_key}/center")
+        graph_p = img_p.replace("image", f"features/{self.feature_key}/graph")
+        seg_p = img_p.replace("image", f"features/{self.feature_key}/seg")
+        center_p = img_p.replace("image", f"features/{self.feature_key}/center")
 
         graph = torch.load(graph_p)
         center = torch.load(center_p)
@@ -121,9 +123,24 @@ class GraphTravAbblationDataset(Dataset):
         graph.img = img[None]
         graph.center = center
         graph.seg = seg[None]
+        graph.y = (graph.y > 0).type(torch.float32)  # make now binary
 
-        graph2 = Data()
-        return graph, None
+        if self.mode == "test":
+            key = (self.paths[idx]).split("/")[-1][:-3]
+            store = os.path.join(self.perugia_root, f"wvn_output/labeling/{self.env}/labels/{key}.pt")
+            label = torch.load(store)
+
+            y_gt = []
+            for i in torch.unique(seg):
+                m = label[seg == i]
+                pos = m.sum()
+                neg = (~m).sum()
+                y_gt.append(pos > neg)
+
+            graph.y_gt = torch.stack(y_gt).type(torch.float32)
+            graph.label = label[None]
+
+        return graph, Data()
 
 
 def get_abblation_module(
