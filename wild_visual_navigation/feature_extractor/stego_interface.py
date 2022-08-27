@@ -126,7 +126,7 @@ class StegoInterface:
 def run_stego_interfacer():
     """Performance inference using stego and stores result as an image."""
 
-    from wild_visual_navigation.utils import get_img_from_fig
+    from wild_visual_navigation.visu import get_img_from_fig
     import matplotlib.pyplot as plt
     from stego.src import unnorm, remove_axes
     import cv2

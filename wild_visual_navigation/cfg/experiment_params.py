@@ -74,7 +74,7 @@ class ExperimentParams(Serializable):
         env: str = "forest"
         feature_key: str = "slic_dino"
         
-    abblation_data_module: DataModuleParams = AbblationDataModuleParams()
+    abblation_data_module: AbblationDataModuleParams = AbblationDataModuleParams()
 
     @dataclass
     class ModelParams:

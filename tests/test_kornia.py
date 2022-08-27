@@ -1,5 +1,5 @@
 from wild_visual_navigation import WVN_ROOT_DIR
-from wild_visual_navigation.utils import get_img_from_fig
+from wild_visual_navigation.visu import get_img_from_fig
 import os
 from os.path import join
 import matplotlib.pyplot as plt

@@ -92,7 +92,7 @@ class GraphTravAbblationDataset(Dataset):
         super().__init__()
         
         ls = []
-        with open(os.path.join(perugia_root, "wvn_output/split" , "{env}_{mode}.txt"), "r") as f:
+        with open(os.path.join(perugia_root, "wvn_output/split" , f"{env}_{mode}.txt"), "r") as f:
             while True:
                 line = f.readline()
                 if not line:
@@ -136,9 +136,9 @@ def get_abblation_module(
     **kwargs
 ) -> LightningDataset:
     
-    train_dataset = GraphTravAbblationDataset(root=perugia_root, mode="train", feature_key=feature_key, env= env)
-    val_dataset = GraphTravAbblationDataset(root=perugia_root, mode="val", feature_key=feature_key, env= env)
-    test_dataset = GraphTravAbblationDataset(root=perugia_root, mode="test", feature_key=feature_key, env= env)
+    train_dataset = GraphTravAbblationDataset(perugia_root=perugia_root, mode="train", feature_key=feature_key, env= env)
+    val_dataset = GraphTravAbblationDataset(perugia_root=perugia_root, mode="val", feature_key=feature_key, env= env)
+    test_dataset = GraphTravAbblationDataset(perugia_root=perugia_root, mode="test", feature_key=feature_key, env= env)
     
     return LightningDataset(
         train_dataset=train_dataset,
