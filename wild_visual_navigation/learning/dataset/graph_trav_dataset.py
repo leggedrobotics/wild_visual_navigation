@@ -87,12 +87,12 @@ class GraphTravAbblationDataset(Dataset):
         pre_filter: Optional[Callable] = None,
         mode: str = "train",
         feature_key: str = "slic_dino",
-        env: str = "hilly"
+        env: str = "hilly",
     ):
         super().__init__()
-        
+
         ls = []
-        with open(os.path.join(perugia_root, "wvn_output/split" , f"{env}_{mode}.txt"), "r") as f:
+        with open(os.path.join(perugia_root, "wvn_output/split", f"{env}_{mode}.txt"), "r") as f:
             while True:
                 line = f.readline()
                 if not line:
@@ -109,19 +109,19 @@ class GraphTravAbblationDataset(Dataset):
 
     def get(self, idx: int) -> any:
         # TODO update the dataset generation to avoid 0,0 and the cropping operation
-        img_p = os.path.join(self.perugia_root, self.paths[idx] )
+        img_p = os.path.join(self.perugia_root, self.paths[idx])
         graph_p = img_p.replace("image", f"features/{self.featue_key}/graph")
         seg_p = img_p.replace("image", f"features/{self.featue_key}/seg")
         center_p = img_p.replace("image", f"features/{self.featue_key}/center")
-        
-        graph = torch.load( graph_p )
-        center = torch.load( center_p )
-        img = torch.load( img_p )
-        seg = torch.load( seg_p )
+
+        graph = torch.load(graph_p)
+        center = torch.load(center_p)
+        img = torch.load(img_p)
+        seg = torch.load(seg_p)
         graph.img = img[None]
         graph.center = center
         graph.seg = seg[None]
-        
+
         graph2 = Data()
         return graph, None
 
@@ -133,13 +133,13 @@ def get_abblation_module(
     visu: bool = False,
     env: str = "forest",
     feature_key: str = "slic_dino",
-    **kwargs
+    **kwargs,
 ) -> LightningDataset:
-    
-    train_dataset = GraphTravAbblationDataset(perugia_root=perugia_root, mode="train", feature_key=feature_key, env= env)
-    val_dataset = GraphTravAbblationDataset(perugia_root=perugia_root, mode="val", feature_key=feature_key, env= env)
-    test_dataset = GraphTravAbblationDataset(perugia_root=perugia_root, mode="test", feature_key=feature_key, env= env)
-    
+
+    train_dataset = GraphTravAbblationDataset(perugia_root=perugia_root, mode="train", feature_key=feature_key, env=env)
+    val_dataset = GraphTravAbblationDataset(perugia_root=perugia_root, mode="val", feature_key=feature_key, env=env)
+    test_dataset = GraphTravAbblationDataset(perugia_root=perugia_root, mode="test", feature_key=feature_key, env=env)
+
     return LightningDataset(
         train_dataset=train_dataset,
         val_dataset=val_dataset,
@@ -147,16 +147,16 @@ def get_abblation_module(
         batch_size=batch_size,
         num_workers=num_workers,
         pin_memory=False,
-        *kwargs
+        *kwargs,
     )
-    
+
 
 def get_pl_graph_trav_module(
     batch_size: int = 1,
     num_workers: int = 0,
     visu: bool = False,
     dataset_folder: str = "results/default_mission",
-    **kwargs
+    **kwargs,
 ) -> LightningDataset:
 
     if os.path.isabs(dataset_folder):
@@ -178,7 +178,7 @@ def get_pl_graph_trav_module(
         batch_size=batch_size,
         num_workers=num_workers,
         pin_memory=False,
-        *kwargs
+        *kwargs,
     )
 
 
