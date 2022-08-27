@@ -8,6 +8,7 @@ from os.path import join
 from wild_visual_navigation.visu import LearningVisualizer
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 from torch_geometric.data import Data
+from torchmetrics import ROC
 
 
 class LightningTrav(pl.LightningModule):
@@ -23,6 +24,7 @@ class LightningTrav(pl.LightningModule):
         self._env = env
         self._mode = "train"
         self._log = log
+        self._validation_roc = ROC()
 
     def forward(self, data: torch.tensor):
         return self._model(data)
@@ -40,6 +42,10 @@ class LightningTrav(pl.LightningModule):
         res = self._model(graph)
 
         loss, loss_aux = compute_loss(graph, res, self._exp["loss"], self._model, graph_aux)
+
+        if self._mode == "val":
+            self._validation_roc.update(preds = res[:, 0], target= graph.y)
+
 
         self.log(f"{self._mode}_loss_trav", loss_aux["loss_trav"].item(), on_epoch=True, prog_bar=True)
         self.log(f"{self._mode}_loss_reco", loss_aux["loss_reco"].item(), on_epoch=True, prog_bar=True)
@@ -105,7 +111,12 @@ class LightningTrav(pl.LightningModule):
         return self.training_step(batch, batch_idx)
 
     def validation_epoch_end(self, outputs: EPOCH_OUTPUT):
-        pass
+        fpr, tpr, thresholds = self._validation_roc.compute()
+        
+        
+        self._visualizer.plot_roc(x=fpr, y=tpr, tag=f"C{c}_{self._mode}_")
+        
+        self.log
 
     # TESTING
     def on_test_epoch_start(self):

@@ -199,7 +199,7 @@ class ImageProjector:
 def run_image_projector():
     """Projects 3D points to example images and returns an image with the projection"""
 
-    from wild_visual_navigation.utils import get_img_from_fig
+    from wild_visual_navigation.visu import get_img_from_fig
     from wild_visual_navigation.utils import make_plane
     from PIL import Image
     import matplotlib.pyplot as plt

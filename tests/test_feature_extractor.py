@@ -1,6 +1,6 @@
 from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.feature_extractor import FeatureExtractor
-from wild_visual_navigation.utils import get_img_from_fig
+from wild_visual_navigation.visu import get_img_from_fig
 import matplotlib.pyplot as plt
 import torch
 from torchvision import transforms as T

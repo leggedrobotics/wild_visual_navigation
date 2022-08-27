@@ -32,7 +32,7 @@ def training_routine(experiment: ExperimentParams) -> torch.Tensor:
     
     exp["general"]["name"] = os.path.relpath(model_path, env["base"])
     exp["general"]["model_path"] = model_path
-
+    
     with open(os.path.join(model_path, "experiment_params.yaml"), "w") as f:
         yaml.dump(exp, f, default_flow_style=False)
 
@@ -81,7 +81,8 @@ def training_routine(experiment: ExperimentParams) -> torch.Tensor:
     exp["trainer"]["plugins"] = ddp_plugin
 
     # datamodule = get_pl_graph_trav_module(**exp["data_module"])
-    datamodule = get_abblation_module(**exp["abblation_data_module"])
+    datamodule = get_abblation_module(**exp["abblation_data_module"], perugia_root=env["perugia_root"])
+    
     
     trainer = Trainer(**exp["trainer"], default_root_dir=model_path, callbacks=cb_ls, logger=logger)
     trainer.fit(model=model, datamodule=datamodule)

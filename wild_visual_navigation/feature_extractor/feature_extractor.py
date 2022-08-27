@@ -1,5 +1,4 @@
 from wild_visual_navigation.feature_extractor import StegoInterface, DinoInterface, SegmentExtractor
-from wild_visual_navigation.utils import PlotHelper
 
 import torch.nn.functional as F
 import skimage

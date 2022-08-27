@@ -54,9 +54,15 @@ class BagTfTransformerWrapper:
         except:
             return (None, None)
 
-
-for d in perguia_dataset:
+def do(n, dry_run):
+    d = perguia_dataset[n]
+    
+    if bool(dry_run):
+        print(d)
+        return
+    
     s = os.path.join(ROOT_DIR, d["name"])
+    
     valid_topics = ["/state_estimator/anymal_state", "/alphasense_driver_ros/cam4", "/log/state/desiredRobotTwist"]
 
     # Merge rosbags if necessary
@@ -67,13 +73,20 @@ for d in perguia_dataset:
         or str(s).find("jetson_images") != -1
         or str(s).find("lpc_locomotion") != -1
     ]
+    try:
+        rosbags.sort(key=lambda x: int(x.split("/")[-1][-5]))
+    except:
+        pass
+    
     output_bag_wvn = s + "_wvn.bag"
     output_bag_tf = s + "_tf.bag"
     tf_bags = [b for b in rosbags if b.find("lpc_robot_state") != -1]
+
+
     if not os.path.exists(output_bag_tf):
         total_included_count, total_skipped_count = merge_bags_single(
             input_bag=tf_bags, output_bag=output_bag_tf, topics="/tf /tf_static", verbose=True
-        )
+        )            
     if not os.path.exists(output_bag_wvn):
         total_included_count, total_skipped_count = merge_bags_single(
             input_bag=rosbags, output_bag=output_bag_wvn, topics=" ".join(valid_topics), verbose=True
@@ -82,40 +95,21 @@ for d in perguia_dataset:
     # Setup WVN node
     rospy.init_node("wild_visual_navigation_node")
 
-    running_store_folder = "/media/Data/Datasets/2022_Perugia/day3/mission_data/2022-05-12T09:57:13_mission_0_day_3"
-    running_store_folder.replace("2022_Perugia/day3/mission_data", "2022_Perugia/wvn_output/day3")
-
+    mission = s.split("/")[-1]
+    
+    # 2022-05-12T11:56:13_mission_0_day_3
+    running_store_folder = f"/media/Data/Datasets/2022_Perugia/wvn_output/day3/{mission}"
+    
+    if os.path.exists(running_store_folder):
+        print("Stopped because folder already exists")
+        return
+    
     rosparam.set_param("wild_visual_navigation_node/mode", "extract_labels")
-    rosparam.set_param("'wild_visual_navigation_node/running_store_folder", running_store_folder)
+    rosparam.set_param("wild_visual_navigation_node/running_store_folder", running_store_folder)
 
     # for proprioceptive callback
     state_msg_valid = False
     desired_twist_msg_valid = False
-
-    # for camera callback
-    # con = "/home/jonfrey/git/anymal_dataset_generation/postprocessing_tools_ros/config/image_proc_cuda/image_proc_cuda_undistorted.yaml"
-    # cal = "/home/jonfrey/catkin_ws/src/anymal_rsl/anymal_c_rsl/anymal_cerberus_rsl/anymal_cerberus_rsl/calibration/alphasense/intrinsic/cam4.yaml"
-    # import rospkg
-    # rospack = rospkg.RosPack()
-    # Set config files
-    # calib_file = rospack.get_path("image_proc_cuda") + "/config/alphasense_calib_example.yaml"
-    # color_calib_file = rospack.get_path("image_proc_cuda") + "/config/alphasense_color_calib_example.yaml"
-    # param_file = rospack.get_path("image_proc_cuda") + "/config/pipeline_params_example.yaml"
-    # Create image Proc
-    # proc = ImageProcCuda(param_file, calib_file, color_calib_file)
-    # proc = ImageProcCuda(con, cal)
-    # proc.set_flip(True)
-    # input_encoding = "bayer_gbrg8"
-    # Store the camera calibration after debayering and optional undistortion
-    # with open(cal, "r") as f:
-    #     cam = yaml.load(f, Loader=yaml.FullLoader)
-    #     cam["image_width"] = proc.get_image_width()
-    #     cam["image_height"] = proc.get_image_height()
-    #     cam["distortion_model"] = proc.get_distortion_model()
-    #     cam["distortion_coefficients"]["data"] = proc.get_distortion_coefficients().flatten().tolist()
-    #     cam["rectification_matrix"]["data"] = proc.get_rectification_matrix().flatten().tolist()
-    # cam["projection_matrix"]["data"] = proc.get_projection_matrix().flatten().tolist()
-    # bridge = CvBridge()
 
     pub = rospy.Publisher("/alphasense_driver_ros/cam4", Image, queue_size=1)
     wvn_ros_interface = WvnRosInterface()
@@ -147,37 +141,15 @@ for d in perguia_dataset:
     ]
     info_msg.R = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
 
-    # ---
-    # header:
-    #   seq: 68053
-    #   stamp:
-    #     secs: 1652349761
-    #     nsecs: 732710573
-    #   frame_id: "cam4_sensor_frame"
-    # height: 540
-    # width: 720
-    # distortion_model: "plumb_bob"
-    # D: [0.0, 0.0, 0.0, 0.0]
-    # K: [347.548139773951, 0.0, 342.454373227748, 0.0, 347.434712422309, 271.368057185649, 0.0, 0.0, 1.0]
-    # R: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
-    # P: [347.548139773951, 0.0, 342.454373227748, 0.0, 0.0, 347.434712422309, 271.368057185649, 0.0, 0.0, 0.0, 1.0, 0.0]
-    # binning_x: 0
-    # binning_y: 0
-    # roi:
-    #   x_offset: 0
-    #   y_offset: 0
-    #   height: 0
-    #   width: 0
-    #   do_rectify: False
-    # ---
-
     rosbag_info_dict = get_bag_info(output_bag_wvn)
     total_msgs = sum([x["messages"] for x in rosbag_info_dict["topics"] if x["topic"] in valid_topics])
-
+    total_time_img = 0 
+    total_time_state = 0 
+    n = 0
+    
     with rosbag.Bag(output_bag_wvn, "r") as bag:
         start_time = rospy.Time.from_sec(bag.get_start_time() + d["start"])
         end_time = rospy.Time.from_sec(bag.get_start_time() + d["stop"])
-
         with tqdm(
             total=total_msgs,
             desc="Total",
@@ -185,8 +157,9 @@ for d in perguia_dataset:
             position=1,
             bar_format="{desc:<13}{percentage:3.0f}%|{bar:20}{r_bar}",
         ) as pbar:
-            for (topic, msg, ts) in bag.read_messages(topics=valid_topics, start_time=start_time, end_time=end_time):
+            for (topic, msg, ts) in bag.read_messages(topics=None, start_time=start_time, end_time=end_time):
                 pbar.update(1)
+                
                 st = time.time()
                 if topic == "/state_estimator/anymal_state":
                     state_msg = anymal_msg_callback(msg, return_msg=True)
@@ -212,22 +185,35 @@ for d in perguia_dataset:
                                 break
                         if i >= 99:
                             raise Exception("Timeout waiting for debayerd image message")
-
-                    # if input_encoding is not None:
-                    #     msg.encoding = input_encoding
-                    # Convert message to image using the msg encoding
-                    # img = bridge.imgmsg_to_cv2(msg, desired_encoding=msg.encoding)
-                    # # Apply image proc pipeline
-                    # img = proc.process(img, msg.encoding)
-                    # # "img is opencv img"
-                    # image_msg = bridge.cv2_to_imgmsg(img, encoding="passthrough")
-
+                        
                     info_msg.header = msg.header
-                    wvn_ros_interface.image_callback(image_msg, info_msg)
+                    try:
+                        wvn_ros_interface.image_callback(image_msg, info_msg)
+                    except Exception as e:
+                        print("Bad image_callback", e)
+                    
+                    total_time_img += time.time() - st
+                    # print(f"image time: {total_time_img} , state time: {total_time_state}")
 
                 if state_msg_valid and desired_twist_msg_valid:
-                    wvn_ros_interface.robot_state_callback(state_msg, desired_twist_msg)
+                    try:
+                        wvn_ros_interface.robot_state_callback(state_msg, desired_twist_msg)
+                    except Exception as e:
+                        print("Bad robot_state callback ", e)
+                    
                     state_msg_valid = False
                     desired_twist_msg_valid = True
-
-                # print("time: {}, {}".format(time.time()-st, topic))
+                    total_time_state += time.time() - st
+    
+    print("Finished with converting the dataset")
+    rospy.signal_shutdown("stop the node")
+    
+    
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--n", type=int, default=6, help="Store data")
+    parser.add_argument("--dry_run", type=int, default=0, help="Store data")
+    args = parser.parse_args()
+    print(args.n)
+    do(args.n, args.dry_run)

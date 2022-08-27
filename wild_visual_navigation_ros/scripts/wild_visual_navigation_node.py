@@ -329,13 +329,15 @@ class WvnRosInterface:
         # Wait for required tfs
         try:
             self.tf_listener.waitForTransform(parent_frame, child_frame, stamp, rospy.Duration(1.0))
-        except:
+        except Exception as e:
+            print("Error in querry tf: ", e)
             return (None, None)
             
         try:
             (trans, rot) = self.tf_listener.lookupTransform(parent_frame, child_frame, stamp)
             return (trans, rot)
-        except: 
+        except Exception as e: 
+            print("Error in querry tf: ", e)
             # (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException): avoid all errors
             rospy.logwarn(f"Couldn't get between {parent_frame} and {child_frame}")
             return (None, None)

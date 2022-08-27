@@ -279,7 +279,7 @@ class TraversabilityEstimator:
                 tag="centers",
             )
 
-    def add_mission_node(self, node: MissionNode):
+    def add_mission_node(self, node: MissionNode, verbose: bool = False):
         """Adds a node to the local graph to images and training info
 
         Args:
@@ -296,7 +296,8 @@ class TraversabilityEstimator:
             total_nodes = self._mission_graph.get_num_nodes()
             s = f"adding node [{node}], "
             s += " " * (48 - len(s)) + f"total nodes [{total_nodes}]"
-            print(s)
+            if verbose:
+                print(s)
 
             if self._mode != WVNMode.EXTRACT_LABELS:
                 # Set optical flow
