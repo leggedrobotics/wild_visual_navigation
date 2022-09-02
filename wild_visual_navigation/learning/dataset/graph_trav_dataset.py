@@ -135,7 +135,7 @@ class GraphTravAbblationDataset(Dataset):
                 m = label[seg == i]
                 pos = m.sum()
                 neg = (~m).sum()
-                y_gt.append(pos > neg)
+                y_gt.append(pos < neg)
 
             graph.y_gt = torch.stack(y_gt).type(torch.float32)
             graph.label = label[None]
@@ -150,12 +150,21 @@ def get_abblation_module(
     visu: bool = False,
     env: str = "forest",
     feature_key: str = "slic_dino",
+    test_equals_val: bool = False,
     **kwargs,
 ) -> LightningDataset:
 
     train_dataset = GraphTravAbblationDataset(perugia_root=perugia_root, mode="train", feature_key=feature_key, env=env)
     val_dataset = GraphTravAbblationDataset(perugia_root=perugia_root, mode="val", feature_key=feature_key, env=env)
-    test_dataset = GraphTravAbblationDataset(perugia_root=perugia_root, mode="test", feature_key=feature_key, env=env)
+
+    if test_equals_val:
+        test_dataset = GraphTravAbblationDataset(
+            perugia_root=perugia_root, mode="val", feature_key=feature_key, env=env
+        )
+    else:
+        test_dataset = GraphTravAbblationDataset(
+            perugia_root=perugia_root, mode="test", feature_key=feature_key, env=env
+        )
 
     return LightningDataset(
         train_dataset=train_dataset,

@@ -3,19 +3,8 @@ from wild_visual_navigation.cfg import ExperimentParams
 from wild_visual_navigation.learning.general import training_routine
 from wild_visual_navigation.learning.utils import load_yaml
 from wild_visual_navigation import WVN_ROOT_DIR
-
+from wild_visual_navigation.utils import override_params
 import os
-import dataclasses
-
-
-def override(dc, exp):
-    for k, v in exp.items():
-        if hasattr(dc, k):
-            if dataclasses.is_dataclass(getattr(dc, k)):
-                setattr(dc, k, override(getattr(dc, k), v))
-            else:
-                setattr(dc, k, v)
-    return dc
 
 
 if __name__ == "__main__":
@@ -32,6 +21,6 @@ if __name__ == "__main__":
     p = os.path.join(WVN_ROOT_DIR, "cfg/exp", args.exp)
     if args.exp != "nan" and os.path.isfile(p):
         exp_override = load_yaml(p)
-        args.experiment = override(args.experiment, exp_override)
+        args.experiment = override_params(args.experiment, exp_override)
 
     training_routine(args.experiment)
