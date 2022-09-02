@@ -85,5 +85,13 @@ def training_routine(experiment: ExperimentParams) -> torch.Tensor:
 
     trainer = Trainer(**exp["trainer"], default_root_dir=model_path, callbacks=cb_ls, logger=logger)
     trainer.fit(model=model, datamodule=datamodule)
-    res = trainer.test(model=model, datamodule=datamodule)
-    return res
+
+    short_id = logger.experiment._short_id
+    res = trainer.test(model=model, datamodule=datamodule)[0]
+
+    import pickle
+
+    with open(os.path.join(model_path, "detailed_test_results.pkl"), "rb") as handle:
+        out = pickle.load(handle)
+    res["detailed_test_results"] = out
+    return res, model_path, short_id, logger._project_name

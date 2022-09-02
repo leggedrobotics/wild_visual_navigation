@@ -1,23 +1,27 @@
 import torch
 
 
-class ConfidenceGenerator:
-    def __init__(self, std_factor: float = 0.7, device: str = "cpu"):
+class ConfidenceGenerator(torch.nn.Module):
+    def __init__(self, std_factor: float = 0.7):
         """Returns a confidence value for each number
 
         Args:
             std_factor (float, optional): _description_. Defaults to 2.0.
             device (str, optional): _description_. Defaults to "cpu".
         """
+        super(ConfidenceGenerator, self).__init__()
+        running_n = torch.zeros(1, dtype=torch.float64)
+        running_sum = torch.zeros(1, dtype=torch.float64)
+        running_sum_of_sqaures = torch.zeros(1, dtype=torch.float64)
 
-        self.device = device
-        self.running_n = torch.zeros(1, dtype=torch.float64, device=self.device)
-        self.running_sum = torch.zeros(1, dtype=torch.float64, device=self.device)
-        self.running_sum_of_sqaures = torch.zeros(1, dtype=torch.float64, device=self.device)
+        self.running_n = torch.nn.Parameter(running_n, requires_grad=False)
+        self.running_sum = torch.nn.Parameter(running_sum, requires_grad=False)
+        self.running_sum_of_sqaures = torch.nn.Parameter(running_sum_of_sqaures, requires_grad=False)
+
         self.std_factor = std_factor
-        self.mean = torch.zeros(1, dtype=torch.float64, device=self.device)
-        self.var = torch.ones(1, dtype=torch.float64, device=self.device)
-        self.std = torch.ones(1, dtype=torch.float64, device=self.device)
+        self.mean = torch.zeros(1, dtype=torch.float64)
+        self.var = torch.ones(1, dtype=torch.float64)
+        self.std = torch.ones(1, dtype=torch.float64)
 
     def update(self, x: torch.tensor):
         """Input a tensor with multiple error predictions.
@@ -42,6 +46,22 @@ class ConfidenceGenerator:
         ) / (2 * self.std * self.std_factor)
         confidence = 1 - uncertainty
         return confidence.type(torch.float32)
+
+    def inference_without_update(self, x: torch.tensor):
+        uncertainty = (
+            (x - self.mean).clip(min=-(self.std * self.std_factor), max=(self.std * self.std_factor))
+            + self.std * self.std_factor
+        ) / (2 * self.std * self.std_factor)
+        confidence = 1 - uncertainty
+        return confidence.type(torch.float32)
+
+    def forward(self, x: torch.tensor):
+        return self.update(x)
+
+    def reset(self):
+        self.running_n[0] = 0
+        self.running_sum[0] = 0
+        self.running_sum_of_sqaures[0] = 0
 
 
 if __name__ == "__main__":

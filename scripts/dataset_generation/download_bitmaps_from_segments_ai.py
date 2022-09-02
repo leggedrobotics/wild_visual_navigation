@@ -8,7 +8,7 @@ import torch
 key = os.getenv("SEGMENTS_AI_API_KEY")
 client = SegmentsClient(key)
 
-env = "hilly"
+env = "forest"
 dataset_identifier = f"jonasfrey96/perugia_{env}"
 samples = client.get_samples(dataset_identifier)
 for sample in samples:

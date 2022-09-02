@@ -30,16 +30,17 @@ class ExperimentParams(Serializable):
             weight_decay: float = 4.0e-05
 
         name: str = "ADAMW"
-        lr: float = 0.001
+        lr: float = 0.005
         adamw_cfg: AdamwCfgParams = AdamwCfgParams()
 
     optimizer: OptimizerParams = OptimizerParams()
 
     @dataclass
     class LossParams:
-        trav: float = 1.0
-        reco: float = 1.0
-        temp: float = 1.0
+        anomaly_blanced: bool = True
+        w_trav: float = 0.25
+        w_reco: float = 1.0
+        w_temp: float = 0.0
 
     loss: LossParams = LossParams()
 
@@ -51,7 +52,7 @@ class ExperimentParams(Serializable):
         limit_train_batches: float = 1.0
         limit_val_batches: float = 1.0
         limit_test_batches: float = 1.0
-        max_epochs: int = 1000
+        max_epochs: int = 10
         profiler: bool = False
         num_sanity_val_steps: int = 0
         check_val_every_n_epoch: int = 1
@@ -73,6 +74,7 @@ class ExperimentParams(Serializable):
         num_workers: int = 0
         env: str = "forest"
         feature_key: str = "slic_dino"
+        test_equals_val: bool = False
 
     abblation_data_module: AbblationDataModuleParams = AbblationDataModuleParams()
 
@@ -83,7 +85,7 @@ class ExperimentParams(Serializable):
         @dataclass
         class SimpleMlpCfgParams:
             input_size: int = 90
-            hidden_sizes: List[int] = field(default_factory=lambda: [120, 120, 1])
+            hidden_sizes: List[int] = field(default_factory=lambda: [64, 32, 1])
             reconstruction: bool = True
 
         simple_mlp_cfg: SimpleMlpCfgParams = SimpleMlpCfgParams()
@@ -91,8 +93,8 @@ class ExperimentParams(Serializable):
         @dataclass
         class SimpleGcnCfgParams:
             num_node_features: int = 90
-            num_classes: int = 1
             reconstruction: bool = True
+            hidden_sizes: List[int] = field(default_factory=lambda: [64, 32, 1])
 
         simple_gcn_cfg: SimpleGcnCfgParams = SimpleGcnCfgParams()
 
@@ -115,6 +117,9 @@ class ExperimentParams(Serializable):
         train: int = 2
         val: int = 2
         test: int = 2
+        log_test_video: bool = False
+        log_val_video: bool = True
+        log_train_video: bool = False
         log_every_n_epochs: int = 10
 
     visu: VisuParams = VisuParams()

@@ -1,11 +1,26 @@
+general:
+  name: forest/debug
+  timestamp: False
+
 abblation_data_module:
   env: forest
   feature_key: slic_dino
+  test_equals_val: False
 
 loss:
-  temp: 0
+  w_temp: 0
+  anomaly_blanced: True
 
 trainer:
   max_epochs: 10
-  # limit_train_batches: 8
-  check_val_every_n_epoch: 1
+  check_val_every_n_epoch: 10
+
+model:
+  name: SimpleMLP
+
+visu:
+  train: 2
+  val: 2
+  test: 50
+  log_test_video: True
+  log_val_video: True
