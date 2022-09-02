@@ -8,7 +8,7 @@ from torchmetrics import Accuracy, AUROC
 
 test_auroc_gt = AUROC()
 test_auroc_prop = AUROC()
-        
+
 env = load_env()
 
 for env_ in ["forest", "hilly", "grassland"]:
@@ -26,33 +26,33 @@ for env_ in ["forest", "hilly", "grassland"]:
     features = []
     labels = []
 
-    for j, d in enumerate( datamodule.train_dataset ):
-        features.append( d[0].x.cpu().numpy() )
-        labels.append( d[0].y.cpu().numpy() ) 
-        
-    features = np.concatenate( features, axis=0 )
-    labels = np.concatenate( labels, axis=0)
+    for j, d in enumerate(datamodule.train_dataset):
+        features.append(d[0].x.cpu().numpy())
+        labels.append(d[0].y.cpu().numpy())
 
-    knn.fit( features, labels )
+    features = np.concatenate(features, axis=0)
+    labels = np.concatenate(labels, axis=0)
+
+    knn.fit(features, labels)
 
     features_test = []
     y_gt = []
     y_prop = []
 
     acc = Accuracy()
-    for j, d in enumerate( datamodule.test_dataset ):
-        features_test.append( d[0].x.cpu().numpy() ) 
-        y_gt.append( d[0].y_gt.cpu().numpy() )
-        y_prop.append( d[0].y.cpu().numpy() )
+    for j, d in enumerate(datamodule.test_dataset):
+        features_test.append(d[0].x.cpu().numpy())
+        y_gt.append(d[0].y_gt.cpu().numpy())
+        y_prop.append(d[0].y.cpu().numpy())
 
-    features_test = np.concatenate( features_test, axis=0 )
-    y_gt = np.concatenate( y_gt, axis=0)
-    y_prop = np.concatenate( y_prop, axis=0)
+    features_test = np.concatenate(features_test, axis=0)
+    y_gt = np.concatenate(y_gt, axis=0)
+    y_prop = np.concatenate(y_prop, axis=0)
     y_pred = knn.predict(features_test)
 
-    test_auroc_gt.update( torch.from_numpy( y_pred ), torch.from_numpy( y_gt ).type(torch.long) )
-    test_auroc_prop.update( torch.from_numpy( y_pred ), torch.from_numpy( y_prop ).type(torch.long) )
-    acc.update( torch.from_numpy( y_pred ), torch.from_numpy( y_gt ).type(torch.long) )
-    print(f"{env_} ---- AUROC_GT {test_auroc_gt.compute():.3f} , ACC_GT {acc.compute():.3f}, AUROC_PROP {test_auroc_prop.compute():.3f}")
-
-
+    test_auroc_gt.update(torch.from_numpy(y_pred), torch.from_numpy(y_gt).type(torch.long))
+    test_auroc_prop.update(torch.from_numpy(y_pred), torch.from_numpy(y_prop).type(torch.long))
+    acc.update(torch.from_numpy(y_pred), torch.from_numpy(y_gt).type(torch.long))
+    print(
+        f"{env_} ---- AUROC_GT {test_auroc_gt.compute():.3f} , ACC_GT {acc.compute():.3f}, AUROC_PROP {test_auroc_prop.compute():.3f}"
+    )
