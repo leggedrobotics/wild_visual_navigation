@@ -51,6 +51,9 @@ if __name__ == "__main__":
     exported_onnx_file = "dino_exported.onnx"
     exported_onnx_path = os.path.join(WVN_ROOT_DIR, "assets/dino", exported_onnx_file)
     example_input = transform(img)
+    # Change to evaluation mode
+    di.model.eval()
+    # Export ONNX
     torch.onnx.export(
         di.model,
         example_input,
@@ -70,12 +73,14 @@ if __name__ == "__main__":
 
     # Test models
     print("\nTesting models ...")
+    testing_input = di.transform(img).contiguous()
+    
     # Run one inference of DINO
-    y_original = di.inference(di.transform(img))
+    y_original = di.inference(testing_input)
 
     # Run one inference of DINO RT
     di_trt = DinoTrtInterface(exported_trt_path, device)
-    y_trt = di_trt.inference(di.transform(img))
+    y_trt = di_trt.inference(testing_input)
 
     # Compare error
     error = torch.nn.functional.mse_loss(y_original, y_trt, reduction="mean")

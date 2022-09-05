@@ -170,7 +170,7 @@ class FeatureExtractor:
         # Prepare input image
         img_internal = img.clone()
         self.extractor.inference_crf(img_internal)
-        seg = torch.from_numpy(self.extractor.linear_segments).to(self._device)
+        seg = torch.from_numpy(self.extractor.cluster_segments).to(self._device)
 
         # Change the segment indices by numbers from 0 to N
         for i, k in enumerate(seg.unique()):
