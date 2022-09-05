@@ -117,24 +117,32 @@ class LearningVisualizer:
         reco_pred = node._prediction[:, 1:]
         conf_pred = get_confidence(reco_pred, node._features)
 
-        trav_img = self.plot_traversability_graph_on_seg(
-            trav_pred,
-            node.feature_segments,
-            node.as_pyg_data(),
-            node.feature_positions,
-            node.image.clone(),
-            colormap="RdYlBu",
-            colorize_invalid_centers=True,
-        )
-        conf_img = self.plot_traversability_graph_on_seg(
-            conf_pred,
-            node.feature_segments,
-            node.as_pyg_data(),
-            node.feature_positions,
-            node.image.clone(),
-            colormap="RdYlBu",
-            colorize_invalid_centers=True,
-        )
+        from wild_visual_navigation.utils import Timer
+        
+        with Timer("on seg"):
+            trav_img = self.plot_traversability_graph_on_seg(
+                trav_pred,
+                node.feature_segments,
+                node.as_pyg_data(),
+                node.feature_positions,
+                node.image,
+                colormap="RdYlBu",
+                colorize_invalid_centers=True,
+                not_log=True,
+                store=False
+            )
+        
+            conf_img = self.plot_traversability_graph_on_seg(
+                conf_pred,
+                node.feature_segments,
+                node.as_pyg_data(),
+                node.feature_positions,
+                node.image,
+                colormap="RdYlBu",
+                colorize_invalid_centers=True,
+                not_log= True,
+                store=False
+            )
         return trav_img, conf_img
 
     def plot_mission_node_training(self, node: any):
@@ -180,7 +188,6 @@ class LearningVisualizer:
         colorize_invalid_centers=False,
         **kwargs,
     ):
-
         # Transfer the node traversbility score to the segment
         m = torch.zeros_like(seg, dtype=prediction.dtype)
         for i in range(seg.max() + 1):
@@ -188,8 +195,10 @@ class LearningVisualizer:
 
         # Plot Segments on Image
         i1 = self.plot_detectron_cont(
-            img.detach().cpu().numpy(), m.detach().cpu().numpy(), not_log=True, colormap=colormap
+            img.detach().cpu().numpy(), m.detach().cpu().numpy(), not_log=True, store=False, colormap=colormap
         )
+        return i1
+        
         i2 = (torch.from_numpy(i1).type(torch.float32) / 255).permute(2, 0, 1)
         # Plot Graph on Image
         return self.plot_traversability_graph(
@@ -197,7 +206,7 @@ class LearningVisualizer:
             graph,
             center,
             i2,
-            not_log=True,
+            not_log=True, store=False,
             colormap=colormap,
             colorize_invalid_centers=colorize_invalid_centers,
         )
@@ -220,6 +229,7 @@ class LearningVisualizer:
         assert (
             prediction.max() <= max_val and prediction.min() >= 0
         ), f"Pred out of Bounds: 0-1, Given: {prediction.min()}-{prediction.max()}"
+
         elipse_size = 5
         prediction = (prediction.type(torch.float32) * 255).type(torch.uint8)
         img = np.uint8((img.permute(1, 2, 0) * 255).cpu().numpy())
@@ -238,6 +248,7 @@ class LearningVisualizer:
         if colormap not in self._c_maps:
             self._c_maps[colormap] = np.array([np.uint8(np.array(c) * 255) for c in sns.color_palette(colormap, 256)])
         c_map = self._c_maps[colormap]
+
 
         for i in range(adjacency_list.shape[1]):
             a, b = adjacency_list[0, i], adjacency_list[1, i]
@@ -313,7 +324,7 @@ class LearningVisualizer:
 
     @image_functionality
     def plot_detectron_cont(self, img, seg, alpha=0.3, max_val=1.0, colormap="RdYlBu", **kwargs):
-        img = self.plot_image(img, not_log=True)
+        img = self.plot_image(img, not_log=True, store=False)
         assert (
             seg.max() <= max_val and seg.min() >= 0
         ), f"Seg out of Bounds: 0-{max_val}, Given: {seg.min()}-{seg.max()}"
