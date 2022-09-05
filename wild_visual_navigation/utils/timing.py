@@ -34,11 +34,14 @@ def accumulate_time(method):
             summary = args[0].time_summary
         else:
             args[0].time_summary = {}
+            args[0].n_summary = {}
 
         if method.__name__ in args[0].time_summary:
             args[0].time_summary[method.__name__] += st
+            args[0].n_summary[method.__name__] += 1
         else:
             args[0].time_summary[method.__name__] = st
+            args[0].n_summary[method.__name__] = 1
 
         return result
 

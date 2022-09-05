@@ -10,10 +10,13 @@ from wild_visual_navigation.traversability_estimator import (
     MaxElementsGraph,
 )
 from wild_visual_navigation.utils import WVNMode
-from wild_visual_navigation.learning.utils import compute_loss
-from wild_visual_navigation.utils import make_polygon_from_points, ConfidenceGenerator
+from wild_visual_navigation.learning.utils import TraversabilityLoss
+from wild_visual_navigation.utils import make_polygon_from_points
 from wild_visual_navigation.visu import LearningVisualizer
 from wild_visual_navigation.utils import KLTTracker, KLTTrackerOpenCV
+from wild_visual_navigation.learning.utils import load_yaml
+from wild_visual_navigation.utils import override_params
+from wild_visual_navigation import WVN_ROOT_DIR
 from pytorch_lightning import seed_everything
 from torch_geometric.data import Data, Batch
 from threading import Lock
@@ -41,6 +44,7 @@ class TraversabilityEstimator:
         mode: bool = False,
         vis_node_index: int = 10,
         running_store_folder=None,
+        exp_file="nan"
     ):
         self._device = device
         self._mode = mode
@@ -70,9 +74,6 @@ class TraversabilityEstimator:
         if optical_flow_estimator_type == "sparse":
             self._optical_flow_estimator = KLTTrackerOpenCV(device=device)
 
-        # Confidence Generator
-        self._confidence_generator = ConfidenceGenerator(device=self._device)
-
         # Mutex
         self._lock = Lock()
         self._pause_training = False
@@ -82,12 +83,20 @@ class TraversabilityEstimator:
 
         # Lightning module
         seed_everything(42)
-        self._exp_cfg = dataclasses.asdict(ExperimentParams())
+        params = ExperimentParams()
+        if exp_file != "nan":
+            exp_override = load_yaml(os.path.join(WVN_ROOT_DIR, "cfg/exp", exp_file))
+            params = override_params(params, exp_override)
+            
+        self._exp_cfg = dataclasses.asdict(params)
 
         self._model = get_model(self._exp_cfg["model"]).to(device)
         self._epoch = 0
         self._last_trained_model = self._model.to(device)
         self._model.train()
+        self._traversability_loss = TraversabilityLoss(**self._exp_cfg["loss"], model=self._model)
+        self._traversability_loss.to(device)
+
         self._optimizer = torch.optim.AdamW(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
         self._loss = torch.tensor([torch.inf])
         torch.set_grad_enabled(True)
@@ -140,8 +149,9 @@ class TraversabilityEstimator:
         """
         if self._mode != WVNMode.EXTRACT_LABELS:
             # Extract features
+            # Check do we need to add here the .clone() in
             edges, feat, seg, center = self._feature_extractor.extract(
-                img=node.image.clone()[None], return_centers=True
+                img=node.image[None], return_centers=True
             )
 
             # Set features in node
@@ -157,8 +167,8 @@ class TraversabilityEstimator:
                 data = Data(x=node.features, edge_index=node.feature_edges)
                 with torch.inference_mode():
                     node.prediction = self._last_trained_model(data)
-                    x = F.mse_loss(node.prediction[:, 1:], node.features, reduction="none").mean(dim=1)
-                    node.confidence = self._confidence_generator.update(x)
+                    reco_loss = F.mse_loss(node.prediction[:, 1:], node.features, reduction="none").mean(dim=1)
+                    node.confidence = self._traversability_loss._confidence_generator.inference_without_update(reco_loss)
 
     def update_visualization_node(self):
         # For the first nodes we choose the visualization node as the last node available
@@ -287,7 +297,9 @@ class TraversabilityEstimator:
         """
 
         # Compute image features
-        self.update_features(node)
+        from wild_visual_navigation.utils import Timer
+        with Timer("update_features(node)"):
+            self.update_features(node)
 
         previous_node = self._mission_graph.get_last_node()
         # Add image node
@@ -326,7 +338,7 @@ class TraversabilityEstimator:
 
                 # Get global node and update supervision signal
                 supervision_mask = torch.fmin(supervision_mask, mask.to(self._device))
-
+            
             # Finally overwrite the current mask
             node.supervision_mask = supervision_mask
             node.update_supervision_signal()
@@ -576,7 +588,7 @@ class TraversabilityEstimator:
 
             # forward pass
             res = self._model(graph)
-            self._loss, loss_aux = compute_loss(graph, res, self._exp_cfg["loss"], self._model, graph_aux)
+            self._loss, loss_aux = self._traversability_loss(graph, res, graph_aux)
 
             # Backprop
             self._optimizer.zero_grad()
