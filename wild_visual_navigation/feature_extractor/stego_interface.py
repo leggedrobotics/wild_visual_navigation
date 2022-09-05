@@ -151,7 +151,7 @@ def run_stego_interfacer():
 
     # Inference model
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    
+
     si = StegoInterface(device=device, input_size=448, input_interp="bilinear")
 
     p = join(WVN_ROOT_DIR, "assets/images/forest_clean.png")
@@ -162,7 +162,7 @@ def run_stego_interfacer():
 
     with Timer(f"Stego (input {si.input_size}, interp: {si.input_interpolation})"):
         linear_pred, cluster_pred = si.inference_crf(si.crop(img))
-    
+
     # Plot result as in colab
     fig, ax = plt.subplots(1, 3, figsize=(5 * 3, 5))
 
@@ -176,7 +176,14 @@ def run_stego_interfacer():
 
     # Store results to test directory
     img = get_img_from_fig(fig)
-    img.save(join(WVN_ROOT_DIR, "results", "test_stego_interfacer", f"forest_clean_stego_{si.input_size}_{si.input_interpolation}.png"))
+    img.save(
+        join(
+            WVN_ROOT_DIR,
+            "results",
+            "test_stego_interfacer",
+            f"forest_clean_stego_{si.input_size}_{si.input_interpolation}.png",
+        )
+    )
 
 
 if __name__ == "__main__":

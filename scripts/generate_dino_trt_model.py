@@ -74,7 +74,7 @@ if __name__ == "__main__":
     # Test models
     print("\nTesting models ...")
     testing_input = di.transform(img).contiguous()
-    
+
     # Run one inference of DINO
     y_original = di.inference(testing_input)
 
