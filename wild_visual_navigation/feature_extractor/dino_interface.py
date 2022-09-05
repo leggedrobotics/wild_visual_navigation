@@ -32,8 +32,8 @@ class DinoInterface:
         # Transformation for testing
         self.transform = T.Compose(
             [
-                T.Resize(448, T.InterpolationMode.NEAREST),
-                T.CenterCrop(448),
+                T.Resize(224, T.InterpolationMode.NEAREST),
+                T.CenterCrop(224),
                 T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
             ]
         )

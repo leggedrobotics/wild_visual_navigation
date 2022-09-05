@@ -48,7 +48,7 @@ def test_dino_interfacer():
 
     with Timer("TensorRT Inference: "):
         im = img + torch.rand(img.shape, device=img.device) / 100
-        y = di_trt.inference(di.transform(im))
+        y = di_trt.inference(di.transform(im).contiguous())
 
     #####################################################################################
     # Conversion using the torch_tensorrt library: https://github.com/pytorch/TensorRT
