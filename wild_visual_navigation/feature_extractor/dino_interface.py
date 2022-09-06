@@ -9,7 +9,7 @@ from stego.src.train_segmentation import DinoFeaturizer
 
 
 class DinoInterface:
-    def __init__(self, device: str):
+    def __init__(self, device: str, input_size: int = 448, input_interp: str = "bilinear"):
         self.dim = 90
         self.cfg = DictConfig(
             {
@@ -22,19 +22,36 @@ class DinoInterface:
             }
         )
 
+        # Pretrained weights
         if self.cfg.pretrained_weights is None:
             self.cfg.pretrained_weights = self.download_pretrained_model(self.cfg)
 
+        # Initialize DINO
         self.model = DinoFeaturizer(self.dim, self.cfg)
         self.model.to(device)
         self.device = device
+        self._input_size = input_size
+        self._input_interp = input_interp
+
+        # Interpolation type
+        if self._input_interp == "bilinear":
+            interp = T.InterpolationMode.BILINEAR
+        elif self._input_interp == "nearest":
+            interp = T.InterpolationMode.NEAREST
 
         # Transformation for testing
         self.transform = T.Compose(
             [
-                T.Resize(224, T.InterpolationMode.NEAREST),
-                T.CenterCrop(224),
+                T.Resize(self._input_size, interp),
+                T.CenterCrop(self._input_size),
                 T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+            ]
+        )
+
+        self.crop = T.Compose(
+            [
+                T.Resize(self._input_size, interp),
+                T.CenterCrop(self._input_size),
             ]
         )
 
@@ -111,11 +128,19 @@ class DinoInterface:
 
         return features
 
+    @property
+    def input_size(self):
+        return self._input_size
+
+    @property
+    def input_interpolation(self):
+        return self._input_interp
+
 
 def run_dino_interfacer():
     """Performance inference using stego and stores result as an image."""
 
-    from wild_visual_navigation.utils import get_img_from_fig
+    from wild_visual_navigation.utils import get_img_from_fig, Timer
     import matplotlib.pyplot as plt
     from stego.src import remove_axes
     import cv2
@@ -125,7 +150,7 @@ def run_dino_interfacer():
 
     # Inference model
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    di = DinoInterface(device=device)
+    di = DinoInterface(device=device, input_size=448, input_interp="bilinear")
     p = join(WVN_ROOT_DIR, "assets/images/forest_clean.png")
     np_img = cv2.imread(p)
     img = torch.from_numpy(cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB)).to(device)
@@ -133,7 +158,8 @@ def run_dino_interfacer():
     img = (img.type(torch.float32) / 255)[None]
 
     # Inference with DINO
-    feat_dino = di.inference(di.transform(img), interpolate=False)
+    with Timer(f"Stego (input {di.input_size}, interp: {di.input_interpolation})"):
+        feat_dino = di.inference(di.transform(img), interpolate=False)
 
     # Fix size of DINO features to match input image's size
     B, D, H, W = img.shape
@@ -163,7 +189,14 @@ def run_dino_interfacer():
 
     # Store results to test directory
     img = get_img_from_fig(fig)
-    img.save(join(WVN_ROOT_DIR, "results", "test_dino_interfacer", "forest_clean_dino.png"))
+    img.save(
+        join(
+            WVN_ROOT_DIR,
+            "results",
+            "test_dino_interfacer",
+            f"forest_clean_dino_{di.input_size}_{di.input_interpolation}.png",
+        )
+    )
 
 
 if __name__ == "__main__":
