@@ -25,6 +25,7 @@ import tf
 import torch
 import numpy as np
 from typing import Optional
+import traceback
 
 torch.cuda.empty_cache()
 
@@ -50,7 +51,7 @@ class WvnRosInterface:
             optical_flow_estimator_type=self.optical_flow_estimator_type,
             mode=self.mode,
             running_store_folder=self.running_store_folder,
-            exp_file=self.exp_file
+            exp_file=self.exp_file,
         )
 
         # Initialize traversability generator to process velocity commands
@@ -126,8 +127,7 @@ class WvnRosInterface:
         self.network_input_image_width = rospy.get_param("~network_input_image_width", 448)
         self.segmentation_type = rospy.get_param("~segmentation_type", "slic")
         self.feature_type = rospy.get_param("~feature_type", "dino")
-        
-        
+
         # Supervision Generator
         self.untraversable_thr = rospy.get_param("~untraversable_thr", 0)
 
@@ -416,8 +416,9 @@ class WvnRosInterface:
                 # Visualizations (45ms)
                 self.visualize_proprioception()
         except Exception as e:
+            traceback.print_exc()
             print("error state callback", e)
-            
+
     @accumulate_time
     def image_callback(self, image_msg: Image, info_msg: CameraInfo):
         """Main callback to process incoming images
@@ -426,7 +427,7 @@ class WvnRosInterface:
             image_msg (sensor_msgs/Image): Incoming image
             info_msg (sensor_msgs/CameraInfo): Camera info message associated to the image
         """
-        
+
         print("Image callback")
         try:
             with Timer("image_callback_1"):
@@ -467,6 +468,7 @@ class WvnRosInterface:
                     pose_cam_in_base=pose_cam_in_base,
                     image=torch_image,
                     image_projector=image_projector,
+                    correspondence=torch.zeros((1,)) if self.optical_flow_estimator_type != "sparse" else None,
                 )
                 with Timer("add_node_image_callback_1"):
                     # Add node to graph
@@ -474,13 +476,20 @@ class WvnRosInterface:
             with Timer("image_callback_2"):
                 if self.mode != WVNMode.EXTRACT_LABELS:
                     # Update prediction for current image
-                    self.traversability_estimator.update_prediction(mission_node)
+                    visu_node = self.traversability_estimator._mission_graph.get_nodes_within_radius_range(
+                        mission_node, 3, 5, metric="pose"
+                    )
+                    if len(visu_node) > 0:
+                        visu_node = visu_node[-1]
+                        self.traversability_estimator.update_prediction(mission_node)
+                        self.traversability_estimator.update_prediction(visu_node)
 
-                    self.publish_predictions(mission_node, image_msg, info_msg, image_projector.scaled_camera_matrix)
+                        self.publish_predictions(visu_node, image_msg, info_msg, image_projector.scaled_camera_matrix)
 
-                    if self.mode != WVNMode.ONLINE:
-                        self.visualize_mission(mission_node)
-
+                        if self.mode != WVNMode.ONLINE:
+                            self.visualize_mission(visu_node)
+                        else:
+                            self.visualize_mission(visu_node, fast=True)
                 # Add node to graph
                 if added_new_node:
                     self.traversability_estimator.update_visualization_node()
@@ -488,7 +497,9 @@ class WvnRosInterface:
                 if not self.not_time:
                     print(self)
         except Exception as e:
+            traceback.print_exc()
             print("error image callback", e)
+
     @accumulate_time
     def publish_predictions(
         self, mission_node: MissionNode, image_msg: Image, info_msg: CameraInfo, scaled_camera_matrix: torch.Tensor
@@ -660,9 +671,10 @@ class WvnRosInterface:
             # Publish predictions
             if mission_node is not None and self.run_online_learning:
                 with Timer("plot_mission_node_prediction"):
-                    np_prediction_image, np_uncertainty_image = self.traversability_estimator.plot_mission_node_prediction(
-                        mission_node
-                    )
+                    (
+                        np_prediction_image,
+                        np_uncertainty_image,
+                    ) = self.traversability_estimator.plot_mission_node_prediction(mission_node)
                 self.pub_image_prediction_input.publish(rc.torch_to_ros_image(mission_node.image))
                 self.pub_image_prediction.publish(rc.numpy_to_ros_image(np_prediction_image))
                 self.pub_image_prediction_uncertainty.publish(rc.numpy_to_ros_image(np_uncertainty_image))

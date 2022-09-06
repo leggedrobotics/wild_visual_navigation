@@ -163,7 +163,7 @@ class ImageProjector:
         W = self.camera.width.item()
 
         # Create output mask
-        masks = torch.zeros((B, C, H, W), dtype=torch.float32)
+        masks = torch.zeros((B, C, H, W), dtype=torch.float32, device=points.device)
         image_overlay = image
 
         # Project points
@@ -173,14 +173,15 @@ class ImageProjector:
 
         # Get convex hull
         if valid_points.sum() > 3:
+
             hull = ConvexHull(np_projected_points, qhull_options="QJ")
 
             # Get subset of points that are part of the convex hull
-            indices = torch.LongTensor(hull.vertices)
+            indices = torch.from_numpy(hull.vertices).to(projected_points.device).type(torch.long)
             projected_hull = projected_points[..., indices, :].to(torch.int32)
 
             # Fill the mask
-            masks = draw_convex_polygon(masks, projected_hull.to(masks.device), colors.to(masks.device))
+            masks = draw_convex_polygon(masks, projected_hull, colors)
 
             # Draw on image (if applies)
             if image is not None:

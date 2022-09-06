@@ -44,7 +44,7 @@ class TraversabilityEstimator:
         mode: bool = False,
         vis_node_index: int = 10,
         running_store_folder=None,
-        exp_file="nan"
+        exp_file="nan",
     ):
         self._device = device
         self._mode = mode
@@ -56,7 +56,10 @@ class TraversabilityEstimator:
         self._proprio_graph = DistanceWindowGraph(max_distance=max_distance, edge_distance=proprio_distance_thr)
 
         # Experience graph
-        self._mission_graph = MaxElementsGraph(edge_distance=image_distance_thr, max_elements=200)
+        if mode == WVNMode.EXTRACT_LABELS:
+            self._mission_graph = MaxElementsGraph(edge_distance=image_distance_thr, max_elements=200)
+        else:
+            self._mission_graph = BaseGraph(edge_distance=image_distance_thr)
 
         # Visualization node
         self._vis_mission_node = None
@@ -87,7 +90,7 @@ class TraversabilityEstimator:
         if exp_file != "nan":
             exp_override = load_yaml(os.path.join(WVN_ROOT_DIR, "cfg/exp", exp_file))
             params = override_params(params, exp_override)
-            
+
         self._exp_cfg = dataclasses.asdict(params)
 
         self._model = get_model(self._exp_cfg["model"]).to(device)
@@ -150,9 +153,7 @@ class TraversabilityEstimator:
         if self._mode != WVNMode.EXTRACT_LABELS:
             # Extract features
             # Check do we need to add here the .clone() in
-            edges, feat, seg, center = self._feature_extractor.extract(
-                img=node.image[None], return_centers=True
-            )
+            edges, feat, seg, center = self._feature_extractor.extract(img=node.image[None], return_centers=True)
 
             # Set features in node
             node.feature_type = self._feature_extractor.feature_type
@@ -168,7 +169,9 @@ class TraversabilityEstimator:
                 with torch.inference_mode():
                     node.prediction = self._last_trained_model(data)
                     reco_loss = F.mse_loss(node.prediction[:, 1:], node.features, reduction="none").mean(dim=1)
-                    node.confidence = self._traversability_loss._confidence_generator.inference_without_update(reco_loss)
+                    node.confidence = self._traversability_loss._confidence_generator.inference_without_update(
+                        reco_loss
+                    )
 
     def update_visualization_node(self):
         # For the first nodes we choose the visualization node as the last node available
@@ -298,6 +301,7 @@ class TraversabilityEstimator:
 
         # Compute image features
         from wild_visual_navigation.utils import Timer
+
         with Timer("update_features(node)"):
             self.update_features(node)
 
@@ -329,16 +333,17 @@ class TraversabilityEstimator:
                 footprint = pnode.make_footprint_with_node(last_pnode)
 
                 # Project mask
-                mask, _, _, _ = node.project_footprint(footprint)
+                color = torch.ones((3,), device=self._device)
+                mask, _, _, _ = node.project_footprint(footprint, color=color)
                 if mask is None:
                     continue
 
                 # Update mask with traversability
-                mask = mask[0] * pnode.traversability.cpu()
+                mask = mask[0] * pnode.traversability
 
                 # Get global node and update supervision signal
-                supervision_mask = torch.fmin(supervision_mask, mask.to(self._device))
-            
+                supervision_mask = torch.fmin(supervision_mask, mask)
+
             # Finally overwrite the current mask
             node.supervision_mask = supervision_mask
             node.update_supervision_signal()
@@ -350,6 +355,7 @@ class TraversabilityEstimator:
         else:
             return False
 
+    @torch.no_grad()
     def add_proprio_node(self, pnode: ProprioceptionNode):
         """Adds a node to the local graph to store proprioception
 
@@ -388,24 +394,30 @@ class TraversabilityEstimator:
                 last_mission_node, 0, self._proprio_graph.max_distance
             )
 
+            color = torch.ones((3,), device=self._device)
             # Project footprint onto all the image nodes takes a lot of time
             for mnode in mission_nodes:
-                mask, _, _, _ = mnode.project_footprint(footprint)  # 2ms
-                if (not hasattr(mnode, "supervision_mask")) or (mask is None) or (mnode.supervision_mask is None):
-                    continue
-                # Update mask with traversability
-                mask = mask[0] * pnode.traversability.cpu()
+                with Timer(f"mnode inner loop, length {len(mission_nodes)}"):
+                    mask, _, _, _ = mnode.project_footprint(footprint, color=color)  # 2ms
 
-                # Get global node and update supervision signal
-                mnode.supervision_mask = torch.fmin(mnode.supervision_mask, mask.to(self._device))
-                mnode.update_supervision_signal()
+                    if (not hasattr(mnode, "supervision_mask")) or (mask is None) or (mnode.supervision_mask is None):
+                        continue
 
-                if self._mode == WVNMode.EXTRACT_LABELS:
-                    p = os.path.join(
-                        self._running_store_folder, "supervision_mask", str(mnode.timestamp).replace(".", "_") + ".pt"
-                    )
-                    store = torch.nan_to_num(mnode.supervision_mask.nanmean(axis=0)) != 0
-                    torch.save(store, p)
+                    # Update mask with traversability
+                    mask = mask[0] * pnode.traversability
+
+                    # Get global node and update supervision signal
+                    mnode.supervision_mask = torch.fmin(mnode.supervision_mask, mask)
+                    mnode.update_supervision_signal()
+
+                    if self._mode == WVNMode.EXTRACT_LABELS:
+                        p = os.path.join(
+                            self._running_store_folder,
+                            "supervision_mask",
+                            str(mnode.timestamp).replace(".", "_") + ".pt",
+                        )
+                        store = torch.nan_to_num(mnode.supervision_mask.nanmean(axis=0)) != 0
+                        torch.save(store, p)
 
             return True
 

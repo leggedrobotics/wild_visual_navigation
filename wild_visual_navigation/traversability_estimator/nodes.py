@@ -114,6 +114,7 @@ class MissionNode(BaseNode):
         pose_cam_in_world: torch.tensor = None,
         image: torch.tensor = None,
         image_projector: ImageProjector = None,
+        correspondence=None,
     ):
         super().__init__(timestamp=timestamp, pose_base_in_world=pose_base_in_world)
         # Initialize members
@@ -134,7 +135,7 @@ class MissionNode(BaseNode):
         self._supervision_mask = None
         self._supervision_signal = None
         self._supervision_signal_valid = None
-        self._correspondence = None
+        self._correspondence = correspondence
         self._confidence = None
 
     def clear_debug_data(self):
@@ -355,19 +356,24 @@ class MissionNode(BaseNode):
 
         # If we have features, update supervision signal
         labels_per_segment = []
-        for s in range(self._feature_segments.max() + 1):
-            # Get a mask indices for the segment
-            m = self.feature_segments == s
-            # Add the higehst number per segment
-            # labels_per_segment.append(signal[m].max())
-            labels_per_segment.append(signal[m].nanmean(axis=0))
+        nr_segments = self._feature_segments.max() + 1
+        torch.arange(0, nr_segments)[None, None]
 
-        # Prepare supervision signal
-        torch_labels = torch.stack(labels_per_segment)
-        # if torch_labels.sum() > 0:
-        self._supervision_signal = torch.nan_to_num(torch_labels, nan=0)
-        # Binary mask
-        self._supervision_signal_valid = torch_labels > 0
+        multichannel_index_mask = torch.arange(0, nr_segments, device=self._feature_segments.device)[None, None].repeat(
+            signal.shape[0], signal.shape[1], 1
+        )
+        multichannel_segments = self._feature_segments[:, :, None].repeat(1, 1, nr_segments)
+        multichannel_segments_mask = multichannel_index_mask == multichannel_segments
+
+        counting_elements = (
+            multichannel_segments_mask * ~torch.isnan(signal[:, :, None].repeat(1, 1, nr_segments))
+        ).sum(dim=[0, 1])
+        signal_sum = (signal.nan_to_num(0)[:, :, None].repeat(1, 1, nr_segments) * multichannel_segments_mask).sum(
+            dim=[0, 1]
+        )
+        signal_mean = signal_sum / counting_elements
+        self._supervision_signal = torch.nan_to_num(signal_mean, nan=0)
+        self._supervision_signal_valid = self._supervision_signal > 0
 
 
 class ProprioceptionNode(BaseNode):
