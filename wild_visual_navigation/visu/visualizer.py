@@ -118,7 +118,7 @@ class LearningVisualizer:
         conf_pred = get_confidence(reco_pred, node._features)
 
         from wild_visual_navigation.utils import Timer
-        
+
         with Timer("on seg"):
             trav_img = self.plot_traversability_graph_on_seg(
                 trav_pred,
@@ -129,9 +129,9 @@ class LearningVisualizer:
                 colormap="RdYlBu",
                 colorize_invalid_centers=True,
                 not_log=True,
-                store=False
+                store=False,
             )
-        
+
             conf_img = self.plot_traversability_graph_on_seg(
                 conf_pred,
                 node.feature_segments,
@@ -140,8 +140,8 @@ class LearningVisualizer:
                 node.image,
                 colormap="RdYlBu",
                 colorize_invalid_centers=True,
-                not_log= True,
-                store=False
+                not_log=True,
+                store=False,
             )
         return trav_img, conf_img
 
@@ -197,8 +197,7 @@ class LearningVisualizer:
         i1 = self.plot_detectron_cont(
             img.detach().cpu().numpy(), m.detach().cpu().numpy(), not_log=True, store=False, colormap=colormap
         )
-        return i1
-        
+
         i2 = (torch.from_numpy(i1).type(torch.float32) / 255).permute(2, 0, 1)
         # Plot Graph on Image
         return self.plot_traversability_graph(
@@ -206,7 +205,8 @@ class LearningVisualizer:
             graph,
             center,
             i2,
-            not_log=True, store=False,
+            not_log=True,
+            store=False,
             colormap=colormap,
             colorize_invalid_centers=colorize_invalid_centers,
         )
@@ -248,7 +248,6 @@ class LearningVisualizer:
         if colormap not in self._c_maps:
             self._c_maps[colormap] = np.array([np.uint8(np.array(c) * 255) for c in sns.color_palette(colormap, 256)])
         c_map = self._c_maps[colormap]
-
 
         for i in range(adjacency_list.shape[1]):
             a, b = adjacency_list[0, i], adjacency_list[1, i]

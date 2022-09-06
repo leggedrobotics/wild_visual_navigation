@@ -48,6 +48,9 @@ class ConfidenceGenerator(torch.nn.Module):
         return confidence.type(torch.float32)
 
     def inference_without_update(self, x: torch.tensor):
+        if x.device != self.mean.device:
+            return torch.zeros_like(x)
+
         uncertainty = (
             (x - self.mean).clip(min=-(self.std * self.std_factor), max=(self.std * self.std_factor))
             + self.std * self.std_factor
