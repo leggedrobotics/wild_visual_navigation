@@ -69,7 +69,9 @@ class TraversabilityEstimator:
         self._feature_type = feature_type
 
         self._feature_extractor = FeatureExtractor(
-            device, segmentation_type=self._segmentation_type, feature_type=self._feature_type
+            device,
+            segmentation_type=self._segmentation_type,
+            feature_type=self._feature_type,
         )
         # Optical flow
         self._optical_flow_estimator_type = optical_flow_estimator_type

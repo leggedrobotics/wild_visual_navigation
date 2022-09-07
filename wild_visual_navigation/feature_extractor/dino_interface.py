@@ -9,13 +9,13 @@ from stego.src.train_segmentation import DinoFeaturizer
 
 
 class DinoInterface:
-    def __init__(self, device: str):
+    def __init__(self, device: str, model_type: str = "vit_small"):
         self.dim = 90
         self.cfg = DictConfig(
             {
                 "dino_patch_size": 8,
                 "dino_feat_type": "feat",
-                "model_type": "vit_small",  # vit_small
+                "model_type": model_type,
                 "projection_type": "nonlinear",
                 "pretrained_weights": None,
                 "dropout": True,
