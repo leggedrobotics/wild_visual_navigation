@@ -1,4 +1,5 @@
 from wild_visual_navigation import WVN_ROOT_DIR
+from wild_visual_navigation.utils import Timer
 import os
 from os.path import join
 import torch
@@ -58,15 +59,15 @@ class ImageProjector:
         # Fill values
         sK = K.clone()
         if new_w is None or new_w == new_h:
-            sK[-1, 0, 0] = K[-1, 1, 1] * sy
-            sK[-1, 0, 2] = K[-1, 1, 2] * sy
-            sK[-1, 1, 1] = K[-1, 1, 1] * sy
-            sK[-1, 1, 2] = K[-1, 1, 2] * sy
+            sK[:, 0, 0] = K[:, 1, 1] * sy
+            sK[:, 0, 2] = K[:, 1, 2] * sy
+            sK[:, 1, 1] = K[:, 1, 1] * sy
+            sK[:, 1, 2] = K[:, 1, 2] * sy
         else:
-            sK[-1, 0, 0] = K[-1, 0, 0] * sx
-            sK[-1, 0, 2] = K[-1, 0, 2] * sx
-            sK[-1, 1, 1] = K[-1, 1, 1] * sy
-            sK[-1, 1, 2] = K[-1, 1, 2] * sy
+            sK[:, 0, 0] = K[:, 0, 0] * sx
+            sK[:, 0, 2] = K[:, 0, 2] * sx
+            sK[:, 1, 1] = K[:, 1, 1] * sy
+            sK[:, 1, 2] = K[:, 1, 2] * sy
 
         # Initialize camera with scaled parameters
         sh = torch.IntTensor([sh]).to(device)
@@ -168,26 +169,17 @@ class ImageProjector:
 
         # Project points
         projected_points, valid_points = self.project(pose_camera_in_world, points)
-        projected_points = projected_points[valid_points].reshape(B, -1, 2)
-        np_projected_points = projected_points.squeeze(0).cpu().numpy()
 
-        # Get convex hull
-        if valid_points.sum() > 3:
+        # Fill the mask
+        # masks = draw_convex_polygon(masks, projected_hull, colors)
+        masks = draw_convex_polygon(masks, projected_points, colors)
 
-            hull = ConvexHull(np_projected_points, qhull_options="QJ")
-
-            # Get subset of points that are part of the convex hull
-            indices = torch.from_numpy(hull.vertices).to(projected_points.device).type(torch.long)
-            projected_hull = projected_points[..., indices, :].to(torch.int32)
-
-            # Fill the mask
-            masks = draw_convex_polygon(masks, projected_hull, colors)
-
-            # Draw on image (if applies)
-            if image is not None:
-                if len(image.shape) != 4:
-                    image = image[None]
-                image_overlay = draw_convex_polygon(image, projected_hull.to(image.device), colors.to(image.device))
+        # Draw on image (if applies)
+        if image is not None:
+            if len(image.shape) != 4:
+                image = image[None]
+            # image_overlay = draw_convex_polygon(image, projected_hull.to(image.device), colors.to(image.device))
+            image_overlay = draw_convex_polygon(image, projected_points, colors)
 
         # Return torch masks
         masks[masks == 0.0] = torch.nan
@@ -201,7 +193,7 @@ def run_image_projector():
     """Projects 3D points to example images and returns an image with the projection"""
 
     from wild_visual_navigation.visu import get_img_from_fig
-    from wild_visual_navigation.utils import make_plane
+    from wild_visual_navigation.utils import make_plane, make_box, make_dense_plane, Timer
     from PIL import Image
     import matplotlib.pyplot as plt
     import torch
@@ -214,17 +206,23 @@ def run_image_projector():
     # Create test directory
     os.makedirs(join(WVN_ROOT_DIR, "results", "test_image_projector"), exist_ok=True)
 
+    # Define number of cameras (batch)
+    B = 10
+
     # Prepare single pinhole model
     # Camera is created 1.5m backward, and 1m upwards, 0deg towards the origin
     # Intrinsics
     K = torch.FloatTensor([[720, 0, 720, 0], [0, 720, 540, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
-    K = K.unsqueeze(0)
+    K = K.expand(B, 4, 4)
+
     # Extrisics
-    rho = torch.FloatTensor([-1.5, 0, 1])  # Translation vector (x, y, z)
-    phi = torch.FloatTensor([-2 * torch.pi / 4, 0.0, -torch.pi / 2])  # roll-pitch-yaw
-    R_WC = SO3.from_rpy(phi)  # Rotation matrix from roll-pitch-yaw
-    pose_camera_in_world = SE3(R_WC, rho).as_matrix()  # Pose matrix of camera in world frame
-    pose_camera_in_world = pose_camera_in_world.unsqueeze(0)
+    pose_camera_in_world = torch.eye(4).repeat(B, 1, 1)
+
+    for i in range(B):
+        rho = torch.FloatTensor([-1.5 - i/10.0, 0, 1])  # Translation vector (x, y, z)
+        phi = torch.FloatTensor([-2 * torch.pi / 4, 0.0, -torch.pi / 2])  # roll-pitch-yaw
+        R_WC = SO3.from_rpy(phi)  # Rotation matrix from roll-pitch-yaw
+        pose_camera_in_world[i] = SE3(R_WC, rho).as_matrix()  # Pose matrix of camera in world frame
     # Image size
     H = 1080
     W = 1440
@@ -237,38 +235,44 @@ def run_image_projector():
 
     # Convert to torch
     k_img = to_tensor(pil_img)
-    k_img = k_img.unsqueeze(0)
+    k_img = k_img.expand(B, 3, H, W)
     k_img = im.resize_image(k_img)
 
     # Create 3D points around origin
-    X = make_plane(x=0.8, y=0.5, pose=torch.eye(4)).unsqueeze(0)
-    colors = torch.tensor([0, 1, 0]).expand(1, 3)
+    # X = make_plane(x=0.8, y=0.5, pose=torch.eye(4))
+    with Timer("make_plane"):
+        X = make_dense_plane(x=0.8, y=0.5, pose=torch.eye(4), grid_size=5)
+    N, D = X.shape
+    X = X.expand(B, N, D)
+    colors = torch.tensor([0, 1, 0]).expand(B, 3)
 
     # Project points to image
-    k_mask, k_img_overlay, k_points, k_valid = im.project_and_render(pose_camera_in_world, X, colors, k_img)
+    with Timer("project"):
+        k_mask, k_img_overlay, k_points, k_valid = im.project_and_render(pose_camera_in_world, X, colors, k_img)
 
     # Plot points independently
-    k_points_overlay = k_img.clone()
-    for p in k_points[0]:
-        idx = torch.round(p).to(torch.int32)
-        for y in range(-3, 3, 1):
-            for x in range(-3, 3, 1):
-                try:
-                    k_points_overlay[0][:, idx[1].item() + y, idx[0].item() + x] = torch.tensor([0, 255, 0])
-                except Exception as e:
-                    continue
+    fig, ax = plt.subplots(B, 4, figsize=(4 * 5, B * 5))
 
-    # Plot result as in colab
-    fig, ax = plt.subplots(1, 4, figsize=(5 * 4, 5))
+    for i in range(B):
+        k_points_overlay = k_img[i].clone()
+        for p in k_points[i]:
+            idx = torch.round(p).to(torch.int32)
+            for y in range(-3, 3, 1):
+                for x in range(-3, 3, 1):
+                    try:
+                        k_points_overlay[:, idx[1].item() + y, idx[0].item() + x] = torch.tensor([0, 255, 0])
+                    except Exception as e:
+                        continue
 
-    ax[0].imshow(tensor_to_image(k_img))
-    ax[0].set_title("Image")
-    ax[1].imshow(tensor_to_image(k_mask))
-    ax[1].set_title("Labels")
-    ax[2].imshow(tensor_to_image(k_img_overlay))
-    ax[2].set_title("Overlay")
-    ax[3].imshow(tensor_to_image(k_points_overlay))
-    ax[3].set_title("Overlay - dots")
+        
+        ax[i, 0].imshow(tensor_to_image(k_img[i]))
+        ax[i, 0].set_title("Image")
+        ax[i, 1].imshow(tensor_to_image(k_mask[i]))
+        ax[i, 1].set_title("Labels")
+        ax[i, 2].imshow(tensor_to_image(k_img_overlay[i]))
+        ax[i, 2].set_title("Overlay")
+        ax[i, 3].imshow(tensor_to_image(k_points_overlay))
+        ax[i, 3].set_title("Overlay - dots")
     remove_axes(ax)
     plt.tight_layout()
 
