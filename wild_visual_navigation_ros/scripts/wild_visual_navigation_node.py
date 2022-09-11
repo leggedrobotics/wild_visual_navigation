@@ -476,6 +476,9 @@ class WvnRosInterface:
             with Timer("image_callback_2"):
                 if self.mode != WVNMode.EXTRACT_LABELS:
                     # Update prediction for current image
+                    self.traversability_estimator.update_prediction(mission_node)
+                    self.publish_predictions(mission_node, image_msg, info_msg, image_projector.scaled_camera_matrix)
+
                     visu_node = self.traversability_estimator._mission_graph.get_nodes_within_radius_range(
                         mission_node, 3, 5, metric="pose"
                     )
@@ -484,7 +487,9 @@ class WvnRosInterface:
                         self.traversability_estimator.update_prediction(mission_node)
                         self.traversability_estimator.update_prediction(visu_node)
 
-                        self.publish_predictions(visu_node, image_msg, info_msg, image_projector.scaled_camera_matrix)
+                        self.publish_predictions(
+                            mission_node, image_msg, info_msg, image_projector.scaled_camera_matrix
+                        )
 
                         if self.mode != WVNMode.ONLINE:
                             self.visualize_mission(visu_node)

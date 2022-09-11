@@ -14,6 +14,8 @@ import matplotlib.pyplot as plt
 from wild_visual_navigation.visu import image_functionality
 from wild_visual_navigation.learning.utils import get_confidence
 from wild_visual_navigation.visu import get_img_from_fig
+from wild_visual_navigation.visu import paper_colors_rgb_u8, paper_colors_rgba_u8
+from wild_visual_navigation.visu import paper_colors_rgb_f, paper_colors_rgba_f
 
 __all__ = ["LearningVisualizer"]
 
@@ -87,14 +89,15 @@ class LearningVisualizer:
         assert len(y_tag) == l
 
         # not used
-        palette = sns.color_palette("RdYlBu", l)
-        palette = ["tab:blue", "tab:orange"]
+        palette = paper_colors_rgb_u8
         for j, (_x, _y, _y_lower, _y_upper, _y_tag) in enumerate(zip(x, y, y_lower, y_upper, y_tag)):
-            ax.plot(_x, _y, label=_y_tag)
-            if _y_lower != None:
-                ax.plot(_x, _y_lower, color=palette[j], alpha=0.1)
-                ax.plot(_x, _y_upper, color=palette[j], alpha=0.1)
-                ax.fill_between(_x, _y_lower, _y_upper, color=palette[j], alpha=0.2)
+            k = [k for k in paper_colors_rgb_f.keys()][j]
+
+            ax.plot(_x, _y, label=_y_tag, color=paper_colors_rgb_f[k])
+            if type(_y_lower) is not None:
+                ax.plot(_x, _y_lower, color=paper_colors_rgb_f[k + "_light"], alpha=0.1)
+                ax.plot(_x, _y_upper, color=paper_colors_rgb_f[k + "_light"], alpha=0.1)
+                ax.fill_between(_x, _y_lower, _y_upper, color=paper_colors_rgb_f[k + "_light"], alpha=0.2)
 
         ax.plot(np.linspace(0, 1, 100), np.linspace(0, 1, 100), linestyle="--", color="gray")
         ax.set_xlabel("False postive rate")
