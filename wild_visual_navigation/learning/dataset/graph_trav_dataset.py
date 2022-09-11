@@ -88,23 +88,37 @@ class GraphTravAbblationDataset(Dataset):
         mode: str = "train",
         feature_key: str = "slic_dino",
         env: str = "hilly",
+        use_corrospondences: bool = True,
     ):
         super().__init__()
 
         ls = []
+        j = 0
+        self.perugia_root = perugia_root
+
         with open(os.path.join(perugia_root, "wvn_output/split", f"{env}_{mode}.txt"), "r") as f:
             while True:
                 line = f.readline()
+                if mode == "train" and j == 0:
+                    j += 1
+                    continue
+                j += 1
                 if not line:
                     break
                 ls.append(line.strip())
 
+                p = line.strip()
+                img_p = os.path.join(self.perugia_root, p)
+
+                if not os.path.exists(img_p):
+                    print("Not found path", img_p)
+
         self.mode = mode
         self.env = env
         self.paths = ls
-        self.perugia_root = perugia_root
         self.feature_key = feature_key
         self.crop = T.Compose([T.Resize(448, T.InterpolationMode.NEAREST), T.CenterCrop(448)])
+        self.use_corrospondences = use_corrospondences
 
     def len(self) -> int:
         return len(self.paths)
@@ -116,9 +130,9 @@ class GraphTravAbblationDataset(Dataset):
         seg_p = img_p.replace("image", f"features/{self.feature_key}/seg")
         center_p = img_p.replace("image", f"features/{self.feature_key}/center")
 
+        img = torch.load(img_p)
         graph = torch.load(graph_p)
         center = torch.load(center_p)
-        img = torch.load(img_p)
         seg = torch.load(seg_p)
         graph.img = img[None]
         graph.center = center
@@ -140,7 +154,7 @@ class GraphTravAbblationDataset(Dataset):
             graph.y_gt = torch.stack(y_gt).type(torch.float32)
             graph.label = label[None]
 
-        return graph, Data()
+        return graph, Data(x=graph.x_previous, edge_index=graph.edge_index_previous)
 
 
 def get_abblation_module(

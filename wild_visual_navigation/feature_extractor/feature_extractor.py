@@ -45,6 +45,7 @@ class FeatureExtractor:
 
         if self.segmentation_type == "slic":
             from fast_slic import Slic
+
             self.slic = Slic(
                 num_components=kwargs.get("slic_num_components", 100), compactness=kwargs.get("slic_compactness", 10)
             )
@@ -126,7 +127,7 @@ class FeatureExtractor:
         return edges, seg, centers
 
     def segment_grid(self, img, **kwargs):
-        cell_size = kwargs.get("cell_size", 16)
+        cell_size = kwargs.get("cell_size", 32)
         patch_size = (cell_size, cell_size)
 
         B, C, H, W = img.shape

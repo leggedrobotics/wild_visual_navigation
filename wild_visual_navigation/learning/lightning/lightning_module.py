@@ -11,6 +11,7 @@ from torch_geometric.data import Data
 from torchmetrics import ROC, AUROC
 from wild_visual_navigation.learning.utils import TraversabilityLoss
 import os
+import pickle
 
 
 class LightningTrav(pl.LightningModule):
@@ -49,13 +50,14 @@ class LightningTrav(pl.LightningModule):
     def training_step(self, batch: any, batch_idx: int) -> torch.Tensor:
         graph = batch[0]
         graph_aux = batch[1]
+        BS = graph.ptr.numel() - 1
 
         res = self._model(graph)
         loss, loss_aux = self._traversability_loss(graph, res, graph_aux)
 
         for k, v in loss_aux.items():
-            self.log(f"{self._mode}_{k}", v.item(), on_epoch=True, prog_bar=True)
-        self.log(f"{self._mode}_loss", loss.item(), on_epoch=True, prog_bar=True)
+            self.log(f"{self._mode}_{k}", v.item(), on_epoch=True, prog_bar=True, batch_size=BS)
+        self.log(f"{self._mode}_loss", loss.item(), on_epoch=True, prog_bar=True, batch_size=BS)
 
         self.visu(graph, res)
         return loss
@@ -137,6 +139,7 @@ class LightningTrav(pl.LightningModule):
 
     def validation_step(self, batch: any, batch_idx: int) -> torch.Tensor:
         graph = batch[0]
+        BS = graph.ptr.numel() - 1
         graph_aux = batch[1]
 
         res = self._model(graph)
@@ -147,9 +150,9 @@ class LightningTrav(pl.LightningModule):
         self._validation_auroc_proprioceptive.update(res[:, 0], (graph.y > 0).type(torch.long))
 
         for k, v in loss_aux.items():
-            self.log(f"{self._mode}_{k}", v.item(), on_epoch=True, prog_bar=True)
+            self.log(f"{self._mode}_{k}", v.item(), on_epoch=True, prog_bar=True, batch_size=BS)
 
-        self.log(f"{self._mode}_loss", loss.item(), on_epoch=True, prog_bar=True)
+        self.log(f"{self._mode}_loss", loss.item(), on_epoch=True, prog_bar=True, batch_size=BS)
 
         self.visu(graph, res)
         return loss
@@ -168,7 +171,7 @@ class LightningTrav(pl.LightningModule):
             inp = os.path.join(self._visualizer._p_visu, f"{self._mode}/graph_trav")
             out2 = os.path.join(self._visualizer._p_visu, f"{self._mode}/epoch_{self.current_epoch}_graph_trav.mp4")
             cmd = f"ffmpeg -framerate 2 -pattern_type glob -i '{inp}/{self.current_epoch}*_{self._mode}_GraphTrav.png' -c:v libx264 -pix_fmt yuv420p {out2}"
-        os.system(cmd)
+            os.system(cmd)
 
     # TESTING
     def on_test_epoch_start(self):
@@ -177,6 +180,7 @@ class LightningTrav(pl.LightningModule):
 
     def test_step(self, batch: any, batch_idx: int) -> torch.Tensor:
         graph = batch[0]
+        BS = graph.ptr.numel() - 1
         graph_aux = batch[1]
 
         res = self._model(graph)
@@ -188,8 +192,8 @@ class LightningTrav(pl.LightningModule):
         self._test_auroc_proprioceptive.update(preds=res[:, 0], target=(graph.y > 0).type(torch.long))
         self._test_auroc_gt.update(preds=res[:, 0], target=(graph.y_gt > 0).type(torch.long))
         for k, v in loss_aux.items():
-            self.log(f"{self._mode}_{k}", v.item(), on_epoch=True, prog_bar=True)
-        self.log(f"{self._mode}_loss", loss.item(), on_epoch=True, prog_bar=True)
+            self.log(f"{self._mode}_{k}", v.item(), on_epoch=True, prog_bar=True, batch_size=BS)
+        self.log(f"{self._mode}_loss", loss.item(), on_epoch=True, prog_bar=True, batch_size=BS)
 
         self.visu(graph, res)
 
@@ -213,21 +217,22 @@ class LightningTrav(pl.LightningModule):
         )
         self.log(f"{self._mode}_auroc_gt", auroc_gt, on_epoch=True, prog_bar=False)
 
-        inp = os.path.join(self._visualizer._p_visu, f"{self._mode}/graph_trav")
-        out = os.path.join(self._visualizer._p_visu, f"{self._mode}/graph_trav.mp4")
-        cmd = f"ffmpeg -framerate 2 -pattern_type glob -i '{inp}/*_test_GraphTrav.png' -c:v libx264 -pix_fmt yuv420p {out}"
-        os.system(cmd)
+        if self._exp["visu"]["log_test_video"]:
+            inp = os.path.join(self._visualizer._p_visu, f"{self._mode}/graph_trav")
+            out = os.path.join(self._visualizer._p_visu, f"{self._mode}/graph_trav.mp4")
+            cmd = f"ffmpeg -framerate 2 -pattern_type glob -i '{inp}/*_test_GraphTrav.png' -c:v libx264 -pix_fmt yuv420p {out}"
+            os.system(cmd)
 
-        inp = os.path.join(self._visualizer._p_visu, f"{self._mode}/graph_conf")
-        out2 = os.path.join(self._visualizer._p_visu, f"{self._mode}/graph_conf.mp4")
-        cmd = f"ffmpeg -framerate 2 -pattern_type glob -i '{inp}/*_test_GraphConf.png' -c:v libx264 -pix_fmt yuv420p {out2}"
-        os.system(cmd)
+            inp = os.path.join(self._visualizer._p_visu, f"{self._mode}/graph_conf")
+            out2 = os.path.join(self._visualizer._p_visu, f"{self._mode}/graph_conf.mp4")
+            cmd = f"ffmpeg -framerate 2 -pattern_type glob -i '{inp}/*_test_GraphConf.png' -c:v libx264 -pix_fmt yuv420p {out2}"
+            os.system(cmd)
 
-        try:
-            self.logger.experiment["graph_trav"].upload(out)
-            self.logger.experiment["graph_conf"].upload(out)
-        except:
-            pass
+            try:
+                self.logger.experiment["graph_trav"].upload(out)
+                self.logger.experiment["graph_conf"].upload(out)
+            except:
+                pass
 
         detailed_test_results = {
             "test_roc_gt_fpr": fpr_gt.cpu().numpy(),
@@ -240,10 +245,10 @@ class LightningTrav(pl.LightningModule):
             "test_auroc_prop": auroc_pro,
         }
 
-        import pickle
-
         with open(os.path.join(self._exp["general"]["model_path"], "detailed_test_results.pkl"), "wb") as handle:
             pickle.dump(detailed_test_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+        return detailed_test_results
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
         return torch.optim.Adam(self._model.parameters(), lr=self._exp["optimizer"]["lr"])
