@@ -45,7 +45,7 @@ def make_superquadric(A, B, C, r, s, t, pose=torch.eye(4), grid_size=10):
     if len(pose.shape) == 2:
         pose = pose[None]
 
-    return transform_points(pose, points)[None]
+    return transform_points(pose, points)
 
 
 def make_box(length, width, height, pose=torch.eye(4), grid_size=11):
@@ -101,7 +101,7 @@ def make_plane(x=None, y=None, z=None, pose=torch.eye(4), grid_size=10):
     if len(pose.shape) == 2:
         pose = pose[None]
 
-    return transform_points(pose, finer_points[None])[None]
+    return transform_points(pose, finer_points[None])[0]
 
 def make_dense_plane(x=None, y=None, z=None, pose=torch.eye(4), grid_size=5):
     if x is None:
@@ -129,7 +129,7 @@ def make_dense_plane(x=None, y=None, z=None, pose=torch.eye(4), grid_size=5):
     if len(pose.shape) == 2:
         pose = pose[None]
 
-    return transform_points(pose, points[None]).squeeze(0)
+    return transform_points(pose, points[None])[0]
 
 
 def make_polygon_from_points(points: torch.tensor, grid_size=10):

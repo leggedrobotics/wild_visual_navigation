@@ -135,13 +135,6 @@ class ImageProjector:
         # Validity check (if points are out of the field of view)
         valid_points = self.check_validity(points_C, projected_points)
 
-        # # Clamp values
-        # N = self.camera.width.shape[0]
-        # zeros = self.camera.width * 0
-        # projected_points[..., 0] = torch.clamp(projected_points[..., 0], min=zeros, max=self.camera.width-1)
-        # projected_points[..., 1] = torch.clamp(projected_points[..., 1], min=zeros, max=self.camera.height-1)
-        # projected_points = projected_points.unique(dim=2)
-
         # Return projected points and validity
         return projected_points, valid_points
 
@@ -171,14 +164,12 @@ class ImageProjector:
         projected_points, valid_points = self.project(pose_camera_in_world, points)
 
         # Fill the mask
-        # masks = draw_convex_polygon(masks, projected_hull, colors)
         masks = draw_convex_polygon(masks, projected_points, colors)
 
         # Draw on image (if applies)
         if image is not None:
             if len(image.shape) != 4:
                 image = image[None]
-            # image_overlay = draw_convex_polygon(image, projected_hull.to(image.device), colors.to(image.device))
             image_overlay = draw_convex_polygon(image, projected_points, colors)
 
         # Return torch masks
@@ -193,7 +184,8 @@ def run_image_projector():
     """Projects 3D points to example images and returns an image with the projection"""
 
     from wild_visual_navigation.visu import get_img_from_fig
-    from wild_visual_navigation.utils import make_plane, make_box, make_dense_plane, Timer
+    from wild_visual_navigation.utils import Timer
+    from wild_visual_navigation.utils import make_plane, make_box, make_dense_plane, make_polygon_from_points
     from PIL import Image
     import matplotlib.pyplot as plt
     import torch
@@ -241,7 +233,10 @@ def run_image_projector():
     # Create 3D points around origin
     # X = make_plane(x=0.8, y=0.5, pose=torch.eye(4))
     with Timer("make_plane"):
-        X = make_dense_plane(x=0.8, y=0.5, pose=torch.eye(4), grid_size=5)
+        # X = make_dense_plane(x=0.8, y=0.5, pose=torch.eye(4), grid_size=5)
+        points = torch.FloatTensor([[1, 1, 0], [-1, 1, 0], [-1, -1, 0], [1, -1, 0]])
+        X = make_polygon_from_points(points)
+    
     N, D = X.shape
     X = X.expand(B, N, D)
     colors = torch.tensor([0, 1, 0]).expand(B, 3)

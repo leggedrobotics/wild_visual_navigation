@@ -1,4 +1,5 @@
 from wild_visual_navigation.feature_extractor import FeatureExtractor
+from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation.learning.model import get_model
 from wild_visual_navigation.cfg import ExperimentParams
 from wild_visual_navigation.utils import Timer
@@ -330,7 +331,7 @@ class TraversabilityEstimator:
             proprio_nodes = self._proprio_graph.get_nodes()
             for last_pnode, pnode in zip(proprio_nodes[:-1], proprio_nodes[1:]):
                 # Make footprint
-                footprint = pnode.make_footprint_with_node(last_pnode)
+                footprint = pnode.make_footprint_with_node(last_pnode)[None]
 
                 # Project mask
                 color = torch.ones((3,), device=self._device)
@@ -368,15 +369,14 @@ class TraversabilityEstimator:
 
         # Get last added proprio node
         last_pnode = self._proprio_graph.get_last_node()
-        suc = self._proprio_graph.add_node(pnode)
-        if not suc:
+        success = self._proprio_graph.add_node(pnode)
+        if not success:
             # Update traversability of latest node
             if last_pnode is not None:
                 last_pnode.update_traversability(pnode.traversability, pnode.traversability_var)
             return False
 
         else:
-
             # If the previous node doesn't exist or is invalid, we do nothing
             if last_pnode is None or not last_pnode.is_valid():
                 return False
@@ -386,38 +386,93 @@ class TraversabilityEstimator:
 
             # Get last mission node
             last_mission_node = self._mission_graph.get_last_node()
-
             if last_mission_node is None:
                 return False
+            if (not hasattr(last_mission_node, "supervision_mask")) or (last_mission_node.supervision_mask is None):
+                return False
 
+            # Get all mission nodes within a range
             mission_nodes = self._mission_graph.get_nodes_within_radius_range(
                 last_mission_node, 0, self._proprio_graph.max_distance
             )
 
+            if len(mission_nodes) < 1:
+                return False
+
+            # Set color
             color = torch.ones((3,), device=self._device)
-            # Project footprint onto all the image nodes takes a lot of time
-            for mnode in mission_nodes:
-                with Timer(f"mnode inner loop, length {len(mission_nodes)}"):
-                    mask, _, _, _ = mnode.project_footprint(footprint, color=color)  # 2ms
 
-                    if (not hasattr(mnode, "supervision_mask")) or (mask is None) or (mnode.supervision_mask is None):
-                        continue
+            # New implementation
+            with Timer("total projection time"):
+                # Prepare batches
+                with Timer(f"add_proprio_node - prepare batches"):
+                    B = len(mission_nodes)
+                    K = torch.eye(4, device=self._device).repeat(B, 1, 1)
+                    supervision_masks = torch.zeros(last_mission_node.supervision_mask.shape, device=self._device).repeat(B, 1, 1, 1)
+                    pose_camera_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
+                    H = last_mission_node.image_projector.camera.height
+                    W = last_mission_node.image_projector.camera.width
+                    footprints = footprint.repeat(B, 1, 1)
+                
+                # Fill data
+                with Timer(f"add_proprio_node - fill data, batch_size: {B}"):
+                    for i, mnode in enumerate(mission_nodes):
+                        K[i] = mnode.image_projector.camera.intrinsics
+                        pose_camera_in_world[i] = mnode.pose_cam_in_world
 
-                    # Update mask with traversability
-                    mask = mask[0] * pnode.traversability
+                        if (not hasattr(mnode, "supervision_mask")) or (mnode.supervision_mask is None):
+                            continue
+                        else:
+                            supervision_masks[i] = mnode.supervision_mask
+                
+                with Timer(f"add_proprio_node - batch project, batch_size: {B}"):
+                    im = ImageProjector(K, H, W)
+                    mask, _, _, _ = im.project_and_render(pose_camera_in_world, footprints, color)
 
-                    # Get global node and update supervision signal
-                    mnode.supervision_mask = torch.fmin(mnode.supervision_mask, mask)
-                    mnode.update_supervision_signal()
+                # Update traversability
+                with Timer(f"add_proprio_node - update trav, batch_size: {B}"):
+                    mask = mask * pnode.traversability
+                    supervision_masks = torch.fmin(supervision_masks, mask)
 
-                    if self._mode == WVNMode.EXTRACT_LABELS:
-                        p = os.path.join(
-                            self._running_store_folder,
-                            "supervision_mask",
-                            str(mnode.timestamp).replace(".", "_") + ".pt",
-                        )
-                        store = torch.nan_to_num(mnode.supervision_mask.nanmean(axis=0)) != 0
-                        torch.save(store, p)
+                # Update supervision mask per node
+                with Timer(f"add_proprio_node - update_nodes, batch_size: {B}"):
+                    for i, mnode in enumerate(mission_nodes):
+                        mnode.supervision_mask = supervision_masks[i]
+                        mnode.update_supervision_signal()
+
+                        if self._mode == WVNMode.EXTRACT_LABELS:
+                            p = os.path.join(
+                                self._running_store_folder,
+                                "supervision_mask",
+                                str(mnode.timestamp).replace(".", "_") + ".pt",
+                            )
+                            store = torch.nan_to_num(mnode.supervision_mask.nanmean(axis=0)) != 0
+                            torch.save(store, p)
+            
+            # # Project footprint onto all the image nodes takes a lot of time
+            # with Timer("total projection time"):
+            #     for mnode in mission_nodes:
+            #         with Timer(f"mnode inner loop, length {len(mission_nodes)}"):
+            #             mask, _, _, _ = mnode.project_footprint(footprint, color=color)  # 2ms
+
+            #             if (not hasattr(mnode, "supervision_mask")) or (mask is None) or (mnode.supervision_mask is None):
+            #                 continue
+
+            #             # Update mask with traversability
+            #             mask = mask[0] * pnode.traversability
+
+            #             # Get global node and update supervision signal
+            #             mnode.supervision_mask = torch.fmin(mnode.supervision_mask, mask)
+            #             mnode.update_supervision_signal()
+
+            #             if self._mode == WVNMode.EXTRACT_LABELS:
+            #                 p = os.path.join(
+            #                     self._running_store_folder,
+            #                     "supervision_mask",
+            #                     str(mnode.timestamp).replace(".", "_") + ".pt",
+            #                 )
+            #                 store = torch.nan_to_num(mnode.supervision_mask.nanmean(axis=0)) != 0
+            #                 torch.save(store, p)
 
             return True
 
@@ -435,10 +490,10 @@ class TraversabilityEstimator:
         return last_valid_node
 
     def get_mission_node_for_visualization(self):
-        # print(f"get_mission_node_for_visualization: {self._vis_mission_node}")
-        # if self._vis_mission_node is not None:
-        #     print(f"  has image {hasattr(self._vis_mission_node, 'image')}")
-        #     print(f"  has supervision_mask {hasattr(self._vis_mission_node, 'supervision_mask')}")
+        print(f"get_mission_node_for_visualization: {self._vis_mission_node}")
+        if self._vis_mission_node is not None:
+            print(f"  has image {hasattr(self._vis_mission_node, 'image')}")
+            print(f"  has supervision_mask {hasattr(self._vis_mission_node, 'supervision_mask')}")
         return self._vis_mission_node
 
     def save(self, mission_path: str, filename: str):
