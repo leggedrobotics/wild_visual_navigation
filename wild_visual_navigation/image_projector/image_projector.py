@@ -163,8 +163,12 @@ class ImageProjector:
         # Project points
         projected_points, valid_points = self.project(pose_camera_in_world, points)
 
+        # Mask invalid points
+        projected_points[~valid_points,:] = torch.nan
+
         # Fill the mask
         masks = draw_convex_polygon(masks, projected_points, colors)
+
 
         # Draw on image (if applies)
         if image is not None:

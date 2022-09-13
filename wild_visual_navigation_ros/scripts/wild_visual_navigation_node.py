@@ -120,7 +120,7 @@ class WvnRosInterface:
         self.robot_max_velocity = rospy.get_param("~robot_max_velocity", 0.8)
 
         # Traversability estimation params
-        self.traversability_radius = rospy.get_param("~traversability_radius", 5.0)
+        self.traversability_radius = rospy.get_param("~traversability_radius", 3.0)
         self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr", 0.2)
         self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.1)
         self.network_input_image_height = rospy.get_param("~network_input_image_height", 448)
@@ -143,9 +143,7 @@ class WvnRosInterface:
         # Data storage
         out_path = os.path.join(WVN_ROOT_DIR, "results")
         self.output_path = rospy.get_param("~output_path", out_path)
-        self.mission_name = rospy.get_param(
-            "~mission_name", "default_mission"
-        )  # Note: We may want to send this in the service call
+        self.mission_name = rospy.get_param("~mission_name", "default_mission")
 
         # Print timings
         self.print_image_callback_time = rospy.get_param("~print_image_callback_time", False)
