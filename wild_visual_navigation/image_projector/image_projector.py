@@ -74,6 +74,14 @@ class ImageProjector:
         sw = torch.IntTensor([sw]).to(device)
         self.camera = PinholeCamera(sK, E, sh, sw)
 
+        # Preallocate masks
+        B = self.camera.batch_size
+        C = 3  # RGB channel output
+        H = self.camera.height.item()
+        W = self.camera.width.item()
+        # Create output mask
+        self.masks = torch.zeros((B, C, H, W), dtype=torch.float32, device=device)
+
     @property
     def scaled_camera_matrix(self):
         return self.camera.intrinsics.clone()[:3, :3]
@@ -112,7 +120,7 @@ class ImageProjector:
         valid_ymax = points_2d[..., 1] <= self.camera.height
 
         # Return validity
-        return valid_z & valid_xmax & valid_xmin & valid_ymax & valid_ymin
+        return valid_z & valid_xmax & valid_xmin & valid_ymax & valid_ymin, valid_z
 
     def project(self, pose_camera_in_world: torch.tensor, points_W: torch.tensor):
         """Applies the pinhole projection model to a batch of points
@@ -133,10 +141,10 @@ class ImageProjector:
         projected_points = self.camera.project(points_C)
 
         # Validity check (if points are out of the field of view)
-        valid_points = self.check_validity(points_C, projected_points)
+        valid_points, valid_z = self.check_validity(points_C, projected_points)
 
         # Return projected points and validity
-        return projected_points, valid_points
+        return projected_points, valid_points, valid_z
 
     def project_and_render(
         self, pose_camera_in_world: torch.tensor, points: torch.tensor, colors: torch.tensor, image: torch.tensor = None
@@ -151,24 +159,24 @@ class ImageProjector:
             out_img (torch.tensor, dtype=torch.int64): Image with projected points
         """
 
+        # self.masks = self.masks * 0.0
         B = self.camera.batch_size
         C = 3  # RGB channel output
         H = self.camera.height.item()
         W = self.camera.width.item()
-
-        # Create output mask
-        masks = torch.zeros((B, C, H, W), dtype=torch.float32, device=points.device)
+        self.masks = torch.zeros((B, C, H, W), dtype=torch.float32, device=self.camera.camera_matrix.device)
         image_overlay = image
 
         # Project points
-        projected_points, valid_points = self.project(pose_camera_in_world, points)
+        projected_points, valid_points, valid_z = self.project(pose_camera_in_world, points)
 
         # Mask invalid points
-        projected_points[~valid_points,:] = torch.nan
+        # projected_points[~valid_points,:] = torch.nan
+        projected_points[~valid_z,:] = torch.nan
+        # projected_points[projected_points < 0.0] 
 
         # Fill the mask
-        masks = draw_convex_polygon(masks, projected_points, colors)
-
+        self.masks = draw_convex_polygon(self.masks, projected_points, colors)
 
         # Draw on image (if applies)
         if image is not None:
@@ -177,8 +185,9 @@ class ImageProjector:
             image_overlay = draw_convex_polygon(image, projected_points, colors)
 
         # Return torch masks
-        masks[masks == 0.0] = torch.nan
-        return masks, image_overlay, projected_points, valid_points
+        self.masks[self.masks == 0.0] = torch.nan
+
+        return self.masks, image_overlay, projected_points, valid_points
 
     def resize_image(self, image: torch.tensor):
         return self.image_crop(image)
@@ -215,8 +224,8 @@ def run_image_projector():
     pose_camera_in_world = torch.eye(4).repeat(B, 1, 1)
 
     for i in range(B):
-        rho = torch.FloatTensor([-1.5 - i/10.0, 0, 1])  # Translation vector (x, y, z)
-        phi = torch.FloatTensor([-2 * torch.pi / 4, 0.0, -torch.pi / 2])  # roll-pitch-yaw
+        rho = torch.FloatTensor([-1.2 - i/10.0, 0, 1])  # Translation vector (x, y, z)
+        phi = torch.FloatTensor([-2 * torch.pi / 4, 0.0, -torch.pi / 2.4])  # roll-pitch-yaw
         R_WC = SO3.from_rpy(phi)  # Rotation matrix from roll-pitch-yaw
         pose_camera_in_world[i] = SE3(R_WC, rho).as_matrix()  # Pose matrix of camera in world frame
     # Image size
@@ -237,8 +246,8 @@ def run_image_projector():
     # Create 3D points around origin
     # X = make_plane(x=0.8, y=0.5, pose=torch.eye(4))
     with Timer("make_plane"):
-        # X = make_dense_plane(x=0.8, y=0.5, pose=torch.eye(4), grid_size=5)
-        points = torch.FloatTensor([[1, 1, 0], [-1, 1, 0], [-1, -1, 0], [1, -1, 0]])
+        # X = make_dense_plane(x=2, y=2, pose=torch.eye(4), grid_size=15)
+        points = torch.FloatTensor([[1, 1, 0], [-1, 1, 0], [-1, -1, 0], [1, -1, 0]]) * 0.5
         X = make_polygon_from_points(points)
     
     N, D = X.shape
@@ -246,7 +255,7 @@ def run_image_projector():
     colors = torch.tensor([0, 1, 0]).expand(B, 3)
 
     # Project points to image
-    with Timer("project"):
+    with Timer("project_and_render"):
         k_mask, k_img_overlay, k_points, k_valid = im.project_and_render(pose_camera_in_world, X, colors, k_img)
 
     # Plot points independently
