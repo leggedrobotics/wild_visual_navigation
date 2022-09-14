@@ -124,6 +124,7 @@ class SupervisionGenerator:
         self._is_untraversable = (self._traversability < self._untraversable_thr).item()
 
         # Return
+        self._traversability = torch.clamp(self._traversability, min=0.001, max=1.0)
         return self._traversability, self._traversability_var, self._is_untraversable
 
     def update_pose_prediction(
@@ -163,6 +164,8 @@ class SupervisionGenerator:
         # Apply threshold to detect hard obstacles
         self._is_untraversable = (self._traversability < self._untraversable_thr).item()
 
+        # Return
+        self._traversability = torch.clamp(self._traversability, min=0.001, max=1.0)
         return self._traversability, self._traversability_var, self._is_untraversable
 
     @property
