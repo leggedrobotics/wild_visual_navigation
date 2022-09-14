@@ -360,9 +360,9 @@ class MissionNode(BaseNode):
         torch.arange(0, num_segments)[None, None]
 
         # Create array to mask by index (used to select the segments)
-        multichannel_index_mask = torch.arange(0, num_segments, device=self._feature_segments.device)[None, None].expand(
-            N, M, num_segments
-        )
+        multichannel_index_mask = torch.arange(0, num_segments, device=self._feature_segments.device)[
+            None, None
+        ].expand(N, M, num_segments)
         # Make a copy of the segments with the dimensionality of the segments, so we can split them on each channel
         multichannel_segments = self._feature_segments[:, :, None].expand(N, M, num_segments)
 
@@ -473,7 +473,9 @@ class ProprioceptionNode(BaseNode):
         pose_plane_in_world = self._pose_base_in_world @ pose_plane_in_base  # Pose of plane in world frame
 
         # Make plane
-        return make_dense_plane(y=0.5 * self._width, z=self._height, pose=pose_plane_in_world, grid_size=grid_size).to(device)
+        return make_dense_plane(y=0.5 * self._width, z=self._height, pose=pose_plane_in_world, grid_size=grid_size).to(
+            device
+        )
 
     def make_footprint_with_node(self, other: BaseNode, grid_size: int = 10):
         if self.is_untraversable:
@@ -483,7 +485,7 @@ class ProprioceptionNode(BaseNode):
             other_side_points = other.get_side_points()
             this_side_points = self.get_side_points()
             # swap points to make them counterclockwise
-            other_side_points[[0,1]] = other_side_points[[1,0]]
+            other_side_points[[0, 1]] = other_side_points[[1, 0]]
 
             # Concat points to define the polygon
             points = torch.concat((other_side_points, this_side_points), dim=0)

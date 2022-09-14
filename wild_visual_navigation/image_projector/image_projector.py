@@ -172,8 +172,8 @@ class ImageProjector:
 
         # Mask invalid points
         # projected_points[~valid_points,:] = torch.nan
-        projected_points[~valid_z,:] = torch.nan
-        # projected_points[projected_points < 0.0] 
+        projected_points[~valid_z, :] = torch.nan
+        # projected_points[projected_points < 0.0]
 
         # Fill the mask
         self.masks = draw_convex_polygon(self.masks, projected_points, colors)
@@ -224,7 +224,7 @@ def run_image_projector():
     pose_camera_in_world = torch.eye(4).repeat(B, 1, 1)
 
     for i in range(B):
-        rho = torch.FloatTensor([-1.2 - i/10.0, 0, 1])  # Translation vector (x, y, z)
+        rho = torch.FloatTensor([-1.2 - i / 10.0, 0, 1])  # Translation vector (x, y, z)
         phi = torch.FloatTensor([-2 * torch.pi / 4, 0.0, -torch.pi / 2.4])  # roll-pitch-yaw
         R_WC = SO3.from_rpy(phi)  # Rotation matrix from roll-pitch-yaw
         pose_camera_in_world[i] = SE3(R_WC, rho).as_matrix()  # Pose matrix of camera in world frame
@@ -249,7 +249,7 @@ def run_image_projector():
         # X = make_dense_plane(x=2, y=2, pose=torch.eye(4), grid_size=15)
         points = torch.FloatTensor([[1, 1, 0], [-1, 1, 0], [-1, -1, 0], [1, -1, 0]]) * 0.5
         X = make_polygon_from_points(points)
-    
+
     N, D = X.shape
     X = X.expand(B, N, D)
     colors = torch.tensor([0, 1, 0]).expand(B, 3)
@@ -272,7 +272,6 @@ def run_image_projector():
                     except Exception as e:
                         continue
 
-        
         ax[i, 0].imshow(tensor_to_image(k_img[i]))
         ax[i, 0].set_title("Image")
         ax[i, 1].imshow(tensor_to_image(k_mask[i]))

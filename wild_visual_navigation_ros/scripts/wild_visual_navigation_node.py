@@ -156,7 +156,7 @@ class WvnRosInterface:
         # Parse operation modes
         if self.mode == WVNMode.ONLINE:
             print("\nWARNING: online_mode enabled. The graph will not store any debug/training data such as images\n")
-        
+
         elif self.mode == WVNMode.EXTRACT_LABELS:
             self.run_online_learning = False
             self.image_callback_rate = 3
@@ -167,13 +167,13 @@ class WvnRosInterface:
 
             os.makedirs(os.path.join(self.running_store_folder, "image"), exist_ok=True)
             os.makedirs(os.path.join(self.running_store_folder, "supervision_mask"), exist_ok=True)
-        
+
         # Experiment file
         self.exp_file = rospy.get_param("~exp", "nan")
-        
+
         # Torch device
         self.device = rospy.get_param("~device", "cuda")
-        
+
         # Visualization
         self.colormap = rospy.get_param("~colormap", "RdYlBu")
 
@@ -436,7 +436,7 @@ class WvnRosInterface:
 
         print("Image callback")
         try:
-            
+
             # Run the callback so as to match the desired rate
             ts = image_msg.header.stamp.to_sec()
             if abs(ts - self.last_image_ts) < 1.0 / self.image_callback_rate:
@@ -479,7 +479,7 @@ class WvnRosInterface:
             with Timer("image_callback - add_mission_node"):
                 # Add node to graph
                 added_new_node = self.traversability_estimator.add_mission_node(mission_node)
-            
+
             # Update prediction
             self.traversability_estimator.update_prediction(mission_node)
 
