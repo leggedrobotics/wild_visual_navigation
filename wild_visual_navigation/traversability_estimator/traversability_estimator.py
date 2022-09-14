@@ -409,12 +409,14 @@ class TraversabilityEstimator:
                 # Prepare batches
                 # with Timer(f"add_proprio_node - prepare batches"):
                 K = torch.eye(4, device=self._device).repeat(B, 1, 1)
-                supervision_masks = torch.zeros(last_mission_node.supervision_mask.shape, device=self._device).repeat(B, 1, 1, 1)
+                supervision_masks = torch.zeros(last_mission_node.supervision_mask.shape, device=self._device).repeat(
+                    B, 1, 1, 1
+                )
                 pose_camera_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
                 H = last_mission_node.image_projector.camera.height
                 W = last_mission_node.image_projector.camera.width
                 footprints = footprint.repeat(B, 1, 1)
-                
+
                 # Fill data
                 # with Timer(f"add_proprio_node - fill data, batch_size: {B}"):
                 for i, mnode in enumerate(mission_nodes):
@@ -425,7 +427,7 @@ class TraversabilityEstimator:
                         continue
                     else:
                         supervision_masks[i] = mnode.supervision_mask
-                
+
                 # with Timer(f"add_proprio_node - batch project, batch_size: {B}"):
                 im = ImageProjector(K, H, W)
                 mask, _, _, _ = im.project_and_render(pose_camera_in_world, footprints, color)

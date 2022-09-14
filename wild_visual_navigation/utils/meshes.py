@@ -93,7 +93,7 @@ def make_plane(x=None, y=None, z=None, pose=torch.eye(4), grid_size=10):
             for w in w_steps:
                 interp = torch.lerp(points[i], points[(i + 1) % 4], w)[None]
                 finer_points.append(interp)
-    
+
     # To torch
     finer_points = torch.cat(finer_points)
     finer_points = torch.unique(finer_points, dim=0)
@@ -103,22 +103,23 @@ def make_plane(x=None, y=None, z=None, pose=torch.eye(4), grid_size=10):
 
     return transform_points(pose, finer_points[None])[0]
 
+
 def make_dense_plane(x=None, y=None, z=None, pose=torch.eye(4), grid_size=5):
     if x is None:
-        x_s = torch.linspace(0.0,    0.0,   steps=grid_size).to(pose.device)
+        x_s = torch.linspace(0.0, 0.0, steps=grid_size).to(pose.device)
         y_s = torch.linspace(-y / 2, y / 2, steps=grid_size).to(pose.device)
         z_s = torch.linspace(-z / 2, z / 2, steps=grid_size).to(pose.device)
     elif y is None:
         x_s = torch.linspace(-x / 2, x / 2, steps=grid_size).to(pose.device)
-        y_s = torch.linspace(0.0,    0.0,   steps=grid_size).to(pose.device)
+        y_s = torch.linspace(0.0, 0.0, steps=grid_size).to(pose.device)
         z_s = torch.linspace(-z / 2, z / 2, steps=grid_size).to(pose.device)
     elif z is None:
         x_s = torch.linspace(-x / 2, x / 2, steps=grid_size).to(pose.device)
         y_s = torch.linspace(-y / 2, y / 2, steps=grid_size).to(pose.device)
-        z_s = torch.linspace(0.0,    0.0,   steps=grid_size).to(pose.device)
+        z_s = torch.linspace(0.0, 0.0, steps=grid_size).to(pose.device)
     else:
         raise "make_plane requires just 2 inputs to be set"
-    
+
     x, y, z = torch.meshgrid(x_s, y_s, z_s, indexing="xy")
 
     x = x.ravel()[:, None]
