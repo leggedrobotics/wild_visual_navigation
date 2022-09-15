@@ -4,13 +4,18 @@ import os
 import numpy as np
 from PIL import Image, ImageDraw
 from matplotlib import cm
-from wild_visual_navigation.visu import image_functionality
 import torch
 import skimage
 import seaborn as sns
 import pytorch_lightning as pl
 from typing import Optional
+import matplotlib.pyplot as plt
+
+from wild_visual_navigation.visu import image_functionality
 from wild_visual_navigation.learning.utils import get_confidence
+from wild_visual_navigation.visu import get_img_from_fig
+from wild_visual_navigation.visu import paper_colors_rgb_u8, paper_colors_rgba_u8
+from wild_visual_navigation.visu import paper_colors_rgb_f, paper_colors_rgba_f
 
 __all__ = ["LearningVisualizer"]
 
@@ -57,6 +62,56 @@ class LearningVisualizer:
     def plot_list(self, imgs, **kwargs):
         return np.concatenate(imgs, axis=1)
 
+    @image_functionality
+    def plot_roc(self, x, y, y_lower=None, y_upper=None, title=None, y_tag=None, **kwargs):
+        if type(x) is not list:
+            x = [x]
+            y = [y]
+            y_tag = [y_tag]
+
+        if y_lower is None:
+            y_lower = [None] * len(x)
+            y_upper = [None] * len(x)
+
+        if y_tag is None:
+            y_tag = [None] * len(x)
+
+        if type(y_lower) is not list:
+            y_lower = [y_lower]
+            y_upper = [y_upper]
+
+        sns.set_style("darkgrid")
+        fig, ax = plt.subplots(figsize=(3, 3))
+        l = len(x)
+        assert len(y) == l
+        assert len(y_lower) == l
+        assert len(y_upper) == l
+        assert len(y_tag) == l
+
+        # not used
+        palette = paper_colors_rgb_u8
+        for j, (_x, _y, _y_lower, _y_upper, _y_tag) in enumerate(zip(x, y, y_lower, y_upper, y_tag)):
+            k = [k for k in paper_colors_rgb_f.keys()][j]
+
+            ax.plot(_x, _y, label=_y_tag, color=paper_colors_rgb_f[k])
+            if type(_y_lower) is not None:
+                ax.plot(_x, _y_lower, color=paper_colors_rgb_f[k + "_light"], alpha=0.1)
+                ax.plot(_x, _y_upper, color=paper_colors_rgb_f[k + "_light"], alpha=0.1)
+                ax.fill_between(_x, _y_lower, _y_upper, color=paper_colors_rgb_f[k + "_light"], alpha=0.2)
+
+        ax.plot(np.linspace(0, 1, 100), np.linspace(0, 1, 100), linestyle="--", color="gray")
+        ax.set_xlabel("False postive rate")
+        ax.set_ylabel("True positive rate")
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        plt.xlim(0, 1)
+        plt.ylim(0, 1)
+        plt.legend(loc="lower right")
+        plt.tight_layout()
+        res = np.array(get_img_from_fig(fig))
+        plt.close()
+        return res
+
     def plot_mission_node_prediction(self, node: any):
         if node._image is None or node._prediction is None:
             return None
@@ -65,24 +120,32 @@ class LearningVisualizer:
         reco_pred = node._prediction[:, 1:]
         conf_pred = get_confidence(reco_pred, node._features)
 
-        trav_img = self.plot_traversability_graph_on_seg(
-            trav_pred,
-            node.feature_segments,
-            node.as_pyg_data(),
-            node.feature_positions,
-            node.image.clone(),
-            colormap="RdYlBu",
-            colorize_invalid_centers=True,
-        )
-        conf_img = self.plot_traversability_graph_on_seg(
-            conf_pred,
-            node.feature_segments,
-            node.as_pyg_data(),
-            node.feature_positions,
-            node.image.clone(),
-            colormap="RdYlBu",
-            colorize_invalid_centers=True,
-        )
+        from wild_visual_navigation.utils import Timer
+
+        with Timer("on seg"):
+            trav_img = self.plot_traversability_graph_on_seg(
+                trav_pred,
+                node.feature_segments,
+                node.as_pyg_data(),
+                node.feature_positions,
+                node.image,
+                colormap="RdYlBu",
+                colorize_invalid_centers=True,
+                not_log=True,
+                store=False,
+            )
+
+            conf_img = self.plot_traversability_graph_on_seg(
+                conf_pred,
+                node.feature_segments,
+                node.as_pyg_data(),
+                node.feature_positions,
+                node.image,
+                colormap="RdYlBu",
+                colorize_invalid_centers=True,
+                not_log=True,
+                store=False,
+            )
         return trav_img, conf_img
 
     def plot_mission_node_training(self, node: any):
@@ -128,7 +191,6 @@ class LearningVisualizer:
         colorize_invalid_centers=False,
         **kwargs,
     ):
-
         # Transfer the node traversbility score to the segment
         m = torch.zeros_like(seg, dtype=prediction.dtype)
         for i in range(seg.max() + 1):
@@ -136,8 +198,9 @@ class LearningVisualizer:
 
         # Plot Segments on Image
         i1 = self.plot_detectron_cont(
-            img.detach().cpu().numpy(), m.detach().cpu().numpy(), not_log=True, colormap=colormap
+            img.detach().cpu().numpy(), m.detach().cpu().numpy(), not_log=True, store=False, colormap=colormap
         )
+
         i2 = (torch.from_numpy(i1).type(torch.float32) / 255).permute(2, 0, 1)
         # Plot Graph on Image
         return self.plot_traversability_graph(
@@ -146,6 +209,7 @@ class LearningVisualizer:
             center,
             i2,
             not_log=True,
+            store=False,
             colormap=colormap,
             colorize_invalid_centers=colorize_invalid_centers,
         )
@@ -168,6 +232,7 @@ class LearningVisualizer:
         assert (
             prediction.max() <= max_val and prediction.min() >= 0
         ), f"Pred out of Bounds: 0-1, Given: {prediction.min()}-{prediction.max()}"
+
         elipse_size = 5
         prediction = (prediction.type(torch.float32) * 255).type(torch.uint8)
         img = np.uint8((img.permute(1, 2, 0) * 255).cpu().numpy())
@@ -261,7 +326,7 @@ class LearningVisualizer:
 
     @image_functionality
     def plot_detectron_cont(self, img, seg, alpha=0.3, max_val=1.0, colormap="RdYlBu", **kwargs):
-        img = self.plot_image(img, not_log=True)
+        img = self.plot_image(img, not_log=True, store=False)
         assert (
             seg.max() <= max_val and seg.min() >= 0
         ), f"Seg out of Bounds: 0-{max_val}, Given: {seg.min()}-{seg.max()}"
@@ -535,6 +600,22 @@ if __name__ == "__main__":
     conf = get_confidence(reco_pred, graph.x)
 
     visu = LearningVisualizer(p_visu=os.path.join(WVN_ROOT_DIR, "results/test_visu"))
+
+    x = np.linspace(0, 1, 100)
+    y = np.linspace(0, 0.9, 100)
+    y_conf = np.random.random((100,)) * 0.2 + 0.05
+    y_lower = [y - y_conf, y - y_conf + 0.3]
+    y_upper = [y + y_conf, y + y_conf + 0.3]
+    visu.plot_roc(
+        [x, x],
+        [y, y + 0.3],
+        y_lower=y_lower,
+        y_upper=y_upper,
+        title="roc 2.3",
+        y_tag=["train", "test"],
+        tag="10_ROC",
+        store=True,
+    )
 
     print("Plot Image: CHW", img.shape, img.dtype, type(img))
     visu.plot_image(img=img, store=True, tag="1")

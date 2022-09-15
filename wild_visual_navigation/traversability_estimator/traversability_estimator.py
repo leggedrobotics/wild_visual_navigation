@@ -1,17 +1,22 @@
 from wild_visual_navigation.feature_extractor import FeatureExtractor
 from wild_visual_navigation.learning.model import get_model
 from wild_visual_navigation.cfg import ExperimentParams
+from wild_visual_navigation.utils import Timer
 from wild_visual_navigation.traversability_estimator import (
     BaseGraph,
     DistanceWindowGraph,
     MissionNode,
     ProprioceptionNode,
+    MaxElementsGraph,
 )
-
-from wild_visual_navigation.learning.utils import compute_loss
-from wild_visual_navigation.utils import make_polygon_from_points, ConfidenceGenerator
+from wild_visual_navigation.utils import WVNMode
+from wild_visual_navigation.learning.utils import TraversabilityLoss
+from wild_visual_navigation.utils import make_polygon_from_points
 from wild_visual_navigation.visu import LearningVisualizer
 from wild_visual_navigation.utils import KLTTracker, KLTTrackerOpenCV
+from wild_visual_navigation.learning.utils import load_yaml
+from wild_visual_navigation.utils import override_params
+from wild_visual_navigation import WVN_ROOT_DIR
 from pytorch_lightning import seed_everything
 from torch_geometric.data import Data, Batch
 from threading import Lock
@@ -21,6 +26,7 @@ import pickle
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
+from wild_visual_navigation.utils import Timer
 
 to_tensor = transforms.ToTensor()
 
@@ -36,11 +42,14 @@ class TraversabilityEstimator:
         feature_type: str = "dino",
         optical_flow_estimator_type: str = "none",
         min_samples_for_training: int = 10,
-        online_mode: bool = False,
+        mode: bool = False,
         vis_node_index: int = 10,
+        running_store_folder=None,
+        exp_file="nan",
     ):
         self._device = device
-        self._online_mode = online_mode
+        self._mode = mode
+        self._running_store_folder = running_store_folder
         self._min_samples_for_training = min_samples_for_training
         self._vis_node_index = vis_node_index
 
@@ -48,7 +57,10 @@ class TraversabilityEstimator:
         self._proprio_graph = DistanceWindowGraph(max_distance=max_distance, edge_distance=proprio_distance_thr)
 
         # Experience graph
-        self._mission_graph = BaseGraph(edge_distance=image_distance_thr)
+        if mode == WVNMode.EXTRACT_LABELS:
+            self._mission_graph = MaxElementsGraph(edge_distance=image_distance_thr, max_elements=200)
+        else:
+            self._mission_graph = BaseGraph(edge_distance=image_distance_thr)
 
         # Visualization node
         self._vis_mission_node = None
@@ -56,8 +68,11 @@ class TraversabilityEstimator:
         # Feature extractor
         self._segmentation_type = segmentation_type
         self._feature_type = feature_type
+
         self._feature_extractor = FeatureExtractor(
-            device, segmentation_type=self._segmentation_type, feature_type=self._feature_type
+            device,
+            segmentation_type=self._segmentation_type,
+            feature_type=self._feature_type,
         )
         # Optical flow
         self._optical_flow_estimator_type = optical_flow_estimator_type
@@ -65,9 +80,6 @@ class TraversabilityEstimator:
         if optical_flow_estimator_type == "sparse":
             self._optical_flow_estimator = KLTTrackerOpenCV(device=device)
 
-        # Confidence Generator
-        self._confidence_generator = ConfidenceGenerator(device=self._device)
-        
         # Mutex
         self._lock = Lock()
         self._pause_training = False
@@ -77,12 +89,20 @@ class TraversabilityEstimator:
 
         # Lightning module
         seed_everything(42)
-        self._exp_cfg = dataclasses.asdict(ExperimentParams())
+        params = ExperimentParams()
+        if exp_file != "nan":
+            exp_override = load_yaml(os.path.join(WVN_ROOT_DIR, "cfg/exp", exp_file))
+            params = override_params(params, exp_override)
+
+        self._exp_cfg = dataclasses.asdict(params)
 
         self._model = get_model(self._exp_cfg["model"]).to(device)
         self._epoch = 0
         self._last_trained_model = self._model.to(device)
         self._model.train()
+        self._traversability_loss = TraversabilityLoss(**self._exp_cfg["loss"], model=self._model)
+        self._traversability_loss.to(device)
+
         self._optimizer = torch.optim.AdamW(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
         self._loss = torch.tensor([torch.inf])
         torch.set_grad_enabled(True)
@@ -120,7 +140,7 @@ class TraversabilityEstimator:
         """
         self._proprio_graph.change_device(device)
         self._mission_graph.change_device(device)
-        self._feature_extractor.change_device(device)
+        self._feature_extractor.change_deviceF(device)
         self._model = self._model.to(device)
         if self._optical_flow_estimator_type != "none":
             self._optical_flow_estimator = self._optical_flow_estimator.to(device)
@@ -133,16 +153,17 @@ class TraversabilityEstimator:
         Args:
             node (MissionNode): new node in the mission graph
         """
+        if self._mode != WVNMode.EXTRACT_LABELS:
+            # Extract features
+            # Check do we need to add here the .clone() in
+            edges, feat, seg, center = self._feature_extractor.extract(img=node.image[None], return_centers=True)
 
-        # Extract features
-        edges, feat, seg, center = self._feature_extractor.extract(img=node.image.clone()[None], return_centers=True)
-
-        # Set features in node
-        node.feature_type = self._feature_extractor.feature_type
-        node.features = feat
-        node.feature_edges = edges
-        node.feature_segments = seg
-        node.feature_positions = center
+            # Set features in node
+            node.feature_type = self._feature_extractor.feature_type
+            node.features = feat
+            node.feature_edges = edges
+            node.feature_segments = seg
+            node.feature_positions = center
 
     def update_prediction(self, node: MissionNode):
         with self._lock:
@@ -150,8 +171,10 @@ class TraversabilityEstimator:
                 data = Data(x=node.features, edge_index=node.feature_edges)
                 with torch.inference_mode():
                     node.prediction = self._last_trained_model(data)
-                    x = F.mse_loss(node.prediction[:,1:], node.features,reduction='none').mean(dim=1)
-                    node.confidence = self._confidence_generator.update(x) 
+                    reco_loss = F.mse_loss(node.prediction[:, 1:], node.features, reduction="none").mean(dim=1)
+                    node.confidence = self._traversability_loss._confidence_generator.inference_without_update(
+                        reco_loss
+                    )
 
     def update_visualization_node(self):
         # For the first nodes we choose the visualization node as the last node available
@@ -159,7 +182,7 @@ class TraversabilityEstimator:
             self._vis_mission_node = self._mission_graph.get_nodes()[0]
         else:
             # We remove debug data if we are in online mode (after optical flow, so the image is still available)
-            if self._online_mode and self._vis_mission_node is not None:
+            if self._mode == WVNMode.ONLINE and self._vis_mission_node is not None:
                 self._vis_mission_node.clear_debug_data()
 
             self._vis_mission_node = self._mission_graph.get_nodes()[-self._vis_node_index]
@@ -272,7 +295,7 @@ class TraversabilityEstimator:
                 tag="centers",
             )
 
-    def add_mission_node(self, node: MissionNode):
+    def add_mission_node(self, node: MissionNode, verbose: bool = False):
         """Adds a node to the local graph to images and training info
 
         Args:
@@ -280,6 +303,7 @@ class TraversabilityEstimator:
         """
 
         # Compute image features
+
         self.update_features(node)
 
         previous_node = self._mission_graph.get_last_node()
@@ -289,15 +313,17 @@ class TraversabilityEstimator:
             total_nodes = self._mission_graph.get_num_nodes()
             s = f"adding node [{node}], "
             s += " " * (48 - len(s)) + f"total nodes [{total_nodes}]"
-            print(s)
+            if verbose:
+                print(s)
 
-            # Set optical flow
-            if self._optical_flow_estimator_type == "dense" and previous_node is not None:
-                raise Exception("Not working")
-                self.add_correspondences_dense_optical_flow(node, previous_node, debug=False)
+            if self._mode != WVNMode.EXTRACT_LABELS:
+                # Set optical flow
+                if self._optical_flow_estimator_type == "dense" and previous_node is not None:
+                    raise Exception("Not working")
+                    self.add_correspondences_dense_optical_flow(node, previous_node, debug=False)
 
-            elif self._optical_flow_estimator_type == "sparse" and previous_node is not None:
-                self.add_correspondences_sparse_optical_flow(node, previous_node, debug=False)
+                elif self._optical_flow_estimator_type == "sparse" and previous_node is not None:
+                    self.add_correspondences_sparse_optical_flow(node, previous_node, debug=False)
 
             # Project past footprints on current image
             supervision_mask = torch.ones(node.image.shape).to(self._device) * torch.nan
@@ -308,23 +334,29 @@ class TraversabilityEstimator:
                 footprint = pnode.make_footprint_with_node(last_pnode)
 
                 # Project mask
-                mask, _, _, _ = node.project_footprint(footprint)
+                color = torch.ones((3,), device=self._device)
+                mask, _, _, _ = node.project_footprint(footprint, color=color)
                 if mask is None:
                     continue
 
                 # Update mask with traversability
-                mask = mask[0] * pnode.traversability.cpu()
+                mask = mask[0] * pnode.traversability
 
                 # Get global node and update supervision signal
-                supervision_mask = torch.fmin(supervision_mask, mask.to(self._device))
+                supervision_mask = torch.fmin(supervision_mask, mask)
 
             # Finally overwrite the current mask
             node.supervision_mask = supervision_mask
             node.update_supervision_signal()
+
+            if self._mode == WVNMode.EXTRACT_LABELS:
+                p = os.path.join(self._running_store_folder, "image", str(node.timestamp).replace(".", "_") + ".pt")
+                torch.save(node.image, p)
             return True
         else:
             return False
 
+    @torch.no_grad()
     def add_proprio_node(self, pnode: ProprioceptionNode):
         """Adds a node to the local graph to store proprioception
 
@@ -337,13 +369,15 @@ class TraversabilityEstimator:
 
         # Get last added proprio node
         last_pnode = self._proprio_graph.get_last_node()
-        if not self._proprio_graph.add_node(pnode):
+        suc = self._proprio_graph.add_node(pnode)
+        if not suc:
             # Update traversability of latest node
             if last_pnode is not None:
                 last_pnode.update_traversability(pnode.traversability, pnode.traversability_var)
             return False
 
         else:
+
             # If the previous node doesn't exist or is invalid, we do nothing
             if last_pnode is None or not last_pnode.is_valid():
                 return False
@@ -360,18 +394,31 @@ class TraversabilityEstimator:
             mission_nodes = self._mission_graph.get_nodes_within_radius_range(
                 last_mission_node, 0, self._proprio_graph.max_distance
             )
-            # Project footprint onto all the image nodes
+
+            color = torch.ones((3,), device=self._device)
+            # Project footprint onto all the image nodes takes a lot of time
+
             for mnode in mission_nodes:
-                mask, _, _, _ = mnode.project_footprint(footprint)
+                mask, _, _, _ = mnode.project_footprint(footprint, color=color)  # 2ms
+
                 if (not hasattr(mnode, "supervision_mask")) or (mask is None) or (mnode.supervision_mask is None):
                     continue
 
                 # Update mask with traversability
-                mask = mask[0] * pnode.traversability.cpu()
+                mask = mask[0] * pnode.traversability
 
                 # Get global node and update supervision signal
-                mnode.supervision_mask = torch.fmin(mnode.supervision_mask, mask.to(self._device))
+                mnode.supervision_mask = torch.fmin(mnode.supervision_mask, mask)
                 mnode.update_supervision_signal()
+
+                if self._mode == WVNMode.EXTRACT_LABELS:
+                    p = os.path.join(
+                        self._running_store_folder,
+                        "supervision_mask",
+                        str(mnode.timestamp).replace(".", "_") + ".pt",
+                    )
+                    store = torch.nan_to_num(mnode.supervision_mask.nanmean(axis=0)) != 0
+                    torch.save(store, p)
 
             return True
 
@@ -554,7 +601,7 @@ class TraversabilityEstimator:
 
             # forward pass
             res = self._model(graph)
-            self._loss, loss_aux = compute_loss(graph, res, self._exp_cfg["loss"], self._model, graph_aux)
+            self._loss, loss_aux = self._traversability_loss(graph, res, graph_aux)
 
             # Backprop
             self._optimizer.zero_grad()

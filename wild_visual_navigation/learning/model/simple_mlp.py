@@ -20,12 +20,9 @@ class SimpleMLP(torch.nn.Module):
         self.output_features = hidden_sizes[-1]
 
     def forward(self, data: Data) -> torch.Tensor:
-        count = torch.unique(data.batch, return_counts=True)[1]
-        assert (count != count[0]).sum() == 0
         x = data.x
         # Checked data is correctly memory aligned and can be reshaped
         # If you change something in the dataloader make sure this is still working
-        x = x.reshape((data.batch.max().item() + 1, -1, x.shape[1]))
         x = self.layers(x)
-        x[:, :, 0] = torch.sigmoid(x[:, :, 0])
-        return x.reshape((-1, self.output_features))
+        x[:, 0] = torch.sigmoid(x[:, 0])
+        return x
