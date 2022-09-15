@@ -1,5 +1,5 @@
 from wild_visual_navigation.image_projector import ImageProjector
-from wild_visual_navigation.utils import make_box, make_plane, make_polygon_from_points
+from wild_visual_navigation.utils import make_box, make_plane, make_polygon_from_points, make_dense_plane
 from liegroups.torch import SE3, SO3
 from torch_geometric.data import Data
 import os
@@ -73,7 +73,11 @@ class BaseNode:
             distance (float): absolute distance between the states
         """
         # Compute pose difference, then log() to get a vector, then extract position coordinates, finally get norm
-        return SE3.from_matrix(self.pose_base_in_world.inverse() @ other.pose_base_in_world).log()[:3].norm()
+        return (
+            SE3.from_matrix(self.pose_base_in_world.inverse() @ other.pose_base_in_world, normalize=True)
+            .log()[:3]
+            .norm()
+        )
 
     @property
     def name(self):
@@ -110,6 +114,7 @@ class MissionNode(BaseNode):
         pose_cam_in_world: torch.tensor = None,
         image: torch.tensor = None,
         image_projector: ImageProjector = None,
+        correspondence=None,
     ):
         super().__init__(timestamp=timestamp, pose_base_in_world=pose_base_in_world)
         # Initialize members
@@ -130,7 +135,8 @@ class MissionNode(BaseNode):
         self._supervision_mask = None
         self._supervision_signal = None
         self._supervision_signal_valid = None
-        self._correspondence = None
+        self._correspondence = correspondence
+        self._confidence = None
 
     def clear_debug_data(self):
         """Removes all data not required for training"""
@@ -172,6 +178,8 @@ class MissionNode(BaseNode):
             self._supervision_signal_valid = self._supervision_signal_valid.to(device)
         if self._correspondence is not None:
             self._correspondence = self._correspondence.to(device)
+        if self._confidence is not None:
+            self._confidence = self._confidence.to(device)
 
     def as_pyg_data(self, previous_node: Optional[BaseNode] = None, aux: bool = False):
         if aux:
@@ -200,6 +208,14 @@ class MissionNode(BaseNode):
             and isinstance(self._supervision_signal, torch.Tensor)
             and isinstance(self._correspondence, torch.Tensor)
         )
+
+    @property
+    def confidence(self):
+        return self._confidence
+
+    @property
+    def correspondence(self):
+        return self._correspondence
 
     @property
     def features(self):
@@ -235,7 +251,7 @@ class MissionNode(BaseNode):
 
     @property
     def prediction(self):
-        return self.prediction
+        return self._prediction
 
     @property
     def supervision_signal(self):
@@ -249,9 +265,13 @@ class MissionNode(BaseNode):
     def supervision_mask(self):
         return self._supervision_mask
 
-    @property
-    def correspondence(self):
-        return self._correspondence
+    @confidence.setter
+    def confidence(self, confidence):
+        self._confidence = confidence
+
+    @correspondence.setter
+    def correspondence(self, correspondence):
+        self._correspondence = correspondence
 
     @features.setter
     def features(self, features):
@@ -301,10 +321,6 @@ class MissionNode(BaseNode):
     def supervision_mask(self, supervision_mask):
         self._supervision_mask = supervision_mask
 
-    @correspondence.setter
-    def correspondence(self, correspondence):
-        self._correspondence = correspondence
-
     def save(self, output_path: str, index: int, graph_only: bool = False, previous_node: Optional[BaseNode] = None):
         if self._feature_positions is not None:
             graph_data = self.as_pyg_data(previous_node)
@@ -339,27 +355,42 @@ class MissionNode(BaseNode):
             return
 
         # If we have features, update supervision signal
-        labels_per_segment = []
-        for s in range(self._feature_segments.max() + 1):
-            # Get a mask indices for the segment
-            m = self.feature_segments == s
-            # Add the higehst number per segment
-            # labels_per_segment.append(signal[m].max())
-            labels_per_segment.append(signal[m].nanmean(axis=0))
+        N, M = signal.shape
+        num_segments = self._feature_segments.max() + 1
+        torch.arange(0, num_segments)[None, None]
 
-        # Prepare supervision signal
-        torch_labels = torch.stack(labels_per_segment)
-        # if torch_labels.sum() > 0:
-        self._supervision_signal = torch.nan_to_num(torch_labels, nan=0)
-        # Binary mask
-        self._supervision_signal_valid = torch_labels > 0
+        # Create array to mask by index (used to select the segments)
+        multichannel_index_mask = torch.arange(0, num_segments, device=self._feature_segments.device)[
+            None, None
+        ].expand(N, M, num_segments)
+        # Make a copy of the segments with the dimensionality of the segments, so we can split them on each channel
+        multichannel_segments = self._feature_segments[:, :, None].expand(N, M, num_segments)
+
+        # Create a multichannel mask that allows to associate a segment to each channel
+        multichannel_segments_mask = multichannel_index_mask == multichannel_segments
+
+        # Apply the mask to an expanded supervision signal and get the mean value per segment
+        # First we get the number of elements per segment (stored on each channel)
+        num_elements_per_segment = (
+            multichannel_segments_mask * ~torch.isnan(signal[:, :, None].expand(N, M, num_segments))
+        ).sum(dim=[0, 1])
+        # We get the sum of all the values of the supervision signal that fall in the segment
+        signal_sum = (signal.nan_to_num(0)[:, :, None].expand(N, M, num_segments) * multichannel_segments_mask).sum(
+            dim=[0, 1]
+        )
+        # Compute the average of the supervision signal dividing by the number of elements
+        signal_mean = signal_sum / num_elements_per_segment
+
+        # Finally replace the nan values to 0.0
+        self._supervision_signal = signal_mean.nan_to_num(0)
+        self._supervision_signal_valid = self._supervision_signal > 0
 
 
 class ProprioceptionNode(BaseNode):
     """Local node stores all the information required for traversability estimation and debugging
     All the information matches a real frame that must be respected to keep consistency"""
 
-    _name = "local_proprioception_node"
+    _name = "proprioception_node"
 
     def __init__(
         self,
@@ -425,7 +456,7 @@ class ProprioceptionNode(BaseNode):
         device = self._pose_footprint_in_world.device
         motion_direction = self._twist_in_base / self._twist_in_base.norm()
 
-        dim_twist = motion_direction.shape[-1]
+        # dim_twist = motion_direction.shape[-1]
         # if dim_twist != 2:
         #     print(f"Warning: input twist has dimension [{dim_twist}], will assume that twist[0]=vx, twist[1]=vy")
 
@@ -442,17 +473,26 @@ class ProprioceptionNode(BaseNode):
         pose_plane_in_world = self._pose_base_in_world @ pose_plane_in_base  # Pose of plane in world frame
 
         # Make plane
-        return make_plane(y=0.5 * self._width, z=self._height, pose=pose_plane_in_world, grid_size=grid_size).to(device)
+        return make_dense_plane(y=0.5 * self._width, z=self._height, pose=pose_plane_in_world, grid_size=grid_size).to(
+            device
+        )
 
-    def make_footprint_with_node(self, other: BaseNode, grid_size: int = 20):
+    def make_footprint_with_node(self, other: BaseNode, grid_size: int = 10):
         if self.is_untraversable:
             footprint = self.get_untraversable_plane(grid_size=grid_size)
         else:
             # Get side points
             other_side_points = other.get_side_points()
             this_side_points = self.get_side_points()
+            # swap points to make them counterclockwise
+            this_side_points[[0, 1]] = this_side_points[[1, 0]]
+            # The idea is to make a polygon like:
+            # tsp[1] ---- tsp[0]
+            #  |            |
+            # osp[0] ---- osp[1]
+
             # Concat points to define the polygon
-            points = torch.concat((other_side_points, this_side_points), dim=0)
+            points = torch.concat((this_side_points, other_side_points), dim=0)
             # Make footprint
             footprint = make_polygon_from_points(points, grid_size=grid_size)
         return footprint
