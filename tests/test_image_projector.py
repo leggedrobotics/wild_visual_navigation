@@ -21,6 +21,7 @@ def test_proprioceptive_projection():
     from os.path import join
     from kornia.utils import tensor_to_image
     from stego.src import remove_axes
+    import random
 
     to_tensor = transforms.ToTensor()
 
@@ -28,7 +29,7 @@ def test_proprioceptive_projection():
     os.makedirs(join(WVN_ROOT_DIR, "results", "test_image_projector"), exist_ok=True)
 
     # Define number of cameras (batch)
-    B = 10
+    B = 100
 
     # Prepare single pinhole model
     # Camera is created 1.5m backward, and 1m upwards, 0deg towards the origin
@@ -53,20 +54,23 @@ def test_proprioceptive_projection():
     torch_image = im.resize_image(torch_image)
     mask = (torch_image * 0.0)[None]
 
-    rho = torch.FloatTensor([-1, 0, 0.5])  # Translation vector (x, y, z)
+    rho = torch.FloatTensor([0, 0, 2])  # Translation vector (x, y, z)
     # phi = torch.FloatTensor([-2 * torch.pi / 4, 0.0, -torch.pi / 2])  # roll-pitch-yaw
-    phi = torch.FloatTensor([-3 * torch.pi / 4, 0.0, -torch.pi / 2.4])  # roll-pitch-yaw
+    phi = torch.FloatTensor([-3 * torch.pi / 4, 0.0, -torch.pi / 2])  # roll-pitch-yaw
     R_WC = SO3.from_rpy(phi)  # Rotation matrix from roll-pitch-yaw
     pose_camera_in_world = SE3(R_WC, rho).as_matrix()[None]  # Pose matrix of camera in world frame
 
     # Fill data
+    pose_base_in_world = torch.eye(4)[None]
     nodes = []
     for i in range(B):
-        rho = torch.FloatTensor([-i / 10.0, 0, 0])  # Translation vector (x, y, z)
-        phi = torch.FloatTensor([0.0, 0.0, 0.0])  # roll-pitch-yaw
+        rho = torch.FloatTensor([1 / 10.0 + random.random() / 10.0, 0, 0])  # Translation vector (x, y, z)
+        phi = torch.FloatTensor([0.0, 0.0, (random.random() - 0.5) / 2])  # roll-pitch-yaw
         R_WC = SO3.from_rpy(phi)  # Rotation matrix from roll-pitch-yaw
-        pose_base_in_world = SE3(R_WC, rho).as_matrix()[None]  # Pose matrix of camera in world frame
+        delta = SE3(R_WC, rho).as_matrix()[None]  # Pose matrix of camera in world frame
+        pose_base_in_world = pose_base_in_world @ delta
         pose_footprint_in_base = torch.eye(4)[None]
+        print(delta, pose_base_in_world)
 
         twist = torch.rand((3,))
         proprioception = torch.rand((10,))
@@ -91,7 +95,6 @@ def test_proprioceptive_projection():
 
         if i > 0:
             footprint = proprio_node.make_footprint_with_node(nodes[i - 1])[None]
-            print(footprint)
 
             # project footprint
             k_mask, torch_image_overlay, k_points, k_valid = im.project_and_render(
