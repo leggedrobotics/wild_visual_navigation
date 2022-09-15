@@ -27,7 +27,6 @@ import pickle
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
-from wild_visual_navigation.utils import Timer
 
 to_tensor = transforms.ToTensor()
 
@@ -297,7 +296,7 @@ class TraversabilityEstimator:
             )
 
     def add_mission_node(self, node: MissionNode, verbose: bool = False):
-        """Adds a node to the local graph to images and training info
+        """Adds a node to the mission graph to images and training info
 
         Args:
             node (BaseNode): new node in the image graph
@@ -359,7 +358,7 @@ class TraversabilityEstimator:
 
     @torch.no_grad()
     def add_proprio_node(self, pnode: ProprioceptionNode):
-        """Adds a node to the local graph to store proprioception
+        """Adds a node to the proprioceptive graph to store proprioception
 
         Args:
             node (BaseNode): new node in the proprioceptive graph
@@ -492,10 +491,10 @@ class TraversabilityEstimator:
         return last_valid_node
 
     def get_mission_node_for_visualization(self):
-        print(f"get_mission_node_for_visualization: {self._vis_mission_node}")
-        if self._vis_mission_node is not None:
-            print(f"  has image {hasattr(self._vis_mission_node, 'image')}")
-            print(f"  has supervision_mask {hasattr(self._vis_mission_node, 'supervision_mask')}")
+        # print(f"get_mission_node_for_visualization: {self._vis_mission_node}")
+        # if self._vis_mission_node is not None:
+        #     print(f"  has image {hasattr(self._vis_mission_node, 'image')}")
+        #     print(f"  has supervision_mask {hasattr(self._vis_mission_node, 'supervision_mask')}")
         return self._vis_mission_node
 
     def save(self, mission_path: str, filename: str):

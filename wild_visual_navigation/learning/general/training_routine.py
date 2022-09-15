@@ -96,7 +96,7 @@ def training_routine(experiment: ExperimentParams) -> torch.Tensor:
     try:
         short_id = logger.experiment._short_id
         project_name = logger._project_name
-    except:
+    except Exception as e:
         project_name = "not_defined"
         short_id = 0
     return res, model_path, short_id, project_name
