@@ -163,10 +163,8 @@ class KLTTracker(torch.nn.Module):
 
 if __name__ == "__main__":
     import cv2 as cv
-    import torch
     from PIL import Image, ImageDraw
     import numpy as np
-    import kornia
 
     # TODO write a test for it
     pre = torch.load("/home/jonfrey/git/wild_visual_navigation/previous.pt")
@@ -174,8 +172,6 @@ if __name__ == "__main__":
 
     pre_c = np.uint8(pre.cpu().permute(1, 2, 0).numpy() * 255)
     cur_c = np.uint8(cur.cpu().permute(1, 2, 0).numpy() * 255)
-
-    import cv2 as cv
 
     feature_params = dict(maxCorners=100, qualityLevel=0.3, minDistance=7, blockSize=7)
     pre = cv.cvtColor(pre_c, cv.COLOR_BGR2GRAY)[:, :, None]

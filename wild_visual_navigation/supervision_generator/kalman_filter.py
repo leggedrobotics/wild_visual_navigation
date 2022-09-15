@@ -131,7 +131,6 @@ def run_kalman_filter():
     """Tests Kalman Filter"""
 
     import matplotlib.pyplot as plt
-    import seaborn as sns
 
     # Normal KF
     kf1 = KalmanFilter(dim_state=1, dim_control=1, dim_meas=1, outlier_rejection="none")

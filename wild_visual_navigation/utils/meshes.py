@@ -36,16 +36,16 @@ def make_superquadric(A, B, C, r, s, t, pose=torch.eye(4), grid_size=10):
     y = B * cos_eta.sign() * cos_eta.abs().pow(s) * sin_w.sign() * sin_w.abs().pow(s)
     z = C * sin_eta.sign() * sin_eta.abs().pow(s)
 
-    x = x.ravel().unsqueeze(1)
-    y = y.ravel().unsqueeze(1)
-    z = z.ravel().unsqueeze(1)
-    points = torch.cat((x, y, z), dim=1).unsqueeze(0)
+    x = x.ravel()[:, None]
+    y = y.ravel()[:, None]
+    z = z.ravel()[:, None]
+    points = torch.cat((x, y, z), dim=1)[None]
 
     # Apply pose transformation
     if len(pose.shape) == 2:
-        pose = pose.unsqueeze(0)
+        pose = pose[None]
 
-    return transform_points(pose, points).squeeze(0)
+    return transform_points(pose, points)
 
 
 def make_box(length, width, height, pose=torch.eye(4), grid_size=11):
@@ -93,14 +93,44 @@ def make_plane(x=None, y=None, z=None, pose=torch.eye(4), grid_size=10):
             for w in w_steps:
                 interp = torch.lerp(points[i], points[(i + 1) % 4], w)[None]
                 finer_points.append(interp)
+
     # To torch
     finer_points = torch.cat(finer_points)
     finer_points = torch.unique(finer_points, dim=0)
 
     if len(pose.shape) == 2:
-        pose = pose.unsqueeze(0)
+        pose = pose[None]
 
-    return transform_points(pose, finer_points[None]).squeeze(0)
+    return transform_points(pose, finer_points[None])[0]
+
+
+def make_dense_plane(x=None, y=None, z=None, pose=torch.eye(4), grid_size=5):
+    if x is None:
+        x_s = torch.linspace(0.0, 0.0, steps=grid_size).to(pose.device)
+        y_s = torch.linspace(-y / 2, y / 2, steps=grid_size).to(pose.device)
+        z_s = torch.linspace(-z / 2, z / 2, steps=grid_size).to(pose.device)
+    elif y is None:
+        x_s = torch.linspace(-x / 2, x / 2, steps=grid_size).to(pose.device)
+        y_s = torch.linspace(0.0, 0.0, steps=grid_size).to(pose.device)
+        z_s = torch.linspace(-z / 2, z / 2, steps=grid_size).to(pose.device)
+    elif z is None:
+        x_s = torch.linspace(-x / 2, x / 2, steps=grid_size).to(pose.device)
+        y_s = torch.linspace(-y / 2, y / 2, steps=grid_size).to(pose.device)
+        z_s = torch.linspace(0.0, 0.0, steps=grid_size).to(pose.device)
+    else:
+        raise "make_plane requires just 2 inputs to be set"
+
+    x, y, z = torch.meshgrid(x_s, y_s, z_s, indexing="xy")
+
+    x = x.ravel()[:, None]
+    y = y.ravel()[:, None]
+    z = z.ravel()[:, None]
+    points = torch.cat((x, y, z), dim=1)
+
+    if len(pose.shape) == 2:
+        pose = pose[None]
+
+    return transform_points(pose, points[None])[0]
 
 
 def make_polygon_from_points(points: torch.tensor, grid_size=10):
@@ -116,7 +146,7 @@ def make_polygon_from_points(points: torch.tensor, grid_size=10):
 
 
 if __name__ == "__main__":
-    xy_plane = make_plane(x=0.8, y=0.4, grid_size=10)
+    xy_plane = make_dense_plane(x=0.8, y=0.4, grid_size=3)
     y_points = make_plane(x=0.0, y=0.4, grid_size=2)
 
     points = torch.FloatTensor([[1, 1, 0], [-1, 1, 0], [-1, -1, 0], [1, -1, 0]])

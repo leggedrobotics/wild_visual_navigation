@@ -17,7 +17,7 @@ from pytorch_lightning.plugins import DDP2Plugin, DDPPlugin, DDPSpawnPlugin
 from wild_visual_navigation.learning.utils import get_logger
 from wild_visual_navigation.learning.lightning import LightningTrav
 from wild_visual_navigation.learning.utils import load_yaml, load_env, create_experiment_folder
-from wild_visual_navigation.learning.dataset import get_pl_graph_trav_module
+from wild_visual_navigation.learning.dataset import get_pl_graph_trav_module, get_abblation_module
 from wild_visual_navigation.cfg import ExperimentParams
 
 __all__ = ["training_routine"]
@@ -29,6 +29,7 @@ def training_routine(experiment: ExperimentParams) -> torch.Tensor:
     env = load_env()
 
     model_path = create_experiment_folder(exp, env)
+
     exp["general"]["name"] = os.path.relpath(model_path, env["base"])
     exp["general"]["model_path"] = model_path
 
@@ -79,8 +80,23 @@ def training_routine(experiment: ExperimentParams) -> torch.Tensor:
     ddp_plugin = DDPSpawnPlugin(find_unused_parameters=exp["trainer"].get("find_unused_parameters", False))
     exp["trainer"]["plugins"] = ddp_plugin
 
-    datamodule = get_pl_graph_trav_module(**exp["data_module"])
+    # datamodule = get_pl_graph_trav_module(**exp["data_module"])
+    datamodule = get_abblation_module(**exp["abblation_data_module"], perugia_root=env["perugia_root"])
+
     trainer = Trainer(**exp["trainer"], default_root_dir=model_path, callbacks=cb_ls, logger=logger)
     trainer.fit(model=model, datamodule=datamodule)
-    res = trainer.test(model=model, datamodule=datamodule)
-    return res
+
+    res = trainer.test(model=model, datamodule=datamodule)[0]
+
+    import pickle
+
+    with open(os.path.join(model_path, "detailed_test_results.pkl"), "rb") as handle:
+        out = pickle.load(handle)
+    res["detailed_test_results"] = out
+    try:
+        short_id = logger.experiment._short_id
+        project_name = logger._project_name
+    except Exception as e:
+        project_name = "not_defined"
+        short_id = 0
+    return res, model_path, short_id, project_name

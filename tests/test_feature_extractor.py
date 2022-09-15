@@ -1,6 +1,6 @@
 from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.feature_extractor import FeatureExtractor
-from wild_visual_navigation.utils import get_img_from_fig
+from wild_visual_navigation.visu import get_img_from_fig
 import matplotlib.pyplot as plt
 import torch
 from torchvision import transforms as T
@@ -10,8 +10,11 @@ import cv2
 
 
 def test_feature_extractor():
+    segmentation_type = "stego"
+    feature_type = "stego"
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    fe = FeatureExtractor(device, segmentation_type="grid", feature_type="sift")
+    fe = FeatureExtractor(device, segmentation_type=segmentation_type, feature_type=feature_type)
 
     transform = T.Compose(
         [
@@ -26,7 +29,9 @@ def test_feature_extractor():
     img = (img.type(torch.float32) / 255)[None]
     adj, feat, seg, center = fe.extract(transform(img.clone()))
 
-    p = PurePath(WVN_ROOT_DIR).joinpath("results", "test_feature_extractor", "forest_clean_graph.png")
+    p = PurePath(WVN_ROOT_DIR).joinpath(
+        "results", "test_feature_extractor", f"forest_clean_graph_{segmentation_type}.png"
+    )
     Path(p.parent).mkdir(parents=True, exist_ok=True)
 
     # Plot result as in colab
@@ -36,6 +41,7 @@ def test_feature_extractor():
     ax[0].set_title("Image")
     ax[1].imshow(seg.cpu())
     ax[1].set_title("Segmentation")
+    plt.tight_layout()
 
     # Store results to test directory
     img = get_img_from_fig(fig)

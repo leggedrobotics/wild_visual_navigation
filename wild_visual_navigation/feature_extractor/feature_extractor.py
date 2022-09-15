@@ -1,7 +1,5 @@
 from wild_visual_navigation.feature_extractor import StegoInterface, DinoInterface, SegmentExtractor
-from wild_visual_navigation.utils import PlotHelper
-
-import torch.nn.functional as F
+from wild_visual_navigation.utils import Timer
 import skimage
 import torch
 import numpy as np
@@ -13,7 +11,7 @@ from PIL import Image, ImageDraw
 
 
 class FeatureExtractor:
-    def __init__(self, device: str, segmentation_type: str = "slic", feature_type: str = "dino"):
+    def __init__(self, device: str, segmentation_type: str = "slic", feature_type: str = "dino", **kwargs):
         """Feature extraction from image
 
         Args:
@@ -43,21 +41,24 @@ class FeatureExtractor:
         else:
             raise f"Extractor[{self._feature_type}] not supported!"
 
+        if self.segmentation_type == "slic":
+            from fast_slic import Slic
+
+            self.slic = Slic(
+                num_components=kwargs.get("slic_num_components", 100), compactness=kwargs.get("slic_compactness", 10)
+            )
+
     def extract(self, img, **kwargs):
         # Compute segments, their centers, and edges connecting them (graph structure)
         edges, seg, center = self.compute_segments(img, **kwargs)
-
         # Compute features
         dense_feat = self.compute_features(img, seg, center, **kwargs)
         assert (
             len(dense_feat.shape) == 4
         ), f"dense_feat has incorrect shape size {dense_feat.shape} (should be B, C, H, W)"
-
         # Sparsify features to match the centers if required
         feat = self.sparsify_features(dense_feat, seg)
-
         return edges, feat, seg, center
-        # return getattr(self, self._feature_type)(img, **kwargs)
 
     @property
     def feature_type(self):
@@ -124,10 +125,7 @@ class FeatureExtractor:
         return edges, seg, centers
 
     def segment_grid(self, img, **kwargs):
-        if kwargs.get("cell_size", None) is not None:
-            cell_size = kwargs["cell_size"]
-        else:
-            cell_size = 16
+        cell_size = kwargs.get("cell_size", 32)
         patch_size = (cell_size, cell_size)
 
         B, C, H, W = img.shape
@@ -147,24 +145,10 @@ class FeatureExtractor:
         return seg[0, 0].to(self._device)
 
     def segment_slic(self, img, **kwargs):
-        if kwargs.get("n_segments", None) is not None:
-            n_segments = kwargs["n_segments"]
-        else:
-            n_segments = 200
-
-        if kwargs.get("compactness", None) is not None:
-            compactness = kwargs["compactness"]
-        else:
-            compactness = 10.0
-
         # Get slic clusters
         img_np = kornia.utils.tensor_to_image(img)
-        seg = skimage.segmentation.slic(
-            img_np, n_segments=n_segments, compactness=compactness, start_label=0, channel_axis=2
-        )
-        seg = torch.from_numpy(seg).to(self._device)
-
-        return seg
+        seg = self.slic.iterate(np.uint8(np.ascontiguousarray(img_np) * 255))
+        return torch.from_numpy(seg).to(self._device).type(torch.long)
 
     def segment_stego(self, img, **kwargs):
         # Prepare input image

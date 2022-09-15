@@ -40,7 +40,12 @@ def image_functionality(func):
                 epoch = args[0]._epoch
 
         if store:
-            p = os.path.join(args[0]._p_visu, f"{epoch}_{tag}.png")
+            if kwargs.get("store_folder", None) is not None:
+                folder = str(os.path.join(args[0]._p_visu, kwargs["store_folder"]))
+                os.makedirs(folder, exist_ok=True)
+            else:
+                folder = args[0]._p_visu
+            p = os.path.join(folder, f"{epoch}_{tag}.png")
             imageio.imwrite(p, img)
 
         if log_exp:
