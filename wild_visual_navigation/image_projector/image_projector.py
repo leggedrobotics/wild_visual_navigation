@@ -72,10 +72,10 @@ class ImageProjector:
         sh = torch.IntTensor([sh]).to(device)
         sw = torch.IntTensor([sw]).to(device)
         self.camera = PinholeCamera(sK, E, sh, sw)
-    
+
     @property
     def scaled_camera_matrix(self):
-        return self.camera.intrinsics.clone()[:3,:3]
+        return self.camera.intrinsics.clone()[:3, :3]
 
     def change_device(self, device):
         """Changes the device of all the class members
@@ -163,7 +163,7 @@ class ImageProjector:
         W = self.camera.width.item()
 
         # Create output mask
-        masks = torch.zeros((B, C, H, W), dtype=torch.float32)
+        masks = torch.zeros((B, C, H, W), dtype=torch.float32, device=points.device)
         image_overlay = image
 
         # Project points
@@ -173,14 +173,15 @@ class ImageProjector:
 
         # Get convex hull
         if valid_points.sum() > 3:
+
             hull = ConvexHull(np_projected_points, qhull_options="QJ")
 
             # Get subset of points that are part of the convex hull
-            indices = torch.LongTensor(hull.vertices)
+            indices = torch.from_numpy(hull.vertices).to(projected_points.device).type(torch.long)
             projected_hull = projected_points[..., indices, :].to(torch.int32)
 
             # Fill the mask
-            masks = draw_convex_polygon(masks, projected_hull.to(masks.device), colors.to(masks.device))
+            masks = draw_convex_polygon(masks, projected_hull, colors)
 
             # Draw on image (if applies)
             if image is not None:
@@ -199,7 +200,7 @@ class ImageProjector:
 def run_image_projector():
     """Projects 3D points to example images and returns an image with the projection"""
 
-    from wild_visual_navigation.utils import get_img_from_fig
+    from wild_visual_navigation.visu import get_img_from_fig
     from wild_visual_navigation.utils import make_plane
     from PIL import Image
     import matplotlib.pyplot as plt

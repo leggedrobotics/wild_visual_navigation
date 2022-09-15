@@ -94,10 +94,12 @@ def ros_pose_to_torch(ros_pose, device="cpu"):
 def ros_tf_to_torch(tf_pose, device="cpu"):
     assert len(tf_pose) == 2
     assert isinstance(tf_pose, tuple)
-
+    if tf_pose[0] is None:
+        return False, None
+    
     t = torch.FloatTensor(tf_pose[0])
     q = torch.FloatTensor(tf_pose[1])
-    return SE3(SO3.from_quaternion(q, ordering="xyzw"), t).as_matrix().to(device)
+    return True, SE3(SO3.from_quaternion(q, ordering="xyzw"), t).as_matrix().to(device)
 
 
 def ros_image_to_torch(ros_img, desired_encoding="rgb8", device="cpu"):

@@ -80,7 +80,81 @@ wandb login
 ### Requirements
 
 ## Experiments
-TODO
+### Robot Usage / Rosbag play [Online]
+Mode to run the pipeline either fully online on the robot or to simply replay rosbags on your system.
+
+- Launch ANYmal Converter:
+`rosrun wild_visual_navigation_anymal anymal_msg_converter_node.py`
+
+- Run WVN Node:
+`python wild_visual_navigation_ros/scripts/wild_visual_navigation_node.py _mode:=default _not_time:=True`
+There exist multiple configurations you can change via the ros-parameters.
+Optionally the node offers services to store the created graph/trained network to the disk.
+
+- (optionally) RVIZ:
+`roslaunch wild_visual_navigation_ros view.launch`
+
+- (replay only) Run Debayer:
+```roslaunch image_proc_cuda_ros image_proc_cuda_node.launch cam0:=false cam1:=false cam2:=false cam3:=false cam4:=true cam5:=false cam6:=false run_gamma_correction:=false run_white_balance:=true run_vignetting_correction:=false run_color_enhancer:=false run_color_calibration:=false run_undistortion:=true run_clahe:=false dump_images:=false needs_rotation_cam4:=true debayer_option:=bayer_gbrg8```
+
+- (replay only) Replay Rosbag:
+```rosbag play --clock path_to_mission/*.bag```
+
+
+### Learning Usage [Offline]
+#### Dataset Generation
+
+Sometimes it`s usefull to just analyze the network training therefore we provide the tools to extract a dataset usefull for learning from a given rosbag. 
+In the following we explain how you can generate the dataset with the following structure: 
+```
+dataset_name
+  split
+    forest_train.txt
+    forest_val.txt
+    forest_test.txt
+  day3
+    date_time_mission_0_day_3
+      features
+        slic_dino
+          center
+            time_stamp.pt
+            ...
+          graph
+            time_stamp.pt
+            ...
+          seg
+            time_stamp.pt
+            ...
+        slic_sift
+          ...
+        ...
+      image
+        time_stamp.pt
+        ...
+      supervision_mask
+        time_stamp.pt
+        ...
+```
+
+1. Dataset is configured in **wild_visual_navigation/utils/dataset_info.py**
+2. Run extract_images_and_labels.py (can be also done for multiple missions with **extract_all.py**)
+   - Will at first merge all bags within the provided folders from dataset_info into bags containing the `_tf.bag` and other useful data `_wvn.bag`.
+   - Steps blocking through the bag
+   - Currently, this is done by storing a binary mask and images as .pt files (maybe change to png for storage)
+3. Validate if images and labels are generated correctly with **validate_extract_images_and_labels.py**
+   - This script will remove images if no label is available and the other way around
+   - The stopping early times should be quite small within the seconds
+4. Create lists with the training and train/val/test images: **create_train_val_test_lists.py**
+5. Convert the correct `.pt` files to `.png` such that you can upload them for the test set to segments.ai **convert_test_images_for_labelling.py**
+6. Label them online
+7. Fetch the results using **download_bitmaps_from_segments_ai.py**
+8. Extract the features segments and graph from the image **extract_features_for_dataset**
+
+
+#### Training the Network
+- Training from the final dataset.
+`python3 scripts/train_gnn.py --exp=exp_forest.yaml`
+
 
 ## Contribution
 

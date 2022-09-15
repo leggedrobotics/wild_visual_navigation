@@ -55,7 +55,7 @@ for x in ["tx", "ty", "tz", "qx", "qy", "qz", "qw", "vx", "vy", "vz", "wx", "wy"
     i += 1
 
 
-def anymal_msg_callback(anymal_state):
+def anymal_msg_callback(anymal_state, return_msg=False):
     global labels_initialized
 
     # For RobotState msg
@@ -120,6 +120,8 @@ def anymal_msg_callback(anymal_state):
     # i = i + d
     # robot_state_msg.states[4].values[i:i+d] = anymal_state.joints.effort
 
+    if return_msg:
+        return robot_state_msg
     # Publish
     robot_state_pub.publish(robot_state_msg)
 

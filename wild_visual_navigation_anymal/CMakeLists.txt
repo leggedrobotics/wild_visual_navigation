@@ -14,4 +14,5 @@ catkin_package(
 )
 
 catkin_install_python(PROGRAMS scripts/anymal_msg_converter_node.py
+                               scripts/policy_debug_info_converter_node.py
                       DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
