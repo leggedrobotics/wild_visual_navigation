@@ -1,6 +1,5 @@
 from wild_visual_navigation.feature_extractor import StegoInterface, DinoInterface, SegmentExtractor
-
-import torch.nn.functional as F
+from wild_visual_navigation.utils import Timer
 import skimage
 import torch
 import numpy as np
@@ -9,7 +8,6 @@ from kornia.feature import DenseSIFTDescriptor
 from kornia.contrib import extract_tensor_patches, combine_tensor_patches
 from torchvision import transforms as T
 from PIL import Image, ImageDraw
-from wild_visual_navigation.utils import Timer
 
 
 class FeatureExtractor:
