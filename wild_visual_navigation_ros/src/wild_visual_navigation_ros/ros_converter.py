@@ -50,29 +50,31 @@ def wvn_robot_state_to_torch(robot_state, device="cpu"):
     torch_state = torch.FloatTensor(vector_state.values).to(device)
     return torch_state, vector_state.labels
 
+
 def twist_stamped_to_torch(twist, components: list = ["vx", "vy", "vz", "wx", "wy", "wz"], device="cpu"):
     N = len(components)
     torch_twist = torch.zeros(N).to(device)
     i = 0
     if "vx" in components:
         torch_twist[i] = twist.twist.linear.x
-        i+=1
+        i += 1
     if "vy" in components:
         torch_twist[i] = twist.twist.linear.y
-        i+=1
+        i += 1
     if "vz" in components:
         torch_twist[i] = twist.twist.linear.z
-        i+=1
+        i += 1
     if "wx" in components:
         torch_twist[i] = twist.twist.angular.x
-        i+=1
+        i += 1
     if "wy" in components:
         torch_twist[i] = twist.twist.angular.y
-        i+=1
+        i += 1
     if "wz" in components:
         torch_twist[i] = twist.twist.angular.z
-        i+=1
+        i += 1
     return torch_twist
+
 
 def ros_cam_info_to_tensors(caminfo_msg, device="cpu"):
     K = torch.eye(4, dtype=torch.float32).to(device)
@@ -96,7 +98,6 @@ def ros_tf_to_torch(tf_pose, device="cpu"):
     assert isinstance(tf_pose, tuple)
     if tf_pose[0] is None:
         return False, None
-    
     t = torch.FloatTensor(tf_pose[0])
     q = torch.FloatTensor(tf_pose[1])
     return True, SE3(SO3.from_quaternion(q, ordering="xyzw"), t).as_matrix().to(device)
@@ -117,7 +118,7 @@ def torch_to_ros_image(torch_img, desired_encoding="rgb8"):
     Returns:
         _type_: _description_
     """
-    
+
     np_img = np.array(TO_PIL_IMAGE(torch_img.cpu()))
     ros_img = CV_BRIDGE.cv2_to_imgmsg(np_img, encoding=desired_encoding)
     return ros_img
@@ -138,7 +139,7 @@ def numpy_to_ros_image(np_img, desired_encoding="rgb8"):
 
 
 def torch_to_ros_pose(torch_pose):
-    q = SO3.from_matrix(torch_pose[:3, :3].cpu(),  normalize=True).to_quaternion(ordering="xyzw")
+    q = SO3.from_matrix(torch_pose[:3, :3].cpu(), normalize=True).to_quaternion(ordering="xyzw")
     t = torch_pose[:3, 3].cpu()
     pose = Pose()
     pose.orientation.x = q[0]

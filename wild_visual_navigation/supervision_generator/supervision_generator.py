@@ -124,6 +124,7 @@ class SupervisionGenerator:
         self._is_untraversable = (self._traversability < self._untraversable_thr).item()
 
         # Return
+        self._traversability = torch.clamp(self._traversability, min=0.001, max=1.0)
         return self._traversability, self._traversability_var, self._is_untraversable
 
     def update_pose_prediction(
@@ -132,12 +133,13 @@ class SupervisionGenerator:
         current_pose_in_world: torch.tensor,
         current_velocity: torch.tensor,
         desired_velocity: torch.tensor,
+        velocities: list = ["vx", "vy", "vz", "wx", "wy", "wz"],
     ):
         # Save in twist graph
         self._graph_twist.add_node(
             TwistNode(
-                timestamp=predicted_timestamp,
-                pose_in_world=predicted_estimated_pose_in_world,
+                timestamp=timestamp,
+                pose_in_world=current_pose_in_world,
                 desired_twist=desired_velocity,
                 current_twist=current_velocity,
             )
@@ -163,6 +165,8 @@ class SupervisionGenerator:
         # Apply threshold to detect hard obstacles
         self._is_untraversable = (self._traversability < self._untraversable_thr).item()
 
+        # Return
+        self._traversability = torch.clamp(self._traversability, min=0.001, max=1.0)
         return self._traversability, self._traversability_var, self._is_untraversable
 
     @property
@@ -259,4 +263,4 @@ def run_supervision_generator():
 
 
 if __name__ == "__main__":
-    run_traversability_generator()
+    run_supervision_generator()
