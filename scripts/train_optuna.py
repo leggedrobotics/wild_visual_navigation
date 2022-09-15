@@ -16,15 +16,20 @@ from wild_visual_navigation import WVN_ROOT_DIR
 def objective(trial, experiment: ExperimentParams):
     exp = copy.deepcopy(experiment)
 
-    # exp.optimizer.lr = trial.suggest_float("lr", 0.0001, 0.01, log=True)
+    exp.optimizer.lr = trial.suggest_float("lr", 0.0001, 0.01, log=True)
     exp.loss.w_trav = trial.suggest_float("w_trav", 0.01, 2.0)
+    exp.loss.w_temp = trial.suggest_float("w_temp", 0.01, 2.0)
+
     exp.loss.anomaly_blanced = trial.suggest_categorical("anomaly_blanced", [True, False])
+
+    if not trial.suggest_categorical("use_temporal_consistency", [True, False]):
+        exp.loss.w_temp = 0.0
     # exp.trainer.max_epochs = trial.suggest_int("max_epochs", 1, 10)
 
     res, _, _, _ = training_routine(exp)
 
     torch.cuda.empty_cache()
-    return res[0]["test_auroc_gt"]
+    return res["test_auroc_gt"]
 
 
 if __name__ == "__main__":
@@ -35,7 +40,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--name", type=str, default="lr_exp_0", help="Name of sweep")
     parser.add_argument("--log_lightning_run", type=bool, default=False, help="Log Lightning Run")
-    parser.add_argument("--n_trials", type=int, default=20, help="Number Trials")
+    parser.add_argument("--n_trials", type=int, default=200, help="Number Trials")
 
     args = parser.parse_args()
 

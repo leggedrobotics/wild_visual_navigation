@@ -27,6 +27,7 @@ import pickle
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
+from wild_visual_navigation.utils import Timer
 
 to_tensor = transforms.ToTensor()
 
@@ -70,7 +71,9 @@ class TraversabilityEstimator:
         self._feature_type = feature_type
 
         self._feature_extractor = FeatureExtractor(
-            device, segmentation_type=self._segmentation_type, feature_type=self._feature_type
+            device,
+            segmentation_type=self._segmentation_type,
+            feature_type=self._feature_type,
         )
         # Optical flow
         self._optical_flow_estimator_type = optical_flow_estimator_type
@@ -301,10 +304,8 @@ class TraversabilityEstimator:
         """
 
         # Compute image features
-        from wild_visual_navigation.utils import Timer
 
-        with Timer("update_features(node)"):
-            self.update_features(node)
+        self.update_features(node)
 
         previous_node = self._mission_graph.get_last_node()
         # Add image node
@@ -451,6 +452,29 @@ class TraversabilityEstimator:
                         )
                         store = torch.nan_to_num(mnode.supervision_mask.nanmean(axis=0)) != 0
                         torch.save(store, p)
+
+            # # Project footprint onto all the image nodes takes a lot of time
+            # for mnode in mission_nodes:
+            #     mask, _, _, _ = mnode.project_footprint(footprint, color=color)  # 2ms
+
+            #     if (not hasattr(mnode, "supervision_mask")) or (mask is None) or (mnode.supervision_mask is None):
+            #         continue
+
+            #     # Update mask with traversability
+            #     mask = mask[0] * pnode.traversability
+
+            #     # Get global node and update supervision signal
+            #     mnode.supervision_mask = torch.fmin(mnode.supervision_mask, mask)
+            #     mnode.update_supervision_signal()
+
+            #     if self._mode == WVNMode.EXTRACT_LABELS:
+            #         p = os.path.join(
+            #             self._running_store_folder,
+            #             "supervision_mask",
+            #             str(mnode.timestamp).replace(".", "_") + ".pt",
+            #         )
+            #         store = torch.nan_to_num(mnode.supervision_mask.nanmean(axis=0)) != 0
+            #         torch.save(store, p)
 
             return True
 
