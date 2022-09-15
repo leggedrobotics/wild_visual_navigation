@@ -131,7 +131,6 @@ def run_kalman_filter():
     """Tests Kalman Filter"""
 
     import matplotlib.pyplot as plt
-    import seaborn as sns
 
     # Normal KF
     kf1 = KalmanFilter(dim_state=1, dim_control=1, dim_meas=1, outlier_rejection="none")
@@ -207,7 +206,7 @@ def run_kalman_filter():
         x_e_np[0] + x_cov_np[0],
         alpha=0.3,
         label="Confidence bounds (1$\sigma$)",
-        color="r",
+        color="r"
     )
     plt.fill_between(
         t_np,
@@ -215,7 +214,7 @@ def run_kalman_filter():
         x_e_np[1] + x_cov_np[1],
         alpha=0.3,
         label="Confidence bounds (1$\sigma$)",
-        color="b",
+        color="b"
     )
     plt.legend()
     plt.show()

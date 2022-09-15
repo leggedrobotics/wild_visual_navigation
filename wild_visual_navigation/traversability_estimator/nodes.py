@@ -1,5 +1,5 @@
 from wild_visual_navigation.image_projector import ImageProjector
-from wild_visual_navigation.utils import make_box, make_plane, make_polygon_from_points
+from wild_visual_navigation.utils import make_box, make_plane, make_polygon_from_points, make_dense_plane
 from liegroups.torch import SE3, SO3
 from torch_geometric.data import Data
 import os
@@ -390,7 +390,7 @@ class ProprioceptionNode(BaseNode):
     """Local node stores all the information required for traversability estimation and debugging
     All the information matches a real frame that must be respected to keep consistency"""
 
-    _name = "local_proprioception_node"
+    _name = "proprioception_node"
 
     def __init__(
         self,
@@ -456,7 +456,7 @@ class ProprioceptionNode(BaseNode):
         device = self._pose_footprint_in_world.device
         motion_direction = self._twist_in_base / self._twist_in_base.norm()
 
-        dim_twist = motion_direction.shape[-1]
+        # dim_twist = motion_direction.shape[-1]
         # if dim_twist != 2:
         #     print(f"Warning: input twist has dimension [{dim_twist}], will assume that twist[0]=vx, twist[1]=vy")
 
@@ -485,10 +485,14 @@ class ProprioceptionNode(BaseNode):
             other_side_points = other.get_side_points()
             this_side_points = self.get_side_points()
             # swap points to make them counterclockwise
-            other_side_points[[0, 1]] = other_side_points[[1, 0]]
+            this_side_points[[0, 1]] = this_side_points[[1, 0]]
+            # The idea is to make a polygon like:
+            # tsp[1] ---- tsp[0]
+            #  |            |
+            # osp[0] ---- osp[1]
 
             # Concat points to define the polygon
-            points = torch.concat((other_side_points, this_side_points), dim=0)
+            points = torch.concat((this_side_points, other_side_points), dim=0)
             # Make footprint
             footprint = make_polygon_from_points(points, grid_size=grid_size)
         return footprint

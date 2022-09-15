@@ -7,8 +7,6 @@ from torchvision import transforms as T
 from kornia.geometry.camera.pinhole import PinholeCamera
 from kornia.geometry.linalg import transform_points
 from kornia.utils.draw import draw_convex_polygon
-from scipy.spatial import ConvexHull
-
 from liegroups.torch import SE3, SO3
 
 

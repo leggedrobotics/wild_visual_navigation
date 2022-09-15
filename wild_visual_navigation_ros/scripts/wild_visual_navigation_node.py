@@ -14,7 +14,6 @@ from geometry_msgs.msg import PoseStamped, Point, TwistStamped
 from nav_msgs.msg import Path
 from sensor_msgs.msg import Image, CameraInfo
 from std_msgs.msg import ColorRGBA, Float32, Float32MultiArray
-from std_srvs.srv import Trigger, TriggerResponse
 from threading import Thread
 from visualization_msgs.msg import Marker
 import message_filters
@@ -264,7 +263,7 @@ class WvnRosInterface:
         if req.path == "" or req.mission_name == "":
             return SaveLoadDataResponse(
                 success=False,
-                message=f"Either output_path [{path}] or mission_name [{mission_name}] is empty. Please check and try again",
+                message=f"Either output_path [{req.path}] or mission_name [{req.mission_name}] is empty. Please check and try again",
             )
 
         mission_path = os.path.join(req.path, req.mission_name)
@@ -283,7 +282,7 @@ class WvnRosInterface:
         if req.path == "" or req.mission_name == "":
             return SaveLoadDataResponse(
                 success=False,
-                message=f"Either path [{path}] or mission_name [{mission_name}] is empty. Please check and try again",
+                message=f"Either path [{req.path}] or mission_name [{req.mission_name}] is empty. Please check and try again",
             )
 
         mission_path = os.path.join(req.path, req.mission_name)
@@ -301,7 +300,7 @@ class WvnRosInterface:
         if req.path == "" or req.mission_name == "":
             return SaveLoadDataResponse(
                 success=False,
-                message=f"Either path [{path}] or mission_name [{mission_name}] is empty. Please check and try again",
+                message=f"Either path [{req.path}] or mission_name [{req.mission_name}] is empty. Please check and try again",
             )
 
         mission_path = os.path.join(req.path, req.mission_name)
@@ -318,7 +317,7 @@ class WvnRosInterface:
         if req.path == "" or req.mission_name == "":
             return SaveLoadDataResponse(
                 success=False,
-                message=f"Either path [{path}] or mission_name [{mission_name}] is empty. Please check and try again",
+                message=f"Either path [{req.path}] or mission_name [{req.mission_name}] is empty. Please check and try again",
             )
 
         mission_path = os.path.join(req.path, req.mission_name)
