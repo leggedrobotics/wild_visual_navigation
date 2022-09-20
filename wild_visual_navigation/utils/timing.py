@@ -4,16 +4,22 @@ import torch
 class Timer:
     def __init__(self, name="") -> None:
         self.name = name
-
-    def __enter__(self):
         self.start = torch.cuda.Event(enable_timing=True)
         self.end = torch.cuda.Event(enable_timing=True)
+
+    def __enter__(self):
         self.start.record()
 
     def __exit__(self, exc_type, exc_value, exc_tb):
+        print(f"Time {self.name}: ", self.toc(), "ms")
+
+    def tic(self):
+        self.start.record()
+
+    def toc(self):
         self.end.record()
         torch.cuda.synchronize()
-        print(f"Time {self.name}: ", self.start.elapsed_time(self.end), "ms")
+        return self.start.elapsed_time(self.end)
 
 
 def accumulate_time(method):
