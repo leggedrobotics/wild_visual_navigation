@@ -44,6 +44,7 @@ class WvnRosInterface:
         # Initialize traversability estimator
         self.traversability_estimator = TraversabilityEstimator(
             device=self.device,
+            image_size=self.network_input_image_height,  # Note: we assume height == width
             segmentation_type=self.segmentation_type,
             feature_type=self.feature_type,
             max_distance=self.traversability_radius,
@@ -122,8 +123,8 @@ class WvnRosInterface:
         self.traversability_radius = rospy.get_param("~traversability_radius", 3.0)
         self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr", 0.2)
         self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.1)
-        self.network_input_image_height = rospy.get_param("~network_input_image_height", 448)
-        self.network_input_image_width = rospy.get_param("~network_input_image_width", 448)
+        self.network_input_image_height = rospy.get_param("~network_input_image_height", 224)  # 448
+        self.network_input_image_width = rospy.get_param("~network_input_image_width", 224)  # 448
         self.segmentation_type = rospy.get_param("~segmentation_type", "slic")
         self.feature_type = rospy.get_param("~feature_type", "dino")
 
@@ -420,6 +421,7 @@ class WvnRosInterface:
             if self.mode != WVNMode.EXTRACT_LABELS:
                 # Visualizations (45ms)
                 self.visualize_proprioception()
+
         except Exception as e:
             traceback.print_exc()
             print("error state callback", e)
@@ -433,7 +435,7 @@ class WvnRosInterface:
             info_msg (sensor_msgs/CameraInfo): Camera info message associated to the image
         """
 
-        print("Image callback")
+        print("\nImage callback")
         try:
 
             # Run the callback so as to match the desired rate

@@ -34,10 +34,10 @@ class ConfidenceGenerator(torch.nn.Module):
         """
         self.running_n += x.numel()
         self.running_sum += x.sum()
-        self.running_sum_of_sqaures += (x**2).sum()
+        self.running_sum_of_sqaures += (x ** 2).sum()
 
         self.mean = self.running_sum / self.running_n
-        self.var = self.running_sum_of_sqaures / self.running_n - self.mean**2
+        self.var = self.running_sum_of_sqaures / self.running_n - self.mean ** 2
         self.std = torch.sqrt(self.var)
 
         uncertainty = (
