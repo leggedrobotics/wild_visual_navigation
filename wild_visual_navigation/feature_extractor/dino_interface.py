@@ -15,7 +15,7 @@ class DinoInterface:
         input_size: int = 448,
         input_interp: str = "bilinear",
         model_type: str = "vit_small",
-        patch_size: int = 16,  # 8
+        patch_size: int = 8,
     ):
         self.dim = 90
         self.cfg = DictConfig(
@@ -177,6 +177,7 @@ def run_dino_interfacer():
     img = (img.type(torch.float32) / 255)[None]
 
     plot = False
+    save_features = True
 
     # Settings
     size = 448
@@ -194,14 +195,28 @@ def run_dino_interfacer():
         try:
             feat_dino = di.inference(di.transform(img), interpolate=False)
 
-            if plot:
-                # Fix size of DINO features to match input image's size
-                B, D, H, W = img.shape
-                new_size = (H, H)
-                pad = int((W - H) / 2)
-                feat_dino = F.interpolate(feat_dino, new_size, mode="bilinear", align_corners=True)
-                # feat_dino = F.pad(feat_dino, pad=[pad, pad, 0, 0])
+            if save_features:
+                for i in range(90):
+                    fig = plt.figure(frameon=False)
+                    fig.set_size_inches(2, 2)
+                    ax = plt.Axes(fig, [0.0, 0.0, 1.0, 1.0])
+                    ax.set_axis_off()
+                    fig.add_axes(ax)
+                    ax.imshow(feat_dino[0][i].cpu(), cmap=plt.colormaps.get("inferno"))
 
+                    # Store results to test directory
+                    out_img = get_img_from_fig(fig)
+                    out_img.save(
+                        join(
+                            WVN_ROOT_DIR,
+                            "results",
+                            "test_dino_interfacer",
+                            f"forest_clean_dino_feat{i:02}_{di.input_size}_{di.input_interpolation}_{di.model_type}_{di.vit_patch_size}.png",
+                        )
+                    )
+                    plt.close("all")
+
+            if plot:
                 # Plot result as in colab
                 fig, ax = plt.subplots(10, 11, figsize=(1 * 11, 1 * 11))
 

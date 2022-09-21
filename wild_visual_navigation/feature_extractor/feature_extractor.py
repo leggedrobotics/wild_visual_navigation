@@ -34,7 +34,7 @@ class FeatureExtractor:
             self.extractor = StegoInterface(device=device, input_size=input_size)
         elif self._feature_type == "dino":
             self._feature_dim = 90
-            self.extractor = DinoInterface(device=device, input_size=input_size)
+            self.extractor = DinoInterface(device=device, input_size=input_size, patch_size=16)
         elif self._feature_type == "sift":
             self._feature_dim = 128
             self.extractor = DenseSIFTDescriptor().to(device)
