@@ -685,9 +685,11 @@ class WvnRosInterface:
                         np_prediction_image,
                         np_uncertainty_image,
                     ) = self.traversability_estimator.plot_mission_node_prediction(vis_node)
-                self.pub_image_prediction_input.publish(rc.torch_to_ros_image(vis_node.image))
-                self.pub_image_prediction.publish(rc.numpy_to_ros_image(np_prediction_image))
-                self.pub_image_prediction_uncertainty.publish(rc.numpy_to_ros_image(np_uncertainty_image))
+                
+                with Timer("publish_mission_node_prediction"):
+                    self.pub_image_prediction_input.publish(rc.torch_to_ros_image(vis_node.image))
+                    self.pub_image_prediction.publish(rc.numpy_to_ros_image(np_prediction_image))
+                    self.pub_image_prediction_uncertainty.publish(rc.numpy_to_ros_image(np_uncertainty_image))
 
             # Publish reprojections of last node in graph
             if vis_node is not None:
@@ -695,22 +697,24 @@ class WvnRosInterface:
                     np_labeled_image, np_mask_image = self.traversability_estimator.plot_mission_node_training(vis_node)
                 if np_labeled_image is None or np_mask_image is None:
                     return
-                self.pub_image_labeled.publish(rc.numpy_to_ros_image(np_labeled_image))
-                self.pub_image_mask.publish(rc.numpy_to_ros_image(np_mask_image))
+                with Timer("publish_mission_node_training"):
+                    self.pub_image_labeled.publish(rc.numpy_to_ros_image(np_labeled_image))
+                    self.pub_image_mask.publish(rc.numpy_to_ros_image(np_mask_image))
 
         # Publish mission graph
-        mission_graph_msg = Path()
-        mission_graph_msg.header.frame_id = self.fixed_frame
-        mission_graph_msg.header.stamp = now
+        with Timer("publish_mission_graph"):
+            mission_graph_msg = Path()
+            mission_graph_msg.header.frame_id = self.fixed_frame
+            mission_graph_msg.header.stamp = now
 
-        for node in self.traversability_estimator.get_mission_nodes():
-            pose = PoseStamped()
-            pose.header.stamp = now
-            pose.header.frame_id = self.fixed_frame
-            pose.pose = rc.torch_to_ros_pose(node.pose_cam_in_world)
-            mission_graph_msg.poses.append(pose)
+            for node in self.traversability_estimator.get_mission_nodes():
+                pose = PoseStamped()
+                pose.header.stamp = now
+                pose.header.frame_id = self.fixed_frame
+                pose.pose = rc.torch_to_ros_pose(node.pose_cam_in_world)
+                mission_graph_msg.poses.append(pose)
 
-        self.pub_mission_graph.publish(mission_graph_msg)
+            self.pub_mission_graph.publish(mission_graph_msg)
 
 
 if __name__ == "__main__":

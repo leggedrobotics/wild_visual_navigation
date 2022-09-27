@@ -329,31 +329,32 @@ class TraversabilityEstimator:
                 # Project past footprints on current image
                 supervision_mask = torch.ones(node.image.shape).to(self._device) * torch.nan
 
-                proprio_nodes = self._proprio_graph.get_nodes()
-                for last_pnode, pnode in zip(proprio_nodes[:-1], proprio_nodes[1:]):
-                    # Make footprint
-                    footprint = pnode.make_footprint_with_node(last_pnode)[None]
+                # proprio_nodes = self._proprio_graph.get_nodes()
+                # for last_pnode, pnode in zip(proprio_nodes[:-1], proprio_nodes[1:]):
+                #     # Make footprint
+                #     footprint = pnode.make_footprint_with_node(last_pnode)[None]
 
-                    # Project mask
-                    color = torch.ones((3,), device=self._device)
-                    mask, _, _, _ = node.project_footprint(footprint, color=color)
-                    if mask is None:
-                        continue
+                #     # Project mask
+                #     color = torch.ones((3,), device=self._device)
+                #     mask, _, _, _ = node.project_footprint(footprint, color=color)
+                #     if mask is None:
+                #         continue
 
-                    # Update mask with traversability
-                    mask = mask[0] * pnode.traversability
+                #     # Update mask with traversability
+                #     mask = mask[0] * pnode.traversability
 
-                    # Get global node and update supervision signal
-                    supervision_mask = torch.fmin(supervision_mask, mask)
+                #     # Get global node and update supervision signal
+                #     supervision_mask = torch.fmin(supervision_mask, mask)
 
-                # Finally overwrite the current mask
-                with Timer("add_mission_node - update_supervision_signal"):
-                    node.supervision_mask = supervision_mask
-                    node.update_supervision_signal()
+            # Finally overwrite the current mask
+            with Timer("add_mission_node - update_supervision_signal"):
+                node.supervision_mask = supervision_mask
+                node.update_supervision_signal()
 
-                if self._mode == WVNMode.EXTRACT_LABELS:
-                    p = os.path.join(self._running_store_folder, "image", str(node.timestamp).replace(".", "_") + ".pt")
-                    torch.save(node.image, p)
+            if self._mode == WVNMode.EXTRACT_LABELS:
+                p = os.path.join(self._running_store_folder, "image", str(node.timestamp).replace(".", "_") + ".pt")
+                torch.save(node.image, p)
+
             return True
         else:
             return False

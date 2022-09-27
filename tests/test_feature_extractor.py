@@ -10,8 +10,8 @@ import cv2
 
 
 def test_feature_extractor():
-    segmentation_type = "stego"
-    feature_type = "stego"
+    segmentation_type = "none"
+    feature_type = "dino"
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     fe = FeatureExtractor(device, segmentation_type=segmentation_type, feature_type=feature_type)
@@ -39,7 +39,7 @@ def test_feature_extractor():
 
     ax[0].imshow(transform(img).permute(0, 2, 3, 1)[0].cpu())
     ax[0].set_title("Image")
-    ax[1].imshow(seg.cpu())
+    ax[1].imshow(seg.cpu(), cmap=plt.colormaps.get("inferno"))
     ax[1].set_title("Segmentation")
     plt.tight_layout()
 
