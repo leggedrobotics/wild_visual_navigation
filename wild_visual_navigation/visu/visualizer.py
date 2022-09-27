@@ -205,7 +205,7 @@ class LearningVisualizer:
             img.detach().cpu().numpy(), m.detach().cpu().numpy(), not_log=True, store=False, colormap=colormap
         )
         i2 = (torch.from_numpy(i1).type(torch.float32) / 255).permute(2, 0, 1)
-        
+
         # Plot Graph on Image
         return self.plot_traversability_graph(
             prediction,

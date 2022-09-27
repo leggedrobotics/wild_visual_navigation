@@ -685,7 +685,7 @@ class WvnRosInterface:
                         np_prediction_image,
                         np_uncertainty_image,
                     ) = self.traversability_estimator.plot_mission_node_prediction(vis_node)
-                
+
                 with Timer("publish_mission_node_prediction"):
                     self.pub_image_prediction_input.publish(rc.torch_to_ros_image(vis_node.image))
                     self.pub_image_prediction.publish(rc.numpy_to_ros_image(np_prediction_image))
