@@ -13,7 +13,7 @@ Panels:
         - /Elevation Map1
         - /Elevation Map1/gridmap_uncertainty1
       Splitter Ratio: 0.644501268863678
-    Tree Height: 316
+    Tree Height: 176
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -32,7 +32,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: Live Image
+    SyncSource: Confidence
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -143,6 +143,10 @@ Visualization Manager:
           Value: false
         RH_thigh_fixed:
           Value: false
+        aft_mapped:
+          Value: true
+        aft_mapped_to_init_CORRECTED:
+          Value: true
         alphasense_mesh:
           Value: true
         base:
@@ -155,18 +159,6 @@ Visualization Manager:
           Value: false
         bottom_shell:
           Value: false
-        bpearl_front:
-          Value: true
-        bpearl_front_beam_origin:
-          Value: true
-        bpearl_front_protection_bars:
-          Value: true
-        bpearl_rear:
-          Value: true
-        bpearl_rear_beam_origin:
-          Value: true
-        bpearl_rear_protection_bars:
-          Value: true
         cam0_sensor_frame:
           Value: false
         cam1_sensor_frame:
@@ -189,12 +181,88 @@ Visualization Manager:
           Value: false
         cam6_sensor_frame_helper:
           Value: false
+        camera:
+          Value: true
+        camera_CORRECTED:
+          Value: true
         camera_init:
           Value: false
         camera_init_CORRECTED:
           Value: false
+        camera_init_GRAVITY_ALIGNED:
+          Value: true
+        control:
+          Value: true
+        depth_camera_front_camera:
+          Value: true
+        depth_camera_front_camera_parent:
+          Value: true
+        depth_camera_front_depth_frame:
+          Value: true
+        depth_camera_front_depth_optical_frame:
+          Value: true
+        depth_camera_front_infra1_frame:
+          Value: true
+        depth_camera_front_infra1_optical_frame:
+          Value: true
+        depth_camera_front_infra2_frame:
+          Value: true
+        depth_camera_front_infra2_optical_frame:
+          Value: true
+        depth_camera_left_camera:
+          Value: true
+        depth_camera_left_camera_parent:
+          Value: true
+        depth_camera_left_depth_frame:
+          Value: true
+        depth_camera_left_depth_optical_frame:
+          Value: true
+        depth_camera_left_infra1_frame:
+          Value: true
+        depth_camera_left_infra1_optical_frame:
+          Value: true
+        depth_camera_left_infra2_frame:
+          Value: true
+        depth_camera_left_infra2_optical_frame:
+          Value: true
+        depth_camera_rear_camera:
+          Value: true
+        depth_camera_rear_camera_parent:
+          Value: true
+        depth_camera_rear_depth_frame:
+          Value: true
+        depth_camera_rear_depth_optical_frame:
+          Value: true
+        depth_camera_rear_infra1_frame:
+          Value: true
+        depth_camera_rear_infra1_optical_frame:
+          Value: true
+        depth_camera_rear_infra2_frame:
+          Value: true
+        depth_camera_rear_infra2_optical_frame:
+          Value: true
+        depth_camera_right_camera:
+          Value: true
+        depth_camera_right_camera_parent:
+          Value: true
+        depth_camera_right_depth_frame:
+          Value: true
+        depth_camera_right_depth_optical_frame:
+          Value: true
+        depth_camera_right_infra1_frame:
+          Value: true
+        depth_camera_right_infra1_optical_frame:
+          Value: true
+        depth_camera_right_infra2_frame:
+          Value: true
+        depth_camera_right_infra2_optical_frame:
+          Value: true
         docking_hatch_cover:
           Value: false
+        face_front:
+          Value: true
+        face_rear:
+          Value: true
         feetcenter:
           Value: true
         footprint:
@@ -211,10 +279,20 @@ Visualization Manager:
           Value: false
         interface_hatch:
           Value: false
+        laser_odom:
+          Value: true
+        laser_odom_CORRECTED:
+          Value: true
         lidar:
           Value: false
+        lidar_rotated:
+          Value: true
+        loco_footprint:
+          Value: true
         map:
           Value: false
+        mira_spectrometer:
+          Value: true
         msf_body_imu_map:
           Value: true
         odom:
@@ -223,8 +301,18 @@ Visualization Manager:
           Value: false
         remote:
           Value: false
+        state_msf_body_imu:
+          Value: true
         top_shell:
           Value: false
+        wide_angle_camera_front_camera:
+          Value: true
+        wide_angle_camera_front_camera_parent:
+          Value: true
+        wide_angle_camera_rear_camera:
+          Value: true
+        wide_angle_camera_rear_camera_parent:
+          Value: true
       Marker Alpha: 1
       Marker Scale: 0.5
       Name: TF
@@ -288,18 +376,60 @@ Visualization Manager:
               {}
             bottom_shell:
               {}
-            bpearl_front:
-              bpearl_front_beam_origin:
-                {}
-            bpearl_front_protection_bars:
-              {}
-            bpearl_rear:
-              bpearl_rear_beam_origin:
-                {}
-            bpearl_rear_protection_bars:
-              {}
+            depth_camera_left_camera:
+              depth_camera_left_camera_parent:
+                depth_camera_left_depth_frame:
+                  depth_camera_left_depth_optical_frame:
+                    {}
+                depth_camera_left_infra1_frame:
+                  depth_camera_left_infra1_optical_frame:
+                    {}
+                depth_camera_left_infra2_frame:
+                  depth_camera_left_infra2_optical_frame:
+                    {}
+            depth_camera_right_camera:
+              depth_camera_right_camera_parent:
+                depth_camera_right_depth_frame:
+                  depth_camera_right_depth_optical_frame:
+                    {}
+                depth_camera_right_infra1_frame:
+                  depth_camera_right_infra1_optical_frame:
+                    {}
+                depth_camera_right_infra2_frame:
+                  depth_camera_right_infra2_optical_frame:
+                    {}
             docking_hatch_cover:
               {}
+            face_front:
+              depth_camera_front_camera:
+                depth_camera_front_camera_parent:
+                  depth_camera_front_depth_frame:
+                    depth_camera_front_depth_optical_frame:
+                      {}
+                  depth_camera_front_infra1_frame:
+                    depth_camera_front_infra1_optical_frame:
+                      {}
+                  depth_camera_front_infra2_frame:
+                    depth_camera_front_infra2_optical_frame:
+                      {}
+              wide_angle_camera_front_camera:
+                wide_angle_camera_front_camera_parent:
+                  {}
+            face_rear:
+              depth_camera_rear_camera:
+                depth_camera_rear_camera_parent:
+                  depth_camera_rear_depth_frame:
+                    depth_camera_rear_depth_optical_frame:
+                      {}
+                  depth_camera_rear_infra1_frame:
+                    depth_camera_rear_infra1_optical_frame:
+                      {}
+                  depth_camera_rear_infra2_frame:
+                    depth_camera_rear_infra2_optical_frame:
+                      {}
+              wide_angle_camera_rear_camera:
+                wide_angle_camera_rear_camera_parent:
+                  {}
             front_handle:
               {}
             handle:
@@ -309,6 +439,8 @@ Visualization Manager:
             interface_hatch:
               hatch:
                 {}
+            mira_spectrometer:
+              {}
             perception_head_cage:
               lidar:
                 imu_sensor_frame:
@@ -330,20 +462,40 @@ Visualization Manager:
                   cam6_sensor_frame_helper:
                     cam6_sensor_frame:
                       {}
+                lidar_rotated:
+                  {}
             remote:
               {}
             top_shell:
               {}
+          control:
+            {}
           feetcenter:
             {}
           footprint:
             {}
+          loco_footprint:
+            {}
           map:
             camera_init_CORRECTED:
+              aft_mapped_to_init_CORRECTED:
+                {}
+              camera_CORRECTED:
+                {}
               camera_init:
+                aft_mapped:
+                  {}
+                camera:
+                  {}
+                laser_odom:
+                  {}
+              camera_init_GRAVITY_ALIGNED:
+                {}
+              laser_odom_CORRECTED:
                 {}
           msf_body_imu_map:
-            {}
+            state_msf_body_imu:
+              {}
       Update Interval: 0
       Value: true
     - Class: rviz/Group
@@ -416,347 +568,7 @@ Visualization Manager:
             Expand Joint Details: false
             Expand Link Details: false
             Expand Tree: false
-            LF_FOOT:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LF_HAA:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LF_HFE:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LF_HIP:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            LF_KFE:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LF_SHANK:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            LF_THIGH:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            LF_hip_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LF_shank_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LF_thigh_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LH_FOOT:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LH_HAA:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LH_HFE:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LH_HIP:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            LH_KFE:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LH_SHANK:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            LH_THIGH:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            LH_hip_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LH_shank_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LH_thigh_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
             Link Tree Style: Links in Alphabetic Order
-            RF_FOOT:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RF_HAA:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RF_HFE:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RF_HIP:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            RF_KFE:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RF_SHANK:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            RF_THIGH:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            RF_hip_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RF_shank_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RF_thigh_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RH_FOOT:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RH_HAA:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RH_HFE:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RH_HIP:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            RH_KFE:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RH_SHANK:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            RH_THIGH:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            RH_hip_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RH_shank_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RH_thigh_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            alphasense_mesh:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            base:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            base_inertia:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            battery:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            body_top:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            bottom_shell:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            bpearl_front:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            bpearl_front_beam_origin:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            bpearl_front_protection_bars:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            bpearl_rear:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            bpearl_rear_beam_origin:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            bpearl_rear_protection_bars:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            cam0_sensor_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            cam1_sensor_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            cam2_sensor_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            cam3_sensor_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            cam3_sensor_frame_helper:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            cam4_sensor_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            cam4_sensor_frame_helper:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            cam5_sensor_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            cam5_sensor_frame_helper:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            cam6_sensor_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            cam6_sensor_frame_helper:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            docking_hatch_cover:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            front_handle:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            handle:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            hatch:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            imu_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            imu_sensor_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            interface_hatch:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            lidar:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            perception_head_cage:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            remote:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            top_shell:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
           Name: RobotModel
           Robot Description: anymal_description
           TF Prefix: ""
@@ -798,7 +610,7 @@ Visualization Manager:
               Marker Topic: /wild_visual_navigation_node/graph_footprints
               Name: Footprint
               Namespaces:
-                {}
+                footprints: true
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -944,7 +756,7 @@ Visualization Manager:
           Unreliable: false
           Value: true
         - Class: rviz/Image
-          Enabled: true
+          Enabled: false
           Image Topic: /wild_visual_navigation_node/confidence_raw
           Max Value: 1
           Median window: 5
@@ -954,7 +766,7 @@ Visualization Manager:
           Queue Size: 2
           Transport Hint: raw
           Unreliable: false
-          Value: true
+          Value: false
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
@@ -1013,7 +825,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 9.099456787109375
+      Distance: 4.770111560821533
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -1021,24 +833,24 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.32402515411376953
-        Y: 0.8294470906257629
-        Z: 8.808723350739456e-07
+        X: 1.9322781562805176
+        Y: 1.0019972324371338
+        Z: 4.040351768708206e-07
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7353962659835815
+      Pitch: 0.6703962683677673
       Target Frame: base
-      Yaw: 0.1804112195968628
+      Yaw: 0.6654108762741089
     Saved: ~
 Window Geometry:
   Confidence:
     collapsed: false
   Displays:
     collapsed: false
-  Height: 1043
+  Height: 1016
   Hide Left Dock: false
   Hide Right Dock: true
   Input Image:
@@ -1047,7 +859,7 @@ Window Geometry:
     collapsed: false
   Prediction:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000400000000000001560000026dfc020000000afb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afc00000189000000ee000000330100001cfa000000000100000003fb000000140043006f006e0066006900640065006e006300650100000000ffffffff0000008200fffffffb0000001c0054007200610076006500720073006100620069006c0069007400790100000000ffffffff0000009100fffffffb00000014004c00690076006500200049006d0061006700650100000000000001560000007d00fffffffb000000100044006900730070006c006100790073010000027d00000179000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000c00430061006d00650072006100000002ea000000c80000000000000000000000010000010f00000242fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007300000001b400000242000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000000000020000078000000146fc0100000007fb0000001c0049006d00610067006500200046006500610074007500720065007300000000bf000003690000000000000000fb000000160049006e00700075007400200049006d0061006700650100000000000001a40000008600fffffffb0000001400500072006500640069006300740069006f006e01000001aa000001a80000007b00fffffffb000000160055006e006300650072007400610069006e007400790100000358000001a40000008500fffffffb00000036005300750070006500720076006900730069006f006e0020002d00200049006d0061006700650020004c006100620065006c00650064010000050200000144000000f200fffffffb00000024005300750070006500720076006900730069006f006e0020002d0020004d00610073006b010000064c00000134000000b200fffffffb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007800000003efc0100000002fb0000000800540069006d0065000000000000000780000004f300fffffffb0000000800540069006d00650100000000000004500000000000000000000006240000026d00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000015600000252fc020000000afb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afc000001890000015f000000330100001cfa000000010100000003fb000000140043006f006e0066006900640065006e006300650100000000ffffffff0000008200fffffffb0000001c0054007200610076006500720073006100620069006c0069007400790100000000ffffffff0000009100fffffffb00000014004c00690076006500200049006d0061006700650100000000000001560000007d00fffffffb000000100044006900730070006c00610079007301000002ee000000ed000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000c00430061006d00650072006100000002ea000000c80000000000000000000000010000010f00000242fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007300000001b400000242000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000000000020000073800000146fc0100000007fb0000001c0049006d00610067006500200046006500610074007500720065007300000000bf000003690000000000000000fb000000160049006e00700075007400200049006d0061006700650100000000000001940000008600fffffffb0000001400500072006500640069006300740069006f006e010000019a000001980000007b00fffffffb000000160055006e006300650072007400610069006e007400790100000338000001940000008500fffffffb00000036005300750070006500720076006900730069006f006e0020002d00200049006d0061006700650020004c006100620065006c0065006401000004d200000138000000f200fffffffb00000024005300750070006500720076006900730069006f006e0020002d0020004d00610073006b010000061000000128000000b200fffffffb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007800000003efc0100000002fb0000000800540069006d0065000000000000000780000004f300fffffffb0000000800540069006d00650100000000000004500000000000000000000005dc0000025200000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Supervision - Image Labeled:
@@ -1064,6 +876,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: true
-  Width: 1920
-  X: 4480
-  Y: 0
+  Width: 1848
+  X: 72
+  Y: 27

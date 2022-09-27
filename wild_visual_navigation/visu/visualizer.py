@@ -16,6 +16,7 @@ from wild_visual_navigation.learning.utils import get_confidence
 from wild_visual_navigation.visu import get_img_from_fig
 from wild_visual_navigation.visu import paper_colors_rgb_u8, paper_colors_rgba_u8
 from wild_visual_navigation.visu import paper_colors_rgb_f, paper_colors_rgba_f
+from wild_visual_navigation.utils import Timer
 
 __all__ = ["LearningVisualizer"]
 
@@ -120,9 +121,7 @@ class LearningVisualizer:
         reco_pred = node._prediction[:, 1:]
         conf_pred = get_confidence(reco_pred, node._features)
 
-        from wild_visual_navigation.utils import Timer
-
-        with Timer("on seg"):
+        with Timer("visualizer - plot_traversability_graph_on_seg trav"):
             trav_img = self.plot_traversability_graph_on_seg(
                 trav_pred,
                 node.feature_segments,
@@ -135,6 +134,7 @@ class LearningVisualizer:
                 store=False,
             )
 
+        with Timer("visualizer - plot_traversability_graph_on_seg conf"):
             conf_img = self.plot_traversability_graph_on_seg(
                 conf_pred,
                 node.feature_segments,
@@ -192,16 +192,20 @@ class LearningVisualizer:
         **kwargs,
     ):
         # Transfer the node traversbility score to the segment
+        # with Timer("visualizer - plot_traversability_graph_on_seg - copy_score"):
+        # ~15 ms
         m = torch.zeros_like(seg, dtype=prediction.dtype)
         for i in range(seg.max() + 1):
             m[seg == i] = prediction[i]
 
         # Plot Segments on Image
+        # with Timer("visualizer - plot_traversability_graph_on_seg - plot_segments"):
+        # ~50 ms
         i1 = self.plot_detectron_cont(
             img.detach().cpu().numpy(), m.detach().cpu().numpy(), not_log=True, store=False, colormap=colormap
         )
-
         i2 = (torch.from_numpy(i1).type(torch.float32) / 255).permute(2, 0, 1)
+        
         # Plot Graph on Image
         return self.plot_traversability_graph(
             prediction,
