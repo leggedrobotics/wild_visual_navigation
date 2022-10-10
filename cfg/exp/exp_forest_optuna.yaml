@@ -1,26 +1,18 @@
-general:
-  name: forest/debug
-  timestamp: False
-
 abblation_data_module:
   env: forest
   feature_key: slic_dino
   test_equals_val: False
 
 loss:
-  w_temp: 0.2
-  anomaly_blanced: True
+  w_temp: 0
 
 trainer:
   max_epochs: 10
   check_val_every_n_epoch: 10
 
-model:
-  name: SimpleGCN
-
 visu:
   train: 0
   val: 0
   test: 0
-  log_test_video: True
-  log_val_video: True
+  log_test_video: False
+  log_val_video: False

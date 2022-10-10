@@ -1,0 +1,7 @@
+general:
+  name: forest/slic_dino
+  timestamp: False
+
+abblation_data_module:
+  env: forest
+  feature_key: slic_dino
