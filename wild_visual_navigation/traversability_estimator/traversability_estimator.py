@@ -1,4 +1,5 @@
 from wild_visual_navigation.feature_extractor import FeatureExtractor
+from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation.learning.model import get_model
 from wild_visual_navigation.cfg import ExperimentParams
 from wild_visual_navigation.utils import Timer
@@ -26,7 +27,6 @@ import pickle
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
-from wild_visual_navigation.utils import Timer
 
 to_tensor = transforms.ToTensor()
 
@@ -36,6 +36,7 @@ class TraversabilityEstimator:
         self,
         device: str = "cuda",
         max_distance: float = 3,
+        image_size: int = 448,
         image_distance_thr: float = None,
         proprio_distance_thr: float = None,
         segmentation_type: str = "slic",
@@ -70,9 +71,7 @@ class TraversabilityEstimator:
         self._feature_type = feature_type
 
         self._feature_extractor = FeatureExtractor(
-            device,
-            segmentation_type=self._segmentation_type,
-            feature_type=self._feature_type,
+            device, segmentation_type=self._segmentation_type, feature_type=self._feature_type, input_size=image_size
         )
         # Optical flow
         self._optical_flow_estimator_type = optical_flow_estimator_type
@@ -296,15 +295,15 @@ class TraversabilityEstimator:
             )
 
     def add_mission_node(self, node: MissionNode, verbose: bool = False):
-        """Adds a node to the local graph to images and training info
+        """Adds a node to the mission graph to images and training info
 
         Args:
             node (BaseNode): new node in the image graph
         """
 
         # Compute image features
-
-        self.update_features(node)
+        with Timer("add_mission_node - update_features"):
+            self.update_features(node)
 
         previous_node = self._mission_graph.get_last_node()
         # Add image node
@@ -317,48 +316,52 @@ class TraversabilityEstimator:
                 print(s)
 
             if self._mode != WVNMode.EXTRACT_LABELS:
-                # Set optical flow
-                if self._optical_flow_estimator_type == "dense" and previous_node is not None:
-                    raise Exception("Not working")
-                    self.add_correspondences_dense_optical_flow(node, previous_node, debug=False)
+                with Timer("add_mission_node - optical flow"):
+                    # Set optical flow
+                    if self._optical_flow_estimator_type == "dense" and previous_node is not None:
+                        raise Exception("Not working")
+                        self.add_correspondences_dense_optical_flow(node, previous_node, debug=False)
 
-                elif self._optical_flow_estimator_type == "sparse" and previous_node is not None:
-                    self.add_correspondences_sparse_optical_flow(node, previous_node, debug=False)
+                    elif self._optical_flow_estimator_type == "sparse" and previous_node is not None:
+                        self.add_correspondences_sparse_optical_flow(node, previous_node, debug=False)
 
-            # Project past footprints on current image
-            supervision_mask = torch.ones(node.image.shape).to(self._device) * torch.nan
+            with Timer("add_mission_node - project_supervision"):
+                # Project past footprints on current image
+                supervision_mask = torch.ones(node.image.shape).to(self._device) * torch.nan
 
-            proprio_nodes = self._proprio_graph.get_nodes()
-            for last_pnode, pnode in zip(proprio_nodes[:-1], proprio_nodes[1:]):
-                # Make footprint
-                footprint = pnode.make_footprint_with_node(last_pnode)
+                # proprio_nodes = self._proprio_graph.get_nodes()
+                # for last_pnode, pnode in zip(proprio_nodes[:-1], proprio_nodes[1:]):
+                #     # Make footprint
+                #     footprint = pnode.make_footprint_with_node(last_pnode)[None]
 
-                # Project mask
-                color = torch.ones((3,), device=self._device)
-                mask, _, _, _ = node.project_footprint(footprint, color=color)
-                if mask is None:
-                    continue
+                #     # Project mask
+                #     color = torch.ones((3,), device=self._device)
+                #     mask, _, _, _ = node.project_footprint(footprint, color=color)
+                #     if mask is None:
+                #         continue
 
-                # Update mask with traversability
-                mask = mask[0] * pnode.traversability
+                #     # Update mask with traversability
+                #     mask = mask[0] * pnode.traversability
 
-                # Get global node and update supervision signal
-                supervision_mask = torch.fmin(supervision_mask, mask)
+                #     # Get global node and update supervision signal
+                #     supervision_mask = torch.fmin(supervision_mask, mask)
 
             # Finally overwrite the current mask
-            node.supervision_mask = supervision_mask
-            node.update_supervision_signal()
+            with Timer("add_mission_node - update_supervision_signal"):
+                node.supervision_mask = supervision_mask
+                node.update_supervision_signal()
 
             if self._mode == WVNMode.EXTRACT_LABELS:
                 p = os.path.join(self._running_store_folder, "image", str(node.timestamp).replace(".", "_") + ".pt")
                 torch.save(node.image, p)
+
             return True
         else:
             return False
 
     @torch.no_grad()
     def add_proprio_node(self, pnode: ProprioceptionNode):
-        """Adds a node to the local graph to store proprioception
+        """Adds a node to the proprioceptive graph to store proprioception
 
         Args:
             node (BaseNode): new node in the proprioceptive graph
@@ -369,16 +372,16 @@ class TraversabilityEstimator:
 
         # Get last added proprio node
         last_pnode = self._proprio_graph.get_last_node()
-        suc = self._proprio_graph.add_node(pnode)
-        if not suc:
+        success = self._proprio_graph.add_node(pnode)
+
+        if not success:
             # Update traversability of latest node
             if last_pnode is not None:
                 last_pnode.update_traversability(pnode.traversability, pnode.traversability_var)
             return False
 
         else:
-
-            # If the previous node doesn't exist or is invalid, we do nothing
+            # If the previous node doesn't exist or it's invalid, we do nothing
             if last_pnode is None or not last_pnode.is_valid():
                 return False
 
@@ -387,28 +390,59 @@ class TraversabilityEstimator:
 
             # Get last mission node
             last_mission_node = self._mission_graph.get_last_node()
-
             if last_mission_node is None:
                 return False
+            if (not hasattr(last_mission_node, "supervision_mask")) or (last_mission_node.supervision_mask is None):
+                return False
 
+            # Get all mission nodes within a range
             mission_nodes = self._mission_graph.get_nodes_within_radius_range(
                 last_mission_node, 0, self._proprio_graph.max_distance
             )
 
+            if len(mission_nodes) < 1:
+                return False
+
+            # Set color
             color = torch.ones((3,), device=self._device)
-            # Project footprint onto all the image nodes takes a lot of time
 
-            for mnode in mission_nodes:
-                mask, _, _, _ = mnode.project_footprint(footprint, color=color)  # 2ms
+            # New implementation
+            B = len(mission_nodes)
 
-                if (not hasattr(mnode, "supervision_mask")) or (mask is None) or (mnode.supervision_mask is None):
+            # with Timer(f"total projection time, batch_size: {B}"):
+            # Prepare batches
+            # with Timer(f"add_proprio_node - prepare batches"):
+            K = torch.eye(4, device=self._device).repeat(B, 1, 1)
+            supervision_masks = torch.zeros(last_mission_node.supervision_mask.shape, device=self._device).repeat(
+                B, 1, 1, 1
+            )
+            pose_camera_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
+            H = last_mission_node.image_projector.camera.height
+            W = last_mission_node.image_projector.camera.width
+            footprints = footprint.repeat(B, 1, 1)
+
+            for i, mnode in enumerate(mission_nodes):
+                K[i] = mnode.image_projector.camera.intrinsics
+                pose_camera_in_world[i] = mnode.pose_cam_in_world
+
+                if (not hasattr(mnode, "supervision_mask")) or (mnode.supervision_mask is None):
                     continue
+                else:
+                    supervision_masks[i] = mnode.supervision_mask
 
-                # Update mask with traversability
-                mask = mask[0] * pnode.traversability
+            # with Timer(f"add_proprio_node - batch project, batch_size: {B}"):
+            im = ImageProjector(K, H, W)
+            mask, _, _, _ = im.project_and_render(pose_camera_in_world, footprints, color)
 
-                # Get global node and update supervision signal
-                mnode.supervision_mask = torch.fmin(mnode.supervision_mask, mask)
+            # Update traversability
+            # with Timer(f"add_proprio_node - update trav, batch_size: {B}"):
+            mask = mask * pnode.traversability
+            supervision_masks = torch.fmin(supervision_masks, mask)
+
+            # Update supervision mask per node
+            # with Timer(f"add_proprio_node - update_nodes, batch_size: {B}"):
+            for i, mnode in enumerate(mission_nodes):
+                mnode.supervision_mask = supervision_masks[i]
                 mnode.update_supervision_signal()
 
                 if self._mode == WVNMode.EXTRACT_LABELS:
