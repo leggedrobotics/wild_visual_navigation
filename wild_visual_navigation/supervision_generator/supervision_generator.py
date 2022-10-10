@@ -124,6 +124,7 @@ class SupervisionGenerator:
         self._is_untraversable = (self._traversability < self._untraversable_thr).item()
 
         # Return
+        self._traversability = torch.clamp(self._traversability, min=0.001, max=1.0)
         return self._traversability, self._traversability_var, self._is_untraversable
 
     def update_pose_prediction(
@@ -132,12 +133,13 @@ class SupervisionGenerator:
         current_pose_in_world: torch.tensor,
         current_velocity: torch.tensor,
         desired_velocity: torch.tensor,
+        velocities: list = ["vx", "vy", "vz", "wx", "wy", "wz"],
     ):
         # Save in twist graph
         self._graph_twist.add_node(
             TwistNode(
-                timestamp=predicted_timestamp,
-                pose_in_world=predicted_estimated_pose_in_world,
+                timestamp=timestamp,
+                pose_in_world=current_pose_in_world,
                 desired_twist=desired_velocity,
                 current_twist=current_velocity,
             )
@@ -163,6 +165,8 @@ class SupervisionGenerator:
         # Apply threshold to detect hard obstacles
         self._is_untraversable = (self._traversability < self._untraversable_thr).item()
 
+        # Return
+        self._traversability = torch.clamp(self._traversability, min=0.001, max=1.0)
         return self._traversability, self._traversability_var, self._is_untraversable
 
     @property
@@ -188,19 +192,20 @@ def run_supervision_generator():
 
     # Prepare dataset
     root = str(os.path.join(WVN_ROOT_DIR, "assets/twist_measurements"))
-    current_filename = "current_robot_twist_short.csv"
-    desired_filename = "desired_robot_twist_short.csv"
-    data = TwistDataset(root, current_filename, desired_filename, seq_size=1, velocities=["vx", "vy"])
+    current_filename = "current_robot_twist.csv"
+    desired_filename = "desired_robot_twist.csv"
+    data = TwistDataset(root, current_filename, desired_filename, seq_size=1)
 
     # Prepare traversability generator
     ag = SupervisionGenerator(
+        device="cpu",
         kf_process_cov=0.1,
         kf_meas_cov=1000,
         kf_outlier_rejection="huber",
         kf_outlier_rejection_delta=0.5,
         sigmoid_slope=30,
         sigmoid_cutoff=0.2,
-        untraversable_thr=0.1,
+        untraversable_thr=0.05,
     )
 
     # Saved data list
@@ -212,7 +217,7 @@ def run_supervision_generator():
         t, curr, des = data[i]
 
         # Update traversability
-        aff, aff_cov, is_unaff = ag.update_with_velocities(curr[0], des[0], max_velocity=0.8)
+        aff, aff_cov, is_unaff = ag.update_velocity_tracking(curr[0], des[0], max_velocity=0.8, velocities=["vx", "vy"])
         saved_data.append([t.item(), curr.norm().item(), des.norm().item(), aff.item(), aff_cov.item(), is_unaff])
 
     df = pd.DataFrame(saved_data, columns=["ts", "curr", "des", "aff", "aff_cov", "is_untraversable"])
@@ -225,15 +230,6 @@ def run_supervision_generator():
     # Top plot
     axs[0].plot(df["ts"], df["curr"], label="Current twist", color="tab:orange")
     axs[0].plot(df["ts"], df["des"], label="Desired twist", color="k", linewidth=1.5)
-    axs[0].fill_between(
-        df["ts"],
-        df["is_untraversable"] * 0,
-        df["is_untraversable"],
-        alpha=0.3,
-        label="Untraversable",
-        color="k",
-        linewidth=0.0,
-    )
     axs[0].set_ylabel("Velocity [m/s]")
     axs[0].set_title("Velocity tracking")
     axs[0].legend(loc="upper right")
@@ -247,6 +243,15 @@ def run_supervision_generator():
         color="r",
         linestyle="dashed",
     )
+    axs[1].fill_between(
+        df["ts"],
+        df["is_untraversable"] * 0,
+        df["is_untraversable"],
+        alpha=0.3,
+        label="Untraversable",
+        color="k",
+        linewidth=0.0,
+    )
     axs[1].set_ylabel("Traversability")
     axs[1].set_title("Traversability")
     axs[1].legend(loc="upper right")
@@ -256,7 +261,8 @@ def run_supervision_generator():
     plt.xlabel("Time [s]")
     plt.tight_layout()
     plt.show()
+    print("done")
 
 
 if __name__ == "__main__":
-    run_traversability_generator()
+    run_supervision_generator()

@@ -12,24 +12,31 @@ from stego.src import dense_crf
 
 
 class StegoInterface:
-    def __init__(self, device: str):
+    def __init__(self, device: str, input_size: int = 448, input_interp: str = "bilinear"):
         self.model = self.load()
         self.model.to(device)
         self.device = device
+        self._input_size = input_size
+        self._input_interp = input_interp
+
+        if self._input_interp == "bilinear":
+            interp = T.InterpolationMode.BILINEAR
+        elif self._input_interp == "nearest":
+            interp = T.InterpolationMode.NEAREST
 
         # Transformation for testing
         self.transform = T.Compose(
             [
-                T.Resize(448, T.InterpolationMode.NEAREST),
-                T.CenterCrop(448),
+                T.Resize(self._input_size, interp),
+                T.CenterCrop(self._input_size),
                 T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
             ]
         )
 
         self.crop = T.Compose(
             [
-                T.Resize(448, T.InterpolationMode.NEAREST),
-                T.CenterCrop(448),
+                T.Resize(self._input_size, interp),
+                T.CenterCrop(self._input_size),
             ]
         )
 
@@ -111,6 +118,14 @@ class StegoInterface:
         return self._linear_pred, self._cluster_pred
 
     @property
+    def input_size(self):
+        return self._input_size
+
+    @property
+    def input_interpolation(self):
+        return self._input_interp
+
+    @property
     def linear_segments(self):
         return self._linear_pred
 
@@ -126,6 +141,7 @@ class StegoInterface:
 def run_stego_interfacer():
     """Performance inference using stego and stores result as an image."""
 
+    from wild_visual_navigation.utils import Timer
     from wild_visual_navigation.visu import get_img_from_fig
     import matplotlib.pyplot as plt
     from stego.src import unnorm, remove_axes
@@ -136,14 +152,18 @@ def run_stego_interfacer():
 
     # Inference model
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    si = StegoInterface(device=device)
+
+    si = StegoInterface(device=device, input_size=448, input_interp="bilinear")
+
     p = join(WVN_ROOT_DIR, "assets/images/forest_clean.png")
     np_img = cv2.imread(p)
     img = torch.from_numpy(cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB)).to(device)
     img = img.permute(2, 0, 1)
     img = (img.type(torch.float32) / 255)[None]
 
-    linear_pred, cluster_pred = si.inference_crf(si.crop(img))
+    with Timer(f"Stego (input {si.input_size}, interp: {si.input_interpolation})"):
+        linear_pred, cluster_pred = si.inference_crf(si.crop(img))
+
     # Plot result as in colab
     fig, ax = plt.subplots(1, 3, figsize=(5 * 3, 5))
 
@@ -157,7 +177,14 @@ def run_stego_interfacer():
 
     # Store results to test directory
     img = get_img_from_fig(fig)
-    img.save(join(WVN_ROOT_DIR, "results", "test_stego_interfacer", "forest_clean_stego.png"))
+    img.save(
+        join(
+            WVN_ROOT_DIR,
+            "results",
+            "test_stego_interfacer",
+            f"forest_clean_stego_{si.input_size}_{si.input_interpolation}.png",
+        )
+    )
 
 
 if __name__ == "__main__":
