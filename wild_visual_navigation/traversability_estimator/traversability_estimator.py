@@ -421,8 +421,6 @@ class TraversabilityEstimator:
             W = last_mission_node.image_projector.camera.width
             footprints = footprint.repeat(B, 1, 1)
 
-            # Fill data
-            # with Timer(f"add_proprio_node - fill data, batch_size: {B}"):
             for i, mnode in enumerate(mission_nodes):
                 K[i] = mnode.image_projector.camera.intrinsics
                 pose_camera_in_world[i] = mnode.pose_cam_in_world
@@ -455,29 +453,6 @@ class TraversabilityEstimator:
                     )
                     store = torch.nan_to_num(mnode.supervision_mask.nanmean(axis=0)) != 0
                     torch.save(store, p)
-
-            # # Project footprint onto all the image nodes takes a lot of time
-            # for mnode in mission_nodes:
-            #     mask, _, _, _ = mnode.project_footprint(footprint, color=color)  # 2ms
-
-            #     if (not hasattr(mnode, "supervision_mask")) or (mask is None) or (mnode.supervision_mask is None):
-            #         continue
-
-            #     # Update mask with traversability
-            #     mask = mask[0] * pnode.traversability
-
-            #     # Get global node and update supervision signal
-            #     mnode.supervision_mask = torch.fmin(mnode.supervision_mask, mask)
-            #     mnode.update_supervision_signal()
-
-            #     if self._mode == WVNMode.EXTRACT_LABELS:
-            #         p = os.path.join(
-            #             self._running_store_folder,
-            #             "supervision_mask",
-            #             str(mnode.timestamp).replace(".", "_") + ".pt",
-            #         )
-            #         store = torch.nan_to_num(mnode.supervision_mask.nanmean(axis=0)) != 0
-            #         torch.save(store, p)
 
             return True
 
