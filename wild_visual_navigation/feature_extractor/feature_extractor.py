@@ -11,7 +11,9 @@ from PIL import Image, ImageDraw
 
 
 class FeatureExtractor:
-    def __init__(self, device: str, segmentation_type: str = "slic", feature_type: str = "dino", **kwargs):
+    def __init__(
+        self, device: str, segmentation_type: str = "slic", feature_type: str = "dino", input_size: int = 448, **kwargs
+    ):
         """Feature extraction from image
 
         Args:
@@ -29,10 +31,10 @@ class FeatureExtractor:
         # Prepare extractor depending on the type
         if self._feature_type == "stego":
             self._feature_dim = 90
-            self.extractor = StegoInterface(device=device)
+            self.extractor = StegoInterface(device=device, input_size=input_size)
         elif self._feature_type == "dino":
             self._feature_dim = 90
-            self.extractor = DinoInterface(device=device)
+            self.extractor = DinoInterface(device=device, input_size=input_size, patch_size=8)
         elif self._feature_type == "sift":
             self._feature_dim = 128
             self.extractor = DenseSIFTDescriptor().to(device)
@@ -50,14 +52,18 @@ class FeatureExtractor:
 
     def extract(self, img, **kwargs):
         # Compute segments, their centers, and edges connecting them (graph structure)
-        edges, seg, center = self.compute_segments(img, **kwargs)
+        with Timer("feature_extractor - compute_segments"):
+            edges, seg, center = self.compute_segments(img, **kwargs)
+
         # Compute features
-        dense_feat = self.compute_features(img, seg, center, **kwargs)
+        with Timer("feature_extractor - compute_features"):
+            dense_feat = self.compute_features(img, seg, center, **kwargs)
         assert (
             len(dense_feat.shape) == 4
         ), f"dense_feat has incorrect shape size {dense_feat.shape} (should be B, C, H, W)"
         # Sparsify features to match the centers if required
-        feat = self.sparsify_features(dense_feat, seg)
+        with Timer("feature_extractor - sparsify_features"):
+            feat = self.sparsify_features(dense_feat, seg)
         return edges, feat, seg, center
 
     @property
@@ -154,7 +160,7 @@ class FeatureExtractor:
         # Prepare input image
         img_internal = img.clone()
         self.extractor.inference_crf(img_internal)
-        seg = torch.from_numpy(self.extractor.linear_segments).to(self._device)
+        seg = torch.from_numpy(self.extractor.cluster_segments).to(self._device)
 
         # Change the segment indices by numbers from 0 to N
         for i, k in enumerate(seg.unique()):

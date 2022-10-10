@@ -11,7 +11,7 @@ from liegroups.torch import SE3, SO3
 
 
 class ImageProjector:
-    def __init__(self, K: torch.tensor, h: int, w: int, new_h: int = 448, new_w: int = None):
+    def __init__(self, K: torch.tensor, h: int, w: int, new_h: int = None, new_w: int = None):
         """Initializes the projector using the pinhole model, without distortion
 
         Args:
@@ -38,6 +38,8 @@ class ImageProjector:
         self.K = K
         self.height = h
         self.width = w
+
+        new_h = self.height.item() if new_h is None else new_h
 
         # Compute scale
         sy = new_h / h
