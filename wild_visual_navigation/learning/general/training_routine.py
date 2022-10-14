@@ -1,10 +1,10 @@
 import os
 import yaml
 import dataclasses
+import pickle
 
 # Frameworks
 import torch
-
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -64,6 +64,10 @@ def training_routine(experiment: ExperimentParams) -> torch.Tensor:
         early_stop_callback = EarlyStopping(**exp["cb_early_stopping"]["cfg"])
         cb_ls.appned(early_stop_callback)
 
+    if exp["ch_checkpoint"]["active"]:
+        checkpoint_callback = ModelCheckpoint(dirpath=model_path, save_top_k=1, monitor="epoch", mode='max', save_last=True)
+        cb_ls.appned(checkpoint_callback)
+
     gpus = list(range(torch.cuda.device_count())) if torch.cuda.is_available() else None
     exp["trainer"]["gpus"] = gpus
     # add distributed plugin
@@ -88,11 +92,14 @@ def training_routine(experiment: ExperimentParams) -> torch.Tensor:
 
     res = trainer.test(model=model, datamodule=datamodule)[0]
 
-    import pickle
-
     with open(os.path.join(model_path, "detailed_test_results.pkl"), "rb") as handle:
         out = pickle.load(handle)
     res["detailed_test_results"] = out
+    
+    model.logger.experiment["model_checkpoint"].upload_files(os.path.join(model_path, "last.ckpt"))
+    model.logger.experiment["model_checkpoint"].upload_files(os.path.join(model_path, "detailed_test_results.pkl"))
+    
+    
     try:
         short_id = logger.experiment._short_id
         project_name = logger._project_name

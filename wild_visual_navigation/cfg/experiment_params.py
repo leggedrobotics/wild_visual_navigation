@@ -111,6 +111,12 @@ class ExperimentParams(Serializable):
         active: bool = False
 
     cb_early_stopping: CbEarlyStoppingParams = CbEarlyStoppingParams()
+    
+    @dataclass
+    class CbCheckpointParams:
+        active: bool = True
+
+    cb_checkpoint: CbCheckpointParams = CbCheckpointParams()
 
     @dataclass
     class VisuParams:
