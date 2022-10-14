@@ -39,7 +39,7 @@ class FeatureExtractor:
             self.extractor = StegoInterface(device=device, input_size=input_size)
         elif self._feature_type == "dino":
             self._feature_dim = 90
-            self.extractor = DinoInterface(device=device, input_size=input_size, patch_size=8)
+            self.extractor = DinoInterface(device=device, input_size=input_size, patch_size=kwargs["patch_size"])
         elif self._feature_type == "sift":
             self._feature_dim = 128
             self.extractor = DenseSIFTDescriptor().to(device)
@@ -232,7 +232,7 @@ class FeatureExtractor:
         if self._feature_type not in ["histogram"] and self._segmentation_type not in ["none"]:
             # Get median features for each cluster
 
-            if type(dense_features) is dict:
+            if type(dense_features) == dict:
                 # Multiscale feature pyramid extraction
                 scales_x = [feat.shape[2] / seg.shape[0] for feat in dense_features.values()]
                 scales_y = [feat.shape[3] / seg.shape[1] for feat in dense_features.values()]
@@ -283,11 +283,6 @@ class FeatureExtractor:
                 # Single scale feature extraction
                 sparse_features = []
                 for i in range(seg.max() + 1):
-                    for layer, feat in enumerate(dense_features):
-                        m = segs[i] == i
-                        x, y = torch.where(m)
-                        feat = feat[0, :, x, y].median(dim=1)[0]
-
                     m = seg == i
                     x, y = torch.where(m)
                     feat = dense_features[0, :, x, y].median(dim=1)[0]

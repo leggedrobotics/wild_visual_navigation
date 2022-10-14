@@ -7,10 +7,10 @@ from torch_geometric.data import Data
 from wild_visual_navigation.utils import KLTTrackerOpenCV
 
 if __name__ == "__main__":
-    visu = True  # currently not used
-    store = False  # storing
+    visu = False  # currently not used
+    store = True  # storing
     extract_corrospondences = True  # optical flow
-    debug = True  # debug mode
+    debug = False  # debug mode
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     mission_names = [name for name in os.listdir("/media/Data/Datasets/2022_Perugia/wvn_output/day3")]
@@ -18,75 +18,57 @@ if __name__ == "__main__":
     mission_folders = [os.path.join("/media/Data/Datasets/2022_Perugia/wvn_output/day3/", m) for m in mission_names]
 
     fes = {}
-    # fes["none_dino"] = FeatureExtractor(device, segmentation_type="none", feature_type="dino")
-    # fes["none_sift"] = FeatureExtractor(device, segmentation_type="none", feature_type="sift")
-    # fes["none_histogram"] = FeatureExtractor(device, segmentation_type="none", feature_type="histogram")
-    # fes["slic200_resnet50"] = FeatureExtractor(device, segmentation_type="slic", feature_type="torchvision", model_type="resnet50", slic_num_components=200, input_size=448)
-    # fes["slic200_sift"] = FeatureExtractor(device, segmentation_type="slic", feature_type="sift", slic_num_components=200)
-    # fes["slic200_histogram"] = FeatureExtractor(device, segmentation_type="slic", feature_type="histogram", slic_num_components=200)
+    # fes["none_dino"] = FeatureExtractor(device, "none", "dino")
+    # fes["none_sift"] = FeatureExtractor(device, "none", "sift")
+    # fes["none_histogram"] = FeatureExtractor(device, "none", "histogram")
+    # fes["slic200_resnet50"] = FeatureExtractor(device, "slic", "torchvision", model_type="resnet50", slic_num_components=200, input_size=448)
+    # fes["slic200_sift"] = FeatureExtractor(device, "slic", "sift", slic_num_components=200)
+    # fes["slic200_histogram"] = FeatureExtractor(device, "slic", "histogram", slic_num_components=200)
 
-    # fes["slic100_dino448_8"] = FeatureExtractor(device, segmentation_type="slic", feature_type="dino", slic_num_components=100, input_size=448)
-    # fes["slic100_dino448_16"] = FeatureExtractor(device, segmentation_type="slic", feature_type="dino", slic_num_components=100, input_size=448)
-    # fes["slic100_dino224_8"] = FeatureExtractor(device, segmentation_type="slic", feature_type="dino", slic_num_components=100, input_size=224)
-    # fes["slic100_dino224_16"] = FeatureExtractor(device, segmentation_type="slic", feature_type="dino", slic_num_components=100, input_size=224)
-    # fes["slic100_dino112_8"] = FeatureExtractor(device, segmentation_type="slic", feature_type="dino", slic_num_components=100, input_size=112)
-    # fes["slic100_dino112_16"] = FeatureExtractor(device, segmentation_type="slic", feature_type="dino", slic_num_components=100, input_size=112)
-    # fes["slic100_sift"] = FeatureExtractor(device, segmentation_type="slic", feature_type="sift", slic_num_components=100)
-    # fes["slic100_histogram"] = FeatureExtractor(device, segmentation_type="slic", feature_type="histogram", slic_num_components=100)
+    fes["slic100_dino448_8"] = FeatureExtractor(
+        device, "slic", "dino", 448, model_type="vit_small", patch_size=8, slic_num_components=100
+    )
+    fes["slic100_dino448_16"] = FeatureExtractor(
+        device, "slic", "dino", 488, model_type="vit_small", patch_size=16, slic_num_components=100
+    )
+    fes["slic100_dino224_8"] = FeatureExtractor(
+        device, "slic", "dino", 224, model_type="vit_small", patch_size=8, slic_num_components=100
+    )
+    fes["slic100_dino224_16"] = FeatureExtractor(
+        device, "slic", "dino", 224, model_type="vit_small", patch_size=16, slic_num_components=100
+    )
+    fes["slic100_dino112_8"] = FeatureExtractor(
+        device, "slic", "dino", 112, model_type="vit_small", patch_size=8, slic_num_components=100
+    )
+    fes["slic100_dino112_16"] = FeatureExtractor(
+        device, "slic", "dino", 112, model_type="vit_small", patch_size=16, slic_num_components=100
+    )
+    fes["slic100_sift"] = FeatureExtractor(device, "slic", "sift", slic_num_components=100)
 
     # For Torchvision 0.12 this is important !
-    fes["slic200_efficientnet_b0"] = FeatureExtractor(
-        device,
-        segmentation_type="slic",
-        feature_type="torchvision",
-        model_type="efficientnet_b0",
-        slic_num_components=200,
-        input_size=(256, 224),
+    fes["slic100_efficientnet_b0"] = FeatureExtractor(
+        device, "slic", "torchvision", (256, 224), model_type="efficientnet_b0", slic_num_components=100
+    )
+    fes["slic100_efficientnet_b4"] = FeatureExtractor(
+        device, "slic", "torchvision", (384, 380), model_type="efficientnet_b4", slic_num_components=100
+    )
+    fes["slic100_efficientnet_b7"] = FeatureExtractor(
+        device, "slic", "torchvision", (633, 600), model_type="efficientnet_b7", slic_num_components=100
+    )
+    fes["slic100_resnet50"] = FeatureExtractor(
+        device, "slic", "torchvision", 448, model_type="resnet50", slic_num_components=100
+    )
+    fes["slic100_resnet18"] = FeatureExtractor(
+        device, "slic", "torchvision", 448, model_type="resnet18", slic_num_components=100
     )
 
-    fes["slic200_efficientnet_b4"] = FeatureExtractor(
-        device,
-        segmentation_type="slic",
-        feature_type="torchvision",
-        model_type="efficientnet_b4",
-        slic_num_components=200,
-        input_size=(384, 380),
-    )
+    # fes["grid32_dino"] = FeatureExtractor(device, "grid", "dino", cell_size=32, input_size=448)
+    # fes["grid32_sift"] = FeatureExtractor(device, "grid", "sift", cell_size=32)
+    # fes["grid32_histogram"] = FeatureExtractor(device, "grid", "histogram", cell_size=32)
 
-    fes["slic200_efficientnet_b7"] = FeatureExtractor(
-        device,
-        segmentation_type="slic",
-        feature_type="torchvision",
-        model_type="efficientnet_b7",
-        slic_num_components=200,
-        input_size=(633, 600),
-    )
-
-    fes["slic200_resnet50"] = FeatureExtractor(
-        device,
-        segmentation_type="slic",
-        feature_type="torchvision",
-        model_type="resnet50",
-        slic_num_components=200,
-        input_size=448,
-    )
-
-    fes["slic200_resnet18"] = FeatureExtractor(
-        device,
-        segmentation_type="slic",
-        feature_type="torchvision",
-        model_type="resnet18",
-        slic_num_components=200,
-        input_size=448,
-    )
-
-    # fes["grid32_dino"] = FeatureExtractor(device, segmentation_type="grid", feature_type="dino", cell_size=32, input_size=448)
-    # fes["grid32_sift"] = FeatureExtractor(device, segmentation_type="grid", feature_type="sift", cell_size=32)
-    # fes["grid32_histogram"] = FeatureExtractor(device, segmentation_type="grid", feature_type="histogram", cell_size=32)
-
-    # fes["stego_dino"] = FeatureExtractor(device, segmentation_type="stego", feature_type="stego")
-    # fes["stego_sift"] = FeatureExtractor(device, segmentation_type="stego", feature_type="sift")
-    # fes["stego_histogram"] = FeatureExtractor(device, segmentation_type="slic", feature_type="histogram")
+    # fes["stego_dino"] = FeatureExtractor(device, "stego", "stego")
+    # fes["stego_sift"] = FeatureExtractor(device, "stego", "sift")
+    # fes["stego_histogram"] = FeatureExtractor(device, "slic", "histogram")
 
     for m_nr, mission in enumerate(mission_folders):
         assert os.path.isdir(os.path.join(mission, "image")), f"{mission} is not a valid mission folder misses image"
@@ -180,13 +162,15 @@ if __name__ == "__main__":
                         from wild_visual_navigation import WVN_ROOT_DIR
                         from wild_visual_navigation.visu import LearningVisualizer
 
-                        visu = LearningVisualizer(p_visu=os.path.join(WVN_ROOT_DIR, "results/test_visu"), store=True)
+                        visu = LearningVisualizer(
+                            p_visu=os.path.join(WVN_ROOT_DIR, "results/extract_features"), store=True
+                        )
                         visu.plot_sparse_optical_flow(
                             pre_pos,
                             cur_pos,
                             img1=image_buffer,
                             img2=img,
-                            tag="flow",
+                            tag="flow_img",
                         )
                         visu.plot_correspondence_segment(
                             seg_prev=segment_buffer[name],
@@ -196,8 +180,22 @@ if __name__ == "__main__":
                             center_prev=feature_position_buffer[name],
                             center_current=center,
                             correspondence=correspondence,
-                            tag="centers",
+                            tag="centers_img",
                         )
+
+                        from sklearn.decomposition import PCA
+
+                        X = feat.cpu().numpy()
+                        pca = PCA(n_components=1)
+                        pca.fit(X)
+                        res = pca.transform(X)
+                        res -= res.min()
+                        res /= res.max()
+                        pca_seg = torch.zeros_like(seg).type(torch.float32)
+                        for i in range(seg.max()):
+                            pca_seg[seg == i] = float(res[i])
+                        visu.plot_detectron_cont(img, pca_seg, tag="input_img", alpha=0)
+                        visu.plot_detectron_cont(img, pca_seg, tag="pca_of_features", alpha=1.0)
 
                     data = Data(
                         x=feat,
