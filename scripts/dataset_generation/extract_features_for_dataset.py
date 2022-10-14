@@ -7,10 +7,10 @@ from torch_geometric.data import Data
 from wild_visual_navigation.utils import KLTTrackerOpenCV
 
 if __name__ == "__main__":
-    visu = False  # currently not used
-    store = True  # storing
+    visu = True  # currently not used
+    store = False  # storing
     extract_corrospondences = True  # optical flow
-    debug = False  # debug mode
+    debug = True  # debug mode
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     mission_names = [name for name in os.listdir("/media/Data/Datasets/2022_Perugia/wvn_output/day3")]
@@ -21,14 +21,34 @@ if __name__ == "__main__":
     # fes["none_dino"] = FeatureExtractor(device, segmentation_type="none", feature_type="dino")
     # fes["none_sift"] = FeatureExtractor(device, segmentation_type="none", feature_type="sift")
     # fes["none_histogram"] = FeatureExtractor(device, segmentation_type="none", feature_type="histogram")
+    # fes["slic200_resnet50"] = FeatureExtractor(device, segmentation_type="slic", feature_type="torchvision", model_type="resnet50", slic_num_components=200, input_size=448)
+    # fes["slic200_sift"] = FeatureExtractor(device, segmentation_type="slic", feature_type="sift", slic_num_components=200)
+    # fes["slic200_histogram"] = FeatureExtractor(device, segmentation_type="slic", feature_type="histogram", slic_num_components=200)
+    
+    # fes["slic100_dino448_8"] = FeatureExtractor(device, segmentation_type="slic", feature_type="dino", slic_num_components=100, input_size=448)
+    # fes["slic100_dino448_16"] = FeatureExtractor(device, segmentation_type="slic", feature_type="dino", slic_num_components=100, input_size=448)
+    # fes["slic100_dino224_8"] = FeatureExtractor(device, segmentation_type="slic", feature_type="dino", slic_num_components=100, input_size=224)
+    # fes["slic100_dino224_16"] = FeatureExtractor(device, segmentation_type="slic", feature_type="dino", slic_num_components=100, input_size=224)
+    # fes["slic100_dino112_8"] = FeatureExtractor(device, segmentation_type="slic", feature_type="dino", slic_num_components=100, input_size=112)
+    # fes["slic100_dino112_16"] = FeatureExtractor(device, segmentation_type="slic", feature_type="dino", slic_num_components=100, input_size=112)
+    # fes["slic100_sift"] = FeatureExtractor(device, segmentation_type="slic", feature_type="sift", slic_num_components=100)
+    # fes["slic100_histogram"] = FeatureExtractor(device, segmentation_type="slic", feature_type="histogram", slic_num_components=100)
 
-    fes["slic_dino"] = FeatureExtractor(device, segmentation_type="slic", feature_type="dino")
-    # fes["slic_sift"] = FeatureExtractor(device, segmentation_type="slic", feature_type="sift")
-    # # fes["slic_histogram"] = FeatureExtractor(device, segmentation_type="slic", feature_type="histogram")
+        
+    # For Torchvision 0.12 this is important ! 
+    fes["slic200_efficientnet_b0"] = FeatureExtractor(device, segmentation_type="slic", feature_type="torchvision", model_type="efficientnet_b0", slic_num_components=200, input_size=(256, 224))
+    
+    fes["slic200_efficientnet_b4"] = FeatureExtractor(device, segmentation_type="slic", feature_type="torchvision", model_type="efficientnet_b4", slic_num_components=200, input_size=(384, 380))
+    
+    fes["slic200_efficientnet_b7"] = FeatureExtractor(device, segmentation_type="slic", feature_type="torchvision", model_type="efficientnet_b7", slic_num_components=200, input_size=(633, 600))
+        
+    fes["slic200_resnet50"] = FeatureExtractor(device, segmentation_type="slic", feature_type="torchvision", model_type="resnet50", slic_num_components=200, input_size=448)
 
-    # fes["grid_dino"] = FeatureExtractor(device, segmentation_type="grid", feature_type="dino")
-    # fes["grid_sift"] = FeatureExtractor(device, segmentation_type="grid", feature_type="sift")
-    # # # fes["grid_histogram"] = FeatureExtractor(device, segmentation_type="grid", feature_type="histogram")
+    fes["slic200_resnet18"] = FeatureExtractor(device, segmentation_type="slic", feature_type="torchvision", model_type="resnet18", slic_num_components=200, input_size=448)
+
+    # fes["grid32_dino"] = FeatureExtractor(device, segmentation_type="grid", feature_type="dino", cell_size=32, input_size=448)
+    # fes["grid32_sift"] = FeatureExtractor(device, segmentation_type="grid", feature_type="sift", cell_size=32)
+    # fes["grid32_histogram"] = FeatureExtractor(device, segmentation_type="grid", feature_type="histogram", cell_size=32)
 
     # fes["stego_dino"] = FeatureExtractor(device, segmentation_type="stego", feature_type="stego")
     # fes["stego_sift"] = FeatureExtractor(device, segmentation_type="stego", feature_type="sift")
