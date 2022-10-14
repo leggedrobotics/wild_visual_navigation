@@ -1,4 +1,9 @@
-from wild_visual_navigation.feature_extractor import StegoInterface, DinoInterface, SegmentExtractor, TorchVisionInterface
+from wild_visual_navigation.feature_extractor import (
+    StegoInterface,
+    DinoInterface,
+    SegmentExtractor,
+    TorchVisionInterface,
+)
 from wild_visual_navigation.utils import Timer
 import skimage
 import torch
@@ -39,7 +44,9 @@ class FeatureExtractor:
             self._feature_dim = 128
             self.extractor = DenseSIFTDescriptor().to(device)
         elif self._feature_type == "torchvision":
-            self._extractor = TorchVisionInterface(device=device, model_type=kwargs["model_type"], input_size=input_size)
+            self._extractor = TorchVisionInterface(
+                device=device, model_type=kwargs["model_type"], input_size=input_size
+            )
         elif self._feature_type == "histogram":
             self._feature_dim = 90
         else:
@@ -60,11 +67,11 @@ class FeatureExtractor:
         # Compute features
         with Timer("feature_extractor - compute_features"):
             dense_feat = self.compute_features(img, seg, center, **kwargs)
-        
+
         # Sparsify features to match the centers if required
         with Timer("feature_extractor - sparsify_features"):
             feat = self.sparsify_features(dense_feat, seg)
-        
+
         return edges, feat, seg, center
 
     @property
@@ -181,10 +188,10 @@ class FeatureExtractor:
 
         elif self._feature_type == "stego":
             feat = self.compute_stego(img, seg, center, **kwargs)
-            
+
         elif self._feature_type == "torchvision":
             feat = self.compute_torchvision(img, seg, center, **kwargs)
-        
+
         else:
             raise f"segmentation_type [{self._segmentation_type}] not supported"
 
@@ -216,7 +223,7 @@ class FeatureExtractor:
         img_internal = img.clone()
         features = self._extractor.inference(img_internal)
         return features
-    
+
     @torch.no_grad()
     def compute_stego(self, img: torch.tensor, seg: torch.tensor, center: torch.tensor, **kwargs):
         return self.extractor.features
@@ -224,41 +231,54 @@ class FeatureExtractor:
     def sparsify_features(self, dense_features: torch.tensor, seg: torch.tensor):
         if self._feature_type not in ["histogram"] and self._segmentation_type not in ["none"]:
             # Get median features for each cluster
-            
+
             if type(dense_features) is dict:
                 # Multiscale feature pyramid extraction
                 scales_x = [feat.shape[2] / seg.shape[0] for feat in dense_features.values()]
                 scales_y = [feat.shape[3] / seg.shape[1] for feat in dense_features.values()]
-                
-                segs = [torch.nn.functional.interpolate(seg[None, None,:,:].type(torch.float32), scale_factor=(scale_x,scale_y))[0,0].type(torch.long)for scale_x, scale_y in zip(scales_x, scales_y)] 
+
+                segs = [
+                    torch.nn.functional.interpolate(
+                        seg[None, None, :, :].type(torch.float32), scale_factor=(scale_x, scale_y)
+                    )[0, 0].type(torch.long)
+                    for scale_x, scale_y in zip(scales_x, scales_y)
+                ]
                 sparse_features = []
-                
+
                 # Iterate over each segment
                 for i in range(seg.max() + 1):
-                        single_segment_feature = []
-                        
-                        # Iterate over each scale
-                        for dense_feature, seg_scaled in zip(dense_features.values(), segs):
-                            m = seg_scaled == i
-                            # When downscaling the mask it becomes 0 therfore calculate x,y
-                            # Based on the previous scale
-                            if m.sum() == 0:
-                                x = (prev_x * seg_scaled.shape[0] / prev_scale_x).type(torch.long).clamp(0,seg_scaled.shape[0]-1)
-                                y = (prev_y * seg_scaled.shape[1] / prev_scale_y).type(torch.long).clamp(0,seg_scaled.shape[1]-1)
-                                feat = dense_feature[0, :, x, y]
-                            else:    
-                                x, y = torch.where(m)
-                                prev_x = x.type(torch.float32).mean()
-                                prev_y = y.type(torch.float32).mean()
-                                prev_scale_x = seg_scaled.shape[0]
-                                prev_scale_y = seg_scaled.shape[0]
-                                feat = dense_feature[0, :, x, y].median(dim=1)[0]
-                            single_segment_feature.append(feat)
-                            
-                        single_segment_feature = torch.cat( single_segment_feature,dim=0)
-                        sparse_features.append(single_segment_feature)
+                    single_segment_feature = []
+
+                    # Iterate over each scale
+                    for dense_feature, seg_scaled in zip(dense_features.values(), segs):
+                        m = seg_scaled == i
+                        # When downscaling the mask it becomes 0 therfore calculate x,y
+                        # Based on the previous scale
+                        if m.sum() == 0:
+                            x = (
+                                (prev_x * seg_scaled.shape[0] / prev_scale_x)
+                                .type(torch.long)
+                                .clamp(0, seg_scaled.shape[0] - 1)
+                            )
+                            y = (
+                                (prev_y * seg_scaled.shape[1] / prev_scale_y)
+                                .type(torch.long)
+                                .clamp(0, seg_scaled.shape[1] - 1)
+                            )
+                            feat = dense_feature[0, :, x, y]
+                        else:
+                            x, y = torch.where(m)
+                            prev_x = x.type(torch.float32).mean()
+                            prev_y = y.type(torch.float32).mean()
+                            prev_scale_x = seg_scaled.shape[0]
+                            prev_scale_y = seg_scaled.shape[0]
+                            feat = dense_feature[0, :, x, y].median(dim=1)[0]
+                        single_segment_feature.append(feat)
+
+                    single_segment_feature = torch.cat(single_segment_feature, dim=0)
+                    sparse_features.append(single_segment_feature)
                 return torch.stack(sparse_features, dim=1).T
-            
+
             else:
                 # Single scale feature extraction
                 sparse_features = []
@@ -267,7 +287,7 @@ class FeatureExtractor:
                         m = segs[i] == i
                         x, y = torch.where(m)
                         feat = feat[0, :, x, y].median(dim=1)[0]
-                        
+
                     m = seg == i
                     x, y = torch.where(m)
                     feat = dense_features[0, :, x, y].median(dim=1)[0]
