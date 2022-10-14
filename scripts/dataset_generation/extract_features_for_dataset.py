@@ -24,7 +24,7 @@ if __name__ == "__main__":
     # fes["slic200_resnet50"] = FeatureExtractor(device, segmentation_type="slic", feature_type="torchvision", model_type="resnet50", slic_num_components=200, input_size=448)
     # fes["slic200_sift"] = FeatureExtractor(device, segmentation_type="slic", feature_type="sift", slic_num_components=200)
     # fes["slic200_histogram"] = FeatureExtractor(device, segmentation_type="slic", feature_type="histogram", slic_num_components=200)
-    
+
     # fes["slic100_dino448_8"] = FeatureExtractor(device, segmentation_type="slic", feature_type="dino", slic_num_components=100, input_size=448)
     # fes["slic100_dino448_16"] = FeatureExtractor(device, segmentation_type="slic", feature_type="dino", slic_num_components=100, input_size=448)
     # fes["slic100_dino224_8"] = FeatureExtractor(device, segmentation_type="slic", feature_type="dino", slic_num_components=100, input_size=224)
@@ -34,17 +34,51 @@ if __name__ == "__main__":
     # fes["slic100_sift"] = FeatureExtractor(device, segmentation_type="slic", feature_type="sift", slic_num_components=100)
     # fes["slic100_histogram"] = FeatureExtractor(device, segmentation_type="slic", feature_type="histogram", slic_num_components=100)
 
-        
-    # For Torchvision 0.12 this is important ! 
-    fes["slic200_efficientnet_b0"] = FeatureExtractor(device, segmentation_type="slic", feature_type="torchvision", model_type="efficientnet_b0", slic_num_components=200, input_size=(256, 224))
-    
-    fes["slic200_efficientnet_b4"] = FeatureExtractor(device, segmentation_type="slic", feature_type="torchvision", model_type="efficientnet_b4", slic_num_components=200, input_size=(384, 380))
-    
-    fes["slic200_efficientnet_b7"] = FeatureExtractor(device, segmentation_type="slic", feature_type="torchvision", model_type="efficientnet_b7", slic_num_components=200, input_size=(633, 600))
-        
-    fes["slic200_resnet50"] = FeatureExtractor(device, segmentation_type="slic", feature_type="torchvision", model_type="resnet50", slic_num_components=200, input_size=448)
+    # For Torchvision 0.12 this is important !
+    fes["slic200_efficientnet_b0"] = FeatureExtractor(
+        device,
+        segmentation_type="slic",
+        feature_type="torchvision",
+        model_type="efficientnet_b0",
+        slic_num_components=200,
+        input_size=(256, 224),
+    )
 
-    fes["slic200_resnet18"] = FeatureExtractor(device, segmentation_type="slic", feature_type="torchvision", model_type="resnet18", slic_num_components=200, input_size=448)
+    fes["slic200_efficientnet_b4"] = FeatureExtractor(
+        device,
+        segmentation_type="slic",
+        feature_type="torchvision",
+        model_type="efficientnet_b4",
+        slic_num_components=200,
+        input_size=(384, 380),
+    )
+
+    fes["slic200_efficientnet_b7"] = FeatureExtractor(
+        device,
+        segmentation_type="slic",
+        feature_type="torchvision",
+        model_type="efficientnet_b7",
+        slic_num_components=200,
+        input_size=(633, 600),
+    )
+
+    fes["slic200_resnet50"] = FeatureExtractor(
+        device,
+        segmentation_type="slic",
+        feature_type="torchvision",
+        model_type="resnet50",
+        slic_num_components=200,
+        input_size=448,
+    )
+
+    fes["slic200_resnet18"] = FeatureExtractor(
+        device,
+        segmentation_type="slic",
+        feature_type="torchvision",
+        model_type="resnet18",
+        slic_num_components=200,
+        input_size=448,
+    )
 
     # fes["grid32_dino"] = FeatureExtractor(device, segmentation_type="grid", feature_type="dino", cell_size=32, input_size=448)
     # fes["grid32_sift"] = FeatureExtractor(device, segmentation_type="grid", feature_type="sift", cell_size=32)
