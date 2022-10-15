@@ -30,7 +30,7 @@ for d in perguia_dataset:
         print(s)
 
         with open(os.path.join(ROOT_DIR, "wvn_output/split", f"{env}_train.txt"), "w") as output:
-            for k in p[: int(s * percentage)]:
+            for k in p[1 : int(s * percentage)]:
                 output.write(k + "\n")
 
         with open(os.path.join(ROOT_DIR, "wvn_output/split", f"{env}_val.txt"), "w") as output:

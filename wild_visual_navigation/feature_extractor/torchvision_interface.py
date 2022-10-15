@@ -19,10 +19,24 @@ MODEL_DIRECTORY = {
 class TorchVisionInterface(nn.Module):
     def __init__(self, device, model_type, input_size: int = 488, pretrained: bool = True):
         super().__init__()
+
+        dino = False
+        if model_type == "resnet50_dino":
+            model_type = "resnet50"
+            dino = True
+            model = "dino_resnet50_pretrain"
+            url = f"{model}/{model}.pth"
+            model_path = join(WVN_ROOT_DIR, "assets", "dino")
+            state_dict = torch.hub.load_state_dict_from_url(
+                url="https://dl.fbaipublicfiles.com/dino/" + url, model_dir=model_path
+            )
+
         model_func = MODEL_DIRECTORY[model_type]
         model = model_func(pretrained=pretrained)
         self.device = device
         model.to(device)
+        if dino:
+            model.load_state_dict(state_dict, strict=False)
 
         self.find_endpoints = False
         if model_type == "resnet50":

@@ -65,7 +65,9 @@ def training_routine(experiment: ExperimentParams) -> torch.Tensor:
         cb_ls.appned(early_stop_callback)
 
     if exp["ch_checkpoint"]["active"]:
-        checkpoint_callback = ModelCheckpoint(dirpath=model_path, save_top_k=1, monitor="epoch", mode='max', save_last=True)
+        checkpoint_callback = ModelCheckpoint(
+            dirpath=model_path, save_top_k=1, monitor="epoch", mode="max", save_last=True
+        )
         cb_ls.appned(checkpoint_callback)
 
     gpus = list(range(torch.cuda.device_count())) if torch.cuda.is_available() else None
@@ -95,11 +97,10 @@ def training_routine(experiment: ExperimentParams) -> torch.Tensor:
     with open(os.path.join(model_path, "detailed_test_results.pkl"), "rb") as handle:
         out = pickle.load(handle)
     res["detailed_test_results"] = out
-    
+
     model.logger.experiment["model_checkpoint"].upload_files(os.path.join(model_path, "last.ckpt"))
     model.logger.experiment["model_checkpoint"].upload_files(os.path.join(model_path, "detailed_test_results.pkl"))
-    
-    
+
     try:
         short_id = logger.experiment._short_id
         project_name = logger._project_name
