@@ -23,8 +23,8 @@ from wild_visual_navigation.cfg import ExperimentParams
 __all__ = ["training_routine"]
 
 
-def training_routine(experiment: ExperimentParams) -> torch.Tensor:
-    seed_everything(42)
+def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
+    seed_everything(seed)
     exp = dataclasses.asdict(experiment)
     env = load_env()
 
@@ -38,7 +38,7 @@ def training_routine(experiment: ExperimentParams) -> torch.Tensor:
 
     logger = get_logger(exp, env)
 
-    # SET GPUS
+    # Set gpus
     if (exp["trainer"]).get("gpus", -1) == -1:
         nr = torch.cuda.device_count()
         print(f"Set GPU Count for Trainer to {nr}!")
@@ -46,13 +46,13 @@ def training_routine(experiment: ExperimentParams) -> torch.Tensor:
             print(f"Device {i}: " + str(torch.cuda.get_device_name(i)))
         exp["trainer"]["gpus"] = -1
 
-    # profiler
+    # Profiler
     if exp["trainer"].get("profiler", False) == "advanced":
         exp["trainer"]["profiler"] = AdvancedProfiler(dirpath=model_path, filename="profile.txt")
     else:
         exp["trainer"]["profiler"] = False
 
-    # COLLECT CALLBACKS
+    # Callbacks
     cb_ls = []
     if logger is not None:
         cb_ls.append(LearningRateMonitor(**exp["lr_monitor"]))
@@ -69,7 +69,8 @@ def training_routine(experiment: ExperimentParams) -> torch.Tensor:
 
     gpus = list(range(torch.cuda.device_count())) if torch.cuda.is_available() else None
     exp["trainer"]["gpus"] = gpus
-    # add distributed plugin
+    
+    # Add distributed plugin
     if torch.cuda.is_available():
         if len(gpus) > 1:
             if exp["trainer"]["accelerator"] == "ddp" or exp["trainer"]["accelerator"] is None:
@@ -92,7 +93,7 @@ def training_routine(experiment: ExperimentParams) -> torch.Tensor:
     exp["model"]["simple_mlp_cfg"]["input_size"] = input_feature_dimension
     exp["model"]["simple_gcn_cfg"]["input_size"] = input_feature_dimension
 
-    # MODEL
+    # Model
     model = LightningTrav(exp=exp, env=env)
 
     trainer = Trainer(**exp["trainer"], default_root_dir=model_path, callbacks=cb_ls, logger=logger)
@@ -104,8 +105,9 @@ def training_routine(experiment: ExperimentParams) -> torch.Tensor:
         out = pickle.load(handle)
     res["detailed_test_results"] = out
 
-    model.logger.experiment["model_checkpoint"].upload_files(os.path.join(model_path, "last.ckpt"))
-    model.logger.experiment["model_checkpoint"].upload_files(os.path.join(model_path, "detailed_test_results.pkl"))
+    logger.experiment["model_checkpoint"].upload_files(os.path.join(model_path, "last.ckpt"))
+    logger.experiment["detailed_test_results"].upload_files(os.path.join(model_path, "detailed_test_results.pkl"))
+    # logger.experiment["model_folder"].track_files(model_path)
 
     try:
         short_id = logger.experiment._short_id
