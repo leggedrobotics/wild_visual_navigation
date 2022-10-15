@@ -69,7 +69,7 @@ def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
 
     gpus = list(range(torch.cuda.device_count())) if torch.cuda.is_available() else None
     exp["trainer"]["gpus"] = gpus
-    
+
     # Add distributed plugin
     if torch.cuda.is_available():
         if len(gpus) > 1:

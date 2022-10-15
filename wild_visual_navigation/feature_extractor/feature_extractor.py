@@ -273,7 +273,7 @@ class FeatureExtractor:
                             prev_scale_x = seg_scaled.shape[0]
                             prev_scale_y = seg_scaled.shape[0]
                             feat = dense_feature[0, :, x, y].mean(dim=1)
-                            
+
                         single_segment_feature.append(feat)
 
                     single_segment_feature = torch.cat(single_segment_feature, dim=0)
