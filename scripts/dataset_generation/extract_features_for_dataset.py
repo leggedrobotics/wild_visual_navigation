@@ -5,6 +5,7 @@ from pathlib import Path
 import torch
 from torch_geometric.data import Data
 from wild_visual_navigation.utils import KLTTrackerOpenCV
+import numpy as np
 
 if __name__ == "__main__":
     visu = False  # currently not used
@@ -24,7 +25,6 @@ if __name__ == "__main__":
     # fes["slic200_resnet50"] = FeatureExtractor(device, "slic", "torchvision", model_type="resnet50", slic_num_components=200, input_size=448)
     # fes["slic200_sift"] = FeatureExtractor(device, "slic", "sift", slic_num_components=200)
     # fes["slic200_histogram"] = FeatureExtractor(device, "slic", "histogram", slic_num_components=200)
-
     fes["slic100_dino448_8"] = FeatureExtractor(
         device, "slic", "dino", 448, model_type="vit_small", patch_size=8, slic_num_components=100
     )
@@ -61,6 +61,9 @@ if __name__ == "__main__":
     fes["slic100_resnet18"] = FeatureExtractor(
         device, "slic", "torchvision", 448, model_type="resnet18", slic_num_components=100
     )
+    fes["slic100_resnet50_dino"] = FeatureExtractor(
+        device, "slic", "torchvision", 448, model_type="resnet50_dino", slic_num_components=100
+    )
 
     # fes["grid32_dino"] = FeatureExtractor(device, "grid", "dino", cell_size=32, input_size=448)
     # fes["grid32_sift"] = FeatureExtractor(device, "grid", "sift", cell_size=32)
@@ -71,6 +74,8 @@ if __name__ == "__main__":
     # fes["stego_histogram"] = FeatureExtractor(device, "slic", "histogram")
 
     for m_nr, mission in enumerate(mission_folders):
+        if m_nr < 8:
+            continue
         assert os.path.isdir(os.path.join(mission, "image")), f"{mission} is not a valid mission folder misses image"
         assert os.path.isdir(
             os.path.join(mission, "supervision_mask")
@@ -87,8 +92,42 @@ if __name__ == "__main__":
                 os.makedirs(os.path.join(mission, "features", name, s), exist_ok=True)
             os.makedirs(os.path.join(mission, "features", name, "graph"), exist_ok=True)
 
+        # read all available images in folder
         images = [str(s) for s in Path(mission, "image").rglob("*.pt")]
         images.sort()
+
+        # read all needed images for training according to the defined split
+        perugia_root = "/media/Data/Datasets/2022_Perugia"
+        split_files = [str(s) for s in Path("/media/Data/Datasets/2022_Perugia/wvn_output/split").rglob("*.txt")]
+        needed_images = []
+        for f in split_files:
+            with open(f, "r") as f:
+                while True:
+                    line = f.readline()
+                    if not line:
+                        break
+                    p = line.strip()
+                    needed_images.append(os.path.join(perugia_root, p))
+
+        # note from which images you need to extract only features
+        # and note which image you want to store with the optical flow
+        extract_with_flow = [False] * len(images)
+        extract_for_flow = [False] * len(images)
+        for j, img in enumerate(images):
+            if img in needed_images:
+                # we cannot extract the first image in a sequence
+                if j != 0 and extract_corrospondences:
+                    extract_with_flow[j] = True
+                    extract_for_flow[j - 1] = True
+
+                if not extract_corrospondences:
+                    extract_with_flow[j] = True
+
+        images_to_process = np.logical_or(np.array(extract_with_flow), np.array(extract_for_flow))
+        images_to_store = np.array(extract_with_flow)
+
+        idx_to_process = np.where(images_to_process)[0]
+        idx_to_store = np.where(images_to_store)[0]
 
         if extract_corrospondences:
             segment_buffer = {}
@@ -100,8 +139,12 @@ if __name__ == "__main__":
             optical_flow_estimator = KLTTrackerOpenCV(device=device)
             optical_flow_estimator.to(device)
 
-        for j, image in enumerate(images):
-            print(f"Processing {m_nr}/{len(mission_folders)} , {j}/{len(images)}")
+        # iterate over all images (only features and images which have to be stored with the flow)
+        for j, idx in enumerate(idx_to_process):
+            store_idx = idx in idx_to_store
+            image = images[idx]
+
+            print(f"Processing {m_nr}/{len(mission_folders)} , {j}/{idx_to_process.shape[0]}")
             key = image.split("/")[-1][:-3]  # remove .pt
             img = torch.load(image)
             for name, feature_extractor in fes.items():
@@ -109,11 +152,11 @@ if __name__ == "__main__":
                 edges, feat, seg, center = feature_extractor.extract(img.clone()[None], return_centers=True)
 
                 filename = os.path.join(mission, "features", name, "seg", key + ".pt")
-                if store and ((extract_corrospondences and j != 0) or (not extract_corrospondences)):
+                if store and store_idx:
                     torch.save(seg, filename)
 
                 filename = os.path.join(mission, "features", name, "center", key + ".pt")
-                if store and ((extract_corrospondences and j != 0) or (not extract_corrospondences)):
+                if store and store_idx:
                     torch.save(center, filename)
 
                 supervision_mask = torch.load(image.replace("image", "supervision_mask"))
@@ -136,7 +179,7 @@ if __name__ == "__main__":
                 # Binary mask
                 supervision_signal_valid = torch_labels > 0
 
-                if extract_corrospondences and j != 0:
+                if extract_corrospondences and store_idx:
                     # Extract the corrospondences
                     pre_pos = feature_position_buffer[name]
                     cur_pos = optical_flow_estimator(
@@ -218,5 +261,5 @@ if __name__ == "__main__":
                     data = Data(x=feat, edge_index=edges, y=supervision_signal, y_valid=supervision_signal_valid)
 
                 filename = os.path.join(mission, "features", name, "graph", key + ".pt")
-                if store and ((extract_corrospondences and j != 0) or (not extract_corrospondences)):
+                if store and store_idx:
                     torch.save(data, filename)
