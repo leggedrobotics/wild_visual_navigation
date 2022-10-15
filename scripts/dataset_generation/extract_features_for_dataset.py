@@ -24,7 +24,7 @@ if __name__ == "__main__":
     # fes["none_histogram"] = FeatureExtractor(device, "none", "histogram")
     # fes["slic200_resnet50"] = FeatureExtractor(device, "slic", "torchvision", model_type="resnet50", slic_num_components=200, input_size=448)
     # fes["slic200_sift"] = FeatureExtractor(device, "slic", "sift", slic_num_components=200)
-    # fes["slic200_histogram"] = FeatureExtractor(device, "slic", "histogram", slic_num_components=200)
+    
     fes["slic100_dino448_8"] = FeatureExtractor(
         device, "slic", "dino", 448, model_type="vit_small", patch_size=8, slic_num_components=100
     )
@@ -44,8 +44,7 @@ if __name__ == "__main__":
         device, "slic", "dino", 112, model_type="vit_small", patch_size=16, slic_num_components=100
     )
     fes["slic100_sift"] = FeatureExtractor(device, "slic", "sift", slic_num_components=100)
-
-    # For Torchvision 0.12 this is important !
+    
     fes["slic100_efficientnet_b0"] = FeatureExtractor(
         device, "slic", "torchvision", (256, 224), model_type="efficientnet_b0", slic_num_components=100
     )
@@ -68,14 +67,11 @@ if __name__ == "__main__":
     # fes["grid32_dino"] = FeatureExtractor(device, "grid", "dino", cell_size=32, input_size=448)
     # fes["grid32_sift"] = FeatureExtractor(device, "grid", "sift", cell_size=32)
     # fes["grid32_histogram"] = FeatureExtractor(device, "grid", "histogram", cell_size=32)
-
     # fes["stego_dino"] = FeatureExtractor(device, "stego", "stego")
     # fes["stego_sift"] = FeatureExtractor(device, "stego", "sift")
     # fes["stego_histogram"] = FeatureExtractor(device, "slic", "histogram")
 
     for m_nr, mission in enumerate(mission_folders):
-        if m_nr < 8:
-            continue
         assert os.path.isdir(os.path.join(mission, "image")), f"{mission} is not a valid mission folder misses image"
         assert os.path.isdir(
             os.path.join(mission, "supervision_mask")
@@ -144,7 +140,7 @@ if __name__ == "__main__":
             store_idx = idx in idx_to_store
             image = images[idx]
 
-            print(f"Processing {m_nr}/{len(mission_folders)} , {j}/{idx_to_process.shape[0]}")
+            print(f"Processing {m_nr}/{len(mission_folders)-1} , {j}/{idx_to_process.shape[0]-1}")
             key = image.split("/")[-1][:-3]  # remove .pt
             img = torch.load(image)
             for name, feature_extractor in fes.items():

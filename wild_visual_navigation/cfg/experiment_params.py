@@ -92,7 +92,7 @@ class ExperimentParams(Serializable):
 
         @dataclass
         class SimpleGcnCfgParams:
-            num_node_features: int = 90
+            input_size: int = 90
             reconstruction: bool = True
             hidden_sizes: List[int] = field(default_factory=lambda: [64, 32, 1])
 

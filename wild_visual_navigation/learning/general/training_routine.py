@@ -46,9 +46,6 @@ def training_routine(experiment: ExperimentParams) -> torch.Tensor:
             print(f"Device {i}: " + str(torch.cuda.get_device_name(i)))
         exp["trainer"]["gpus"] = -1
 
-    # MODEL
-    model = LightningTrav(exp=exp, env=env)
-
     # profiler
     if exp["trainer"].get("profiler", False) == "advanced":
         exp["trainer"]["profiler"] = AdvancedProfiler(dirpath=model_path, filename="profile.txt")
@@ -64,11 +61,11 @@ def training_routine(experiment: ExperimentParams) -> torch.Tensor:
         early_stop_callback = EarlyStopping(**exp["cb_early_stopping"]["cfg"])
         cb_ls.appned(early_stop_callback)
 
-    if exp["ch_checkpoint"]["active"]:
+    if exp["cb_checkpoint"]["active"]:
         checkpoint_callback = ModelCheckpoint(
             dirpath=model_path, save_top_k=1, monitor="epoch", mode="max", save_last=True
         )
-        cb_ls.appned(checkpoint_callback)
+        cb_ls.append(checkpoint_callback)
 
     gpus = list(range(torch.cuda.device_count())) if torch.cuda.is_available() else None
     exp["trainer"]["gpus"] = gpus
@@ -88,6 +85,15 @@ def training_routine(experiment: ExperimentParams) -> torch.Tensor:
 
     # datamodule = get_pl_graph_trav_module(**exp["data_module"])
     datamodule = get_abblation_module(**exp["abblation_data_module"], perugia_root=env["perugia_root"])
+
+    # Set correct input feature dimension
+    training_sample = datamodule.train_dataset[0]
+    input_feature_dimension = training_sample[0].x.shape[1]
+    exp["model"]["simple_mlp_cfg"]["input_size"] = input_feature_dimension
+    exp["model"]["simple_gcn_cfg"]["input_size"] = input_feature_dimension
+
+    # MODEL
+    model = LightningTrav(exp=exp, env=env)
 
     trainer = Trainer(**exp["trainer"], default_root_dir=model_path, callbacks=cb_ls, logger=logger)
     trainer.fit(model=model, datamodule=datamodule)
