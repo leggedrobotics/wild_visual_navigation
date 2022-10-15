@@ -120,11 +120,11 @@ class ExperimentParams(Serializable):
 
     @dataclass
     class VisuParams:
-        train: int = 2
-        val: int = 2
-        test: int = 2
+        train: int = 0
+        val: int = 0
+        test: int = 0
         log_test_video: bool = False
-        log_val_video: bool = True
+        log_val_video: bool = False
         log_train_video: bool = False
         log_every_n_epochs: int = 10
 

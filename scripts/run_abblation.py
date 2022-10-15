@@ -20,11 +20,11 @@ if __name__ == "__main__":
         for run in runs:
             experiment_params = ExperimentParams()
             exp_override = load_yaml(os.path.join(WVN_ROOT_DIR, "cfg/exp", cfg))
-            
+
             # run single config multiple time for confidence
             if len(runs) > 1:
-                exp_override["general"]["name"] = exp_override["general"]["name"] + f"_{run}" 
-            
+                exp_override["general"]["name"] = exp_override["general"]["name"] + f"_{run}"
+
             override_params(experiment_params, exp_override)
             res, model_path, short_id, logger_project_name = training_routine(experiment_params, seed=run)
             print(short_id, exp_override["general"]["name"])
