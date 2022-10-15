@@ -95,7 +95,7 @@ class LearningVisualizer:
             k = [k for k in paper_colors_rgb_f.keys()][j]
 
             ax.plot(_x, _y, label=_y_tag, color=paper_colors_rgb_f[k])
-            if type(_y_lower) is not None:
+            if not (_y_lower is None):
                 ax.plot(_x, _y_lower, color=paper_colors_rgb_f[k + "_light"], alpha=0.1)
                 ax.plot(_x, _y_upper, color=paper_colors_rgb_f[k + "_light"], alpha=0.1)
                 ax.fill_between(_x, _y_lower, _y_upper, color=paper_colors_rgb_f[k + "_light"], alpha=0.2)

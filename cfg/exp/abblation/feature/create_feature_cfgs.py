@@ -21,6 +21,7 @@ fes["slic100_sift"] = 0
 fes["slic100_efficientnet_b4"] = 0
 fes["slic100_efficientnet_b7"] = 0
 fes["slic100_resnet50"] = 0
+fes["slic100_resnet50_dino"] = 0
 fes["slic100_resnet18"] = 0
 ##############################################################
 file = load_yaml(base)
