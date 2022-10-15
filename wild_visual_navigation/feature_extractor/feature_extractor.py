@@ -272,7 +272,8 @@ class FeatureExtractor:
                             prev_y = y.type(torch.float32).mean()
                             prev_scale_x = seg_scaled.shape[0]
                             prev_scale_y = seg_scaled.shape[0]
-                            feat = dense_feature[0, :, x, y].median(dim=1)[0]
+                            feat = dense_feature[0, :, x, y].mean(dim=1)
+                            
                         single_segment_feature.append(feat)
 
                     single_segment_feature = torch.cat(single_segment_feature, dim=0)
@@ -285,7 +286,7 @@ class FeatureExtractor:
                 for i in range(seg.max() + 1):
                     m = seg == i
                     x, y = torch.where(m)
-                    feat = dense_features[0, :, x, y].median(dim=1)[0]
+                    feat = dense_features[0, :, x, y].mean(dim=1)
                     sparse_features.append(feat)
                 return torch.stack(sparse_features, dim=1).T
         else:
