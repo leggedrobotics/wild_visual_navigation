@@ -4,12 +4,12 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /Global Options1
         - /Status1
         - /TF1/Tree1
         - /Raw signals1
         - /Wild Visual Navigation1
         - /Wild Visual Navigation1/Self Supervision1
-        - /Wild Visual Navigation1/Prediction1
         - /Elevation Map1
         - /Elevation Map1/gridmap_uncertainty1
       Splitter Ratio: 0.644501268863678
@@ -59,7 +59,7 @@ Visualization Manager:
       Reference Frame: <Fixed Frame>
       Value: true
     - Class: rviz/TF
-      Enabled: true
+      Enabled: false
       Frame Timeout: 1000
       Frames:
         All Enabled: false
@@ -497,7 +497,7 @@ Visualization Manager:
             state_msf_body_imu:
               {}
       Update Interval: 0
-      Value: true
+      Value: false
     - Class: rviz/Group
       Displays:
         - Alpha: 0.5
@@ -541,7 +541,7 @@ Visualization Manager:
               Scale: 1
               Value: true
             Value: true
-          Enabled: false
+          Enabled: true
           Keep: 200
           Name: Odometry
           Position Tolerance: 1
@@ -558,7 +558,7 @@ Visualization Manager:
             Value: Arrow
           Topic: /loam/odometry
           Unreliable: false
-          Value: false
+          Value: true
         - Alpha: 1
           Class: rviz/RobotModel
           Collision Enabled: false
@@ -664,7 +664,7 @@ Visualization Manager:
           Unreliable: false
           Value: true
         - Class: rviz/Image
-          Enabled: false
+          Enabled: true
           Image Topic: /alphasense_driver_ros/cam4/debayered
           Max Value: 1
           Median window: 5
@@ -674,7 +674,7 @@ Visualization Manager:
           Queue Size: 2
           Transport Hint: raw
           Unreliable: false
-          Value: false
+          Value: true
         - Class: rviz/Group
           Displays:
             - Class: rviz/Image
@@ -725,14 +725,14 @@ Visualization Manager:
           Color: 200; 200; 200
           Color Layer: sem_img_feat_0
           Color Transformer: IntensityLayer
-          ColorMap: viridis
+          ColorMap: coolwarm
           Enabled: true
           Grid Cell Decimation: 1
           Grid Line Thickness: 0.10000000149011612
           Height Layer: elevation
           Height Transformer: GridMapLayer
           History Length: 1
-          Invert ColorMap: false
+          Invert ColorMap: true
           Max Color: 255; 255; 255
           Max Intensity: 1
           Min Color: 0; 0; 0
@@ -799,9 +799,9 @@ Visualization Manager:
       Name: Elevation Map
   Enabled: true
   Global Options:
-    Background Color: 48; 48; 48
+    Background Color: 255; 255; 255
     Default Light: true
-    Fixed Frame: odom
+    Fixed Frame: base
     Frame Rate: 30
   Name: root
   Tools:
