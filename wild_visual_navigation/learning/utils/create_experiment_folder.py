@@ -17,7 +17,7 @@ def create_experiment_folder(exp: dict, env: dict) -> str:
         str: model_path of the run
     """
     # Set in name the correct model path
-    if exp.get("timestamp", True):
+    if exp["general"]["timestamp"]:
         timestamp = datetime.datetime.now().replace(microsecond=0).isoformat()
         model_path = os.path.join(env["base"], exp["general"]["name"])
         p = model_path.split("/")

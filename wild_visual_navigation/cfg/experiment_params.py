@@ -92,7 +92,7 @@ class ExperimentParams(Serializable):
 
         @dataclass
         class SimpleGcnCfgParams:
-            num_node_features: int = 90
+            input_size: int = 90
             reconstruction: bool = True
             hidden_sizes: List[int] = field(default_factory=lambda: [64, 32, 1])
 
@@ -113,12 +113,18 @@ class ExperimentParams(Serializable):
     cb_early_stopping: CbEarlyStoppingParams = CbEarlyStoppingParams()
 
     @dataclass
+    class CbCheckpointParams:
+        active: bool = True
+
+    cb_checkpoint: CbCheckpointParams = CbCheckpointParams()
+
+    @dataclass
     class VisuParams:
-        train: int = 2
-        val: int = 2
-        test: int = 2
+        train: int = 0
+        val: int = 0
+        test: int = 0
         log_test_video: bool = False
-        log_val_video: bool = True
+        log_val_video: bool = False
         log_train_video: bool = False
         log_every_n_epochs: int = 10
 

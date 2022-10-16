@@ -10,7 +10,7 @@ dependencies:
   - python=3.8
   - kornia=0.6.6
   - pip
-  - torchvision
+  - torchvision=0.12
   - pytorch=1.11.0
   - torchaudio
   - cudatoolkit=11.3

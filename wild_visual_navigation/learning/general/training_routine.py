@@ -1,10 +1,10 @@
 import os
 import yaml
 import dataclasses
+import pickle
 
 # Frameworks
 import torch
-
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -23,8 +23,8 @@ from wild_visual_navigation.cfg import ExperimentParams
 __all__ = ["training_routine"]
 
 
-def training_routine(experiment: ExperimentParams) -> torch.Tensor:
-    seed_everything(42)
+def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
+    seed_everything(seed)
     exp = dataclasses.asdict(experiment)
     env = load_env()
 
@@ -38,7 +38,7 @@ def training_routine(experiment: ExperimentParams) -> torch.Tensor:
 
     logger = get_logger(exp, env)
 
-    # SET GPUS
+    # Set gpus
     if (exp["trainer"]).get("gpus", -1) == -1:
         nr = torch.cuda.device_count()
         print(f"Set GPU Count for Trainer to {nr}!")
@@ -46,16 +46,13 @@ def training_routine(experiment: ExperimentParams) -> torch.Tensor:
             print(f"Device {i}: " + str(torch.cuda.get_device_name(i)))
         exp["trainer"]["gpus"] = -1
 
-    # MODEL
-    model = LightningTrav(exp=exp, env=env)
-
-    # profiler
+    # Profiler
     if exp["trainer"].get("profiler", False) == "advanced":
         exp["trainer"]["profiler"] = AdvancedProfiler(dirpath=model_path, filename="profile.txt")
     else:
         exp["trainer"]["profiler"] = False
 
-    # COLLECT CALLBACKS
+    # Callbacks
     cb_ls = []
     if logger is not None:
         cb_ls.append(LearningRateMonitor(**exp["lr_monitor"]))
@@ -64,9 +61,16 @@ def training_routine(experiment: ExperimentParams) -> torch.Tensor:
         early_stop_callback = EarlyStopping(**exp["cb_early_stopping"]["cfg"])
         cb_ls.appned(early_stop_callback)
 
+    if exp["cb_checkpoint"]["active"]:
+        checkpoint_callback = ModelCheckpoint(
+            dirpath=model_path, save_top_k=1, monitor="epoch", mode="max", save_last=True
+        )
+        cb_ls.append(checkpoint_callback)
+
     gpus = list(range(torch.cuda.device_count())) if torch.cuda.is_available() else None
     exp["trainer"]["gpus"] = gpus
-    # add distributed plugin
+
+    # Add distributed plugin
     if torch.cuda.is_available():
         if len(gpus) > 1:
             if exp["trainer"]["accelerator"] == "ddp" or exp["trainer"]["accelerator"] is None:
@@ -83,16 +87,28 @@ def training_routine(experiment: ExperimentParams) -> torch.Tensor:
     # datamodule = get_pl_graph_trav_module(**exp["data_module"])
     datamodule = get_abblation_module(**exp["abblation_data_module"], perugia_root=env["perugia_root"])
 
+    # Set correct input feature dimension
+    training_sample = datamodule.train_dataset[0]
+    input_feature_dimension = training_sample[0].x.shape[1]
+    exp["model"]["simple_mlp_cfg"]["input_size"] = input_feature_dimension
+    exp["model"]["simple_gcn_cfg"]["input_size"] = input_feature_dimension
+
+    # Model
+    model = LightningTrav(exp=exp, env=env)
+
     trainer = Trainer(**exp["trainer"], default_root_dir=model_path, callbacks=cb_ls, logger=logger)
     trainer.fit(model=model, datamodule=datamodule)
 
     res = trainer.test(model=model, datamodule=datamodule)[0]
 
-    import pickle
-
     with open(os.path.join(model_path, "detailed_test_results.pkl"), "rb") as handle:
         out = pickle.load(handle)
     res["detailed_test_results"] = out
+
+    logger.experiment["model_checkpoint"].upload_files(os.path.join(model_path, "last.ckpt"))
+    logger.experiment["detailed_test_results"].upload_files(os.path.join(model_path, "detailed_test_results.pkl"))
+    # logger.experiment["model_folder"].track_files(model_path)
+
     try:
         short_id = logger.experiment._short_id
         project_name = logger._project_name
