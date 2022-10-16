@@ -5,14 +5,14 @@ from torch_geometric.data import Data
 
 
 class SimpleGCN(torch.nn.Module):
-    def __init__(self, num_node_features: int, reconstruction: bool, hidden_sizes=[64, 32, 1]):
+    def __init__(self, input_size: int, reconstruction: bool, hidden_sizes=[64, 32, 1]):
         super(SimpleGCN, self).__init__()
 
         self.layers = []
-        inp = num_node_features
+        inp = input_size
         for j, h in enumerate(hidden_sizes):
             if reconstruction and j == len(hidden_sizes) - 1:
-                h += num_node_features
+                h += input_size
 
             self.layers.append(GCNConv(inp, h))
             inp = h

@@ -160,7 +160,6 @@ def do(n, dry_run):
         ) as pbar:
             for (topic, msg, ts) in bag.read_messages(topics=None, start_time=start_time, end_time=end_time):
                 pbar.update(1)
-
                 st = time.time()
                 if topic == "/state_estimator/anymal_state":
                     state_msg = anymal_msg_callback(msg, return_msg=True)
