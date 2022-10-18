@@ -10,6 +10,8 @@ class ExperimentParams(Serializable):
         name: str = "simple_gcn/debug"
         timestamp: bool = False
         tag_list: List[str] = field(default_factory=lambda: ["debug"])
+        skip_train: bool = False
+        store_model_every_n_steps: Optional[int] = None
 
     general: GeneralParams = GeneralParams()
 
@@ -30,7 +32,7 @@ class ExperimentParams(Serializable):
             weight_decay: float = 4.0e-05
 
         name: str = "ADAMW"
-        lr: float = 0.005
+        lr: float = 0.001
         adamw_cfg: AdamwCfgParams = AdamwCfgParams()
 
     optimizer: OptimizerParams = OptimizerParams()
@@ -38,9 +40,9 @@ class ExperimentParams(Serializable):
     @dataclass
     class LossParams:
         anomaly_blanced: bool = True
-        w_trav: float = 0.25
-        w_reco: float = 1.0
-        w_temp: float = 0.0
+        w_trav: float = 0.4
+        w_reco: float = 1.1
+        w_temp: float = 0.4
 
     loss: LossParams = LossParams()
 
@@ -52,10 +54,11 @@ class ExperimentParams(Serializable):
         limit_train_batches: float = 1.0
         limit_val_batches: float = 1.0
         limit_test_batches: float = 1.0
-        max_epochs: int = 10
+        max_epochs: Optional[int] = 10
         profiler: bool = False
         num_sanity_val_steps: int = 0
-        check_val_every_n_epoch: int = 1
+        check_val_every_n_epoch: int = 10
+        max_steps: int = -1
 
     trainer: TrainerParams = TrainerParams()
 
@@ -73,14 +76,17 @@ class ExperimentParams(Serializable):
         batch_size: int = 8
         num_workers: int = 0
         env: str = "forest"
-        feature_key: str = "slic_dino"
+        feature_key: str = "slic100_dino112_8"
         test_equals_val: bool = False
+        test_all_datasets: bool = False
+        training_data_percentage: int = 100
 
     abblation_data_module: AbblationDataModuleParams = AbblationDataModuleParams()
 
     @dataclass
     class ModelParams:
         name: str = "SimpleGCN"
+        load_ckpt: Optional[str] = None
 
         @dataclass
         class SimpleMlpCfgParams:
