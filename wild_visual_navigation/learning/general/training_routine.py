@@ -85,29 +85,53 @@ def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
     exp["trainer"]["plugins"] = ddp_plugin
 
     # datamodule = get_pl_graph_trav_module(**exp["data_module"])
-    datamodule = get_abblation_module(**exp["abblation_data_module"], perugia_root=env["perugia_root"])
+    train_dl, val_dl, test_dl = get_abblation_module(**exp["abblation_data_module"], perugia_root=env["perugia_root"])
 
     # Set correct input feature dimension
-    training_sample = datamodule.train_dataset[0]
+    training_sample = train_dl.dataset[0]
     input_feature_dimension = training_sample[0].x.shape[1]
     exp["model"]["simple_mlp_cfg"]["input_size"] = input_feature_dimension
     exp["model"]["simple_gcn_cfg"]["input_size"] = input_feature_dimension
 
     # Model
     model = LightningTrav(exp=exp, env=env)
-
+    if type(exp["model"]["load_ckpt"]) == str:
+        ckpt = torch.load(exp["model"]["load_ckpt"])
+        try:
+            res = model.load_state_dict(ckpt["state_dict"])
+        except:
+            res = model.load_state_dict(ckpt)
+        print("Loaded model checkpoint:", res)
     trainer = Trainer(**exp["trainer"], default_root_dir=model_path, callbacks=cb_ls, logger=logger)
-    trainer.fit(model=model, datamodule=datamodule)
 
-    res = trainer.test(model=model, datamodule=datamodule)[0]
+    if not exp["general"]["skip_train"]:
+        trainer.fit(model=model, train_dataloaders=train_dl, val_dataloaders=val_dl)
 
-    with open(os.path.join(model_path, "detailed_test_results.pkl"), "rb") as handle:
-        out = pickle.load(handle)
-    res["detailed_test_results"] = out
+    dtr_ls = []
+    for j, dl in enumerate(test_dl):
+        model.nr_test_run = j
+        res = trainer.test(model=model, dataloaders=dl)[0]
 
-    logger.experiment["model_checkpoint"].upload_files(os.path.join(model_path, "last.ckpt"))
-    logger.experiment["detailed_test_results"].upload_files(os.path.join(model_path, "detailed_test_results.pkl"))
-    # logger.experiment["model_folder"].track_files(model_path)
+        with open(os.path.join(model_path, f"{j}_detailed_test_results.pkl"), "rb") as handle:
+            dtr_ls.append(pickle.load(handle))
+
+        try:
+            logger.experiment["detailed_test_results"].upload_files(
+                os.path.join(model_path, f"{j}_detailed_test_results.pkl")
+            )
+            # logger.experiment["model_folder"].track_files(model_path)
+        except:
+            pass
+
+    with open(os.path.join(exp["general"]["model_path"], f"detailed_test_results.pkl"), "wb") as handle:
+        pickle.dump(dtr_ls, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    res["detailed_test_results"] = dtr_ls
+
+    try:
+        logger.experiment["model_checkpoint"].upload_files(os.path.join(model_path, "last.ckpt"))
+    except:
+        pass
 
     try:
         short_id = logger.experiment._short_id

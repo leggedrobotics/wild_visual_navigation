@@ -1,0 +1,12 @@
+general:
+  name: adaptation_time/forest99_test100
+  timestamp: False
+  skip_train: True
+  
+abblation_data_module:
+  env: forest
+
+model:
+  load_ckpt: point
+logger:
+  name: skip
