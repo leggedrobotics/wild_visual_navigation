@@ -4,11 +4,13 @@ FROM ${BASE_IMAGE}
 # Labels
 LABEL maintainer="Matias Mattamala"
 LABEL contact="matias@robots.ox.ac.uk"
-LABEL description="Container with WVN dependencies for Jetson"
+LABEL description="Container with WVN dependencies"
 LABEL example_usage="docker run --cidfile /tmp/jetson_docker.cid -it --rm --net=host --runtime nvidia -e DISPLAY=$DISPLAY -v /tmp/.X11-unix/:/tmp/.X11-unix -v ${YOUR_GIT_WS}:/root/git -v ${YOUR_CATKIN_WS}:/root/catkin_ws/ rslethz/jetpack-5:wvn-latest"
 
 # Extra libraries
 RUN pip3 install --no-cache-dir ruamel.yaml
+RUN pip3 install --no-cache-dir black
+RUN pip3 install --no-cache-dir flake8
 
 # Install Python dependencies
 RUN pip3 install --no-cache-dir pillow==9.2
@@ -24,6 +26,7 @@ RUN pip3 install --no-cache-dir seaborn
 RUN pip3 install --no-cache-dir pandas
 RUN pip3 install --no-cache-dir fast_slic
 
+# Stuff below only applies to Jetson
 # Environment variables to make scikit-learn work
 # If not added, it will raise an error:
 #   ImportError: /usr/local/lib/python3.8/dist-packages/skimage/_shared/../../scikit_image.libs/libgomp-d22c30c5.so.1.0.0: cannot allocate memory in static TLS block
@@ -34,6 +37,13 @@ RUN pip3 install --no-cache-dir fast_slic
 #   https://scikit-image.org/docs/stable/install.html 
 #
 ENV LD_PRELOAD=/usr/local/lib/python3.8/dist-packages/skimage/_shared/../../scikit_image.libs/libgomp-d22c30c5.so.1.0.0
+
+# Pytorch geometric
+RUN pip3 -v install torch-scatter
+RUN pip3 -v install torch-sparse
+RUN pip3 -v install torch-cluster
+RUN pip3 -v install torch-spline-conv
+RUN pip3 -v install torch-geometric
 
 # Other learning packages
 RUN pip3 install --no-cache-dir neptune-client[optuna]
