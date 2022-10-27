@@ -1,0 +1,54 @@
+ARG BASE_IMAGE=rslethz/jetpack-5:r34.1.1-ml
+FROM ${BASE_IMAGE}
+
+# Labels
+LABEL maintainer="Matias Mattamala"
+LABEL contact="matias@robots.ox.ac.uk"
+LABEL description="Container with custom pytorch geometric (pyg) builds for Jetson"
+LABEL example_usage="docker run --cidfile /tmp/jetson_docker.cid -it --rm --net=host --runtime nvidia -e DISPLAY=$DISPLAY -v /tmp/.X11-unix/:/tmp/.X11-unix -v ${YOUR_GIT_WS}:/root/git -v ${YOUR_CATKIN_WS}:/root/catkin_ws/ rslethz/jetpack-5:r34.1.1-wvn"
+
+# Set CUDA_ARCH_LIST for torch-geometric compilation
+ARG TORCH_CUDA_ARCH_LIST="5.3;6.2;7.2;8.7"
+
+# Pytorch geometric
+RUN echo "Installing pytorch-geometric. It requires to compile each module to enable CUDA 11.4 support"
+
+# Jetson architectures
+ENV TORCH_CUDA_ARG_LIST=$TORCH_CUDA_ARCH_LIST
+RUN echo TORCH_CUDA_ARG_LIST=$TORCH_CUDA_ARG_LIST
+
+ENV PATH="/usr/local/cuda/bin:${PATH}"
+RUN echo PATH=$PATH
+
+ENV CPATH="/usr/local/cuda/include:${CPATH}"
+RUN echo CPATH=$CPATH
+
+ENV LD_LIBRARY_PATH="/usr/local/cuda/lib64:${LD_LIBRARY_PATH}"
+RUN echo LD_LIBRARY_PATH=$LD_LIBRARY_PATH
+
+# Library path
+ENV LIBRARY_PATH="/usr/local/cuda/lib64:${LIBRARY_PATH}"
+RUN echo LIBRARY_PATH=$LIBRARY_PATH
+
+# CUDA_HOME
+ENV CUDA_HOME="/usr/local/cuda"
+
+# torch-scatter
+RUN echo "Compiling torch-scatter"
+RUN pip3 -v install torch-scatter
+
+# torch-sparse
+RUN echo "Compiling torch-sparse"
+RUN pip3 -v install torch-sparse
+
+# torch-cluster
+RUN echo "Compiling torch-cluster"
+RUN pip3 -v install torch-cluster
+
+# torch-spline-conv
+RUN echo "Compiling torch-spline-conv"
+RUN pip3 -v install torch-spline-conv
+
+# torch-geometric
+RUN echo "Compiling torch-geometric"
+RUN pip3 -v install --no-cache-dir torch-geometric
