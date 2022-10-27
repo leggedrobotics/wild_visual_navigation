@@ -54,7 +54,7 @@ class WvnRosInterface:
             mode=self.mode,
             running_store_folder=self.running_store_folder,
             exp_file=self.exp_file,
-            patch_size=self.dino_patch_size
+            patch_size=self.dino_patch_size,
         )
 
         # Initialize traversability generator to process velocity commands
@@ -118,7 +118,7 @@ class WvnRosInterface:
         self.robot_length = rospy.get_param("~robot_length", 1.0)
         self.robot_width = rospy.get_param("~robot_width", 0.6)
         self.robot_height = rospy.get_param("~robot_height", 0.3)
-        
+
         # Traversability estimation params
         self.traversability_radius = rospy.get_param("~traversability_radius", 3.0)
         self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr", 0.2)
