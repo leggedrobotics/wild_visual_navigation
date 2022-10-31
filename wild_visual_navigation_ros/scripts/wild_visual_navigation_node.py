@@ -337,12 +337,13 @@ class WvnRosInterface:
 
         if stamp is None:
             stamp = rospy.Time(0)
-        # Wait for required tfs
-        try:
-            self.tf_listener.waitForTransform(parent_frame, child_frame, stamp, rospy.Duration(1.0))
-        except Exception as e:
-            print("Error in querry tf: ", e)
-            return (None, None)
+        # Wait for required tfs - Only done if we are not extracting labels
+        if self.mode != WVNMode.EXTRACT_LABELS:
+            try:
+                self.tf_listener.waitForTransform(parent_frame, child_frame, stamp, rospy.Duration(1.0))
+            except Exception as e:
+                print("Error in querry tf: ", e)
+                return (None, None)
 
         try:
             (trans, rot) = self.tf_listener.lookupTransform(parent_frame, child_frame, stamp)
