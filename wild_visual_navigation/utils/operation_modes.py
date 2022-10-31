@@ -2,13 +2,13 @@ from enum import Enum
 
 
 class WVNMode(Enum):
-    DEAFULT = 0
+    DEFAULT = 0
     ONLINE = 1
     EXTRACT_LABELS = 2
 
     def from_string(string):
         if string == "default":
-            return WVNMode.DEAFULT
+            return WVNMode.DEFAULT
         elif string == "online":
             return WVNMode.ONLINE
         elif string == "extract_labels":
