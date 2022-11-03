@@ -1,5 +1,7 @@
 ARG BASE_IMAGE=rslethz/jetpack-5:r34.1.1-ml-pyg
 FROM ${BASE_IMAGE}
+ARG BASE_IMAGE
+RUN echo BASE_IMAGE=${BASE_IMAGE}
 
 # Labels
 LABEL maintainer="Matias Mattamala"
