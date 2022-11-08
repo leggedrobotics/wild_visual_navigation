@@ -21,54 +21,56 @@ if __name__ == "__main__":
 
     fes = {}
 
-    fes["slic100_dino448_8"] = FeatureExtractor(
-        device, "slic", "dino", 448, model_type="vit_small", patch_size=8, slic_num_components=100
-    )
-    fes["slic100_dino448_16"] = FeatureExtractor(
-        device, "slic", "dino", 488, model_type="vit_small", patch_size=16, slic_num_components=100
-    )
-    fes["slic100_dino224_8"] = FeatureExtractor(
-        device, "slic", "dino", 224, model_type="vit_small", patch_size=8, slic_num_components=100
-    )
-    fes["slic100_dino224_16"] = FeatureExtractor(
-        device, "slic", "dino", 224, model_type="vit_small", patch_size=16, slic_num_components=100
-    )
-    fes["slic100_dino112_8"] = FeatureExtractor(
-        device, "slic", "dino", 112, model_type="vit_small", patch_size=8, slic_num_components=100
-    )
-    fes["slic100_dino112_16"] = FeatureExtractor(
-        device, "slic", "dino", 112, model_type="vit_small", patch_size=16, slic_num_components=100
-    )
-    fes["slic100_sift"] = FeatureExtractor(device, "slic", "sift", slic_num_components=100)
+    # FOR FEATURE ABBLATION
+    # fes["slic100_dino448_8"] = FeatureExtractor(
+    #     device, "slic", "dino", 448, model_type="vit_small", patch_size=8, slic_num_components=100
+    # )
+    # fes["slic100_dino448_16"] = FeatureExtractor(
+    #     device, "slic", "dino", 488, model_type="vit_small", patch_size=16, slic_num_components=100
+    # )
+    # fes["slic100_dino224_8"] = FeatureExtractor(
+    #     device, "slic", "dino", 224, model_type="vit_small", patch_size=8, slic_num_components=100
+    # )
+    # fes["slic100_dino224_16"] = FeatureExtractor(
+    #     device, "slic", "dino", 224, model_type="vit_small", patch_size=16, slic_num_components=100
+    # )
+    # fes["slic100_dino112_8"] = FeatureExtractor(
+    #     device, "slic", "dino", 112, model_type="vit_small", patch_size=8, slic_num_components=100
+    # )
+    # fes["slic100_dino112_16"] = FeatureExtractor(
+    #     device, "slic", "dino", 112, model_type="vit_small", patch_size=16, slic_num_components=100
+    # )
+    # fes["slic100_sift"] = FeatureExtractor(device, "slic", "sift", slic_num_components=100)
 
-    fes["slic100_efficientnet_b0"] = FeatureExtractor(
-        device, "slic", "torchvision", (256, 224), model_type="efficientnet_b0", slic_num_components=100
-    )
-    fes["slic100_efficientnet_b4"] = FeatureExtractor(
-        device, "slic", "torchvision", (384, 380), model_type="efficientnet_b4", slic_num_components=100
-    )
-    fes["slic100_efficientnet_b7"] = FeatureExtractor(
-        device, "slic", "torchvision", (633, 600), model_type="efficientnet_b7", slic_num_components=100
-    )
-    fes["slic100_resnet50"] = FeatureExtractor(
-        device, "slic", "torchvision", 448, model_type="resnet50", slic_num_components=100
-    )
-    fes["slic100_resnet18"] = FeatureExtractor(
-        device, "slic", "torchvision", 448, model_type="resnet18", slic_num_components=100
-    )
-    fes["slic100_resnet50_dino"] = FeatureExtractor(
-        device, "slic", "torchvision", 448, model_type="resnet50_dino", slic_num_components=100
-    )
+    # fes["slic100_efficientnet_b0"] = FeatureExtractor(
+    #     device, "slic", "torchvision", (256, 224), model_type="efficientnet_b0", slic_num_components=100
+    # )
+    # fes["slic100_efficientnet_b4"] = FeatureExtractor(
+    #     device, "slic", "torchvision", (384, 380), model_type="efficientnet_b4", slic_num_components=100
+    # )
+    # fes["slic100_efficientnet_b7"] = FeatureExtractor(
+    #     device, "slic", "torchvision", (633, 600), model_type="efficientnet_b7", slic_num_components=100
+    # )
+    # fes["slic100_resnet50"] = FeatureExtractor(
+    #     device, "slic", "torchvision", 448, model_type="resnet50", slic_num_components=100
+    # )
+    # fes["slic100_resnet18"] = FeatureExtractor(
+    #     device, "slic", "torchvision", 448, model_type="resnet18", slic_num_components=100
+    # )
+    # fes["slic100_resnet50_dino"] = FeatureExtractor(
+    #     device, "slic", "torchvision", 448, model_type="resnet50_dino", slic_num_components=100
+    # )
 
-    # fes["slic200_resnet50"] = FeatureExtractor(device, "slic", "torchvision", model_type="resnet50", slic_num_components=200, input_size=448)
-    # fes["slic200_sift"] = FeatureExtractor(device, "slic", "sift", slic_num_components=200)
-
-    # fes["grid32_dino"] = FeatureExtractor(device, "grid", "dino", cell_size=32, input_size=448)
-    # fes["grid32_sift"] = FeatureExtractor(device, "grid", "sift", cell_size=32)
-    # fes["grid32_histogram"] = FeatureExtractor(device, "grid", "histogram", cell_size=32)
-    # fes["stego_dino"] = FeatureExtractor(device, "stego", "stego")
-    # fes["stego_sift"] = FeatureExtractor(device, "stego", "sift")
-    # fes["stego_histogram"] = FeatureExtractor(device, "slic", "histogram")
+    fes["slic200_dino112_8"] = FeatureExtractor(
+        device, "slic", "dino", 112, model_type="vit_small", patch_size=8, slic_num_components=200
+    )
+    fes["grid32_dino112_8"] = FeatureExtractor(
+        device, "slic", "dino", 112, model_type="vit_small", patch_size=8, cell_size=32
+    )
+    fes["grid16_dino112_8"] = FeatureExtractor(
+        device, "slic", "dino", 112, model_type="vit_small", patch_size=8, cell_size=16
+    )
+    fes["stego_dino112_8"] = FeatureExtractor(device, "stego", "dino", 112, model_type="vit_small", patch_size=8)
 
     # read all needed images for training according to the defined split
     perugia_root = "/media/Data/Datasets/2022_Perugia"

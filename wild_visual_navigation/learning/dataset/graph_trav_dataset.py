@@ -1,6 +1,6 @@
 # TODO: Jonas adapt GraphTravVisuDataset when storing fixed in create_gnn_dataset
 
-from torch_geometric.data import InMemoryDataset, DataListLoader
+from torch_geometric.data import InMemoryDataset, DataListLoader, DataLoader
 from torch_geometric.data import LightningDataset
 
 from wild_visual_navigation import WVN_ROOT_DIR
@@ -89,6 +89,7 @@ class GraphTravAbblationDataset(Dataset):
         feature_key: str = "slic_dino",
         env: str = "hilly",
         use_corrospondences: bool = True,
+        training_data_percentage: int = 100,
     ):
         super().__init__()
 
@@ -99,9 +100,6 @@ class GraphTravAbblationDataset(Dataset):
         with open(os.path.join(perugia_root, "wvn_output/split", f"{env}_{mode}.txt"), "r") as f:
             while True:
                 line = f.readline()
-                if mode == "train" and j == 0:
-                    j += 1
-                    continue
                 j += 1
                 if not line:
                     break
@@ -112,6 +110,11 @@ class GraphTravAbblationDataset(Dataset):
 
                 if not os.path.exists(img_p):
                     print("Not found path", img_p)
+
+        if training_data_percentage < 100:
+            if int(len(ls) * training_data_percentage / 100) == 0:
+                raise Exception("Defined Training Data Perentage to small !")
+            ls = ls[: int(len(ls) * training_data_percentage / 100)]
 
         self.mode = mode
         self.env = env
@@ -152,7 +155,7 @@ class GraphTravAbblationDataset(Dataset):
                 y_gt.append(pos < neg)
 
             graph.y_gt = torch.stack(y_gt).type(torch.float32)
-            graph.label = label[None]
+            graph.label = ~label[None]
 
         return graph, Data(x=graph.x_previous, edge_index=graph.edge_index_previous)
 
@@ -168,27 +171,46 @@ def get_abblation_module(
     **kwargs,
 ) -> LightningDataset:
 
-    train_dataset = GraphTravAbblationDataset(perugia_root=perugia_root, mode="train", feature_key=feature_key, env=env)
+    train_dataset = GraphTravAbblationDataset(
+        perugia_root=perugia_root,
+        mode="train",
+        feature_key=feature_key,
+        env=env,
+        training_data_percentage=kwargs.get("training_data_percentage", 100),
+    )
     val_dataset = GraphTravAbblationDataset(perugia_root=perugia_root, mode="val", feature_key=feature_key, env=env)
 
     if test_equals_val:
-        test_dataset = GraphTravAbblationDataset(
-            perugia_root=perugia_root, mode="val", feature_key=feature_key, env=env
-        )
+        test_dataset = [
+            GraphTravAbblationDataset(perugia_root=perugia_root, mode="val", feature_key=feature_key, env=env)
+        ]
     else:
-        test_dataset = GraphTravAbblationDataset(
-            perugia_root=perugia_root, mode="test", feature_key=feature_key, env=env
-        )
+        test_dataset = [
+            GraphTravAbblationDataset(perugia_root=perugia_root, mode="test", feature_key=feature_key, env=env)
+        ]
 
-    return LightningDataset(
-        train_dataset=train_dataset,
-        val_dataset=val_dataset,
-        test_dataset=test_dataset,
-        batch_size=batch_size,
-        num_workers=num_workers,
-        pin_memory=False,
-        *kwargs,
+    if kwargs.get("test_all_datasets"):
+        test_dataset = [
+            GraphTravAbblationDataset(perugia_root=perugia_root, mode="test", feature_key=feature_key, env="forest"),
+            GraphTravAbblationDataset(perugia_root=perugia_root, mode="test", feature_key=feature_key, env="grassland"),
+            GraphTravAbblationDataset(perugia_root=perugia_root, mode="test", feature_key=feature_key, env="hilly"),
+        ]
+
+    return (
+        DataLoader(dataset=train_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=False),
+        DataLoader(dataset=val_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=False),
+        [DataLoader(dataset=t, batch_size=batch_size, num_workers=num_workers, pin_memory=False) for t in test_dataset],
     )
+
+    # return LightningDataset(
+    #     train_dataset=train_dataset,
+    #     val_dataset=val_dataset,
+    #     test_dataset=test_dataset,
+    #     batch_size=batch_size,
+    #     num_workers=num_workers,
+    #     pin_memory=False,
+    #     *kwargs,
+    # ), test_datasets
 
 
 def get_pl_graph_trav_module(
