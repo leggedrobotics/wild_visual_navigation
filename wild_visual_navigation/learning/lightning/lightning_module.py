@@ -48,6 +48,12 @@ class LightningTrav(pl.LightningModule):
         self._traversability_loss.reset()
 
     def training_step(self, batch: any, batch_idx: int) -> torch.Tensor:
+        nr = self._exp["general"]["store_model_every_n_steps"]
+        if type(nr) == int:
+            if self.global_step % nr == 0:
+                path = os.path.join(self._exp["general"]["model_path"], f"{self.global_step}.pt")
+                torch.save(self.state_dict(), path)
+
         graph = batch[0]
         graph_aux = batch[1]
         BS = graph.ptr.numel() - 1
@@ -178,7 +184,7 @@ class LightningTrav(pl.LightningModule):
         self._mode = "test"
         self._visu_count[self._mode] = 0
 
-    def test_step(self, batch: any, batch_idx: int) -> torch.Tensor:
+    def test_step(self, batch: any, batch_idx: int, dataloader_id: int = 0) -> torch.Tensor:
         graph = batch[0]
         BS = graph.ptr.numel() - 1
         graph_aux = batch[1]
@@ -187,10 +193,41 @@ class LightningTrav(pl.LightningModule):
 
         loss, loss_aux = self._traversability_loss(graph, res, graph_aux)
 
-        self._test_roc_proprioceptive.update(preds=res[:, 0], target=(graph.y > 0).type(torch.long))
-        self._test_roc_gt.update(preds=res[:, 0], target=(graph.y_gt > 0).type(torch.long))
-        self._test_auroc_proprioceptive.update(preds=res[:, 0], target=(graph.y > 0).type(torch.long))
-        self._test_auroc_gt.update(preds=res[:, 0], target=(graph.y_gt > 0).type(torch.long))
+        # project graph predictions and label onto the image
+        buffer_pred = graph.label.clone().type(torch.float32)
+        buffer_prop = graph.label.clone().type(torch.float32)
+        for b in range(BS):
+            for s in range(graph.seg[b].max()):
+                m = graph.seg[b] == s
+                buffer_pred[b][m] = res[graph.ptr[b] + s, 0]
+                buffer_prop[b][m] = graph.y[graph.ptr[b] + s]
+
+        buffer_pred = buffer_pred.flatten()
+        buffer_prop = (buffer_prop > 0).type(torch.long).flatten()
+        graph.label = graph.label.type(torch.long).flatten()
+        # label is the gt label
+        self._test_roc_gt[dataloader_id].update(preds=buffer_pred, target=graph.label)
+        self._test_auroc_gt[dataloader_id].update(preds=buffer_pred, target=graph.label)
+
+        # generate proprioceptive label
+        self._test_roc_proprioceptive[dataloader_id].update(preds=buffer_pred, target=buffer_prop)
+        self._test_auroc_proprioceptive[dataloader_id].update(preds=buffer_pred, target=buffer_prop)
+
+        debug = False
+        if debug:
+            b = 0
+            # Visualize the labels quickly
+            i1 = self._visualizer.plot_detectron_cont(
+                graph.img[b], buffer_pred.resh[b], not_log=True, colorize_invalid_centers=True
+            )
+            i2 = self._visualizer.plot_detectron_cont(
+                graph.img[b], buffer_prop[b], not_log=True, colorize_invalid_centers=True
+            )
+            i3 = self._visualizer.plot_detectron_cont(
+                graph.img[b], graph.label[b].type(torch.float32), not_log=True, colorize_invalid_centers=True
+            )
+            self._visualizer.plot_list(imgs=[i1, i2, i3], tag=f"Pred_Prop_GT", store_folder=f"{self._mode}/debug")
+
         for k, v in loss_aux.items():
             self.log(f"{self._mode}_{k}", v.item(), on_epoch=True, prog_bar=True, batch_size=BS)
         self.log(f"{self._mode}_loss", loss.item(), on_epoch=True, prog_bar=True, batch_size=BS)
@@ -200,22 +237,36 @@ class LightningTrav(pl.LightningModule):
         return loss
 
     def test_epoch_end(self, outputs: any):
+        dtr = {}
+
         fpr_pro, tpr_pro, thresholds_pro = self._test_roc_proprioceptive.compute()
         auroc_pro = self._test_auroc_proprioceptive.compute().item()
         self._visualizer.plot_roc(
             x=fpr_pro.cpu().numpy(),
             y=tpr_pro.cpu().numpy(),
             y_tag=f"AUCROC_{auroc_pro:.4f}",
-            tag=f"{self._mode}_ROC_proprioceptive",
+            tag=f"{self._mode}_ROC_proprioceptive_{self.nr_test_run}",
         )
-        self.log(f"{self._mode}_auroc_proprioceptive", auroc_pro, on_epoch=True, prog_bar=False)
+        self.log(f"{self._mode}_auroc_proprioceptive_{self.nr_test_run}", auroc_pro, on_epoch=True, prog_bar=False)
 
         fpr_gt, tpr_gt, thresholds_gt = self._test_roc_gt.compute()
         auroc_gt = self._test_auroc_gt.compute().item()
         self._visualizer.plot_roc(
-            x=fpr_gt.cpu().numpy(), y=tpr_gt.cpu().numpy(), y_tag=f"AUCROC_{auroc_gt:.4f}", tag=f"{self._mode}_ROC_gt"
+            x=fpr_gt.cpu().numpy(),
+            y=tpr_gt.cpu().numpy(),
+            y_tag=f"AUCROC_{auroc_gt:.4f}_{self.nr_test_run}",
+            tag=f"{self._mode}_ROC_gt_{self.nr_test_run}",
         )
-        self.log(f"{self._mode}_auroc_gt", auroc_gt, on_epoch=True, prog_bar=False)
+        self.log(f"{self._mode}_auroc_gt_{self.nr_test_run}", auroc_gt, on_epoch=True, prog_bar=False)
+
+        dtr[f"test_roc_gt_fpr"] = (fpr_gt.cpu().numpy(),)
+        dtr[f"test_roc_gt_tpr"] = (tpr_gt.cpu().numpy(),)
+        dtr[f"test_roc_gt_thresholds"] = (thresholds_gt.cpu().numpy(),)
+        dtr[f"test_auroc_gt"] = auroc_gt
+        dtr[f"test_roc_prop_fpr"] = fpr_pro.cpu().numpy()
+        dtr[f"test_roc_prop_tpr"] = tpr_pro.cpu().numpy()
+        dtr[f"test_roc_prop_thresholds"] = thresholds_pro.cpu().numpy()
+        dtr[f"test_auroc_prop"] = auroc_pro
 
         if self._exp["visu"]["log_test_video"]:
             inp = os.path.join(self._visualizer._p_visu, f"{self._mode}/graph_trav")
@@ -234,21 +285,17 @@ class LightningTrav(pl.LightningModule):
             except:
                 pass
 
-        detailed_test_results = {
-            "test_roc_gt_fpr": fpr_gt.cpu().numpy(),
-            "test_roc_gt_tpr": tpr_gt.cpu().numpy(),
-            "test_roc_gt_thresholds": thresholds_gt.cpu().numpy(),
-            "test_auroc_gt": auroc_gt,
-            "test_roc_prop_fpr": fpr_pro.cpu().numpy(),
-            "test_roc_prop_tpr": tpr_pro.cpu().numpy(),
-            "test_roc_prop_thresholds": thresholds_pro.cpu().numpy(),
-            "test_auroc_prop": auroc_pro,
-        }
+        with open(
+            os.path.join(self._exp["general"]["model_path"], f"{self.nr_test_run}_detailed_test_results.pkl"), "wb"
+        ) as handle:
+            pickle.dump(dtr, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-        with open(os.path.join(self._exp["general"]["model_path"], "detailed_test_results.pkl"), "wb") as handle:
-            pickle.dump(detailed_test_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        self._test_roc_proprioceptive.reset()
+        self._test_roc_gt.reset()
+        self._test_auroc_proprioceptive.reset()
+        self._test_auroc_gt.reset()
 
-        return detailed_test_results
+        return dtr
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
         return torch.optim.Adam(self._model.parameters(), lr=self._exp["optimizer"]["lr"])

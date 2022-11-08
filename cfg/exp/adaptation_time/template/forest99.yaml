@@ -1,0 +1,14 @@
+general:
+  name: adaptation_time/forest99
+  timestamp: False
+  store_model_every_n_steps: 100
+  
+abblation_data_module:
+  env: forest
+  training_data_percentage: 99
+
+trainer: 
+  max_epochs:
+  max_steps: 5000
+logger:
+  name: skip

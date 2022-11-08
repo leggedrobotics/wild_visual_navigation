@@ -16,14 +16,14 @@ from wild_visual_navigation import WVN_ROOT_DIR
 def objective(trial, experiment: ExperimentParams):
     exp = copy.deepcopy(experiment)
 
-    exp.optimizer.lr = trial.suggest_float("lr", 0.0001, 0.01, log=True)
-    exp.loss.w_trav = trial.suggest_float("w_trav", 0.01, 2.0)
-    exp.loss.w_temp = trial.suggest_float("w_temp", 0.01, 2.0)
+    # exp.optimizer.lr = trial.suggest_float("lr", 0.0001, 0.01, log=True)
+    exp.loss.w_trav = trial.suggest_float("w_trav", 0.0, 2.0)
+    exp.loss.w_temp = trial.suggest_float("w_temp", 0.0, 2.0)
+    exp.loss.w_reco = trial.suggest_float("w_reco", 0.0, 2.0)
+    # exp.loss.anomaly_blanced = trial.suggest_categorical("anomaly_blanced", [True, False])
 
-    exp.loss.anomaly_blanced = trial.suggest_categorical("anomaly_blanced", [True, False])
-
-    if not trial.suggest_categorical("use_temporal_consistency", [True, False]):
-        exp.loss.w_temp = 0.0
+    # if not trial.suggest_categorical("use_temporal_consistency", [True, False]):
+    # exp.loss.w_temp = 0.0
     # exp.trainer.max_epochs = trial.suggest_int("max_epochs", 1, 10)
 
     res, _, _, _ = training_routine(exp)
@@ -38,9 +38,9 @@ if __name__ == "__main__":
     parser.add_arguments(ExperimentParams, dest="experiment")
     parser.add_argument("--exp", type=str, default="nan", help="Overwrite params")
 
-    parser.add_argument("--name", type=str, default="lr_exp_0", help="Name of sweep")
+    parser.add_argument("--name", type=str, default="sweep_loss_function", help="Name of sweep")
     parser.add_argument("--log_lightning_run", type=bool, default=False, help="Log Lightning Run")
-    parser.add_argument("--n_trials", type=int, default=200, help="Number Trials")
+    parser.add_argument("--n_trials", type=int, default=100, help="Number Trials")
 
     args = parser.parse_args()
 
