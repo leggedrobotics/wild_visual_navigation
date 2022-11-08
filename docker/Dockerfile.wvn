@@ -55,7 +55,6 @@ RUN pip3 install --no-cache-dir pytorch_lightning==1.6.5
 
 # Other dependencies
 RUN pip3 install --no-cache-dir git+https://github.com/lucasb-eyer/pydensecrf.git#egg=pydensecrf
-RUN pip3 install --no-cache-dir git+https://github.com/kornia/kornia#egg=kornia
 RUN pip3 install --no-cache-dir git+https://github.com/mmattamala/liegroups#egg=liegroups
 RUN pip3 install --no-cache-dir git+https://github.com/leggedrobotics/stego.git#egg=stego
 RUN pip3 install --no-cache-dir git+https://github.com/JonasFrey96/pytorch_pwc.git#egg=pytorch_pwc==0.0.1
