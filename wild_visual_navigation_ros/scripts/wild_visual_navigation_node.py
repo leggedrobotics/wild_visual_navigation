@@ -54,6 +54,7 @@ class WvnRosInterface:
             mode=self.mode,
             running_store_folder=self.running_store_folder,
             exp_file=self.exp_file,
+            patch_size=self.dino_patch_size,
         )
 
         # Initialize traversability generator to process velocity commands
@@ -117,7 +118,6 @@ class WvnRosInterface:
         self.robot_length = rospy.get_param("~robot_length", 1.0)
         self.robot_width = rospy.get_param("~robot_width", 0.6)
         self.robot_height = rospy.get_param("~robot_height", 0.3)
-        self.robot_max_velocity = rospy.get_param("~robot_max_velocity", 0.8)
 
         # Traversability estimation params
         self.traversability_radius = rospy.get_param("~traversability_radius", 3.0)
@@ -127,8 +127,10 @@ class WvnRosInterface:
         self.network_input_image_width = rospy.get_param("~network_input_image_width", 224)  # 448
         self.segmentation_type = rospy.get_param("~segmentation_type", "slic")
         self.feature_type = rospy.get_param("~feature_type", "dino")
+        self.dino_patch_size = rospy.get_param("~dino_patch_size", 8)
 
         # Supervision Generator
+        self.robot_max_velocity = rospy.get_param("~robot_max_velocity", 0.8)
         self.untraversable_thr = rospy.get_param("~untraversable_thr", 0)
 
         # Optical flow params

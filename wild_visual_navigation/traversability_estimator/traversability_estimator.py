@@ -47,6 +47,7 @@ class TraversabilityEstimator:
         vis_node_index: int = 10,
         running_store_folder=None,
         exp_file="nan",
+        **kwargs,
     ):
         self._device = device
         self._mode = mode
@@ -71,7 +72,11 @@ class TraversabilityEstimator:
         self._feature_type = feature_type
 
         self._feature_extractor = FeatureExtractor(
-            device, segmentation_type=self._segmentation_type, feature_type=self._feature_type, input_size=image_size
+            device,
+            segmentation_type=self._segmentation_type,
+            feature_type=self._feature_type,
+            input_size=image_size,
+            **kwargs,
         )
         # Optical flow
         self._optical_flow_estimator_type = optical_flow_estimator_type
