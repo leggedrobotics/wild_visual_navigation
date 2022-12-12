@@ -5,8 +5,9 @@ import os
 python3 /media/Data/Datasets/2022_Perugia/dataset_info.py
 """
 
-ROOT_DIR = "/media/Data/Datasets/2022_Perugia"
-perguia_dataset = [
+# ROOT_DIR = "/media/Data/Datasets/2022_Perugia"
+ROOT_DIR = "/media/matias/datasets/2022_Perugia"
+perugia_dataset = [
     {
         "name": "day3/mission_data/2022-05-12T09:45:07_mission_0_day_3",
         "env": "hilly",
@@ -122,7 +123,7 @@ def dataset_play(env="forest", mode="train", nr=0, rate=1.0, ignore_tf=False, ot
     """
     Play a dataset.
     """
-    dataset = perguia_dataset
+    dataset = perugia_dataset
     for d in dataset:
         if d["env"] == env and d["mode"] == mode and d["nr"] == nr:
             break

@@ -26,7 +26,8 @@ import numpy as np
 from typing import Optional
 import traceback
 
-torch.cuda.empty_cache()
+if torch.cuda.is_available():
+    torch.cuda.empty_cache()
 
 
 class WvnRosInterface:
@@ -409,6 +410,7 @@ class WvnRosInterface:
                 pose_base_in_world=pose_base_in_world,
                 pose_footprint_in_base=pose_footprint_in_base,
                 twist_in_base=current_twist_tensor,
+                desired_twist_in_base=desired_twist_tensor,
                 width=self.robot_width,
                 length=self.robot_length,
                 height=self.robot_width,

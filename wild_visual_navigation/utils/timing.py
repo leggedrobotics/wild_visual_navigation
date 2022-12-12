@@ -1,5 +1,22 @@
 import torch
+import time
 
+class CpuTimer:
+    def __init__(self, name="") -> None:
+        self.name = name
+
+    def __enter__(self):
+        self.tic()
+
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        print(f"Time {self.name}: ", self.toc(), "ms")
+
+    def tic(self):
+        self.start = time.perf_counter()
+
+    def toc(self):
+        end_time = time.perf_counter()
+        return end - start
 
 class Timer:
     def __init__(self, name="") -> None:
@@ -8,7 +25,7 @@ class Timer:
         self.end = torch.cuda.Event(enable_timing=True)
 
     def __enter__(self):
-        self.start.record()
+        self.tic()
 
     def __exit__(self, exc_type, exc_value, exc_tb):
         print(f"Time {self.name}: ", self.toc(), "ms")
