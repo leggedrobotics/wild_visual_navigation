@@ -18,7 +18,7 @@ from postprocessing_tools_ros.merging import merge_bags_single, merge_bags_all
 # from cv_bridge import CvBridge
 
 from wild_visual_navigation import WVN_ROOT_DIR
-from wild_visual_navigation.utils import perguia_dataset, ROOT_DIR
+from wild_visual_navigation.utils import perugia_dataset, ROOT_DIR
 
 sys.path.append(f"{WVN_ROOT_DIR}/wild_visual_navigation_ros/scripts")
 from wild_visual_navigation_node import WvnRosInterface
@@ -56,7 +56,7 @@ class BagTfTransformerWrapper:
 
 
 def do(n, dry_run):
-    d = perguia_dataset[n]
+    d = perugia_dataset[n]
 
     if bool(dry_run):
         print(d)
@@ -99,10 +99,11 @@ def do(n, dry_run):
     mission = s.split("/")[-1]
 
     # 2022-05-12T11:56:13_mission_0_day_3
-    running_store_folder = f"/media/Data/Datasets/2022_Perugia/wvn_output/day3/{mission}"
+    # running_store_folder = f"/media/Data/Datasets/2022_Perugia/wvn_output/day3/{mission}"
+    running_store_folder = f"/media/matias/datasets/2022_Perugia/wvn_output/day3/{mission}"
 
     if os.path.exists(running_store_folder):
-        print("Stopped because folder already exists")
+        print(f"Stopped because folder already exists: {running_store_folder}")
         return
 
     rosparam.set_param("wild_visual_navigation_node/mode", "extract_labels")
@@ -170,41 +171,43 @@ def do(n, dry_run):
                     desired_twist_msg_valid = True
 
                 elif topic == "/alphasense_driver_ros/cam4":
-                    for i in range(100):
+                    N = 1000
+                    for i in range(N):
                         pub.publish(msg)
+                        # Change this for service call
                         try:
                             image_msg = rospy.wait_for_message(
-                                "/alphasense_driver_ros/cam4/debayered", Image, timeout=0.1
+                                "/alphasense_driver_ros/cam4/debayered", Image, timeout=0.01
                             )
                             suc = True
-                        except:
+                        except Exception as e:
                             suc = False
                             pass
                         if suc:
                             if msg.header.stamp == image_msg.header.stamp:
                                 break
-                        if i >= 99:
-                            raise Exception("Timeout waiting for debayerd image message")
+                        if i >= N-1:
+                            raise Exception("Timeout waiting for debayered image message")
 
                     info_msg.header = msg.header
                     try:
                         wvn_ros_interface.image_callback(image_msg, info_msg)
                     except Exception as e:
-                        print("Bad image_callback", e)
+                        tqdm.write("Bad image_callback", e)
 
                     total_time_img += time.time() - st
                     # print(f"image time: {total_time_img} , state time: {total_time_state}")
-                    print("add image")
+                    tqdm.write("add image")
                 if state_msg_valid and desired_twist_msg_valid:
                     try:
                         wvn_ros_interface.robot_state_callback(state_msg, desired_twist_msg)
                     except Exception as e:
-                        print("Bad robot_state callback ", e)
+                        tqdm.write("Bad robot_state callback ", e)
 
                     state_msg_valid = False
                     desired_twist_msg_valid = True
                     total_time_state += time.time() - st
-                    print("add supervision")
+                    tqdm.write("add supervision")
 
     print("Finished with converting the dataset")
     rospy.signal_shutdown("stop the node")
@@ -214,7 +217,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--n", type=int, default=6, help="Store data")
+    parser.add_argument("--n", type=int, default=2, help="Store data")
     parser.add_argument("--dry_run", type=int, default=0, help="Store data")
     args = parser.parse_args()
     print(args.n)

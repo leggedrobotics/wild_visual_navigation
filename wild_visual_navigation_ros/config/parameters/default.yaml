@@ -42,6 +42,9 @@ proprio_callback_rate: 4 # hertz
 learning_thread_rate: 10 # hertz
 
 # Runtime options
+device: "cuda"
+mode: "online"
 print_image_callback_time: False
 use_debug_for_desired: True
-mode: "online"
+
+

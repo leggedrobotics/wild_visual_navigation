@@ -399,6 +399,7 @@ class ProprioceptionNode(BaseNode):
         pose_footprint_in_base: torch.tensor = torch.eye(4),
         pose_footprint_in_world: torch.tensor = None,
         twist_in_base: torch.tensor = None,
+        desired_twist_in_base: torch.tensor = None,
         length: float = 0.1,
         width: float = 0.1,
         height: float = 0.1,
@@ -418,6 +419,7 @@ class ProprioceptionNode(BaseNode):
             else pose_footprint_in_world
         )
         self._twist_in_base = twist_in_base
+        self._desired_twist_in_base = desired_twist_in_base
         self._length = length
         self._width = width
         self._height = height
@@ -435,6 +437,8 @@ class ProprioceptionNode(BaseNode):
         super().change_device(device)
         self._pose_footprint_in_base = self._pose_footprint_in_base.to(device)
         self._pose_footprint_in_world = self._pose_footprint_in_world.to(device)
+        self._twist_in_base = self._twist_in_base.to(device)
+        self._desired_twist_in_base = self._desired_twist_in_base.to(device)
         self._proprioceptive_state = self._proprioceptive_state.to(device)
 
     def get_bounding_box_points(self):
@@ -510,6 +514,14 @@ class ProprioceptionNode(BaseNode):
     @property
     def traversability_var(self):
         return self._traversability_var
+    
+    @property
+    def twist_in_base(self):
+        return self._twist_in_base
+    
+    @property
+    def desired_twist_in_base(self):
+        return self._desired_twist_in_base
 
     @property
     def is_untraversable(self):
