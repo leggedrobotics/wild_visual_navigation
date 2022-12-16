@@ -219,9 +219,6 @@ class WvnRosInterface:
             "/wild_visual_navigation_node/last_node_image_labeled", Image, queue_size=10
         )
         self.pub_image_mask = rospy.Publisher("/wild_visual_navigation_node/last_node_image_mask", Image, queue_size=10)
-        self.pub_image_prediction_input = rospy.Publisher(
-            "/wild_visual_navigation_node/current_prediction_input", Image, queue_size=10
-        )
         self.pub_image_prediction = rospy.Publisher(
             "/wild_visual_navigation_node/current_prediction", Image, queue_size=10
         )
@@ -240,6 +237,9 @@ class WvnRosInterface:
         )
         self.pub_training_loss = rospy.Publisher("/wild_visual_navigation_node/training_loss", Float32, queue_size=10)
 
+        self.pub_image_input = rospy.Publisher(
+            "/wild_visual_navigation_node/image_input", Image, queue_size=10
+        )
         self.pub_traversability = rospy.Publisher(
             "/wild_visual_navigation_node/traversability_raw", Image, queue_size=10
         )
@@ -552,6 +552,12 @@ class WvnRosInterface:
             self.pub_camera_info.publish(info_msg)
             # self.pub_label.publish(rc.numpy_to_ros_image(np_labeled_image))
 
+            msg = rc.numpy_to_ros_image(mission_node.image.cpu().numpy(), "passthrough")
+            msg.header = image_msg.header
+            msg.width = out_trav.shape[0]
+            msg.height = out_trav.shape[1]
+            self.pub_image_input.publish(msg)
+
     @accumulate_time
     def learning_thread_loop(self):
         """This implements the main thread that runs the training procedure
@@ -692,7 +698,7 @@ class WvnRosInterface:
                     ) = self.traversability_estimator.plot_mission_node_prediction(vis_node)
 
                 with Timer("publish_mission_node_prediction"):
-                    self.pub_image_prediction_input.publish(rc.torch_to_ros_image(vis_node.image))
+                    # self.pub_image_input.publish(rc.torch_to_ros_image(vis_node.image))
                     self.pub_image_prediction.publish(rc.numpy_to_ros_image(np_prediction_image))
                     self.pub_image_prediction_uncertainty.publish(rc.numpy_to_ros_image(np_uncertainty_image))
 
