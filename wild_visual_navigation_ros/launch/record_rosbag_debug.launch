@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+
+  <rosparam command="dump" param="/anymal_description" file="$(env HOME)/logs/raw/anymal_description.yaml" />
+  <rosparam command="dump"  file="$(env HOME)/logs/raw/anymal_param_server.yaml" />
+
+  <!--Note: recording location consistent with the ORI Anymal wiki page:
+      https://wiki.oxfordrobots.com/display/DRS/Anymal-->
+  <node name="rosbag" pkg="rosbag" type="record"
+    args="-o $(env HOME)/logs/raw/anymal.bag
+    --lz4 --chunksize=15360
+    /wild_visual_navigation_node/robot_state
+    /alphasense_driver_ros/cam4/debayered
+    /alphasense_driver_ros/cam4/camera_info
+    /motion_reference/command_twist
+    /tf
+    /tf_static
+
+    /wild_visual_navigation_node/camera_info
+    /wild_visual_navigation_node/confidence_raw
+    /wild_visual_navigation_node/current_prediction
+    /wild_visual_navigation_node/current_prediction_input
+    /wild_visual_navigation_node/current_uncertainty
+    /wild_visual_navigation_node/graph_footprints
+    /wild_visual_navigation_node/instant_traversability
+    /wild_visual_navigation_node/label_raw
+    /wild_visual_navigation_node/last_node_image_labeled
+    /wild_visual_navigation_node/last_node_image_mask
+    /wild_visual_navigation_node/mission_graph
+    /wild_visual_navigation_node/proprioceptive_graph
+    /wild_visual_navigation_node/training_loss
+    /wild_visual_navigation_node/traversability_raw
+
+    " output="screen">
+  </node>
+</launch>
