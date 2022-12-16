@@ -552,7 +552,7 @@ class WvnRosInterface:
             self.pub_camera_info.publish(info_msg)
             # self.pub_label.publish(rc.numpy_to_ros_image(np_labeled_image))
 
-            msg = rc.numpy_to_ros_image(mission_node.image.cpu().numpy(), "passthrough")
+            msg = rc.torch_to_ros_image(mission_node.image.cpu(), "rgb8")
             msg.header = image_msg.header
             msg.width = out_trav.shape[0]
             msg.height = out_trav.shape[1]
