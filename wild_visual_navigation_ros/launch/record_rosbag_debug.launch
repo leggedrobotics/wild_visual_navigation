@@ -7,11 +7,17 @@
   <!--Note: recording location consistent with the ORI Anymal wiki page:
       https://wiki.oxfordrobots.com/display/DRS/Anymal-->
   <node name="rosbag" pkg="rosbag" type="record"
-    args="-o $(env HOME)/logs/raw/anymal.bag
+    args="-o $(env HOME)/logs/raw/anymal_wvn.bag
     --lz4 --chunksize=15360
     /wild_visual_navigation_node/robot_state
-    /alphasense_driver_ros/cam4/debayered
+
+    /alphasense_driver_ros/cam4/debayered/compressed
     /alphasense_driver_ros/cam4/camera_info
+    /alphasense_driver_ros/cam3/debayered/compressed
+    /alphasense_driver_ros/cam3/camera_info
+    /alphasense_driver_ros/cam5/debayered/compressed
+    /alphasense_driver_ros/cam5/camera_info
+    
     /motion_reference/command_twist
     /tf
     /tf_static
@@ -30,7 +36,40 @@
     /wild_visual_navigation_node/proprioceptive_graph
     /wild_visual_navigation_node/training_loss
     /wild_visual_navigation_node/traversability_raw
+    
+    /rosout_agg
+    /anymal_highlevel_controller/actuator_commands
+    /anymal_low_level_controller/actuator_readings
+    /anymal_low_level_controller/actuator_readings_extended_throttled
+    /sensors/battery_voltage
+    /sensors/imu
+    /sensors/imu_augmented
+    /state_estimator/actuator_readings
+    /state_estimator/contact_force_lf_foot
+    /state_estimator/contact_force_lh_foot
+    /state_estimator/contact_force_rf_foot
+    /state_estimator/contact_force_rh_foot
+    /state_estimator/pose_in_odom
+    /state_estimator/anymal_state
+    /state_estimator/twist
+    
+    /depth_camera_front/point_cloud_self_filtered
+    /depth_camera_rear/point_cloud_self_filtered
+    /depth_camera_left/point_cloud_self_filtered
+    /depth_camera_right/point_cloud_self_filtered
+    /point_cloud_filter/lidar/point_cloud_filtered
+    /lidar/point_cloud
 
+    /depth_camera_front/color/image_raw/compressed
+    /depth_camera_rear/color/image_raw/compressed
+    /depth_camera_left/color/image_raw/compressed
+    /depth_camera_right/color/image_raw/compressed
+
+    /depth_camera_front/color/camera_info
+    /depth_camera_rear/color/camera_info
+    /depth_camera_left/color/camera_info
+    /depth_camera_right/color/camera_info
+    
     " output="screen">
   </node>
 </launch>
