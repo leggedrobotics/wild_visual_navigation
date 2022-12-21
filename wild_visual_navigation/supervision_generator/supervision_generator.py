@@ -217,7 +217,9 @@ def run_supervision_generator():
         t, curr, des = data[i]
 
         # Update traversability
-        trav, trav_cov, is_untrav = ag.update_velocity_tracking(curr[0], des[0], max_velocity=0.8, velocities=["vx", "vy"])
+        trav, trav_cov, is_untrav = ag.update_velocity_tracking(
+            curr[0], des[0], max_velocity=0.8, velocities=["vx", "vy"]
+        )
         saved_data.append([t.item(), curr.norm().item(), des.norm().item(), trav.item(), trav_cov.item(), is_untrav])
 
     df = pd.DataFrame(saved_data, columns=["ts", "curr", "des", "trav", "trav_cov", "is_untraversable"])

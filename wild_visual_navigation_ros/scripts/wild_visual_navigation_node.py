@@ -237,9 +237,7 @@ class WvnRosInterface:
         )
         self.pub_training_loss = rospy.Publisher("/wild_visual_navigation_node/training_loss", Float32, queue_size=10)
 
-        self.pub_image_input = rospy.Publisher(
-            "/wild_visual_navigation_node/image_input", Image, queue_size=10
-        )
+        self.pub_image_input = rospy.Publisher("/wild_visual_navigation_node/image_input", Image, queue_size=10)
         self.pub_traversability = rospy.Publisher(
             "/wild_visual_navigation_node/traversability_raw", Image, queue_size=10
         )

@@ -186,7 +186,7 @@ def do(n, dry_run):
                         if suc:
                             if msg.header.stamp == image_msg.header.stamp:
                                 break
-                        if i >= N-1:
+                        if i >= N - 1:
                             raise Exception("Timeout waiting for debayered image message")
 
                     info_msg.header = msg.header
