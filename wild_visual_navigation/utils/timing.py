@@ -1,6 +1,7 @@
 import torch
 import time
 
+
 class CpuTimer:
     def __init__(self, name="") -> None:
         self.name = name
@@ -17,6 +18,7 @@ class CpuTimer:
     def toc(self):
         end_time = time.perf_counter()
         return end - start
+
 
 class Timer:
     def __init__(self, name="") -> None:

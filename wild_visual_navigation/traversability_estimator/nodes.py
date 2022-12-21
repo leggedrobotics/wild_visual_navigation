@@ -514,11 +514,11 @@ class ProprioceptionNode(BaseNode):
     @property
     def traversability_var(self):
         return self._traversability_var
-    
+
     @property
     def twist_in_base(self):
         return self._twist_in_base
-    
+
     @property
     def desired_twist_in_base(self):
         return self._desired_twist_in_base
