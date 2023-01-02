@@ -115,6 +115,8 @@ class MissionNode(BaseNode):
         image: torch.tensor = None,
         image_projector: ImageProjector = None,
         correspondence=None,
+        camera_name="cam",
+        use_for_training=True,
     ):
         super().__init__(timestamp=timestamp, pose_base_in_world=pose_base_in_world)
         # Initialize members
@@ -124,6 +126,8 @@ class MissionNode(BaseNode):
         )
         self._image = image
         self._image_projector = image_projector
+        self._camera_name = camera_name
+        self._use_for_training = use_for_training
 
         # Uninitialized members
         self._features = None
@@ -210,6 +214,10 @@ class MissionNode(BaseNode):
         )
 
     @property
+    def camera_name(self):
+        return self._camera_name
+
+    @property
     def confidence(self):
         return self._confidence
 
@@ -264,6 +272,14 @@ class MissionNode(BaseNode):
     @property
     def supervision_mask(self):
         return self._supervision_mask
+
+    @property
+    def use_for_training(self):
+        return self._use_for_training
+
+    @camera_name.setter
+    def camera_name(self, camera_name):
+        self._camera_name = camera_name
 
     @confidence.setter
     def confidence(self, confidence):
@@ -320,6 +336,10 @@ class MissionNode(BaseNode):
     @supervision_mask.setter
     def supervision_mask(self, supervision_mask):
         self._supervision_mask = supervision_mask
+
+    @use_for_training.setter
+    def use_for_training(self, use_for_training):
+        self._use_for_training = use_for_training
 
     def save(self, output_path: str, index: int, graph_only: bool = False, previous_node: Optional[BaseNode] = None):
         if self._feature_positions is not None:
