@@ -12,7 +12,7 @@ from wild_visual_navigation.utils import Timer
 from wild_visual_navigation.utils import WVNMode
 from geometry_msgs.msg import PoseStamped, Point, TwistStamped
 from nav_msgs.msg import Path
-from sensor_msgs.msg import Image, CameraInfo
+from sensor_msgs.msg import Image, CameraInfo, CompressedImage
 from std_msgs.msg import ColorRGBA, Float32, Float32MultiArray
 from threading import Thread
 from visualization_msgs.msg import Marker
@@ -227,7 +227,13 @@ class WvnRosInterface:
                 # Store camera name
                 self.camera_topics[cam]["name"] = cam
                 # Set subscribers
-                image_sub = message_filters.Subscriber(self.camera_topics[cam]["image_topic"], Image)
+                base_topic = self.camera_topics[cam]["image_topic"].replace("/compressed", "")
+                is_compressed = (self.camera_topics[cam]["image_topic"] != base_topic)
+                if is_compressed:
+                    image_sub = message_filters.Subscriber(self.camera_topics[cam]["image_topic"], CompressedImage)
+                else:
+                    image_sub = message_filters.Subscriber(self.camera_topics[cam]["image_topic"], Image)
+
                 info_sub = message_filters.Subscriber(self.camera_topics[cam]["info_topic"], CameraInfo)
                 sync = message_filters.ApproximateTimeSynchronizer([image_sub, info_sub], queue_size=2, slop=0.1)
                 sync.registerCallback(self.image_callback, self.camera_topics[cam])
@@ -456,8 +462,8 @@ class WvnRosInterface:
 
             if self.mode != WVNMode.EXTRACT_LABELS:
                 # Visualizations (45ms)
-                with Timer("robot_state_callback - visualize_proprioception"):
-                    self.visualize_proprioception()
+                # with Timer("robot_state_callback - visualize_proprioception"):
+                self.visualize_proprioception()
             
             if self.print_proprio_callback_time:
                 print(self)
