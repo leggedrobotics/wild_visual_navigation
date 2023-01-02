@@ -584,7 +584,7 @@ class TraversabilityEstimator:
         Args:
             batch_size (int): Size of the batch
         """
-        
+
         if self._optical_flow_estimator_type != "none":
             # Sample a batch of nodes and their previous node, for temporal consistency
             mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)

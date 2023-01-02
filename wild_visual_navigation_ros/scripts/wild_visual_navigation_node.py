@@ -228,7 +228,7 @@ class WvnRosInterface:
                 self.camera_topics[cam]["name"] = cam
                 # Set subscribers
                 base_topic = self.camera_topics[cam]["image_topic"].replace("/compressed", "")
-                is_compressed = (self.camera_topics[cam]["image_topic"] != base_topic)
+                is_compressed = self.camera_topics[cam]["image_topic"] != base_topic
                 if is_compressed:
                     image_sub = message_filters.Subscriber(self.camera_topics[cam]["image_topic"], CompressedImage)
                 else:
@@ -464,7 +464,7 @@ class WvnRosInterface:
                 # Visualizations (45ms)
                 # with Timer("robot_state_callback - visualize_proprioception"):
                 self.visualize_proprioception()
-            
+
             if self.print_proprio_callback_time:
                 print(self)
 
