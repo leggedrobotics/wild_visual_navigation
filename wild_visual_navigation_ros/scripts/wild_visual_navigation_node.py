@@ -5,8 +5,9 @@ from wild_visual_navigation.traversability_estimator import TraversabilityEstima
 from wild_visual_navigation.traversability_estimator import MissionNode, ProprioceptionNode
 import wild_visual_navigation_ros.ros_converter as rc
 from wild_visual_navigation.utils import accumulate_time
-from wild_visual_navigation_msgs.msg import RobotState
+from wild_visual_navigation_msgs.msg import RobotState, SystemState
 from wild_visual_navigation_msgs.srv import SaveLoadData, SaveLoadDataResponse
+from std_srvs.srv import SetBool
 from wild_visual_navigation.utils import Timer
 from wild_visual_navigation.utils import WVNMode
 from geometry_msgs.msg import PoseStamped, Point, TwistStamped
@@ -111,10 +112,18 @@ class WvnRosInterface:
         # Main loop
         while not rospy.is_shutdown():
             # Optimize model
-            loss = self.traversability_estimator.train()
+            res = self.traversability_estimator.train()
 
             # Publish loss
-            self.pub_training_loss.publish(loss)
+            system_state = SystemState()
+            for k in res.keys():
+                if hasattr(system_state, k):
+                    setattr(system_state, k, res[k])
+
+            system_state.pause_learning = self.traversability_estimator.pause_learning
+            system_state.mode = self.mode.value
+            self.pub_system_state.publish(system_state)
+
             rate.sleep()
 
     @accumulate_time
@@ -281,7 +290,7 @@ class WvnRosInterface:
         self.pub_instant_traversability = rospy.Publisher(
             "/wild_visual_navigation_node/instant_traversability", Float32, queue_size=10
         )
-        self.pub_training_loss = rospy.Publisher("/wild_visual_navigation_node/training_loss", Float32, queue_size=10)
+        self.pub_system_state = rospy.Publisher("/wild_visual_navigation_node/system_state", SystemState, queue_size=10)
 
         # Services
         # Like, reset graph or the like
@@ -289,6 +298,24 @@ class WvnRosInterface:
         self.save_pickle_service = rospy.Service("~save_pickle", SaveLoadData, self.save_pickle_callback)
         self.save_checkpt_service = rospy.Service("~save_checkpoint", SaveLoadData, self.save_checkpoint_callback)
         self.load_checkpt_service = rospy.Service("~load_checkpoint", SaveLoadData, self.load_checkpoint_callback)
+
+        self.pause_learning_service = rospy.Service("~pause_learning", SetBool, self.pause_learning_callback)
+
+    def pause_learning_callback(self, req):
+        """Start and stop the network training"""
+        prev_state = self.traversability_estimator.pause_learning
+        self.traversability_estimator.pause_learning = req.data
+        if not req.data and prev_state:
+            message = "Resume training!"
+        elif req.data and prev_state:
+            message = "Training was already paused!"
+        elif not req.data and not prev_state:
+            message = "Training was already running!"
+        elif req.data and not prev_state:
+            message = "Pause training!"
+        message += f" Updated the network for {self.traversability_estimator.step} steps"
+
+        return True, message
 
     @accumulate_time
     def save_graph_callback(self, req):
