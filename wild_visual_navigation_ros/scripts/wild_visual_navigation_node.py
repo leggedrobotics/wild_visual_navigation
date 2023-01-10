@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation.supervision_generator import SupervisionGenerator
@@ -166,7 +165,7 @@ class WvnRosInterface:
         out_path = os.path.join(WVN_ROOT_DIR, "results")
         self.output_path = rospy.get_param("~output_path", out_path)
         self.mission_name = rospy.get_param("~mission_name", "default_mission")
-
+        
         # Print timings
         self.print_image_callback_time = rospy.get_param("~print_image_callback_time", False)
         self.print_proprio_callback_time = rospy.get_param("~print_proprio_callback_time", False)
@@ -741,10 +740,10 @@ class WvnRosInterface:
 
         # Get visualization node
         vis_node = self.traversability_estimator.get_mission_node_for_visualization()
-        cam = vis_node.camera_name
-
+        
         # Publish predictions
         if vis_node is not None and self.run_online_learning:
+            cam = vis_node.camera_name
             with Timer("plot_mission_node_prediction"):
                 (
                     np_prediction_image,
@@ -758,6 +757,7 @@ class WvnRosInterface:
 
         # Publish reprojections of last node in graph
         if vis_node is not None:
+            cam = vis_node.camera_name
             with Timer("plot_mission_node_training"):
                 np_labeled_image, np_mask_image = self.traversability_estimator.plot_mission_node_training(vis_node)
             if np_labeled_image is None or np_mask_image is None:
