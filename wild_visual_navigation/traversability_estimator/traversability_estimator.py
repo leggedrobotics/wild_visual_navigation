@@ -101,7 +101,7 @@ class TraversabilityEstimator:
         self._exp_cfg = dataclasses.asdict(params)
 
         self._model = get_model(self._exp_cfg["model"]).to(device)
-        self._epoch = 0
+        self._step = 0
         self._last_trained_model = self._model.to(device)
         self._model.train()
         self._traversability_loss = TraversabilityLoss(**self._exp_cfg["loss"], model=self._model)
@@ -127,6 +127,10 @@ class TraversabilityEstimator:
     @property
     def loss(self):
         return self._loss.detach().item()
+
+    @property
+    def step(self):
+        return self._step
 
     @property
     def pause_learning(self):
@@ -536,7 +540,7 @@ class TraversabilityEstimator:
         # Save checkpoint
         torch.save(
             {
-                "epoch": self._epoch,
+                "step": self._step,
                 "model_state_dict": self._model.state_dict(),
                 "optimizer_state_dict": self._optimizer.state_dict(),
                 "loss": self._loss,
@@ -565,7 +569,7 @@ class TraversabilityEstimator:
         checkpoint = torch.load(checkpoint_file)
         self._model.load_state_dict(checkpoint["model_state_dict"])
         self._optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        self._epoch = checkpoint["epoch"]
+        self._step = checkpoint["step"]
         self._loss = checkpoint["loss"]
 
         # Copy last trained model
@@ -618,7 +622,7 @@ class TraversabilityEstimator:
 
         """
         if self._pause_training:
-            return
+            return {}
 
         if self._mission_graph.get_num_valid_nodes() > self._min_samples_for_training:
             # Prepare new batch
@@ -633,22 +637,27 @@ class TraversabilityEstimator:
             self._loss.backward()
             self._optimizer.step()
 
-            # Update epochs
-            self._epoch += 1
+            # Update steps
+            self._step += 1
 
             # Print losses
-            if self._epoch % 20 == 0:
+            if self._step % 20 == 0:
                 loss_trav = loss_aux["loss_trav"]
                 loss_reco = loss_aux["loss_reco"]
                 print(
-                    f"epoch: {self._epoch} | loss: {self._loss:5f} | loss_trav: {loss_trav:5f} | loss_reco: {loss_reco:5f}"
+                    f"step: {self._step} | loss: {self._loss:5f} | loss_trav: {loss_trav:5f} | loss_reco: {loss_reco:5f}"
                 )
             # Update model
             with self._lock:
                 self.last_trained_model = self._model
 
             # Return loss
-            return self._loss.item()
+            return {
+                "loss_total": self._loss.item(),
+                "loss_trav": loss_aux["loss_trav"].item(),
+                "loss_reco": loss_aux["loss_reco"].item(),
+            }
+        return {}
 
     def plot_mission_node_prediction(self, node: MissionNode):
         return self._visualizer.plot_mission_node_prediction(node)
