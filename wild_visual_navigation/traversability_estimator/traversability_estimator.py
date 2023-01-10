@@ -310,9 +310,11 @@ class TraversabilityEstimator:
         with Timer("add_mission_node - update_features"):
             self.update_features(node)
 
+        # Get last added node
         previous_node = self._mission_graph.get_last_node()
+
         # Add image node
-        if self._mission_graph.add_node(node):
+        if self._mission_graph.add_node(node) and node.use_for_training:
             # Print some info
             total_nodes = self._mission_graph.get_num_nodes()
             s = f"adding node [{node}], "
@@ -333,23 +335,6 @@ class TraversabilityEstimator:
             with Timer("add_mission_node - project_supervision"):
                 # Project past footprints on current image
                 supervision_mask = torch.ones(node.image.shape).to(self._device) * torch.nan
-
-                # proprio_nodes = self._proprio_graph.get_nodes()
-                # for last_pnode, pnode in zip(proprio_nodes[:-1], proprio_nodes[1:]):
-                #     # Make footprint
-                #     footprint = pnode.make_footprint_with_node(last_pnode)[None]
-
-                #     # Project mask
-                #     color = torch.ones((3,), device=self._device)
-                #     mask, _, _, _ = node.project_footprint(footprint, color=color)
-                #     if mask is None:
-                #         continue
-
-                #     # Update mask with traversability
-                #     mask = mask[0] * pnode.traversability
-
-                #     # Get global node and update supervision signal
-                #     supervision_mask = torch.fmin(supervision_mask, mask)
 
             # Finally overwrite the current mask
             with Timer("add_mission_node - update_supervision_signal"):
@@ -599,9 +584,9 @@ class TraversabilityEstimator:
         Args:
             batch_size (int): Size of the batch
         """
-        # Get all the current nodes
 
         if self._optical_flow_estimator_type != "none":
+            # Sample a batch of nodes and their previous node, for temporal consistency
             mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
             ls = [
                 x.as_pyg_data(self._mission_graph.get_previous_node(x))
@@ -620,6 +605,7 @@ class TraversabilityEstimator:
 
             batch = [Batch.from_data_list(ls), Batch.from_data_list(ls_aux)]
         else:
+            # JUst sample N random nodes
             mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
             batch = [Batch.from_data_list([x.as_pyg_data() for x in mission_nodes]), None]
 
@@ -638,7 +624,7 @@ class TraversabilityEstimator:
             # Prepare new batch
             graph, graph_aux = self.make_batch(self._exp_cfg["data_module"]["batch_size"])
 
-            # forward pass
+            # Forward pass
             res = self._model(graph)
             self._loss, loss_aux = self._traversability_loss(graph, res, graph_aux)
 

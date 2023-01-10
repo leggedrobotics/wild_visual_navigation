@@ -1,9 +1,22 @@
 # Input topics
 robot_state_topic: "/wild_visual_navigation_node/robot_state"
-image_topic: "/alphasense_driver_ros/cam4/debayered"
-camera_info_topic: "/alphasense_driver_ros/cam4/camera_info"
-#desired_twist_topic: "/log/state/desiredRobotTwist"
-desired_twist_topic: "/motion_reference/command_twist"
+# desired_twist_topic: "/motion_reference/command_twist"
+desired_twist_topic: "/log/state/desiredRobotTwist"
+
+camera_topics:
+  front:
+    image_topic: "/alphasense_driver_ros/cam4/debayered"
+    info_topic: "/alphasense_driver_ros/cam4/camera_info"
+    use_for_training: true
+  # left:
+  #   image_topic: "/alphasense_driver_ros/cam3/debayered"
+  #   info_topic: "/alphasense_driver_ros/cam3/camera_info"
+  #   use_for_training: false
+  # right:
+  #   image_topic: "/alphasense_driver_ros/cam5/debayered"
+  #   info_topic: "/alphasense_driver_ros/cam5/camera_info"
+  #   use_for_training: false
+
 
 # Relevant frames
 fixed_frame: odom
@@ -33,7 +46,6 @@ dino_patch_size: 16 # DINO only
 optical_flow_estimator_type: "sparse"
 
 # Supervision Generator
-robot_max_velocity: 0.8
 untraversable_thr: 0.01
 
 # Threads
@@ -46,6 +58,5 @@ learning_thread_rate: 10 # hertz
 device: "cuda"
 mode: "default" # "online" for efficiency, "default" for debugging
 print_image_callback_time: false
+print_proprio_callback_time: false
 use_debug_for_desired: true
-
-
