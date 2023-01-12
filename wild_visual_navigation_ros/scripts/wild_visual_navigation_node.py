@@ -79,7 +79,7 @@ class WvnRosInterface:
         # Launch processes
         print("─" * 80)
         print("Launching [learning] thread")
-        if self.run_online_learning:
+        if self.mode != WVNMode.EXTRACT_LABELS:
             self.learning_thread = Thread(target=self.learning_thread_loop, name="learning")
             self.learning_thread.start()
         print("[WVN] System ready")
@@ -98,7 +98,7 @@ class WvnRosInterface:
         Joins all the running threads
         """
         # Join threads
-        if self.run_online_learning:
+        if self.mode != WVNMode.EXTRACT_LABELS:
             self.learning_thread.join()
 
     @accumulate_time
@@ -165,7 +165,6 @@ class WvnRosInterface:
         self.optical_flow_estimator_type = rospy.get_param("~optical_flow_estimator_type", "sparse")
 
         # Threads
-        self.run_online_learning = rospy.get_param("~run_online_learning", True)
         self.image_callback_rate = rospy.get_param("~image_callback_rate", 3)  # hertz
         self.proprio_callback_rate = rospy.get_param("~proprio_callback_rate", 4)  # hertz
         self.learning_thread_rate = rospy.get_param("~learning_thread_rate", 10)  # hertz
@@ -181,7 +180,7 @@ class WvnRosInterface:
 
         # Select mode: # debug, online, extract_labels
         self.use_debug_for_desired = rospy.get_param("~use_debug_for_desired", True)
-        self.mode = WVNMode.from_string(rospy.get_param("~mode", "default"))
+        self.mode = WVNMode.from_string(rospy.get_param("~mode", "debug"))
         self.running_store_folder = rospy.get_param("~running_store_folder", "nan")
 
         # Parse operation modes
@@ -189,7 +188,6 @@ class WvnRosInterface:
             print("\nWARNING: online_mode enabled. The graph will not store any debug/training data such as images\n")
 
         elif self.mode == WVNMode.EXTRACT_LABELS:
-            self.run_online_learning = False
             self.image_callback_rate = 3
             self.proprio_callback_rate = 4
             self.optical_flow_estimator_type = False
@@ -226,6 +224,12 @@ class WvnRosInterface:
             self.robot_state_sub = message_filters.ApproximateTimeSynchronizer(
                 [robot_state_sub, desired_twist_sub], queue_size=10, slop=0.1
             )
+
+            print("Start waiting for RobotState topic being published!")
+            rospy.wait_for_message(self.robot_state_topic, RobotState)
+            print("Start waiting for TwistStamped topic being published!")
+            rospy.wait_for_message(self.desired_twist_topic, TwistStamped)
+
             self.robot_state_sub.registerCallback(self.robot_state_callback)
 
             # Image callback
@@ -486,7 +490,7 @@ class WvnRosInterface:
             # Add node to the graph
             self.traversability_estimator.add_proprio_node(proprio_node)
 
-            if self.mode != WVNMode.EXTRACT_LABELS:
+            if self.mode == WVNMode.DEBUG:
                 # Visualizations (45ms)
                 # with Timer("robot_state_callback - visualize_proprioception"):
                 self.visualize_proprioception()
@@ -563,14 +567,14 @@ class WvnRosInterface:
             self.traversability_estimator.update_prediction(mission_node)
 
             with Timer("image_callback - update visualizations"):
-                if self.mode != WVNMode.EXTRACT_LABELS:
-                    # Publish current predictions
+                if self.mode == WVNMode.ONLINE or self.mode == WVNMode.DEBUG:
                     self.publish_predictions(mission_node, image_msg, info_msg, image_projector.scaled_camera_matrix)
-                    self.visualize_mission()
 
+                if self.mode == WVNMode.DEBUG:
+                    # Publish current predictions
+                    self.visualize_mission()
                     # Publish supervision data depending on the mode
-                    if self.mode != WVNMode.ONLINE:
-                        self.visualize_debug()
+                    self.visualize_debug()
 
             # If a new node was added, update the node is used to visualize the supervision signals
             if added_new_node:
@@ -594,17 +598,20 @@ class WvnRosInterface:
             mission_node (MissionNode): Mission node
         """
         # Publish predictions
-        if mission_node is not None and self.run_online_learning:
+        if mission_node is not None and self.mode != WVNMode.EXTRACT_LABELS:
             # Get camera name
             cam = mission_node.camera_name
 
             # Traversability
             out_trav = torch.zeros(mission_node.feature_segments.shape, device=self.device)
             out_conf = torch.zeros(mission_node.feature_segments.shape, device=self.device)
-
-            for i in range(mission_node.prediction.shape[0]):
-                out_trav[i == mission_node.feature_segments] = mission_node.prediction[i, 0]
-                out_conf[i == mission_node.feature_segments] = mission_node.confidence[i]
+            fs = mission_node.feature_segments.reshape(-1)
+            out_trav = out_trav.reshape(-1)
+            out_conf = out_conf.reshape(-1)
+            out_trav = mission_node.prediction[fs, 0]
+            out_conf = mission_node.confidence[fs]
+            out_trav = out_trav.reshape(mission_node.feature_segments.shape)
+            out_conf = out_conf.reshape(mission_node.feature_segments.shape)
 
             # Color, resized image used as the network input
             msg = rc.torch_to_ros_image(mission_node.image.cpu(), "rgb8")
@@ -769,7 +776,7 @@ class WvnRosInterface:
         vis_node = self.traversability_estimator.get_mission_node_for_visualization()
 
         # Publish predictions
-        if vis_node is not None and self.run_online_learning:
+        if vis_node is not None and self.mode != WVNMode.EXTRACT_LABELS:
             cam = vis_node.camera_name
             with Timer("plot_mission_node_prediction"):
                 (
@@ -795,6 +802,10 @@ class WvnRosInterface:
 
 
 if __name__ == "__main__":
+    node_name = "wild_visual_navigation_node"
+    os.system(f"rosparam delete /{node_name}")
+    os.system(f"rosparam load {WVN_ROOT_DIR}/wild_visual_navigation_ros/config/parameters/default.yaml {node_name}")
+
     rospy.init_node("wild_visual_navigation_node")
     wvn = WvnRosInterface()
     rospy.spin()
