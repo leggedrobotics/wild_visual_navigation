@@ -49,14 +49,13 @@ optical_flow_estimator_type: "sparse"
 untraversable_thr: 0.01
 
 # Threads
-run_online_learning: true
 image_callback_rate: 3 # hertz
 proprio_callback_rate: 4 # hertz
 learning_thread_rate: 10 # hertz
 
 # Runtime options
 device: "cuda"
-mode: "default" # "online" for efficiency, "default" for debugging
+mode: "online" # check out comments in the class WVNMode
 print_image_callback_time: false
 print_proprio_callback_time: false
 use_debug_for_desired: true
