@@ -16,8 +16,8 @@ class CpuTimer:
         self.start = time.perf_counter()
 
     def toc(self):
-        end_time = time.perf_counter()
-        return end - start
+        self.end_time = time.perf_counter()
+        return self.end - self.start
 
 
 class Timer:
@@ -68,6 +68,21 @@ def accumulate_time(method):
             args[0].time_summary[method.__name__] = st
             args[0].n_summary[method.__name__] = 1
 
+        return result
+
+    return timed
+
+
+def time_function(method):
+    def timed(*args, **kw):
+        start = torch.cuda.Event(enable_timing=True)
+        end = torch.cuda.Event(enable_timing=True)
+        start.record()
+        result = method(*args, **kw)
+        end.record()
+        torch.cuda.synchronize()
+        st = start.elapsed_time(end)
+        print(f"Function took: {st}")
         return result
 
     return timed
