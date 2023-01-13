@@ -7,8 +7,8 @@ Panels:
         - /Status1
         - /TF1/Tree1
         - /Wild Visual Navigation1
+        - /Wild Visual Navigation1/Cameras1
         - /Elevation Map1
-        - /Elevation Map1/planner1/Status1
       Splitter Ratio: 0.5984252095222473
     Tree Height: 514
   - Class: rviz/Selection
@@ -29,7 +29,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: Right
+    SyncSource: Traversability
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -152,18 +152,6 @@ Visualization Manager:
           Value: true
         bottom_shell:
           Value: true
-        bpearl_front:
-          Value: true
-        bpearl_front_beam_origin:
-          Value: true
-        bpearl_front_protection_bars:
-          Value: true
-        bpearl_rear:
-          Value: true
-        bpearl_rear_beam_origin:
-          Value: true
-        bpearl_rear_protection_bars:
-          Value: true
         cam0_sensor_frame:
           Value: true
         cam1_sensor_frame:
@@ -186,11 +174,113 @@ Visualization Manager:
           Value: true
         cam6_sensor_frame_helper:
           Value: true
-        camera_init:
+        depth_camera_front_camera:
           Value: true
-        camera_init_CORRECTED:
+        depth_camera_front_camera_parent:
+          Value: true
+        depth_camera_front_color_frame:
+          Value: true
+        depth_camera_front_color_optical_frame:
+          Value: true
+        depth_camera_front_depth_frame:
+          Value: true
+        depth_camera_front_depth_optical_frame:
+          Value: true
+        depth_camera_front_infra1_frame:
+          Value: true
+        depth_camera_front_infra1_optical_frame:
+          Value: true
+        depth_camera_front_infra2_frame:
+          Value: true
+        depth_camera_front_infra2_optical_frame:
+          Value: true
+        depth_camera_left_camera:
+          Value: true
+        depth_camera_left_camera_parent:
+          Value: true
+        depth_camera_left_color_frame:
+          Value: true
+        depth_camera_left_color_optical_frame:
+          Value: true
+        depth_camera_left_depth_frame:
+          Value: true
+        depth_camera_left_depth_optical_frame:
+          Value: true
+        depth_camera_left_infra1_frame:
+          Value: true
+        depth_camera_left_infra1_optical_frame:
+          Value: true
+        depth_camera_left_infra2_frame:
+          Value: true
+        depth_camera_left_infra2_optical_frame:
+          Value: true
+        depth_camera_rear_camera:
+          Value: true
+        depth_camera_rear_camera_parent:
+          Value: true
+        depth_camera_rear_color_frame:
+          Value: true
+        depth_camera_rear_color_optical_frame:
+          Value: true
+        depth_camera_rear_depth_frame:
+          Value: true
+        depth_camera_rear_depth_optical_frame:
+          Value: true
+        depth_camera_rear_infra1_frame:
+          Value: true
+        depth_camera_rear_infra1_optical_frame:
+          Value: true
+        depth_camera_rear_infra2_frame:
+          Value: true
+        depth_camera_rear_infra2_optical_frame:
+          Value: true
+        depth_camera_right_camera:
+          Value: true
+        depth_camera_right_camera_parent:
+          Value: true
+        depth_camera_right_color_frame:
+          Value: true
+        depth_camera_right_color_optical_frame:
+          Value: true
+        depth_camera_right_depth_frame:
+          Value: true
+        depth_camera_right_depth_optical_frame:
+          Value: true
+        depth_camera_right_infra1_frame:
+          Value: true
+        depth_camera_right_infra1_optical_frame:
+          Value: true
+        depth_camera_right_infra2_frame:
+          Value: true
+        depth_camera_right_infra2_optical_frame:
           Value: true
         docking_hatch_cover:
+          Value: true
+        docking_station:
+          Value: true
+        docking_station__apriltag36_11_00000_link:
+          Value: true
+        docking_station__apriltag36_11_00000_link__visual__apriltag36_11_00000_visual:
+          Value: true
+        docking_station__apriltag36_11_00001_link:
+          Value: true
+        docking_station__apriltag36_11_00001_link__visual__apriltag36_11_00001_visual:
+          Value: true
+        docking_station__apriltag36_11_00002_link:
+          Value: true
+        docking_station__apriltag36_11_00002_link__visual__apriltag36_11_00002_visual:
+          Value: true
+        docking_station__apriltag36_11_00003_link:
+          Value: true
+        docking_station__apriltag36_11_00003_link__visual__apriltag36_11_00003_visual:
+          Value: true
+        docking_station__docking_port_link:
+          Value: true
+        docking_station__docking_port_link__visual__docking_port_visual:
+          Value: true
+        face_front:
+          Value: true
+        face_rear:
           Value: true
         feetcenter:
           Value: true
@@ -198,7 +288,13 @@ Visualization Manager:
           Value: true
         front_handle:
           Value: true
-        goal_field_local_planner:
+        ground_plane:
+          Value: true
+        ground_plane__link:
+          Value: true
+        ground_plane__link__collision__collision:
+          Value: true
+        ground_plane__link__visual__visual:
           Value: true
         handle:
           Value: true
@@ -214,15 +310,23 @@ Visualization Manager:
           Value: true
         map:
           Value: true
-        msf_body_imu_map:
-          Value: true
         odom:
           Value: true
         perception_head_cage:
           Value: true
+        point_cloud_odom:
+          Value: true
         remote:
           Value: true
         top_shell:
+          Value: true
+        wide_angle_camera_front_camera:
+          Value: true
+        wide_angle_camera_front_camera_parent:
+          Value: true
+        wide_angle_camera_rear_camera:
+          Value: true
+        wide_angle_camera_rear_camera_parent:
           Value: true
       Marker Alpha: 1
       Marker Scale: 0.5
@@ -287,18 +391,72 @@ Visualization Manager:
               {}
             bottom_shell:
               {}
-            bpearl_front:
-              bpearl_front_beam_origin:
-                {}
-            bpearl_front_protection_bars:
-              {}
-            bpearl_rear:
-              bpearl_rear_beam_origin:
-                {}
-            bpearl_rear_protection_bars:
-              {}
+            depth_camera_left_camera:
+              depth_camera_left_camera_parent:
+                depth_camera_left_color_frame:
+                  depth_camera_left_color_optical_frame:
+                    {}
+                depth_camera_left_depth_frame:
+                  depth_camera_left_depth_optical_frame:
+                    {}
+                depth_camera_left_infra1_frame:
+                  depth_camera_left_infra1_optical_frame:
+                    {}
+                depth_camera_left_infra2_frame:
+                  depth_camera_left_infra2_optical_frame:
+                    {}
+            depth_camera_right_camera:
+              depth_camera_right_camera_parent:
+                depth_camera_right_color_frame:
+                  depth_camera_right_color_optical_frame:
+                    {}
+                depth_camera_right_depth_frame:
+                  depth_camera_right_depth_optical_frame:
+                    {}
+                depth_camera_right_infra1_frame:
+                  depth_camera_right_infra1_optical_frame:
+                    {}
+                depth_camera_right_infra2_frame:
+                  depth_camera_right_infra2_optical_frame:
+                    {}
             docking_hatch_cover:
               {}
+            face_front:
+              depth_camera_front_camera:
+                depth_camera_front_camera_parent:
+                  depth_camera_front_color_frame:
+                    depth_camera_front_color_optical_frame:
+                      {}
+                  depth_camera_front_depth_frame:
+                    depth_camera_front_depth_optical_frame:
+                      {}
+                  depth_camera_front_infra1_frame:
+                    depth_camera_front_infra1_optical_frame:
+                      {}
+                  depth_camera_front_infra2_frame:
+                    depth_camera_front_infra2_optical_frame:
+                      {}
+              wide_angle_camera_front_camera:
+                wide_angle_camera_front_camera_parent:
+                  {}
+            face_rear:
+              depth_camera_rear_camera:
+                depth_camera_rear_camera_parent:
+                  depth_camera_rear_color_frame:
+                    depth_camera_rear_color_optical_frame:
+                      {}
+                  depth_camera_rear_depth_frame:
+                    depth_camera_rear_depth_optical_frame:
+                      {}
+                  depth_camera_rear_infra1_frame:
+                    depth_camera_rear_infra1_optical_frame:
+                      {}
+                  depth_camera_rear_infra2_frame:
+                    depth_camera_rear_infra2_optical_frame:
+                      {}
+              wide_angle_camera_rear_camera:
+                wide_angle_camera_rear_camera_parent:
+                  {}
             front_handle:
               {}
             handle:
@@ -333,17 +491,35 @@ Visualization Manager:
               {}
             top_shell:
               {}
+          docking_station:
+            docking_station__apriltag36_11_00000_link:
+              docking_station__apriltag36_11_00000_link__visual__apriltag36_11_00000_visual:
+                {}
+            docking_station__apriltag36_11_00001_link:
+              docking_station__apriltag36_11_00001_link__visual__apriltag36_11_00001_visual:
+                {}
+            docking_station__apriltag36_11_00002_link:
+              docking_station__apriltag36_11_00002_link__visual__apriltag36_11_00002_visual:
+                {}
+            docking_station__apriltag36_11_00003_link:
+              docking_station__apriltag36_11_00003_link__visual__apriltag36_11_00003_visual:
+                {}
+            docking_station__docking_port_link:
+              docking_station__docking_port_link__visual__docking_port_visual:
+                {}
           feetcenter:
             {}
           footprint:
             {}
-          goal_field_local_planner:
-            {}
-          map:
-            camera_init_CORRECTED:
-              camera_init:
+          ground_plane:
+            ground_plane__link:
+              ground_plane__link__collision__collision:
                 {}
-          msf_body_imu_map:
+              ground_plane__link__visual__visual:
+                {}
+          map:
+            {}
+          point_cloud_odom:
             {}
       Update Interval: 0
       Value: true
@@ -620,6 +796,10 @@ Visualization Manager:
               Alpha: 1
               Show Axes: false
               Show Trail: false
+            base_inverted:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
             battery:
               Alpha: 1
               Show Axes: false
@@ -630,34 +810,6 @@ Visualization Manager:
               Show Axes: false
               Show Trail: false
             bottom_shell:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            bpearl_front:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            bpearl_front_beam_origin:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            bpearl_front_protection_bars:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            bpearl_rear:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            bpearl_rear_beam_origin:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            bpearl_rear_protection_bars:
               Alpha: 1
               Show Axes: false
               Show Trail: false
@@ -706,10 +858,56 @@ Visualization Manager:
               Alpha: 1
               Show Axes: false
               Show Trail: false
+            depth_camera_front_camera:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            depth_camera_front_camera_parent:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            depth_camera_left_camera:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            depth_camera_left_camera_parent:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            depth_camera_rear_camera:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            depth_camera_rear_camera_parent:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            depth_camera_right_camera:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            depth_camera_right_camera_parent:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
             docking_hatch_cover:
               Alpha: 1
               Show Axes: false
               Show Trail: false
+            face_front:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            face_rear:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
             front_handle:
               Alpha: 1
               Show Axes: false
@@ -758,6 +956,24 @@ Visualization Manager:
               Show Axes: false
               Show Trail: false
               Value: true
+            wide_angle_camera_front_camera:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            wide_angle_camera_front_camera_parent:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            wide_angle_camera_rear_camera:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            wide_angle_camera_rear_camera_parent:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
           Name: RobotModel
           Robot Description: anymal_description
           TF Prefix: ""
@@ -775,7 +991,7 @@ Visualization Manager:
               Marker Topic: /wild_visual_navigation_node/graph_footprints
               Name: Footprint
               Namespaces:
-                {}
+                footprints: true
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -978,6 +1194,146 @@ Visualization Manager:
               Use Fixed Frame: true
               Use rainbow: true
               Value: true
+            - Alpha: 1
+              Autocompute Intensity Bounds: true
+              Autocompute Value Bounds:
+                Max Value: 21.55472183227539
+                Min Value: -7.581119537353516
+                Value: true
+              Axis: Z
+              Channel Name: intensity
+              Class: rviz/PointCloud2
+              Color: 239; 41; 41
+              Color Transformer: FlatColor
+              Decay Time: 0
+              Enabled: true
+              Invert Rainbow: false
+              Max Color: 255; 255; 255
+              Min Color: 0; 0; 0
+              Name: realsense-front
+              Position Transformer: XYZ
+              Queue Size: 10
+              Selectable: true
+              Size (Pixels): 3
+              Size (m): 0.009999999776482582
+              Style: Squares
+              Topic: /depth_camera_front/point_cloud_self_filtered
+              Unreliable: false
+              Use Fixed Frame: true
+              Use rainbow: true
+              Value: true
+            - Alpha: 1
+              Autocompute Intensity Bounds: true
+              Autocompute Value Bounds:
+                Max Value: 21.55472183227539
+                Min Value: -7.581119537353516
+                Value: true
+              Axis: Z
+              Channel Name: intensity
+              Class: rviz/PointCloud2
+              Color: 239; 41; 41
+              Color Transformer: FlatColor
+              Decay Time: 0
+              Enabled: true
+              Invert Rainbow: false
+              Max Color: 255; 255; 255
+              Min Color: 0; 0; 0
+              Name: realsense-rear
+              Position Transformer: XYZ
+              Queue Size: 10
+              Selectable: true
+              Size (Pixels): 3
+              Size (m): 0.009999999776482582
+              Style: Squares
+              Topic: /depth_camera_rear/point_cloud_self_filtered
+              Unreliable: false
+              Use Fixed Frame: true
+              Use rainbow: true
+              Value: true
+            - Alpha: 1
+              Autocompute Intensity Bounds: true
+              Autocompute Value Bounds:
+                Max Value: 21.55472183227539
+                Min Value: -7.581119537353516
+                Value: true
+              Axis: Z
+              Channel Name: intensity
+              Class: rviz/PointCloud2
+              Color: 239; 41; 41
+              Color Transformer: FlatColor
+              Decay Time: 0
+              Enabled: true
+              Invert Rainbow: false
+              Max Color: 255; 255; 255
+              Min Color: 0; 0; 0
+              Name: realsense-left
+              Position Transformer: XYZ
+              Queue Size: 10
+              Selectable: true
+              Size (Pixels): 3
+              Size (m): 0.009999999776482582
+              Style: Squares
+              Topic: /depth_camera_left/point_cloud_self_filtered
+              Unreliable: false
+              Use Fixed Frame: true
+              Use rainbow: true
+              Value: true
+            - Alpha: 1
+              Autocompute Intensity Bounds: true
+              Autocompute Value Bounds:
+                Max Value: 21.55472183227539
+                Min Value: -7.581119537353516
+                Value: true
+              Axis: Z
+              Channel Name: intensity
+              Class: rviz/PointCloud2
+              Color: 239; 41; 41
+              Color Transformer: FlatColor
+              Decay Time: 0
+              Enabled: true
+              Invert Rainbow: false
+              Max Color: 255; 255; 255
+              Min Color: 0; 0; 0
+              Name: realsense-right
+              Position Transformer: XYZ
+              Queue Size: 10
+              Selectable: true
+              Size (Pixels): 3
+              Size (m): 0.009999999776482582
+              Style: Squares
+              Topic: /depth_camera_right/point_cloud_self_filtered
+              Unreliable: false
+              Use Fixed Frame: true
+              Use rainbow: true
+              Value: true
+            - Alpha: 1
+              Autocompute Intensity Bounds: true
+              Autocompute Value Bounds:
+                Max Value: 21.55472183227539
+                Min Value: -7.581119537353516
+                Value: true
+              Axis: Z
+              Channel Name: intensity
+              Class: rviz/PointCloud2
+              Color: 239; 41; 41
+              Color Transformer: FlatColor
+              Decay Time: 0
+              Enabled: true
+              Invert Rainbow: false
+              Max Color: 255; 255; 255
+              Min Color: 0; 0; 0
+              Name: velodyne
+              Position Transformer: XYZ
+              Queue Size: 10
+              Selectable: true
+              Size (Pixels): 3
+              Size (m): 0.009999999776482582
+              Style: Squares
+              Topic: /point_cloud_filter/lidar/point_cloud_filtered
+              Unreliable: false
+              Use Fixed Frame: true
+              Use rainbow: true
+              Value: true
           Enabled: true
           Name: Depth Sensors
         - Class: rviz/Group
@@ -1091,7 +1447,7 @@ Visualization Manager:
           Color Layer: geodesic
           Color Transformer: IntensityLayer
           ColorMap: plasma
-          Enabled: false
+          Enabled: true
           Grid Cell Decimation: 1
           Grid Line Thickness: 0.10000000149011612
           Height Layer: elevation_inpainted
@@ -1107,7 +1463,7 @@ Visualization Manager:
           Topic: /elevation_mapping/elevation_map_wifi
           Unreliable: false
           Use ColorMap: true
-          Value: false
+          Value: true
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Class: grid_map_rviz_plugin/GridMap
@@ -1126,7 +1482,7 @@ Visualization Manager:
           Max Intensity: 1
           Min Color: 0; 0; 0
           Min Intensity: 0
-          Name: elevation_impated
+          Name: elevation_inpainted
           Show Grid Lines: true
           Topic: /elevation_mapping/elevation_map_wifi
           Unreliable: false
@@ -1162,7 +1518,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 12.029187202453613
+      Distance: 8.592286109924316
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -1170,17 +1526,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 1.4094834327697754
-        Y: 2.5842604637145996
-        Z: -2.763123802651535e-06
+        X: 2.3762359619140625
+        Y: 0.40558505058288574
+        Z: -5.62414697924396e-06
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.0653973817825317
+      Pitch: 0.7553972601890564
       Target Frame: base
-      Yaw: 0.49718981981277466
+      Yaw: 0.28718987107276917
     Saved: ~
 Window Geometry:
   Confidence Raw:
@@ -1196,7 +1552,7 @@ Window Geometry:
     collapsed: false
   Left:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd00000004000000000000017f0000023ffc020000000efb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c00610079007301000001110000023f000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000c00430061006d00650072006100000002ea000000c80000000000000000fb00000036005300750070006500720076006900730069006f006e0020002d00200049006d0061006700650020004c006100620065006c006500640000000259000000520000000000000000fb00000024005300750070006500720076006900730069006f006e0020002d0020004d00610073006b000000027e000000b80000000000000000fb0000000a0049006d00610067006500000003a50000006e0000000000000000fb0000000a0049006d00610067006500000002eb000001280000000000000000fb000000140043006f006e0066006900640065006e0063006500000003b3000000c60000000000000000000000010000010f00000242fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007300000001b400000242000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000780000000cefc010000000dfb0000001c0049006d00610067006500200046006500610074007500720065007300000000bf000003690000000000000000fb000000240054007200610076006500720073006100620069006c006900740079002000520061007701000000000000011b000000b000fffffffb0000001c0043006f006e0066006900640065006e006300650020005200610077010000012100000229000000a200fffffffb000000160049006e00700075007400200049006d0061006700650100000350000001190000008600fffffffb000000200052006500700072006f006a0065006300740065006400200050006100740068010000046f00000120000000ab00fffffffb0000001c0054007200610076006500720073006100620069006c0069007400790100000595000000f60000009100fffffffb000000160055006e006300650072007400610069006e007400790100000691000000ef0000008500fffffffb000000160049006e00700075007400200049006d006100670065010000031e000001790000000000000000fb0000001c0054007200610076006500720073006100620069006c006900740079010000049d000001600000000000000000fb000000160055006e006300650072007400610069006e0074007901000006030000017d0000000000000000fb00000036005300750070006500720076006900730069006f006e0020002d00200049006d0061006700650020004c006100620065006c006500640100000659000001af0000000000000000fb00000024005300750070006500720076006900730069006f006e0020002d0020004d00610073006b010000080e000001aa0000000000000000fb0000000a00560069006500770073030000004e00000080000002e1000001970000000300000780000000a0fc0100000007fb000000140043006f006e0066006900640065006e006300650000000000000003d40000000000000000fb0000001c0054007200610076006500720073006100620069006c0069007400790000000231000001f20000000000000000fb00000008004c00650066007401000000000000027c0000005000fffffffb0000000a00460072006f006e00740100000282000002780000005900fffffffb0000000a005200690067006800740100000500000002800000005900fffffffb0000000800540069006d0065000000000000000780000004f300fffffffb0000000800540069006d00650100000000000004500000000000000000000005fb0000023f00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000017f0000023ffc020000000efb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730200000780000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c00610079007301000001110000023f000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000c00430061006d00650072006100000002ea000000c80000000000000000fb00000036005300750070006500720076006900730069006f006e0020002d00200049006d0061006700650020004c006100620065006c006500640000000259000000520000000000000000fb00000024005300750070006500720076006900730069006f006e0020002d0020004d00610073006b000000027e000000b80000000000000000fb0000000a0049006d00610067006500000003a50000006e0000000000000000fb0000000a0049006d00610067006500000002eb000001280000000000000000fb000000140043006f006e0066006900640065006e0063006500000003b3000000c60000000000000000000000010000010f00000242fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007300000001b400000242000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000780000000cefc010000000dfb0000001c0049006d00610067006500200046006500610074007500720065007300000000bf000003690000000000000000fb000000240054007200610076006500720073006100620069006c006900740079002000520061007701000000000000011b000000b000fffffffb0000001c0043006f006e0066006900640065006e006300650020005200610077010000012100000229000000a200fffffffb000000160049006e00700075007400200049006d0061006700650100000350000001190000008600fffffffb000000200052006500700072006f006a0065006300740065006400200050006100740068010000046f00000120000000ab00fffffffb0000001c0054007200610076006500720073006100620069006c0069007400790100000595000000f60000009100fffffffb000000160055006e006300650072007400610069006e007400790100000691000000ef0000008500fffffffb000000160049006e00700075007400200049006d006100670065010000031e000001790000000000000000fb0000001c0054007200610076006500720073006100620069006c006900740079010000049d000001600000000000000000fb000000160055006e006300650072007400610069006e0074007901000006030000017d0000000000000000fb00000036005300750070006500720076006900730069006f006e0020002d00200049006d0061006700650020004c006100620065006c006500640100000659000001af0000000000000000fb00000024005300750070006500720076006900730069006f006e0020002d0020004d00610073006b010000080e000001aa0000000000000000fb0000000a00560069006500770073030000004e00000080000002e1000001970000000300000780000000a0fc0100000007fb000000140043006f006e0066006900640065006e006300650000000000000003d40000000000000000fb0000001c0054007200610076006500720073006100620069006c0069007400790000000231000001f20000000000000000fb00000008004c00650066007401000000000000027c0000005000fffffffb0000000a00460072006f006e00740100000282000002780000005900fffffffb0000000a005200690067006800740100000500000002800000005900fffffffb0000000800540069006d0065000000000000000780000004f300fffffffb0000000800540069006d00650100000000000004500000000000000000000005fb0000023f00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Reprojected Path:
     collapsed: false
   Right:
@@ -1216,5 +1572,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1920
-  X: 2560
-  Y: 360
+  X: 2147
+  Y: 126
