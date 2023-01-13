@@ -49,7 +49,7 @@
   <include if="$(arg elevation_mapping)" file="$(find wild_visual_navigation_ros)/launch/anymal_semantic_elevation_single.launch"/> 
   
   <!-- Use RMP Local Planner-->
-  <include if="$(arg local_planner)" file="$(find wild_visual_navigation_ros)/launch/rmp.launch"/> 
+  <include if="$(arg local_planner)" file="$(find wild_visual_navigation_ros)/launch/field_local_planner.launch"/> 
 
   <!-- Use RViz-->
   <node if="$(arg rviz)" name="wild_visual_navigation_rviz" pkg="rviz" type="rviz" args="-d $(find wild_visual_navigation_ros)/config/rviz/$(arg rviz_config)"/>
