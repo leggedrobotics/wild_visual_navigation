@@ -263,24 +263,25 @@ class WvnRosInterface:
                 self.camera_handler[cam]["conf_pub"] = conf_pub
                 self.camera_handler[cam]["info_pub"] = info_pub
 
-                # Debugging publishers
-                last_image_labeled_pub = rospy.Publisher(
-                    f"/wild_visual_navigation_node/{cam}/debug/last_node_image_labeled", Image, queue_size=10
-                )
-                last_image_mask_pub = rospy.Publisher(
-                    f"/wild_visual_navigation_node/{cam}/debug/last_node_image_mask", Image, queue_size=10
-                )
-                last_image_trav_pub = rospy.Publisher(
-                    f"/wild_visual_navigation_node/{cam}/debug/last_image_traversability", Image, queue_size=10
-                )
-                last_image_conf_pub = rospy.Publisher(
-                    f"/wild_visual_navigation_node/{cam}/debug/last_image_confidence", Image, queue_size=10
-                )
-                self.camera_handler[cam]["debug"] = {}
-                self.camera_handler[cam]["debug"]["image_labeled"] = last_image_labeled_pub
-                self.camera_handler[cam]["debug"]["image_mask"] = last_image_mask_pub
-                self.camera_handler[cam]["debug"]["image_trav"] = last_image_trav_pub
-                self.camera_handler[cam]["debug"]["image_conf"] = last_image_conf_pub
+                if self.mode == WVNMode.DEBUG:
+                    # Debugging publishers
+                    last_image_labeled_pub = rospy.Publisher(
+                        f"/wild_visual_navigation_node/{cam}/debug/last_node_image_labeled", Image, queue_size=10
+                    )
+                    last_image_mask_pub = rospy.Publisher(
+                        f"/wild_visual_navigation_node/{cam}/debug/last_node_image_mask", Image, queue_size=10
+                    )
+                    last_image_trav_pub = rospy.Publisher(
+                        f"/wild_visual_navigation_node/{cam}/debug/last_image_traversability", Image, queue_size=10
+                    )
+                    last_image_conf_pub = rospy.Publisher(
+                        f"/wild_visual_navigation_node/{cam}/debug/last_image_confidence", Image, queue_size=10
+                    )
+                    self.camera_handler[cam]["debug"] = {}
+                    self.camera_handler[cam]["debug"]["image_labeled"] = last_image_labeled_pub
+                    self.camera_handler[cam]["debug"]["image_mask"] = last_image_mask_pub
+                    self.camera_handler[cam]["debug"]["image_trav"] = last_image_trav_pub
+                    self.camera_handler[cam]["debug"]["image_conf"] = last_image_conf_pub
 
         # 3D outputs
         self.pub_debug_proprio_graph = rospy.Publisher(
@@ -490,10 +491,10 @@ class WvnRosInterface:
             # Add node to the graph
             self.traversability_estimator.add_proprio_node(proprio_node)
 
-            if self.mode == WVNMode.DEBUG:
+            if self.mode == WVNMode.DEBUG or self.mode == WVNMode.ONLINE:
                 # Visualizations (45ms)
-                # with Timer("robot_state_callback - visualize_proprioception"):
-                self.visualize_proprioception()
+                with Timer("robot_state_callback - visualize_proprioception"):
+                    self.visualize_proprioception()
 
             if self.print_proprio_callback_time:
                 print(self)

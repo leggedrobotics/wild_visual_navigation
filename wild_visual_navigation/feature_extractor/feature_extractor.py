@@ -70,8 +70,8 @@ class FeatureExtractor:
         dense_feat = self.compute_features(img, seg, center, **kwargs)
 
         # Sparsify features to match the centers if required
-        # with Timer("feature_extractor - sparsify_features"):
-        feat = self.sparsify_features(dense_feat, seg)
+        with Timer("feature_extractor - sparsify_features"):
+            feat = self.sparsify_features(dense_feat, seg)
 
         return edges, feat, seg, center
 
