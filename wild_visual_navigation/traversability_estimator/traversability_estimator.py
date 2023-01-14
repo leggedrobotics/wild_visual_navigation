@@ -2,7 +2,7 @@ from wild_visual_navigation.feature_extractor import FeatureExtractor
 from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation.learning.model import get_model
 from wild_visual_navigation.cfg import ExperimentParams
-from wild_visual_navigation.utils import Timer
+from wild_visual_navigation.utils import Timer, accumulate_time
 from wild_visual_navigation.traversability_estimator import (
     BaseGraph,
     DistanceWindowGraph,
@@ -140,6 +140,7 @@ class TraversabilityEstimator:
     def pause_learning(self, pause: bool):
         self._pause_training = pause
 
+    @accumulate_time
     def change_device(self, device: str):
         """Changes the device of all the class members
 
@@ -155,6 +156,7 @@ class TraversabilityEstimator:
 
         self._last_trained_model = self._last_trained_model.to(device)
 
+    @accumulate_time
     def update_features(self, node: MissionNode):
         """Extracts visual features from a node that stores an image
 
@@ -173,6 +175,7 @@ class TraversabilityEstimator:
             node.feature_segments = seg
             node.feature_positions = center
 
+    @accumulate_time
     def update_prediction(self, node: MissionNode):
         with self._lock:
             if self._last_trained_model is not None:
@@ -184,6 +187,7 @@ class TraversabilityEstimator:
                         reco_loss
                     )
 
+    @accumulate_time
     def update_visualization_node(self):
         # For the first nodes we choose the visualization node as the last node available
         if self._mission_graph.get_num_nodes() <= self._vis_node_index:
@@ -195,6 +199,7 @@ class TraversabilityEstimator:
 
             self._vis_mission_node = self._mission_graph.get_nodes()[-self._vis_node_index]
 
+    @accumulate_time
     def add_correspondences_dense_optical_flow(self, node: MissionNode, previous_node: MissionNode, debug=False):
         flow_previous_to_current = self._optical_flow_estimator.forward(previous_node.image.clone(), node.image.clone())
         grid_x, grid_y = torch.meshgrid(
@@ -251,6 +256,7 @@ class TraversabilityEstimator:
                     flow=flow_previous_to_current, img1=previous_node.image, img2=node.image, tag="flow", s=50
                 )
 
+    @accumulate_time
     def add_correspondences_sparse_optical_flow(self, node: MissionNode, previous_node: MissionNode, debug=False):
         # Transform previous_nodes feature locations into current image using KLT
         pre_pos = previous_node.feature_positions
@@ -303,6 +309,7 @@ class TraversabilityEstimator:
                 tag="centers",
             )
 
+    @accumulate_time
     def add_mission_node(self, node: MissionNode, verbose: bool = False):
         """Adds a node to the mission graph to images and training info
 
@@ -311,8 +318,7 @@ class TraversabilityEstimator:
         """
 
         # Compute image features
-        with Timer("add_mission_node - update_features"):
-            self.update_features(node)
+        self.update_features(node)
 
         # Get last added node
         previous_node = self._mission_graph.get_last_node()
@@ -327,23 +333,20 @@ class TraversabilityEstimator:
                 print(s)
 
             if self._mode != WVNMode.EXTRACT_LABELS:
-                with Timer("add_mission_node - optical flow"):
-                    # Set optical flow
-                    if self._optical_flow_estimator_type == "dense" and previous_node is not None:
-                        raise Exception("Not working")
-                        self.add_correspondences_dense_optical_flow(node, previous_node, debug=False)
+                # Set optical flow
+                if self._optical_flow_estimator_type == "dense" and previous_node is not None:
+                    raise Exception("Not working")
+                    self.add_correspondences_dense_optical_flow(node, previous_node, debug=False)
 
-                    elif self._optical_flow_estimator_type == "sparse" and previous_node is not None:
-                        self.add_correspondences_sparse_optical_flow(node, previous_node, debug=False)
+                elif self._optical_flow_estimator_type == "sparse" and previous_node is not None:
+                    self.add_correspondences_sparse_optical_flow(node, previous_node, debug=False)
 
-            with Timer("add_mission_node - project_supervision"):
-                # Project past footprints on current image
-                supervision_mask = torch.ones(node.image.shape).to(self._device) * torch.nan
+            # Project past footprints on current image
+            supervision_mask = torch.ones(node.image.shape).to(self._device) * torch.nan
 
             # Finally overwrite the current mask
-            with Timer("add_mission_node - update_supervision_signal"):
-                node.supervision_mask = supervision_mask
-                node.update_supervision_signal()
+            node.supervision_mask = supervision_mask
+            node.update_supervision_signal()
 
             if self._mode == WVNMode.EXTRACT_LABELS:
                 p = os.path.join(self._running_store_folder, "image", str(node.timestamp).replace(".", "_") + ".pt")
@@ -353,6 +356,7 @@ class TraversabilityEstimator:
         else:
             return False
 
+    @accumulate_time
     @torch.no_grad()
     def add_proprio_node(self, pnode: ProprioceptionNode):
         """Adds a node to the proprioceptive graph to store proprioception
@@ -403,9 +407,7 @@ class TraversabilityEstimator:
             # New implementation
             B = len(mission_nodes)
 
-            # with Timer(f"total projection time, batch_size: {B}"):
             # Prepare batches
-            # with Timer(f"add_proprio_node - prepare batches"):
             K = torch.eye(4, device=self._device).repeat(B, 1, 1)
             supervision_masks = torch.zeros(last_mission_node.supervision_mask.shape, device=self._device).repeat(
                 B, 1, 1, 1
@@ -424,17 +426,14 @@ class TraversabilityEstimator:
                 else:
                     supervision_masks[i] = mnode.supervision_mask
 
-            # with Timer(f"add_proprio_node - batch project, batch_size: {B}"):
             im = ImageProjector(K, H, W)
             mask, _, _, _ = im.project_and_render(pose_camera_in_world, footprints, color)
 
             # Update traversability
-            # with Timer(f"add_proprio_node - update trav, batch_size: {B}"):
             mask = mask * pnode.traversability
             supervision_masks = torch.fmin(supervision_masks, mask)
 
             # Update supervision mask per node
-            # with Timer(f"add_proprio_node - update_nodes, batch_size: {B}"):
             for i, mnode in enumerate(mission_nodes):
                 mnode.supervision_mask = supervision_masks[i]
                 mnode.update_supervision_signal()
@@ -582,6 +581,7 @@ class TraversabilityEstimator:
         print(f"Loaded checkpoint from file {checkpoint_file}")
         self._pause_training = False
 
+    @accumulate_time
     def make_batch(self, batch_size: int = 8):
         """Samples a batch from the mission_graph
 
@@ -615,6 +615,7 @@ class TraversabilityEstimator:
 
         return batch
 
+    @accumulate_time
     def train(self):
         """Runs one step of the training loop
         It samples a batch, and optimizes the model.
@@ -659,9 +660,11 @@ class TraversabilityEstimator:
             }
         return {}
 
+    @accumulate_time
     def plot_mission_node_prediction(self, node: MissionNode):
         return self._visualizer.plot_mission_node_prediction(node)
 
+    @accumulate_time
     def plot_mission_node_training(self, node: MissionNode):
         return self._visualizer.plot_mission_node_training(node)
 
