@@ -8,7 +8,7 @@ from wild_visual_navigation.utils import accumulate_time
 from wild_visual_navigation_msgs.msg import RobotState, SystemState
 from wild_visual_navigation_msgs.srv import SaveLoadData, SaveLoadDataResponse
 from std_srvs.srv import SetBool
-from wild_visual_navigation.utils import SystemLevelTimer
+from wild_visual_navigation.utils import SystemLevelTimer, SystemLevelContextTimer
 from wild_visual_navigation.utils import WVNMode
 from geometry_msgs.msg import PoseStamped, Point, TwistStamped
 from nav_msgs.msg import Path
@@ -563,8 +563,9 @@ class WvnRosInterface:
             # Add node to graph
             added_new_node = self.traversability_estimator.add_mission_node(mission_node)
 
-            # Update prediction
-            self.traversability_estimator.update_prediction(mission_node)
+            with SystemLevelContextTimer(self, "update_prediction"):
+                # Update prediction
+                self.traversability_estimator.update_prediction(mission_node)
 
             if self.mode == WVNMode.ONLINE or self.mode == WVNMode.DEBUG:
                 self.publish_predictions(mission_node, image_msg, info_msg, image_projector.scaled_camera_matrix)

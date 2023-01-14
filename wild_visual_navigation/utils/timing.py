@@ -58,6 +58,7 @@ def accumulate_time(method):
         if not hasattr(args[0], "slt_time_summary"):
             args[0].slt_time_summary = {}
             args[0].slt_n_summary = {}
+            args[0].slt_n_level = {}
 
         if method.__name__ in args[0].slt_time_summary:
             args[0].slt_time_summary[method.__name__] += st
@@ -65,10 +66,57 @@ def accumulate_time(method):
         else:
             args[0].slt_time_summary[method.__name__] = st
             args[0].slt_n_summary[method.__name__] = 1
+            args[0].slt_n_level[method.__name__] = 0
 
         return result
 
     return timed
+
+
+class SystemLevelContextTimer:
+    def __init__(self, parent, name="") -> None:
+        self.parent = parent
+        if hasattr(self.parent, "slt_not_time"):
+            if self.parent.slt_not_time:
+                return
+
+        self.name = name
+        self.start = torch.cuda.Event(enable_timing=True)
+        self.end = torch.cuda.Event(enable_timing=True)
+
+    def __enter__(self):
+        if hasattr(self.parent, "slt_not_time"):
+            if self.parent.slt_not_time:
+                return
+        self.tic()
+
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        if hasattr(self.parent, "slt_not_time"):
+            if self.parent.slt_not_time:
+                return
+
+        st = self.toc()
+
+        if not hasattr(self.parent, "slt_time_summary"):
+            self.parent.slt_time_summary = {}
+            self.parent.slt_n_summary = {}
+            self.parent.slt_n_level = {}
+
+        if self.name in self.parent.slt_time_summary:
+            self.parent.slt_time_summary[self.name] += st
+            self.parent.slt_n_summary[self.name] += 1
+        else:
+            self.parent.slt_time_summary[self.name] = st
+            self.parent.slt_n_summary[self.name] = 1
+            self.parent.slt_n_level[self.name] = 1
+
+    def tic(self):
+        self.start.record()
+
+    def toc(self):
+        self.end.record()
+        torch.cuda.synchronize()
+        return self.start.elapsed_time(self.end)
 
 
 class SystemLevelTimer:
@@ -83,7 +131,15 @@ class SystemLevelTimer:
                 s += n
                 for (k, v) in o.slt_time_summary.items():
                     n = o.slt_n_summary[k]
-                    s += f"\n  {k}:".ljust(35) + f"{round(v,2)}ms".ljust(20) + f"counts: {n} ".ljust(15)
+                    spacing = int(o.slt_n_level[k] * 5)
+
+                    s += (
+                        "\n  +"
+                        + "-" * spacing
+                        + f"-  {k}:".ljust(35 - spacing)
+                        + f"{round(v,2)}ms".ljust(20)
+                        + f"counts: {n} ".ljust(15)
+                    )
                 s += "\n"
         return s
 
