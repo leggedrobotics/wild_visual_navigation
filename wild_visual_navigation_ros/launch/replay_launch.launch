@@ -12,7 +12,9 @@
   <arg name="elevation_mapping" default="True"/>
   <arg name="local_planner"     default="True"/>
 
-  
+  <!-- Set sim time to true -->
+  <param name="/use_sim_time" type="bool" value="True" />
+
   <!-- Load parameters -->
   <rosparam command="load" file="$(arg params_file)" ns="$(arg name)"/>
 
@@ -46,10 +48,10 @@
   </include>
 
   <!-- Use Elevation Mapping-->
-  <include if="$(arg elevation_mapping)" file="$(find wild_visual_navigation_ros)/launch/anymal_semantic_elevation_single.launch"/> 
-  
+  <include if="$(arg elevation_mapping)" file="$(find wild_visual_navigation_ros)/launch/elevation_mapping_cupy.launch"/>
+
   <!-- Use RMP Local Planner-->
-  <include if="$(arg local_planner)" file="$(find wild_visual_navigation_ros)/launch/rmp.launch"/> 
+  <include if="$(arg local_planner)" file="$(find wild_visual_navigation_ros)/launch/field_local_planner.launch"/> 
 
   <!-- Use RViz-->
   <node if="$(arg rviz)" name="wild_visual_navigation_rviz" pkg="rviz" type="rviz" args="-d $(find wild_visual_navigation_ros)/config/rviz/$(arg rviz_config)"/>

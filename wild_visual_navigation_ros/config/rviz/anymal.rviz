@@ -8,7 +8,6 @@ Panels:
         - /TF1/Tree1
         - /Wild Visual Navigation1
         - /Elevation Map1
-        - /Elevation Map1/planner1/Status1
       Splitter Ratio: 0.5984252095222473
     Tree Height: 514
   - Class: rviz/Selection
@@ -198,8 +197,6 @@ Visualization Manager:
           Value: true
         front_handle:
           Value: true
-        goal_field_local_planner:
-          Value: true
         handle:
           Value: true
         hatch:
@@ -336,8 +333,6 @@ Visualization Manager:
           feetcenter:
             {}
           footprint:
-            {}
-          goal_field_local_planner:
             {}
           map:
             camera_init_CORRECTED:
@@ -1013,30 +1008,6 @@ Visualization Manager:
     - Class: rviz/Group
       Displays:
         - Alpha: 1
-          Autocompute Intensity Bounds: false
-          Class: grid_map_rviz_plugin/GridMap
-          Color: 200; 200; 200
-          Color Layer: rgb_image
-          Color Transformer: ColorLayer
-          ColorMap: ""
-          Enabled: false
-          Grid Cell Decimation: 1
-          Grid Line Thickness: 0.10000000149011612
-          Height Layer: elevation
-          Height Transformer: GridMapLayer
-          History Length: 1
-          Invert ColorMap: true
-          Max Color: 255; 255; 255
-          Max Intensity: 1
-          Min Color: 0; 0; 0
-          Min Intensity: 0
-          Name: rgb_image
-          Show Grid Lines: true
-          Topic: /elevation_mapping/semantic_map_raw
-          Unreliable: false
-          Use ColorMap: true
-          Value: false
-        - Alpha: 1
           Autocompute Intensity Bounds: true
           Class: grid_map_rviz_plugin/GridMap
           Color: 200; 200; 200
@@ -1132,6 +1103,30 @@ Visualization Manager:
           Unreliable: false
           Use ColorMap: true
           Value: false
+        - Alpha: 1
+          Autocompute Intensity Bounds: true
+          Class: grid_map_rviz_plugin/GridMap
+          Color: 200; 200; 200
+          Color Layer: rgb_image
+          Color Transformer: ColorLayer
+          ColorMap: terrain
+          Enabled: true
+          Grid Cell Decimation: 1
+          Grid Line Thickness: 0.10000000149011612
+          Height Layer: elevation
+          Height Transformer: ""
+          History Length: 1
+          Invert ColorMap: true
+          Max Color: 255; 255; 255
+          Max Intensity: 1
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: rgb_image
+          Show Grid Lines: true
+          Topic: /elevation_mapping/semantic_map_raw
+          Unreliable: false
+          Use ColorMap: true
+          Value: true
       Enabled: true
       Name: Elevation Map
   Enabled: true
@@ -1217,4 +1212,4 @@ Window Geometry:
     collapsed: true
   Width: 1920
   X: 2560
-  Y: 360
+  Y: 170
