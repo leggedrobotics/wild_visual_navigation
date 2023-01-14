@@ -56,6 +56,6 @@ learning_thread_rate: 10 # hertz
 # Runtime options
 device: "cuda"
 mode: "online" # check out comments in the class WVNMode
-print_image_callback_time: false
+print_image_callback_time: true
 print_proprio_callback_time: false
 use_debug_for_desired: true

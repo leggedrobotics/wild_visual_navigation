@@ -43,8 +43,8 @@ class Timer:
 
 def accumulate_time(method):
     def timed(*args, **kw):
-        if hasattr(args[0], "not_time"):
-            if args[0].not_time:
+        if hasattr(args[0], "slt_not_time"):
+            if args[0].slt_not_time:
                 return method(*args, **kw)
 
         start = torch.cuda.Event(enable_timing=True)
@@ -55,22 +55,37 @@ def accumulate_time(method):
         torch.cuda.synchronize()
 
         st = start.elapsed_time(end)
-        if hasattr(args[0], "time_summary"):
-            summary = args[0].time_summary
-        else:
-            args[0].time_summary = {}
-            args[0].n_summary = {}
+        if not hasattr(args[0], "slt_time_summary"):
+            args[0].slt_time_summary = {}
+            args[0].slt_n_summary = {}
 
-        if method.__name__ in args[0].time_summary:
-            args[0].time_summary[method.__name__] += st
-            args[0].n_summary[method.__name__] += 1
+        if method.__name__ in args[0].slt_time_summary:
+            args[0].slt_time_summary[method.__name__] += st
+            args[0].slt_n_summary[method.__name__] += 1
         else:
-            args[0].time_summary[method.__name__] = st
-            args[0].n_summary[method.__name__] = 1
+            args[0].slt_time_summary[method.__name__] = st
+            args[0].slt_n_summary[method.__name__] = 1
 
         return result
 
     return timed
+
+
+class SystemLevelTimer:
+    def __init__(self, objects, names) -> None:
+        self.objects = objects
+        self.names = names
+
+    def __str__(self):
+        s = ""
+        for n, o in zip(self.names, self.objects):
+            if hasattr(o, "slt_time_summary"):
+                s += n
+                for (k, v) in o.slt_time_summary.items():
+                    n = o.slt_n_summary[k]
+                    s += f"\n  {k}:".ljust(35) + f"{round(v,2)}ms".ljust(20) + f"counts: {n} ".ljust(15)
+                s += "\n"
+        return s
 
 
 def time_function(method):
