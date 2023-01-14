@@ -27,7 +27,7 @@ def jtop_gpu_memory_query(device, pid):
     from jtop import jtop
     import psutil
 
-    process = psutil.Process(self.pid)
+    process = psutil.Process(pid)
     mem = process.memory_info().rss / (1024 * 1024)
     return mem
 
