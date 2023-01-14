@@ -16,7 +16,7 @@ from wild_visual_navigation.learning.utils import get_confidence
 from wild_visual_navigation.visu import get_img_from_fig
 from wild_visual_navigation.visu import paper_colors_rgb_u8, paper_colors_rgba_u8
 from wild_visual_navigation.visu import paper_colors_rgb_f, paper_colors_rgba_f
-from wild_visual_navigation.utils import Timer, time_function
+from wild_visual_navigation.utils import Timer, accumulate_time
 
 __all__ = ["LearningVisualizer"]
 
@@ -111,6 +111,7 @@ class LearningVisualizer:
         plt.close()
         return res
 
+    @accumulate_time
     def plot_mission_node_prediction(self, node: any):
         if node._image is None or node._prediction is None:
             return None
@@ -119,33 +120,32 @@ class LearningVisualizer:
         reco_pred = node._prediction[:, 1:]
         conf_pred = get_confidence(reco_pred, node._features)
 
-        with Timer("visualizer - plot_traversability_graph_on_seg trav"):
-            trav_img = self.plot_traversability_graph_on_seg(
-                trav_pred,
-                node.feature_segments,
-                node.as_pyg_data(),
-                node.feature_positions,
-                node.image,
-                colormap="RdYlBu",
-                colorize_invalid_centers=True,
-                not_log=True,
-                store=False,
-            )
+        trav_img = self.plot_traversability_graph_on_seg(
+            trav_pred,
+            node.feature_segments,
+            node.as_pyg_data(),
+            node.feature_positions,
+            node.image,
+            colormap="RdYlBu",
+            colorize_invalid_centers=True,
+            not_log=True,
+            store=False,
+        )
 
-        with Timer("visualizer - plot_traversability_graph_on_seg conf"):
-            conf_img = self.plot_traversability_graph_on_seg(
-                conf_pred,
-                node.feature_segments,
-                node.as_pyg_data(),
-                node.feature_positions,
-                node.image,
-                colormap="RdYlBu",
-                colorize_invalid_centers=True,
-                not_log=True,
-                store=False,
-            )
+        conf_img = self.plot_traversability_graph_on_seg(
+            conf_pred,
+            node.feature_segments,
+            node.as_pyg_data(),
+            node.feature_positions,
+            node.image,
+            colormap="RdYlBu",
+            colorize_invalid_centers=True,
+            not_log=True,
+            store=False,
+        )
         return trav_img, conf_img
 
+    @accumulate_time
     def plot_mission_node_training(self, node: any):
         if node._image is None or node._prediction is None:
             return None
@@ -176,6 +176,7 @@ class LearningVisualizer:
 
         return supervison_img, mask_img
 
+    @accumulate_time
     @image_functionality
     def plot_traversability_graph_on_seg(
         self,
@@ -218,6 +219,7 @@ class LearningVisualizer:
         #     colorize_invalid_centers=colorize_invalid_centers,
         # )
 
+    @accumulate_time
     @image_functionality
     def plot_traversability_graph(
         self, prediction, graph, center, img, max_val=1.0, colormap="RdYlBu", colorize_invalid_centers=False, **kwargs
@@ -271,6 +273,7 @@ class LearningVisualizer:
 
         return np.array(img_pil)
 
+    @accumulate_time
     @image_functionality
     def plot_detectron(
         self,
@@ -321,6 +324,7 @@ class LearningVisualizer:
 
         return np.uint8(img_new)
 
+    @accumulate_time
     @image_functionality
     def plot_graph_result(self, graph, center, img, seg, res, use_seg=False, colormap="RdYlBu", **kwargs):
         """Plot Graph GT and Predtion on Image
@@ -383,6 +387,7 @@ class LearningVisualizer:
         res = np.concatenate(ls, axis=1)
         return res
 
+    @accumulate_time
     @image_functionality
     def plot_segmentation(
         self,
@@ -407,6 +412,7 @@ class LearningVisualizer:
         out_img = c_map[sf]
         return out_img.reshape(H, W, 3).cpu().numpy()
 
+    @accumulate_time
     @image_functionality
     def plot_image(self, img, **kwargs):
         """
@@ -431,6 +437,7 @@ class LearningVisualizer:
         img = np.uint8(img)
         return img
 
+    @accumulate_time
     @image_functionality
     def plot_optical_flow(self, flow: torch.Tensor, img1: torch.Tensor, img2: torch.Tensor, s=10, **kwargs):
         """Draws line connection between to images based on estimated flow
@@ -463,6 +470,7 @@ class LearningVisualizer:
                     pass
         return np.array(pil_img).astype(np.uint8)
 
+    @accumulate_time
     @image_functionality
     def plot_sparse_optical_flow(
         self, pre_pos: torch.Tensor, cur_pos: torch.Tensor, img1: torch.Tensor, img2: torch.Tensor, **kwargs
