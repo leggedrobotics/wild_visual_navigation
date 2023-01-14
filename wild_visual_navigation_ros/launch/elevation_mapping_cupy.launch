@@ -4,5 +4,5 @@
         <rosparam command="load" file="$(find wild_visual_navigation_ros)/config/elevation_mapping_cupy/anymal_parameters.yaml" />
         <rosparam command="load" file="$(find wild_visual_navigation_ros)/config/elevation_mapping_cupy/anymal_sensor_parameter.yaml" />
     </node>
-    
+
 </launch>
