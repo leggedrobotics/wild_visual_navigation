@@ -87,6 +87,12 @@ class WvnRosInterface:
                 ],
                 names=["WVN", "TraversabilityEstimator", "Visualizer", "SupervisionGenerator"],
             )
+        else:
+            # Turn off all timing
+            self.slt_not_time = True
+            self.traversability_estimator.slt_not_time = True
+            self.traversability_estimator._visualizer.slt_not_time = True
+            self.supervision_generator.slt_not_time = True
 
         # Launch processes
         print("─" * 80)

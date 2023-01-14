@@ -71,36 +71,60 @@ perugia_root: /media/Data/Datasets/2022_Perugia
 
 
 ## Experiments
-### Robot Usage / Rosbag play [Online]
+### Robot Usage [Online]
 Mode to run the pipeline either fully online on the robot or to simply replay rosbags on your system.
 
 - Launch ANYmal Converter:
-```
+```shell
 rosrun wild_visual_navigation_anymal anymal_msg_converter_node.py
 ```
 
 - Run WVN Node:
-```
-python wild_visual_navigation_ros/scripts/wild_visual_navigation_node.py _mode:=default _not_time:=True
+```shell
+python wild_visual_navigation_ros/scripts/wild_visual_navigation_node.py _mode:=debug
 ```
 There exist multiple configurations you can change via the ros-parameters.
 Optionally the node offers services to store the created graph/trained network to the disk.
 
 - (optionally) RVIZ:
-```
+```shell
 roslaunch wild_visual_navigation_ros view.launch
 ```
 
 - (replay only) Run Debayer:
-```
+```shell
 roslaunch image_proc_cuda_ros image_proc_cuda_node.launch cam0:=false cam1:=false cam2:=false cam3:=false cam4:=true cam5:=false cam6:=false run_gamma_correction:=false run_white_balance:=true run_vignetting_correction:=false run_color_enhancer:=false run_color_calibration:=false run_undistortion:=true run_clahe:=false dump_images:=false needs_rotation_cam4:=true debayer_option:=bayer_gbrg8
 ```
 
 - (replay only) Replay Rosbag:
-```
+```shell
 rosbag play --clock path_to_mission/*.bag
 ```
 
+### Replay Usage [Online]
+We provide a launch file to start all required nodes for close-loop integration.
+```shell
+roslaunch wild_visual_navigation_ros replay_launch.launch
+```
+The launch file allows to toggle the individual modules on and off.
+```xml
+  <arg name="anymal_converter"  default="True"/>
+  <arg name="anymal_rsl_launch" default="True"/>
+  <arg name="debayer"           default="True"/>
+  <arg name="rviz"              default="True"/>
+  <arg name="elevation_mapping" default="True"/>
+  <arg name="local_planner"     default="True"/>
+```
+
+- Run WVN Node:
+```shell
+python wild_visual_navigation_ros/scripts/wild_visual_navigation_node.py _mode:=default
+```
+
+- Replay Rosbag:
+```shell
+rosbag play --clock path_to_mission/*.bag
+```
 
 ### Learning Usage [Offline]
 #### Dataset Generation
