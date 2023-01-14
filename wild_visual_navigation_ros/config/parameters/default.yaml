@@ -1,11 +1,11 @@
 # Input topics
 robot_state_topic: "/wild_visual_navigation_node/robot_state"
-# desired_twist_topic: "/motion_reference/command_twist"
-desired_twist_topic: "/log/state/desiredRobotTwist"
+desired_twist_topic: "/motion_reference/command_twist"
+# desired_twist_topic: "/log/state/desiredRobotTwist"
 
 camera_topics:
   front:
-    image_topic: "/alphasense_driver_ros/cam4/debayered"
+    image_topic: "/alphasense_driver_ros/cam4/debayered/compressed"
     info_topic: "/alphasense_driver_ros/cam4/camera_info"
     use_for_training: true
   # left:
