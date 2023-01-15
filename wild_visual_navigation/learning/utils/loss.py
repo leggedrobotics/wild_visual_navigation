@@ -36,13 +36,13 @@ class TraversabilityLoss(nn.Module):
             m = batch.y == 0
 
             loss_trav_raw_labled = F.mse_loss(res[batch.y_valid, 0], batch.y[batch.y_valid], reduction="none")
-            loss_trav_raw_not_labled = F.mse_loss(res[~batch.y_valid, 0], batch.y[~batch.y_valid], reduction="none")
+            loss_trav_raw_not_labeled = F.mse_loss(res[~batch.y_valid, 0], batch.y[~batch.y_valid], reduction="none")
 
             # Scale the loss
-            loss_trav_raw_not_labled = loss_trav_raw_not_labled * (1 - confidence)[~batch.y_valid]
+            loss_trav_raw_not_labeled = loss_trav_raw_not_labeled * (1 - confidence)[~batch.y_valid]
             loss_trav_raw_labled = loss_trav_raw_labled * self._false_negative_weight
 
-            loss_trav_out = (loss_trav_raw_not_labled.sum() + loss_trav_raw_labled.sum()) / (m.numel())
+            loss_trav_out = (loss_trav_raw_not_labeled.sum() + loss_trav_raw_labled.sum()) / (m.numel())
             loss_trav_raw = F.mse_loss(res[:, 0], batch.y[:])
         else:
             loss_trav_raw = F.mse_loss(res[:, 0], batch.y[:])
