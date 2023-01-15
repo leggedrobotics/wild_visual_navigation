@@ -12,11 +12,11 @@ class ConfidenceGenerator(torch.nn.Module):
         super(ConfidenceGenerator, self).__init__()
         running_n = torch.zeros(1, dtype=torch.float64)
         running_sum = torch.zeros(1, dtype=torch.float64)
-        running_sum_of_sqaures = torch.zeros(1, dtype=torch.float64)
+        running_sum_of_squares = torch.zeros(1, dtype=torch.float64)
 
         self.running_n = torch.nn.Parameter(running_n, requires_grad=False)
         self.running_sum = torch.nn.Parameter(running_sum, requires_grad=False)
-        self.running_sum_of_sqaures = torch.nn.Parameter(running_sum_of_sqaures, requires_grad=False)
+        self.running_sum_of_squares = torch.nn.Parameter(running_sum_of_squares, requires_grad=False)
 
         self.std_factor = std_factor
         self.mean = torch.zeros(1, dtype=torch.float64)
@@ -34,10 +34,10 @@ class ConfidenceGenerator(torch.nn.Module):
         """
         self.running_n += x.numel()
         self.running_sum += x.sum()
-        self.running_sum_of_sqaures += (x**2).sum()
+        self.running_sum_of_squares += (x**2).sum()
 
         self.mean = self.running_sum / self.running_n
-        self.var = self.running_sum_of_sqaures / self.running_n - self.mean**2
+        self.var = self.running_sum_of_squares / self.running_n - self.mean**2
         self.std = torch.sqrt(self.var)
 
         uncertainty = (
@@ -64,7 +64,7 @@ class ConfidenceGenerator(torch.nn.Module):
     def reset(self):
         self.running_n[0] = 0
         self.running_sum[0] = 0
-        self.running_sum_of_sqaures[0] = 0
+        self.running_sum_of_squares[0] = 0
 
 
 if __name__ == "__main__":

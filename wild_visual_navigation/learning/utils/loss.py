@@ -13,14 +13,14 @@ class TraversabilityLoss(nn.Module):
         self._w_reco = w_reco
         self._w_temp = w_temp
         self._model = model
-        self._anomaly_blanced = anomaly_blanced
+        self._anomaly_balanced = anomaly_blanced
         self._false_negative_weight = false_negative_weight
 
-        if self._anomaly_blanced:
+        if self._anomaly_balanced:
             self._confidence_generator = ConfidenceGenerator()
 
     def reset(self):
-        if self._anomaly_blanced:
+        if self._anomaly_balanced:
             self._confidence_generator.reset()
 
     def forward(self, batch: Data, res: torch.Tensor, batch_aux: Optional[Data] = None):
@@ -28,7 +28,7 @@ class TraversabilityLoss(nn.Module):
         loss_reco = F.mse_loss(res[batch.y_valid][:, 1:], batch.x[batch.y_valid])
 
         # Compute traversability loss
-        if self._anomaly_blanced:
+        if self._anomaly_balanced:
             loss_reco_raw = F.mse_loss(res[:, 1:], batch.x, reduction="none").mean(dim=1)
             with torch.no_grad():
                 confidence = self._confidence_generator.update(loss_reco_raw)
