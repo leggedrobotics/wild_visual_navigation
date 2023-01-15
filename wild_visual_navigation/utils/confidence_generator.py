@@ -47,6 +47,19 @@ class ConfidenceGenerator(torch.nn.Module):
         confidence = 1 - uncertainty
         return confidence.type(torch.float32)
 
+    def update_sigmoid(self, x: torch.tensor, slope: float = 0.2, cutoff: float = 0.2):
+        """Input a tensor with multiple error predictions.
+        Returns the estimated confidence score within 2 standard deviations based on the running mean and variance.
+
+        Args:
+            x (torch.tensor): BS,N
+        Returns:
+            (torch.tensor): BS,N
+        """
+
+        confidence = torch.tensor([torch.sigmoid((slope * (x - cutoff)))])
+        return confidence.type(torch.float32)
+
     def inference_without_update(self, x: torch.tensor):
         if x.device != self.mean.device:
             return torch.zeros_like(x)
