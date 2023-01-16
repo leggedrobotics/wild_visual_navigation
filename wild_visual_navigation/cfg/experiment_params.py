@@ -12,6 +12,7 @@ class ExperimentParams(Serializable):
         tag_list: List[str] = field(default_factory=lambda: ["debug"])
         skip_train: bool = False
         store_model_every_n_steps: Optional[int] = None
+        log_to_disk: bool = True
 
     general: GeneralParams = GeneralParams()
 
@@ -63,21 +64,13 @@ class ExperimentParams(Serializable):
     trainer: TrainerParams = TrainerParams()
 
     @dataclass
-    class DataModuleParams:
-        visu: bool = True
-        batch_size: int = 8
-        num_workers: int = 0
-        dataset_folder: str = "results/perugia_forest_uphill_loop"
-
-    data_module: DataModuleParams = DataModuleParams()
-
-    @dataclass
     class AbblationDataModuleParams:
         batch_size: int = 8
         num_workers: int = 0
         env: str = "forest"
         feature_key: str = "slic100_dino112_8"
         test_equals_val: bool = False
+        val_equals_test: bool = False
         test_all_datasets: bool = False
         training_data_percentage: int = 100
 
@@ -126,12 +119,26 @@ class ExperimentParams(Serializable):
 
     @dataclass
     class VisuParams:
-        train: int = 0
-        val: int = 0
-        test: int = 0
+        train: int = 2
+        val: int = 2
+        test: int = 2
         log_test_video: bool = False
         log_val_video: bool = False
         log_train_video: bool = False
         log_every_n_epochs: int = 10
 
+        @dataclass
+        class LearningVisuParams:
+            p_visu: Optional[bool] = None
+            store: bool = True
+            log: bool = True
+
+        learning_visu: LearningVisuParams = LearningVisuParams()
+
     visu: VisuParams = VisuParams()
+
+    def verify_params(self):
+        if not self.general.log_to_disk:
+            assert self.trainer.profiler != "advanced", "Should not be advanced if not logging to disk"
+            assert self.cb_checkpoint.active == False, "Should be False if not logging to disk"
+            assert self.general.store_model_every_n_steps is None, "Should be None if not logging to disk"
