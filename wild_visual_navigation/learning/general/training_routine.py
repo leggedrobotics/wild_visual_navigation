@@ -73,17 +73,6 @@ def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
     gpus = list(range(torch.cuda.device_count())) if torch.cuda.is_available() else None
     exp["trainer"]["gpus"] = gpus
 
-    # Add distributed plugin
-    if torch.cuda.is_available():
-        if len(gpus) > 1:
-            if exp["trainer"]["accelerator"] == "ddp" or exp["trainer"]["accelerator"] is None:
-                ddp_plugin = DDPPlugin(find_unused_parameters=exp["trainer"].get("find_unused_parameters", False))
-            elif exp["trainer"]["accelerator"] == "ddp_spawn":
-                ddp_plugin = DDPSpawnPlugin(find_unused_parameters=exp["trainer"].get("find_unused_parameters", False))
-            elif exp["trainer"]["accelerator"] == "ddp2":
-                ddp_plugin = DDP2Plugin(find_unused_parameters=exp["trainer"].get("find_unused_parameters", False))
-            exp["trainer"]["plugins"] = [ddp_plugin]
-
     train_dl, val_dl, test_dl = get_abblation_module(**exp["abblation_data_module"], perugia_root=env["perugia_root"])
 
     # Set correct input feature dimension
@@ -107,39 +96,42 @@ def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
         trainer.fit(model=model, train_dataloaders=train_dl, val_dataloaders=val_dl)
 
     if exp["abblation_data_module"]["val_equals_test"]:
-        return model._val_equals_test_results
+        return model.accumulated_val_results
 
     dtr_ls = []
     for j, dl in enumerate(test_dl):
         model.nr_test_run = j
         res = trainer.test(model=model, dataloaders=dl)[0]
 
-        if exp["general"]["log_to_disk"]:
-            with open(os.path.join(model_path, f"{j}_detailed_test_results.pkl"), "rb") as handle:
-                dtr_ls.append(pickle.load(handle))
+    return model.accumulated_test_results
 
-            try:
-                logger.experiment["detailed_test_results"].upload_files(
-                    os.path.join(model_path, f"{j}_detailed_test_results.pkl")
-                )
-                # logger.experiment["model_folder"].track_files(model_path)
-            except:
-                pass
+    # TODO fix neptune logging and optuna tuning
+    #     if exp["general"]["log_to_disk"]:
+    #         with open(os.path.join(model_path, f"{j}_detailed_test_results.pkl"), "rb") as handle:
+    #             dtr_ls.append(pickle.load(handle))
 
-    if exp["general"]["log_to_disk"]:
-        with open(os.path.join(exp["general"]["model_path"], f"detailed_test_results.pkl"), "wb") as handle:
-            pickle.dump(dtr_ls, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        try:
-            logger.experiment["model_checkpoint"].upload_files(os.path.join(model_path, "last.ckpt"))
-        except:
-            pass
+    #         try:
+    #             logger.experiment["detailed_test_results"].upload_files(
+    #                 os.path.join(model_path, f"{j}_detailed_test_results.pkl")
+    #             )
+    #             # logger.experiment["model_folder"].track_files(model_path)
+    #         except:
+    #             pass
 
-    res["detailed_test_results"] = dtr_ls
+    # if exp["general"]["log_to_disk"]:
+    #     with open(os.path.join(exp["general"]["model_path"], f"detailed_test_results.pkl"), "wb") as handle:
+    #         pickle.dump(dtr_ls, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    #     try:
+    #         logger.experiment["model_checkpoint"].upload_files(os.path.join(model_path, "last.ckpt"))
+    #     except:
+    #         pass
 
-    try:
-        short_id = logger.experiment._short_id
-        project_name = logger._project_name
-    except Exception as e:
-        project_name = "not_defined"
-        short_id = 0
-    return res, model_path, short_id, project_name
+    # res["detailed_test_results"] = dtr_ls
+
+    # try:
+    #     short_id = logger.experiment._short_id
+    #     project_name = logger._project_name
+    # except Exception as e:
+    #     project_name = "not_defined"
+    #     short_id = 0
+    # return res, model_path, short_id, project_name
