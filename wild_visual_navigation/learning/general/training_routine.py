@@ -17,7 +17,7 @@ from pytorch_lightning.plugins import DDP2Plugin, DDPPlugin, DDPSpawnPlugin
 from wild_visual_navigation.learning.utils import get_logger
 from wild_visual_navigation.learning.lightning import LightningTrav
 from wild_visual_navigation.learning.utils import load_yaml, load_env, create_experiment_folder
-from wild_visual_navigation.learning.dataset import get_pl_graph_trav_module, get_abblation_module
+from wild_visual_navigation.learning.dataset import get_abblation_module
 from wild_visual_navigation.cfg import ExperimentParams
 
 __all__ = ["training_routine"]
@@ -28,13 +28,16 @@ def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
     exp = dataclasses.asdict(experiment)
     env = load_env()
 
-    model_path = create_experiment_folder(exp, env)
+    if exp["general"]["log_to_disk"]:
+        model_path = create_experiment_folder(exp, env)
+        exp["general"]["name"] = os.path.relpath(model_path, env["base"])
+        exp["general"]["model_path"] = model_path
 
-    exp["general"]["name"] = os.path.relpath(model_path, env["base"])
-    exp["general"]["model_path"] = model_path
+        with open(os.path.join(model_path, "experiment_params.yaml"), "w") as f:
+            yaml.dump(exp, f, default_flow_style=False)
 
-    with open(os.path.join(model_path, "experiment_params.yaml"), "w") as f:
-        yaml.dump(exp, f, default_flow_style=False)
+        exp["trainer"]["default_root_dir"] = model_path
+        exp["visu"]["learning_visu"]["p_visu"] = os.path.join(exp["general"]["model_path"], "visu")
 
     logger = get_logger(exp, env)
 
@@ -81,10 +84,6 @@ def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
                 ddp_plugin = DDP2Plugin(find_unused_parameters=exp["trainer"].get("find_unused_parameters", False))
             exp["trainer"]["plugins"] = [ddp_plugin]
 
-    ddp_plugin = DDPSpawnPlugin(find_unused_parameters=exp["trainer"].get("find_unused_parameters", False))
-    exp["trainer"]["plugins"] = ddp_plugin
-
-    # datamodule = get_pl_graph_trav_module(**exp["data_module"])
     train_dl, val_dl, test_dl = get_abblation_module(**exp["abblation_data_module"], perugia_root=env["perugia_root"])
 
     # Set correct input feature dimension
@@ -102,36 +101,40 @@ def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
         except:
             res = model.load_state_dict(ckpt)
         print("Loaded model checkpoint:", res)
-    trainer = Trainer(**exp["trainer"], default_root_dir=model_path, callbacks=cb_ls, logger=logger)
+    trainer = Trainer(**exp["trainer"], callbacks=cb_ls, logger=logger)
 
     if not exp["general"]["skip_train"]:
         trainer.fit(model=model, train_dataloaders=train_dl, val_dataloaders=val_dl)
+
+    if exp["abblation_data_module"]["val_equals_test"]:
+        return model._val_equals_test_results
 
     dtr_ls = []
     for j, dl in enumerate(test_dl):
         model.nr_test_run = j
         res = trainer.test(model=model, dataloaders=dl)[0]
 
-        with open(os.path.join(model_path, f"{j}_detailed_test_results.pkl"), "rb") as handle:
-            dtr_ls.append(pickle.load(handle))
+        if exp["general"]["log_to_disk"]:
+            with open(os.path.join(model_path, f"{j}_detailed_test_results.pkl"), "rb") as handle:
+                dtr_ls.append(pickle.load(handle))
 
+            try:
+                logger.experiment["detailed_test_results"].upload_files(
+                    os.path.join(model_path, f"{j}_detailed_test_results.pkl")
+                )
+                # logger.experiment["model_folder"].track_files(model_path)
+            except:
+                pass
+
+    if exp["general"]["log_to_disk"]:
+        with open(os.path.join(exp["general"]["model_path"], f"detailed_test_results.pkl"), "wb") as handle:
+            pickle.dump(dtr_ls, handle, protocol=pickle.HIGHEST_PROTOCOL)
         try:
-            logger.experiment["detailed_test_results"].upload_files(
-                os.path.join(model_path, f"{j}_detailed_test_results.pkl")
-            )
-            # logger.experiment["model_folder"].track_files(model_path)
+            logger.experiment["model_checkpoint"].upload_files(os.path.join(model_path, "last.ckpt"))
         except:
             pass
 
-    with open(os.path.join(exp["general"]["model_path"], f"detailed_test_results.pkl"), "wb") as handle:
-        pickle.dump(dtr_ls, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
     res["detailed_test_results"] = dtr_ls
-
-    try:
-        logger.experiment["model_checkpoint"].upload_files(os.path.join(model_path, "last.ckpt"))
-    except:
-        pass
 
     try:
         short_id = logger.experiment._short_id
