@@ -26,32 +26,71 @@ if __name__ == "__main__":
     exp.general.log_to_disk = False
     exp.trainer.max_steps = 5000
     exp.trainer.max_epochs = None
-    exp.trainer.check_val_every_n_epoch = 1
     exp.logger.name = "skip"
     exp.abblation_data_module.val_equals_test = True
-    exp.abblation_data_module.active = True
     exp.trainer.profiler = None
+    exp.trainer.enable_checkpointing = False
     exp.cb_checkpoint.active = False
-    exp.general.store_model_every_n_steps = None
+
     exp.verify_params()
     exp.visu.train = 0
     exp.visu.val = 0
     exp.visu.test = 0
+    exp.general.model_path = os.path.join(WVN_ROOT_DIR, "scripts/abblations/time_adaptation")
 
-    results = {}
+    # If check_val_every_n_epoch in the current setting the test dataloader is used for validation.
+    # All results during validation are stored and returned by the training routine.
+    exp.trainer.check_val_every_n_epoch = 100000
+
+    # Currently the model weights are stored every 10 steps.
+    # This allows to reload the model and test it on the test dataloader.
+    exp.general.store_model_every_n_steps = 10
+
+    Path(exp.general.model_path).mkdir(parents=True, exist_ok=True)
+
+    # Train model in various configurations and the validation results per epoch are returned in results_epoch.
+    results_epoch = {}
     for scene in ["forest", "hilly", "grassland"]:
         exp.abblation_data_module.env = scene
         percentage_results = {}
-        for percentage in range(10, 100, 40):
+        for percentage in range(10, 100, 10):
             exp.abblation_data_module.training_data_percentage = percentage
             run_results = {}
             for run in range(number_training_runs):
+                exp.general.store_model_every_n_steps_key = f"abblation_time_adaptation_{scene}_{percentage}_{run}"
                 res = training_routine(exp, seed=run)
                 run_results[f"run_{run}"] = copy.deepcopy(res)
             percentage_results[f"percentage_{percentage}"] = copy.deepcopy(run_results)
-        results[scene] = copy.deepcopy(percentage_results)
+        results_epoch[scene] = copy.deepcopy(percentage_results)
 
-        p = os.path.join(WVN_ROOT_DIR, "scripts/abblations/time_adaptation.pkl")
-        os.system(f"rm {p}")
-        with open(p, "wb") as handle:
-            pickle.dump(results, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    # Store epoch output to disk.
+    p = os.path.join(WVN_ROOT_DIR, "scripts/abblations/time_adaptation/time_adaptation_epochs.pkl")
+    try:
+        os.remove(p)
+    except OSError as error:
+        pass
+    with open(p, "wb") as handle:
+        pickle.dump(results_epoch, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    # Test all stored models on the test dataloader and store the results.
+    exp.general.skip_train = True
+    exp.abblation_data_module.val_equals_test = False
+    results_step = []
+    for p in Path(exp.general.model_path).rglob("*.pt"):
+        _, _, _, scene, percentage, run, steps = str(p).split("/")[-1].split("_")
+        percentage, run, steps = int(percentage), int(run), int(steps.split(".")[0])
+        exp.abblation_data_module.env = scene
+        exp.model.load_ckpt = str(p)
+
+        res = training_routine(exp, seed=run)
+        results_step.append({"scene": scene, "percentage": percentage, "run": run, "steps": steps, "results": res})
+
+    # Store step output to disk.
+    p = os.path.join(WVN_ROOT_DIR, "scripts/abblations/time_adaptation/time_adaptation_steps.pkl")
+    try:
+        os.remove(p)
+    except OSError as error:
+        pass
+
+    with open(p, "wb") as handle:
+        pickle.dump(results_step, handle, protocol=pickle.HIGHEST_PROTOCOL)

@@ -12,7 +12,9 @@ class ExperimentParams(Serializable):
         tag_list: List[str] = field(default_factory=lambda: ["debug"])
         skip_train: bool = False
         store_model_every_n_steps: Optional[int] = None
+        store_model_every_n_steps_key: Optional[str] = None
         log_to_disk: bool = True
+        model_path: Optional[str] = None
 
     general: GeneralParams = GeneralParams()
 
@@ -59,6 +61,7 @@ class ExperimentParams(Serializable):
         profiler: bool = False
         num_sanity_val_steps: int = 0
         check_val_every_n_epoch: int = 10
+        enable_checkpointing: bool = True
         max_steps: int = -1
 
     trainer: TrainerParams = TrainerParams()
@@ -141,4 +144,3 @@ class ExperimentParams(Serializable):
         if not self.general.log_to_disk:
             assert self.trainer.profiler != "advanced", "Should not be advanced if not logging to disk"
             assert self.cb_checkpoint.active == False, "Should be False if not logging to disk"
-            assert self.general.store_model_every_n_steps is None, "Should be None if not logging to disk"

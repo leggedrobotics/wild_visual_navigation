@@ -31,12 +31,13 @@ class LightningTrav(pl.LightningModule):
             self._validation_auroc_gt_image = AUROC(task="binary")
             self._validation_roc_proprioceptive_image = ROC(task="binary")
             self._validation_auroc_proprioceptive_image = AUROC(task="binary")
-            self._val_equals_test_results = []
+            self.accumulated_val_results = []
 
         self._test_roc_proprioceptive_image = ROC(task="binary")
         self._test_roc_gt_image = ROC(task="binary")
         self._test_auroc_proprioceptive_image = AUROC(task="binary")
         self._test_auroc_gt_image = AUROC(task="binary")
+        self.accumulated_test_results = []
 
         self._traversability_loss = TraversabilityLoss(**self._exp["loss"], model=self._model)
 
@@ -54,7 +55,10 @@ class LightningTrav(pl.LightningModule):
         nr = self._exp["general"]["store_model_every_n_steps"]
         if type(nr) == int:
             if self.global_step % nr == 0:
-                path = os.path.join(self._exp["general"]["model_path"], f"{self.global_step}.pt")
+                path = os.path.join(
+                    self._exp["general"]["model_path"],
+                    self._exp["general"]["store_model_every_n_steps_key"] + f"_{self.global_step}.pt",
+                )
                 torch.save(self.state_dict(), path)
 
         graph = batch[0]
@@ -267,12 +271,12 @@ class LightningTrav(pl.LightningModule):
             validation_roc_proprioceptive_image = self._validation_roc_proprioceptive_image.compute()
             validation_auroc_proprioceptive_image = self._validation_auroc_proprioceptive_image.compute()
 
-            self._val_equals_test_results.append(
+            self.accumulated_val_results.append(
                 {
                     "validation_roc_gt_image": validation_roc_gt_image,
                     "validation_auroc_gt_image": validation_auroc_gt_image,
-                    "validation_roc_proprioceptive": validation_roc_proprioceptive_image,
-                    "validation_auroc_proprioceptive": validation_auroc_proprioceptive_image,
+                    "validation_roc_proprioceptive_image": validation_roc_proprioceptive_image,
+                    "validation_auroc_proprioceptive_image": validation_auroc_proprioceptive_image,
                 }
             )
 
@@ -309,10 +313,29 @@ class LightningTrav(pl.LightningModule):
         return loss
 
     def test_epoch_end(self, outputs: any):
-        dtr = {}
+        ################ NEW VERSION ################
+        # label is the gt label
+        test_roc_gt_image = self._test_roc_gt_image.compute()
+        test_auroc_gt_image = self._test_auroc_gt_image.compute()
 
-        fpr_pro, tpr_pro, thresholds_pro = self._test_roc_proprioceptive_image.compute()
-        auroc_pro = self._test_auroc_proprioceptive_image.compute().item()
+        # generate proprioceptive label
+        test_roc_proprioceptive_image = self._test_roc_proprioceptive_image.compute()
+        test_auroc_proprioceptive_image = self._test_auroc_proprioceptive_image.compute()
+
+        self.accumulated_test_results.append(
+            {
+                "test_roc_gt_image": test_roc_gt_image,
+                "test_auroc_gt_image": test_auroc_gt_image,
+                "test_roc_proprioceptive_image": test_roc_proprioceptive_image,
+                "test_auroc_proprioceptive_image": test_auroc_proprioceptive_image,
+            }
+        )
+        ################ NEW VERSION FINISHED  ################
+
+        # potentially broken or deprecated code
+        dtr = {}
+        fpr_pro, tpr_pro, thresholds_pro = test_roc_proprioceptive_image
+        auroc_pro = test_auroc_proprioceptive_image.item()
         self._visualizer.plot_roc(
             x=fpr_pro.cpu().numpy(),
             y=tpr_pro.cpu().numpy(),
@@ -321,8 +344,8 @@ class LightningTrav(pl.LightningModule):
         )
         self.log(f"{self._mode}_auroc_proprioceptive_{self.nr_test_run}", auroc_pro, on_epoch=True, prog_bar=False)
 
-        fpr_gt, tpr_gt, thresholds_gt = self._test_roc_gt_image.compute()
-        auroc_gt = self._test_auroc_gt_image.compute().item()
+        fpr_gt, tpr_gt, thresholds_gt = test_roc_gt_image
+        auroc_gt = test_auroc_gt_image.item()
         self._visualizer.plot_roc(
             x=fpr_gt.cpu().numpy(),
             y=tpr_gt.cpu().numpy(),
