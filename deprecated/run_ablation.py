@@ -37,7 +37,7 @@ if __name__ == "__main__":
                 override_params(experiment_params, exp_override)
 
                 # set correct scene (force overwrite)
-                experiment_params.abblation_data_module.env = scene
+                experiment_params.ablation_data_module.env = scene
 
                 env = load_env()
                 if (
@@ -69,5 +69,5 @@ if __name__ == "__main__":
                     "results": res,
                 }
 
-    with open(os.path.join(WVN_ROOT_DIR, "cfg/exp/abblation/all.yml"), "w") as f:
+    with open(os.path.join(WVN_ROOT_DIR, "cfg/exp/ablation/all.yml"), "w") as f:
         yaml.dump(results, f, default_flow_style=False, sort_keys=False)
