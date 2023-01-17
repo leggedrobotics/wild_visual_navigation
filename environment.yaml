@@ -33,7 +33,7 @@ dependencies:
   - matplotlib
   - seaborn
   - pandas
-  - torchmetrics
+  - torchmetrics==0.11.0
   - pip:
     - neptune-client[optuna]
     - wandb
