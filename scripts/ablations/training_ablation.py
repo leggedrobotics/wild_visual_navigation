@@ -10,6 +10,7 @@ from wild_visual_navigation.learning.utils import load_yaml
 from wild_visual_navigation.cfg import ExperimentParams
 from wild_visual_navigation.learning.general import training_routine
 from wild_visual_navigation.utils import override_params
+import argparse
 
 if __name__ == "__main__":
     """Test how much time and data it takes for a model to convergee on a scene.
@@ -21,6 +22,9 @@ if __name__ == "__main__":
         - Calling the testing is therefore not necessary.
         - This procedure is repeated over all scenes and percentage of data used from the training dataset.
     """
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ablation_type", type=str, default="network", help="Overwrite params")
+    args = parser.parse_args()
 
     number_training_runs = 1
 
@@ -42,11 +46,12 @@ if __name__ == "__main__":
     exp.trainer.check_val_every_n_epoch = 100000
     exp.general.store_model_every_n_steps = None
 
-    exp.general.model_path = os.path.join(WVN_ROOT_DIR, "scripts/ablations/network_ablation")
+    folder = args.ablation_type
+    exp.general.model_path = os.path.join(WVN_ROOT_DIR, f"scripts/ablations/{folder}_ablation")
 
     Path(exp.general.model_path).mkdir(parents=True, exist_ok=True)
 
-    directory = Path(os.path.join(WVN_ROOT_DIR, "cfg/exp/ablation/network"))
+    directory = Path(os.path.join(WVN_ROOT_DIR, f"cfg/exp/ablation/{folder}"))
     cfg_paths = [str(p) for p in directory.rglob("*.yaml") if str(p).find("template") == -1]
     # Train model and get test results for every epoch.
     results_epoch = {}
@@ -67,7 +72,7 @@ if __name__ == "__main__":
         results_epoch[scene] = copy.deepcopy(model_results)
 
     # Store epoch output to disk.
-    p = os.path.join(WVN_ROOT_DIR, "scripts/ablations/network_ablation/network_ablation_test_results.pkl")
+    p = os.path.join(WVN_ROOT_DIR, f"scripts/ablations/{folder}_ablation/{folder}_ablation_test_results.pkl")
 
     try:
         os.remove(p)

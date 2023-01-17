@@ -7,7 +7,9 @@ from torch import nn
 
 
 class TraversabilityLoss(nn.Module):
-    def __init__(self, w_trav, w_reco, w_temp, anomaly_blanced, model, false_negative_weight=1.0):
+    def __init__(
+        self, w_trav, w_reco, w_temp, anomaly_blanced, model, false_negative_weight=1.0, use_kalman_filter=True
+    ):
         super(TraversabilityLoss, self).__init__()
         self._w_trav = w_trav
         self._w_reco = w_reco
@@ -17,11 +19,10 @@ class TraversabilityLoss(nn.Module):
         self._false_negative_weight = false_negative_weight
 
         if self._anomaly_balanced:
-            self._confidence_generator = ConfidenceGenerator(std_factor=1.0)
+            self._confidence_generator = ConfidenceGenerator(std_factor=1.0, use_kalman_filter=use_kalman_filter)
 
     def reset(self):
-        if self._anomaly_balanced:
-            self._confidence_generator.reset()
+        pass
 
     def forward(self, batch: Data, res: torch.Tensor, batch_aux: Optional[Data] = None):
         # Compute reconstruction loss
