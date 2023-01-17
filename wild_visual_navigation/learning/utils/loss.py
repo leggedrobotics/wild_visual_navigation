@@ -17,7 +17,7 @@ class TraversabilityLoss(nn.Module):
         self._false_negative_weight = false_negative_weight
 
         if self._anomaly_balanced:
-            self._confidence_generator = ConfidenceGenerator()
+            self._confidence_generator = ConfidenceGenerator(std_factor=1.0)
 
     def reset(self):
         if self._anomaly_balanced:
@@ -29,20 +29,38 @@ class TraversabilityLoss(nn.Module):
 
         # Compute traversability loss
         if self._anomaly_balanced:
+            loss_reco_positive = F.mse_loss(res[batch.y_valid][:, 1:], batch.x[batch.y_valid], reduction="none").mean(
+                dim=1
+            )
             loss_reco_raw = F.mse_loss(res[:, 1:], batch.x, reduction="none").mean(dim=1)
             with torch.no_grad():
-                confidence = self._confidence_generator.update(loss_reco_raw)
+                confidence = self._confidence_generator.update(x=loss_reco_raw, x_positive=loss_reco_positive)
+
+                # import matplotlib.pyplot as plt
+                # import numpy as np
+                # from datetime import datetime
+                # np_x = loss_reco_raw.cpu().numpy()
+                # np_x_pos = loss_reco_positive.cpu().numpy()
+                # N = 100
+                # bins = np.linspace(0, 20, N)
+
+                # plt.hist(np_x, bins, alpha=0.5, color='k')
+                # plt.hist(np_x_pos, bins, alpha=0.5, color='b')
+                # plt.plot(bins, np.exp( - (bins - self._confidence_generator.mean.item())**2 / (2 * self._confidence_generator.std.item()**2) ), color='b', linewidth=3)
+                # t = datetime.now().strftime("%H:%M:%S")
+                # plt.savefig(f"/tmp/wvn_confidence_distribution_{t}.png")
+                # plt.close("all")
 
             m = batch.y == 0
 
-            loss_trav_raw_labled = F.mse_loss(res[batch.y_valid, 0], batch.y[batch.y_valid], reduction="none")
+            loss_trav_raw_labeled = F.mse_loss(res[batch.y_valid, 0], batch.y[batch.y_valid], reduction="none")
             loss_trav_raw_not_labeled = F.mse_loss(res[~batch.y_valid, 0], batch.y[~batch.y_valid], reduction="none")
 
             # Scale the loss
             loss_trav_raw_not_labeled = loss_trav_raw_not_labeled * (1 - confidence)[~batch.y_valid]
-            loss_trav_raw_labled = loss_trav_raw_labled * self._false_negative_weight
+            loss_trav_raw_labeled = loss_trav_raw_labeled * self._false_negative_weight
 
-            loss_trav_out = (loss_trav_raw_not_labeled.sum() + loss_trav_raw_labled.sum()) / (m.numel())
+            loss_trav_out = (loss_trav_raw_not_labeled.sum() + loss_trav_raw_labeled.sum()) / (m.numel())
             loss_trav_raw = F.mse_loss(res[:, 0], batch.y[:])
         else:
             loss_trav_raw = F.mse_loss(res[:, 0], batch.y[:])
