@@ -62,11 +62,9 @@ def anymal_msg_callback(anymal_state, return_msg=False):
     robot_state_msg.header = anymal_state.header
 
     # Extract pose
-    robot_state_msg.pose_frame_id = anymal_state.header.frame_id
     robot_state_msg.pose = anymal_state.pose
 
     # Extract twist
-    robot_state_msg.twist_frame_id = "base"  # TODO this should't be hardcoded
     robot_state_msg.twist = anymal_state.twist
 
     # # Joints
@@ -134,8 +132,8 @@ if __name__ == "__main__":
     output_topic = rospy.get_param("~output_topic", "/wild_visual_navigation_node/robot_state")
 
     # Set publishers and subscribers
-    anymal_state_sub = rospy.Subscriber(anymal_state_topic, AnymalState, anymal_msg_callback, queue_size=1)
-    robot_state_pub = rospy.Publisher(output_topic, RobotState, queue_size=10)
+    anymal_state_sub = rospy.Subscriber(anymal_state_topic, AnymalState, anymal_msg_callback, queue_size=20)
+    robot_state_pub = rospy.Publisher(output_topic, RobotState, queue_size=20)
 
     rospy.loginfo("[anymal_msg_converter_node] ready")
     rospy.spin()
