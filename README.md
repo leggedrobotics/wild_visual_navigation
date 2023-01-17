@@ -83,7 +83,7 @@ rosrun wild_visual_navigation_anymal anymal_msg_converter_node.py
 ```shell
 python wild_visual_navigation_ros/scripts/wild_visual_navigation_node.py _mode:=debug
 ```
-There exist multiple configurations you can change via the ros-parameters.
+There are multiple parameters you can change via the ros-parameter server.
 Optionally the node offers services to store the created graph/trained network to the disk.
 
 - (optionally) RVIZ:
@@ -129,7 +129,7 @@ rosbag play --clock path_to_mission/*.bag
 ### Learning Usage [Offline]
 #### Dataset Generation
 
-Sometimes it`s usefull to just analyze the network training therefore we provide the tools to extract a dataset usefull for learning from a given rosbag. 
+Sometimes it`s useful to just analyze the network training therefore we provide the tools to extract a dataset useful for learning from a given rosbag. 
 In the following we explain how you can generate the dataset with the following structure: 
 ```
 dataset_name
@@ -178,7 +178,7 @@ dataset_name
 
 #### Training the Network
 ##### Training  
-We provide scripts for training the network for a single run where a parameter configuration yaml-file can be passed to override the prameters configured within `cfg/experiments_params.py`.
+We provide scripts for training the network for a single run where a parameter configuration yaml-file can be passed to override the parameters configured within `cfg/experiments_params.py`.
 Training from the final dataset.
 
 `python3 scripts/train_gnn.py --exp=exp_forest.yaml`
@@ -191,12 +191,30 @@ We also provide scripts to use optuna for hyperparameter-searching:
 Within the objective function you can easily adjust the trail parameter suggestions. 
 
 ##### Ablations
-Finally, our ablations results reported within the paper can be reproduced by running:
+Finally, we categorize our ablations into `loss`, `network`, `feature`, `time_adaptation` and `knn_evaluation`.
 
-`python3 scripts/run_ablation.py`
+##### `loss`, `network`, and `feature`
+For `loss`, `network`, and `feature` we can simply run a training script and pass the correct keyword.
+We provide the configurations for those experiments within the `cfg/exp/ablation` folder.
+```
+python3 scripts/ablation/training_ablation.py --ablation_type=network
+```
+After running the training the results are stored respectively in `scripts/ablations/<ablation_type>_ablation` as a pickle file. 
+For each training run the trained network is evaluate on all testing scenes and the AUROC and ROC values are stored with respect to the hand labeled gt-labels and self-supervised proprioceptive-labels. 
+We provide a jupyter notebook to interpret the training results. 
+```
+python3 scripts/ablation/training_ablation_visu.ipynb
+```
 
-This will perform multiple training runs of the model on the provided dataset. 
-In addition to interpretate the results and create the graphs shown in the paper we provide a Jupyter-Notebook, which loads the results of the runs and creates visualizations
+##### `time_adaptation`
+For the `time_adaptation` run simply run:
+```
+python3 scripts/ablation/time_adaptation.py
+```
+and for visualization:
+```
+python3 scripts/ablation/time_adaptation_visu.py
+```
 
 ## Contributing
 
