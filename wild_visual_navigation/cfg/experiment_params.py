@@ -46,6 +46,7 @@ class ExperimentParams(Serializable):
         w_trav: float = 0.4
         w_reco: float = 1.1
         w_temp: float = 0.4
+        use_kalman_filter: bool = True
 
     loss: LossParams = LossParams()
 
