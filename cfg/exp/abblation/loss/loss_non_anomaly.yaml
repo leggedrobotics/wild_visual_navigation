@@ -1,10 +1,2 @@
-general:
-  name: forest/loss_non_anomaly
-  timestamp: False
-
-abblation_data_module:
-  env: forest
-  feature_key: slic_dino
-
 loss:
   anomaly_blanced: False

@@ -67,7 +67,7 @@ class ExperimentParams(Serializable):
     trainer: TrainerParams = TrainerParams()
 
     @dataclass
-    class AbblationDataModuleParams:
+    class AblationDataModuleParams:
         batch_size: int = 8
         num_workers: int = 0
         env: str = "forest"
@@ -77,7 +77,7 @@ class ExperimentParams(Serializable):
         test_all_datasets: bool = False
         training_data_percentage: int = 100
 
-    abblation_data_module: AbblationDataModuleParams = AbblationDataModuleParams()
+    ablation_data_module: AblationDataModuleParams = AblationDataModuleParams()
 
     @dataclass
     class ModelParams:

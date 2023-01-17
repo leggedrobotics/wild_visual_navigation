@@ -26,18 +26,25 @@ class LightningTrav(pl.LightningModule):
         self._mode = "train"
         self._log = log
 
-        if self._exp["abblation_data_module"]["val_equals_test"]:
+        if self._exp["ablation_data_module"]["val_equals_test"]:
             self._validation_roc_gt_image = ROC(task="binary")
             self._validation_auroc_gt_image = AUROC(task="binary")
             self._validation_roc_proprioceptive_image = ROC(task="binary")
             self._validation_auroc_proprioceptive_image = AUROC(task="binary")
+            # The Accumulated results are used to store the results of the validation dataloader for every validation epoch. Allows after training to have summary avaiable.
             self.accumulated_val_results = []
 
         self._test_roc_proprioceptive_image = ROC(task="binary")
         self._test_roc_gt_image = ROC(task="binary")
         self._test_auroc_proprioceptive_image = AUROC(task="binary")
         self._test_auroc_gt_image = AUROC(task="binary")
+        # The Accumulated results are used to store the results of the test dataloader. Allows after testing to have summary avaiable.
         self.accumulated_test_results = []
+
+        # This flag is currently set in a hack way before straining the testing.
+        # It is only used to log the test results to the disk.
+        # TODO remove this part.
+        self.nr_test_run = -1
 
         self._traversability_loss = TraversabilityLoss(**self._exp["loss"], model=self._model)
 
@@ -228,7 +235,7 @@ class LightningTrav(pl.LightningModule):
 
         loss, loss_aux = self._traversability_loss(graph, res, graph_aux)
 
-        if self._exp["abblation_data_module"]["val_equals_test"]:
+        if self._exp["ablation_data_module"]["val_equals_test"]:
             self.log_metrics(
                 self._validation_roc_gt_image,
                 self._validation_auroc_gt_image,
@@ -262,14 +269,16 @@ class LightningTrav(pl.LightningModule):
             cmd = f"ffmpeg -framerate 2 -pattern_type glob -i '{inp}/{self.current_epoch}*_{self._mode}_GraphTrav.png' -c:v libx264 -pix_fmt yuv420p {out2}"
             os.system(cmd)
 
-        if self._exp["abblation_data_module"]["val_equals_test"]:
+        if self._exp["ablation_data_module"]["val_equals_test"]:
             # label is the gt label
             validation_roc_gt_image = self._validation_roc_gt_image.compute()
-            validation_auroc_gt_image = self._validation_auroc_gt_image.compute()
+            validation_roc_gt_image = [a.cpu().numpy() for a in validation_roc_gt_image]
+            validation_auroc_gt_image = self._validation_auroc_gt_image.compute().item()
 
             # generate proprioceptive label
             validation_roc_proprioceptive_image = self._validation_roc_proprioceptive_image.compute()
-            validation_auroc_proprioceptive_image = self._validation_auroc_proprioceptive_image.compute()
+            validation_roc_proprioceptive_image = [a.cpu().numpy() for a in validation_roc_proprioceptive_image]
+            validation_auroc_proprioceptive_image = self._validation_auroc_proprioceptive_image.compute().item()
 
             self.accumulated_val_results.append(
                 {
@@ -316,11 +325,13 @@ class LightningTrav(pl.LightningModule):
         ################ NEW VERSION ################
         # label is the gt label
         test_roc_gt_image = self._test_roc_gt_image.compute()
-        test_auroc_gt_image = self._test_auroc_gt_image.compute()
+        test_roc_gt_image = [a.cpu().numpy() for a in test_roc_gt_image]
+        test_auroc_gt_image = self._test_auroc_gt_image.compute().item()
 
         # generate proprioceptive label
         test_roc_proprioceptive_image = self._test_roc_proprioceptive_image.compute()
-        test_auroc_proprioceptive_image = self._test_auroc_proprioceptive_image.compute()
+        test_roc_proprioceptive_image = [a.cpu().numpy() for a in test_roc_proprioceptive_image]
+        test_auroc_proprioceptive_image = self._test_auroc_proprioceptive_image.compute().item()
 
         self.accumulated_test_results.append(
             {
@@ -335,32 +346,32 @@ class LightningTrav(pl.LightningModule):
         # potentially broken or deprecated code
         dtr = {}
         fpr_pro, tpr_pro, thresholds_pro = test_roc_proprioceptive_image
-        auroc_pro = test_auroc_proprioceptive_image.item()
+        auroc_pro = test_auroc_proprioceptive_image
         self._visualizer.plot_roc(
-            x=fpr_pro.cpu().numpy(),
-            y=tpr_pro.cpu().numpy(),
+            x=fpr_pro,
+            y=tpr_pro,
             y_tag=f"AUCROC_{auroc_pro:.4f}",
             tag=f"{self._mode}_ROC_proprioceptive_{self.nr_test_run}",
         )
         self.log(f"{self._mode}_auroc_proprioceptive_{self.nr_test_run}", auroc_pro, on_epoch=True, prog_bar=False)
 
         fpr_gt, tpr_gt, thresholds_gt = test_roc_gt_image
-        auroc_gt = test_auroc_gt_image.item()
+        auroc_gt = test_auroc_gt_image
         self._visualizer.plot_roc(
-            x=fpr_gt.cpu().numpy(),
-            y=tpr_gt.cpu().numpy(),
+            x=fpr_gt,
+            y=tpr_gt,
             y_tag=f"AUCROC_{auroc_gt:.4f}_{self.nr_test_run}",
             tag=f"{self._mode}_ROC_gt_{self.nr_test_run}",
         )
         self.log(f"{self._mode}_auroc_gt_{self.nr_test_run}", auroc_gt, on_epoch=True, prog_bar=False)
 
-        dtr[f"test_roc_gt_fpr"] = (fpr_gt.cpu().numpy(),)
-        dtr[f"test_roc_gt_tpr"] = (tpr_gt.cpu().numpy(),)
-        dtr[f"test_roc_gt_thresholds"] = (thresholds_gt.cpu().numpy(),)
+        dtr[f"test_roc_gt_fpr"] = (fpr_gt,)
+        dtr[f"test_roc_gt_tpr"] = (tpr_gt,)
+        dtr[f"test_roc_gt_thresholds"] = (thresholds_gt,)
         dtr[f"test_auroc_gt"] = auroc_gt
-        dtr[f"test_roc_prop_fpr"] = fpr_pro.cpu().numpy()
-        dtr[f"test_roc_prop_tpr"] = tpr_pro.cpu().numpy()
-        dtr[f"test_roc_prop_thresholds"] = thresholds_pro.cpu().numpy()
+        dtr[f"test_roc_prop_fpr"] = fpr_pro
+        dtr[f"test_roc_prop_tpr"] = tpr_pro
+        dtr[f"test_roc_prop_thresholds"] = thresholds_pro
         dtr[f"test_auroc_prop"] = auroc_pro
 
         if self._exp["visu"]["log_test_video"]:
