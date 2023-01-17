@@ -1,7 +1,7 @@
 from wild_visual_navigation import WVN_ROOT_DIR
-from wild_visual_navigation.supervision_generator import KalmanFilter
 from wild_visual_navigation.traversability_estimator.graphs import DistanceWindowGraph
 from wild_visual_navigation.traversability_estimator.nodes import TwistNode
+from wild_visual_navigation.utils import KalmanFilter
 from liegroups import SE2, SE3
 from os.path import join
 import os

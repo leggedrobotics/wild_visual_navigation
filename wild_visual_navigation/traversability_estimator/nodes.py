@@ -148,6 +148,8 @@ class MissionNode(BaseNode):
             print(f"clear_debug_data {self}")
             del self._image
             del self._supervision_mask
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
         except Exception as e:
             print(e)
             pass  # Image already removed
@@ -514,6 +516,7 @@ class ProprioceptionNode(BaseNode):
             # tsp[1] ---- tsp[0]
             #  |            |
             # osp[0] ---- osp[1]
+            # with 'tsp': this_side_points and 'osp': other_side_points
 
             # Concat points to define the polygon
             points = torch.concat((this_side_points, other_side_points), dim=0)

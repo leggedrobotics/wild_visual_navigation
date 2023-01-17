@@ -1,5 +1,5 @@
 # Use the same config to load the data using the dataloader
-from wild_visual_navigation.learning.dataset import get_abblation_module
+from wild_visual_navigation.learning.dataset import get_ablation_module
 from wild_visual_navigation.learning.utils import load_env
 import torch
 from sklearn.neighbors import KNeighborsClassifier
@@ -12,7 +12,7 @@ test_auroc_prop = AUROC()
 env = load_env()
 
 for env_ in ["forest", "hilly", "grassland"]:
-    abblation_data_module = {
+    ablation_data_module = {
         "batch_size": 1,
         "num_workers": 0,
         "env": env_,
@@ -20,7 +20,7 @@ for env_ in ["forest", "hilly", "grassland"]:
         "test_equals_val": False,
     }
 
-    datamodule = get_abblation_module(**abblation_data_module, perugia_root=env["perugia_root"])
+    datamodule = get_ablation_module(**ablation_data_module, perugia_root=env["perugia_root"])
     knn = KNeighborsClassifier(n_neighbors=1, weights="uniform")
 
     features = []
