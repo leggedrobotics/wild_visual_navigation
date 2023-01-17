@@ -5,7 +5,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 
-with open(os.path.join(WVN_ROOT_DIR, "scripts/abblations/time_adaptation/time_adaptation_steps.pkl"), "rb") as f:
+with open(os.path.join(WVN_ROOT_DIR, "scripts/ablations/time_adaptation/time_adaptation_steps_done.pkl"), "rb") as f:
     res = pickle.load(f)
 
 
@@ -61,5 +61,5 @@ def plot_time(title, data):
     plt.show()
 
 
-plot_time("Time/Data-Adaptation AUCROC GT", auroc_gt["forest"][1:, :20])
-plot_time("Time/Data-Adaptation AUCROC prop", auroc_prop["forest"][1:, :20])
+plot_time("Time/Data-Adaptation AUCROC GT", auroc_gt["forest"][1:, :50])
+plot_time("Time/Data-Adaptation AUCROC prop", auroc_prop["forest"][1:, :50])

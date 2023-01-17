@@ -35,7 +35,7 @@ class GraphTravDataset(InMemoryDataset):
         self.data, self.slices = self.collate(data_list)
 
 
-class GraphTravAbblationDataset(Dataset):
+class GraphTravAblationDataset(Dataset):
     def __init__(
         self,
         perugia_root: str = "/media/Data/Datasets/2022_Perugia",
@@ -117,7 +117,7 @@ class GraphTravAbblationDataset(Dataset):
         return graph, Data(x=graph.x_previous, edge_index=graph.edge_index_previous)
 
 
-def get_abblation_module(
+def get_ablation_module(
     perugia_root: str,
     batch_size: int = 1,
     num_workers: int = 0,
@@ -129,29 +129,29 @@ def get_abblation_module(
     **kwargs,
 ) -> LightningDataset:
 
-    train_dataset = GraphTravAbblationDataset(
+    train_dataset = GraphTravAblationDataset(
         perugia_root=perugia_root,
         mode="train",
         feature_key=feature_key,
         env=env,
         training_data_percentage=kwargs.get("training_data_percentage", 100),
     )
-    val_dataset = [GraphTravAbblationDataset(perugia_root=perugia_root, mode="val", feature_key=feature_key, env=env)]
+    val_dataset = [GraphTravAblationDataset(perugia_root=perugia_root, mode="val", feature_key=feature_key, env=env)]
 
     if test_equals_val:
         test_dataset = [
-            GraphTravAbblationDataset(perugia_root=perugia_root, mode="val", feature_key=feature_key, env=env)
+            GraphTravAblationDataset(perugia_root=perugia_root, mode="val", feature_key=feature_key, env=env)
         ]
     else:
         test_dataset = [
-            GraphTravAbblationDataset(perugia_root=perugia_root, mode="test", feature_key=feature_key, env=env)
+            GraphTravAblationDataset(perugia_root=perugia_root, mode="test", feature_key=feature_key, env=env)
         ]
 
     if kwargs.get("test_all_datasets"):
         test_dataset = [
-            GraphTravAbblationDataset(perugia_root=perugia_root, mode="test", feature_key=feature_key, env="forest"),
-            GraphTravAbblationDataset(perugia_root=perugia_root, mode="test", feature_key=feature_key, env="grassland"),
-            GraphTravAbblationDataset(perugia_root=perugia_root, mode="test", feature_key=feature_key, env="hilly"),
+            GraphTravAblationDataset(perugia_root=perugia_root, mode="test", feature_key=feature_key, env="forest"),
+            GraphTravAblationDataset(perugia_root=perugia_root, mode="test", feature_key=feature_key, env="grassland"),
+            GraphTravAblationDataset(perugia_root=perugia_root, mode="test", feature_key=feature_key, env="hilly"),
         ]
 
     if val_equals_test:

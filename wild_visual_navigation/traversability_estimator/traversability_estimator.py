@@ -627,7 +627,7 @@ class TraversabilityEstimator:
 
         if self._mission_graph.get_num_valid_nodes() > self._min_samples_for_training:
             # Prepare new batch
-            graph, graph_aux = self.make_batch(self._exp_cfg["abblation_data_module"]["batch_size"])
+            graph, graph_aux = self.make_batch(self._exp_cfg["ablation_data_module"]["batch_size"])
 
             # Forward pass
             res = self._model(graph)

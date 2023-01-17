@@ -17,7 +17,7 @@ from pytorch_lightning.plugins import DDP2Plugin, DDPPlugin, DDPSpawnPlugin
 from wild_visual_navigation.learning.utils import get_logger
 from wild_visual_navigation.learning.lightning import LightningTrav
 from wild_visual_navigation.learning.utils import load_yaml, load_env, create_experiment_folder
-from wild_visual_navigation.learning.dataset import get_abblation_module
+from wild_visual_navigation.learning.dataset import get_ablation_module
 from wild_visual_navigation.cfg import ExperimentParams
 
 __all__ = ["training_routine"]
@@ -73,7 +73,7 @@ def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
     gpus = list(range(torch.cuda.device_count())) if torch.cuda.is_available() else None
     exp["trainer"]["gpus"] = gpus
 
-    train_dl, val_dl, test_dl = get_abblation_module(**exp["abblation_data_module"], perugia_root=env["perugia_root"])
+    train_dl, val_dl, test_dl = get_ablation_module(**exp["ablation_data_module"], perugia_root=env["perugia_root"])
 
     # Set correct input feature dimension
     training_sample = train_dl.dataset[0]
@@ -95,15 +95,18 @@ def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
     if not exp["general"]["skip_train"]:
         trainer.fit(model=model, train_dataloaders=train_dl, val_dataloaders=val_dl)
 
-    if exp["abblation_data_module"]["val_equals_test"]:
+    if exp["ablation_data_module"]["val_equals_test"]:
         return model.accumulated_val_results
 
     dtr_ls = []
+    test_envs = []
     for j, dl in enumerate(test_dl):
         model.nr_test_run = j
         res = trainer.test(model=model, dataloaders=dl)[0]
-
-    return model.accumulated_test_results
+        test_envs.append(dl.dataset.env)
+    
+    return {k:v for k,v in zip(test_envs, model.accumulated_test_results)}
+    
 
     # TODO fix neptune logging and optuna tuning
     #     if exp["general"]["log_to_disk"]:

@@ -1,11 +1,3 @@
-general:
-  name: forest/gcn_32_16
-  timestamp: False
-
-abblation_data_module:
-  env: forest
-  feature_key: slic_dino
-
 model:
   name: SimpleGCN
   simple_gcn_cfg: 

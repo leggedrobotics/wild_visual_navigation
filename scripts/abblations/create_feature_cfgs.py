@@ -4,8 +4,8 @@ import copy
 import yaml
 import os
 
-replace_key = "slic_sift"
-base = os.path.join(WVN_ROOT_DIR, "cfg/exp/abblation/feature/slic_sift.yaml")
+replace_key = "template"
+base = os.path.join(WVN_ROOT_DIR, "cfg/exp/ablation/feature/template.yaml")
 device = "cpu"
 fes = [
     "slic100_dino448_8",
@@ -25,8 +25,7 @@ fes = [
 file = load_yaml(base)
 for k in fes:
     dump = copy.deepcopy(file)
-    dump["general"]["name"] = file["general"]["name"].replace(replace_key, k)
-    dump["abblation_data_module"]["feature_key"] = file["abblation_data_module"]["feature_key"].replace(replace_key, k)
+    dump["ablation_data_module"]["feature_key"] = file["ablation_data_module"]["feature_key"].replace(replace_key, k)
 
     with open(base.replace(replace_key, k), "w") as f:
         yaml.dump(dump, f, default_flow_style=False, sort_keys=False)
