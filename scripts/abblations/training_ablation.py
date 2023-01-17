@@ -68,11 +68,11 @@ if __name__ == "__main__":
 
     # Store epoch output to disk.
     p = os.path.join(WVN_ROOT_DIR, "scripts/ablations/network_ablation/network_ablation_test_results.pkl")
-    
+
     try:
         os.remove(p)
     except OSError as error:
         pass
-    
+
     with open(p, "wb") as handle:
         pickle.dump(results_epoch, handle, protocol=pickle.HIGHEST_PROTOCOL)
