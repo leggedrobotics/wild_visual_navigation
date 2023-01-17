@@ -104,9 +104,8 @@ def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
         model.nr_test_run = j
         res = trainer.test(model=model, dataloaders=dl)[0]
         test_envs.append(dl.dataset.env)
-    
-    return {k:v for k,v in zip(test_envs, model.accumulated_test_results)}
-    
+
+    return {k: v for k, v in zip(test_envs, model.accumulated_test_results)}
 
     # TODO fix neptune logging and optuna tuning
     #     if exp["general"]["log_to_disk"]:
