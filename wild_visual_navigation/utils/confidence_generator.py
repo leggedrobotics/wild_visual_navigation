@@ -59,12 +59,13 @@ class ConfidenceGenerator(torch.nn.Module):
 
     def update_kalman_filter(self, x: torch.tensor, x_positive: torch.tensor):
         # Kalman Filter implementation
-        self.mean = self.mean.to(x.device)
-        self.var = self.var.to(x.device)
-        self.mean, self.var = self._kalman_filter(self.mean, self.var, x_positive.mean())
-        self.var = self.var[0]
-        self.std = torch.sqrt(self.var)
-
+        if x_positive.shape[0] != 0:
+            self.mean = self.mean.to(x.device)
+            self.var = self.var.to(x.device)
+            self.mean, self.var = self._kalman_filter(self.mean, self.var, x_positive.mean())
+            self.var = self.var[0]
+            self.std = torch.sqrt(self.var)
+            assert torch.isnan(self.mean).any() == False, "Nan Value in mean detected"
         # Then the confidence is computed as the distance to the center of the Gaussian given factor*sigma
         confidence = torch.exp(-(((x - self.mean) / (2 * self.std * self.std_factor)) ** 2))
 

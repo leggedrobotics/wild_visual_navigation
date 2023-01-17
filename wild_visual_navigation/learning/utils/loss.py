@@ -24,7 +24,7 @@ class TraversabilityLoss(nn.Module):
     def reset(self):
         pass
 
-    def forward(self, batch: Data, res: torch.Tensor, batch_aux: Optional[Data] = None):
+    def forward(self, batch: Data, res: torch.Tensor, batch_aux: Optional[Data] = None, update_generator: bool = True):
         # Compute reconstruction loss
         loss_reco = F.mse_loss(res[batch.y_valid][:, 1:], batch.x[batch.y_valid])
 
@@ -35,7 +35,10 @@ class TraversabilityLoss(nn.Module):
             )
             loss_reco_raw = F.mse_loss(res[:, 1:], batch.x, reduction="none").mean(dim=1)
             with torch.no_grad():
-                confidence = self._confidence_generator.update(x=loss_reco_raw, x_positive=loss_reco_positive)
+                if update_generator:
+                    confidence = self._confidence_generator.update(x=loss_reco_raw, x_positive=loss_reco_positive)
+                else:
+                    confidence = self._confidence_generator.inference_without_update(x=loss_reco_raw)
 
                 # import matplotlib.pyplot as plt
                 # import numpy as np
