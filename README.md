@@ -190,10 +190,10 @@ We also provide scripts to use optuna for hyperparameter-searching:
 
 Within the objective function you can easily adjust the trail parameter suggestions. 
 
-##### Abblations
-Finally, our abblations results reported within the paper can be reproduced by running:
+##### Ablations
+Finally, our ablations results reported within the paper can be reproduced by running:
 
-`python3 scripts/run_abblation.py`
+`python3 scripts/run_ablation.py`
 
 This will perform multiple training runs of the model on the provided dataset. 
 In addition to interpretate the results and create the graphs shown in the paper we provide a Jupyter-Notebook, which loads the results of the runs and creates visualizations

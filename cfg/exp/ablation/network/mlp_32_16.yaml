@@ -1,0 +1,4 @@
+model:
+  name: SimpleMLP
+  simple_mlp_cfg: 
+    hidden_sizes:  [32, 16, 1]
