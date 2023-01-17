@@ -434,13 +434,6 @@ class WvnRosInterface:
             rospy.logwarn(f"Couldn't get between {parent_frame} and {child_frame}")
             return (None, None)
 
-    # def robot_state_policy_debug_info_callback(self, state_msg, debug_info_msg):
-    #     desired_twist_msg = TwistStamped()
-    #     desired_twist_msg.twist.linear.x = debug_info_msg.data[0]
-    #     desired_twist_msg.twist.linear.y = debug_info_msg.data[1]
-    #     desired_twist_msg.twist.angular.z = debug_info_msg.data[2]
-    #     self.robot_state_callback(state_msg, desired_twist_msg)
-
     @accumulate_time
     def robot_state_callback(self, state_msg, desired_twist_msg: TwistStamped):
         """Main callback to process proprioceptive info (robot state)
@@ -806,9 +799,6 @@ class WvnRosInterface:
 
 if __name__ == "__main__":
     node_name = "wild_visual_navigation_node"
-    os.system(f"rosparam delete /{node_name}")
-    os.system(f"rosparam load {WVN_ROOT_DIR}/wild_visual_navigation_ros/config/parameters/default.yaml {node_name}")
-
     rospy.init_node("wild_visual_navigation_node")
     wvn = WvnRosInterface()
     rospy.spin()
