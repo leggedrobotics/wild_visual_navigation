@@ -1,3 +1,4 @@
+from .kalman_filter import KalmanFilter
 from .meshes import make_box, make_rounded_box, make_ellipsoid, make_plane, make_polygon_from_points, make_dense_plane
 from .timing import Timer, accumulate_time, time_function, SystemLevelTimer, SystemLevelContextTimer
 from .klt_tracker import KLTTracker, KLTTrackerOpenCV
