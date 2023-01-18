@@ -62,7 +62,7 @@ class WvnRosInterface:
             proprio_distance_thr=self.proprio_graph_dist_thr,
             optical_flow_estimator_type=self.optical_flow_estimator_type,
             mode=self.mode,
-            extraction_store_foler=self.extraction_store_foler,
+            extraction_store_folder=self.extraction_store_folder,
             patch_size=self.dino_patch_size,
         )
 
@@ -156,60 +156,58 @@ class WvnRosInterface:
     def read_params(self):
         """Reads all the parameters from the parameter server"""
         # Topics
-        self.robot_state_topic = rospy.get_param("~robot_state_topic", "/wild_visual_navigation_node/robot_state")
-        self.desired_twist_topic = rospy.get_param("~desired_twist_topic", "/log/state/desiredRobotTwist")
-        self.camera_topics = rospy.get_param("~camera_topics", "camera_topics")
+        self.robot_state_topic = rospy.get_param("~robot_state_topic")
+        self.desired_twist_topic = rospy.get_param("~desired_twist_topic")
+        self.camera_topics = rospy.get_param("~camera_topics")
         # self.image_topic = rospy.get_param("~image_topic", "/alphasense_driver_ros/cam4/debayered")
         # self.info_topic = rospy.get_param("~camera_info_topic", "/alphasense_driver_ros/cam4/camera_info")
 
         # Frames
-        self.fixed_frame = rospy.get_param("~fixed_frame", "odom")
-        self.base_frame = rospy.get_param("~base_frame", "base")
-        self.camera_frame = rospy.get_param("~camera_frame", "cam4_sensor_frame_helper")
-        self.footprint_frame = rospy.get_param("~footprint_frame", "footprint")
+        self.fixed_frame = rospy.get_param("~fixed_frame")
+        self.base_frame = rospy.get_param("~base_frame")
+        self.camera_frame = rospy.get_param("~camera_frame")
+        self.footprint_frame = rospy.get_param("~footprint_frame")
 
         # Robot size and specs
-        self.robot_length = rospy.get_param("~robot_length", 1.0)
-        self.robot_width = rospy.get_param("~robot_width", 0.6)
-        self.robot_height = rospy.get_param("~robot_height", 0.3)
+        self.robot_length = rospy.get_param("~robot_length")
+        self.robot_width = rospy.get_param("~robot_width")
+        self.robot_height = rospy.get_param("~robot_height")
 
         # Traversability estimation params
-        self.traversability_radius = rospy.get_param("~traversability_radius", 3.0)
-        self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr", 0.2)
-        self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.1)
-        self.network_input_image_height = rospy.get_param("~network_input_image_height", 224)  # 448
-        self.network_input_image_width = rospy.get_param("~network_input_image_width", 224)  # 448
-        self.segmentation_type = rospy.get_param("~segmentation_type", "slic")
-        self.feature_type = rospy.get_param("~feature_type", "dino")
-        self.dino_patch_size = rospy.get_param("~dino_patch_size", 8)
+        self.traversability_radius = rospy.get_param("~traversability_radius")
+        self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr")
+        self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr")
+        self.network_input_image_height = rospy.get_param("~network_input_image_height")
+        self.network_input_image_width = rospy.get_param("~network_input_image_width")
+        self.segmentation_type = rospy.get_param("~segmentation_type")
+        self.feature_type = rospy.get_param("~feature_type")
+        self.dino_patch_size = rospy.get_param("~dino_patch_size")
 
         # Supervision Generator
-        self.robot_max_velocity = rospy.get_param("~robot_max_velocity", 0.8)
-        self.untraversable_thr = rospy.get_param("~untraversable_thr", 0)
+        self.robot_max_velocity = rospy.get_param("~robot_max_velocity")
+        self.untraversable_thr = rospy.get_param("~untraversable_thr")
 
         # Optical flow params
-        self.optical_flow_estimator_type = rospy.get_param("~optical_flow_estimator_type", "sparse")
+        self.optical_flow_estimator_type = rospy.get_param("~optical_flow_estimator_type")
 
         # Threads
-        self.image_callback_rate = rospy.get_param("~image_callback_rate", 3)  # hertz
-        self.proprio_callback_rate = rospy.get_param("~proprio_callback_rate", 4)  # hertz
-        self.learning_thread_rate = rospy.get_param("~learning_thread_rate", 10)  # hertz
+        self.image_callback_rate = rospy.get_param("~image_callback_rate")  # hertz
+        self.proprio_callback_rate = rospy.get_param("~proprio_callback_rate")  # hertz
+        self.learning_thread_rate = rospy.get_param("~learning_thread_rate")  # hertz
 
         # Data storage
-        out_path = os.path.join(WVN_ROOT_DIR, "results")
-        self.output_path = rospy.get_param("~output_path", out_path)
-        self.mission_name = rospy.get_param("~mission_name", "default_mission")
-        self.mission_timestamp = rospy.get_param("~mission_timestamp", True)
+        self.mission_name = rospy.get_param("~mission_name")
+        self.mission_timestamp = rospy.get_param("~mission_timestamp")
 
         # Print timings
-        self.print_image_callback_time = rospy.get_param("~print_image_callback_time", False)
-        self.print_proprio_callback_time = rospy.get_param("~print_proprio_callback_time", False)
-        self.log_time = rospy.get_param("~log_time", True)
+        self.print_image_callback_time = rospy.get_param("~print_image_callback_time")
+        self.print_proprio_callback_time = rospy.get_param("~print_proprio_callback_time")
+        self.log_time = rospy.get_param("~log_time")
 
         # Select mode: # debug, online, extract_labels
-        self.use_debug_for_desired = rospy.get_param("~use_debug_for_desired", True)
+        self.use_debug_for_desired = rospy.get_param("~use_debug_for_desired")
         self.mode = WVNMode.from_string(rospy.get_param("~mode", "debug"))
-        self.extraction_store_foler = rospy.get_param("~extraction_store_foler", "nan")
+        self.extraction_store_folder = rospy.get_param("~extraction_store_folder")
 
         # Parse operation modes
         if self.mode == WVNMode.ONLINE:
@@ -222,17 +220,17 @@ class WvnRosInterface:
             self.image_graph_dist_thr = 0.2
             self.proprio_graph_dist_thr = 0.1
 
-            os.makedirs(os.path.join(self.extraction_store_foler, "image"), exist_ok=True)
-            os.makedirs(os.path.join(self.extraction_store_foler, "supervision_mask"), exist_ok=True)
+            os.makedirs(os.path.join(self.extraction_store_folder, "image"), exist_ok=True)
+            os.makedirs(os.path.join(self.extraction_store_folder, "supervision_mask"), exist_ok=True)
 
         # Experiment file
-        exp_file = rospy.get_param("~exp", "nan")
+        exp_file = rospy.get_param("~exp")
 
         # Torch device
-        self.device = rospy.get_param("~device", "cuda")
+        self.device = rospy.get_param("~device")
 
         # Visualization
-        self.colormap = rospy.get_param("~colormap", "RdYlBu")
+        self.colormap = rospy.get_param("~colormap")
 
         # Initialize traversability esimator parameters
         self.params = ExperimentParams()
