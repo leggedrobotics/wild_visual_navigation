@@ -21,10 +21,10 @@ if __name__ == "__main__":
         - This procedure is repeated over all scenes and percentage of data used from the training dataset.
     """
 
-    number_training_runs = 1
+    number_training_runs = 10
     exp = ExperimentParams()
     exp.general.log_to_disk = False
-    exp.trainer.max_steps = 5000
+    exp.trainer.max_steps = 10000
     exp.trainer.max_epochs = None
     exp.logger.name = "skip"
     exp.ablation_data_module.val_equals_test = True
@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
     # Currently the model weights are stored every 10 steps.
     # This allows to reload the model and test it on the test dataloader.
-    exp.general.store_model_every_n_steps = 10
+    exp.general.store_model_every_n_steps = 100
 
     Path(exp.general.model_path).mkdir(parents=True, exist_ok=True)
 
@@ -60,6 +60,7 @@ if __name__ == "__main__":
                 exp.general.store_model_every_n_steps_key = f"ablation_time_adaptation_{scene}_{percentage}_{run}"
                 res = training_routine(exp, seed=run)
                 run_results[f"run_{run}"] = copy.deepcopy(res)
+                torch.cuda.empty_cache()
             percentage_results[f"percentage_{percentage}"] = copy.deepcopy(run_results)
         results_epoch[scene] = copy.deepcopy(percentage_results)
 
@@ -84,6 +85,7 @@ if __name__ == "__main__":
 
         res = training_routine(exp, seed=run)
         results_step.append({"scene": scene, "percentage": percentage, "run": run, "steps": steps, "results": res})
+        torch.cuda.empty_cache()
 
     # Store step output to disk.
     p = os.path.join(WVN_ROOT_DIR, "scripts/ablations/time_adaptation/time_adaptation_steps.pkl")

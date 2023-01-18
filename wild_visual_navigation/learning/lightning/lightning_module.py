@@ -40,6 +40,8 @@ class LightningTrav(pl.LightningModule):
         self._test_roc_gt_image = ROC(task="binary")
         self._test_auroc_proprioceptive_image = AUROC(task="binary")
         self._test_auroc_gt_image = AUROC(task="binary")
+        self._test_auroc_anomaly_proprioceptive_image = AUROC(task="binary")
+        self._test_auroc_anomaly_gt_image = AUROC(task="binary")
         # The Accumulated results are used to store the results of the test dataloader. Allows after testing to have summary avaiable.
         self.accumulated_test_results = []
 
@@ -191,6 +193,15 @@ class LightningTrav(pl.LightningModule):
         roc_proprioceptive_image.update(preds=buffer_pred, target=buffer_prop)
         auroc_proprioceptive_image.update(preds=buffer_pred, target=buffer_prop)
 
+        if self._mode == "test" and self._exp["loss"]["anomaly_blanced"]:
+            reco_loss = F.mse_loss(res[:, 1:], graph.x, reduction="none").mean(dim=1)
+            conf = self._traversability_loss._confidence_generator.inference_without_update(reco_loss)
+            buffer_conf = graph.label.clone().type(torch.float32).flatten()
+            buffer_conf = conf[seg_pixel_index].reshape(BS, H, W)
+
+            self._test_auroc_anomaly_proprioceptive_image.update(preds=buffer_conf, target=buffer_prop)
+            self._test_auroc_anomaly_gt_image.update(preds=buffer_conf, target=graph.label)
+
         if debug:
             b = 0
             # Visualize the labels quickly
@@ -334,14 +345,20 @@ class LightningTrav(pl.LightningModule):
         test_roc_proprioceptive_image = [a.cpu().numpy() for a in test_roc_proprioceptive_image]
         test_auroc_proprioceptive_image = self._test_auroc_proprioceptive_image.compute().item()
 
-        self.accumulated_test_results.append(
-            {
-                "test_roc_gt_image": test_roc_gt_image,
-                "test_auroc_gt_image": test_auroc_gt_image,
-                "test_roc_proprioceptive_image": test_roc_proprioceptive_image,
-                "test_auroc_proprioceptive_image": test_auroc_proprioceptive_image,
-            }
-        )
+        dic = {
+            "test_roc_gt_image": test_roc_gt_image,
+            "test_auroc_gt_image": test_auroc_gt_image,
+            "test_roc_proprioceptive_image": test_roc_proprioceptive_image,
+            "test_auroc_proprioceptive_image": test_auroc_proprioceptive_image,
+        }
+
+        if self._exp["loss"]["anomaly_blanced"]:
+            test_auroc_anomaly_proprioceptive_image = self._test_auroc_anomaly_proprioceptive_image.compute().item()
+            test_auroc_anomaly_gt_image = self._test_auroc_anomaly_gt_image.compute().item()
+            dic["test_auroc_anomaly_proprioceptive_image"] = test_auroc_anomaly_proprioceptive_image
+            dic["test_auroc_anomaly_gt_image"] = test_auroc_anomaly_gt_image
+
+        self.accumulated_test_results.append(dic)
         ################ NEW VERSION FINISHED  ################
 
         # potentially broken or deprecated code
@@ -402,6 +419,8 @@ class LightningTrav(pl.LightningModule):
         self._test_roc_gt_image.reset()
         self._test_auroc_proprioceptive_image.reset()
         self._test_auroc_gt_image.reset()
+        self._test_auroc_anomaly_proprioceptive_image.reset()
+        self._test_auroc_anomaly_gt_image.reset()
 
         return dtr
 
