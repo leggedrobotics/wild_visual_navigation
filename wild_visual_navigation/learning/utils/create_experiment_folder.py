@@ -28,5 +28,5 @@ def create_experiment_folder(exp: dict, env: dict) -> str:
 
     # Create the directory
     Path(model_path).mkdir(parents=True, exist_ok=True)
-
+    exp["general"]["model_path"] = model_path
     return model_path

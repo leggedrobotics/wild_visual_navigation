@@ -9,6 +9,7 @@ from torch_geometric.data import Dataset
 from torchvision import transforms as T
 from typing import Optional, Callable
 from torch_geometric.data import Data
+import random
 
 
 class GraphTravDataset(InMemoryDataset):
@@ -69,8 +70,11 @@ class GraphTravAblationDataset(Dataset):
                     print("Not found path", img_p)
 
         if training_data_percentage < 100:
+
             if int(len(ls) * training_data_percentage / 100) == 0:
                 raise Exception("Defined Training Data Perentage to small !")
+
+            random.shuffle(ls)
             ls = ls[: int(len(ls) * training_data_percentage / 100)]
 
         self.mode = mode
@@ -115,6 +119,42 @@ class GraphTravAblationDataset(Dataset):
             graph.label = ~label[None]
 
         return graph, Data(x=graph.x_previous, edge_index=graph.edge_index_previous)
+
+
+class GraphTravAblationDatasetPreLoaded(GraphTravAblationDataset):
+    def __init__(
+        self,
+        perugia_root: str = "/media/Data/Datasets/2022_Perugia",
+        transform: Optional[Callable] = None,
+        pre_transform: Optional[Callable] = None,
+        pre_filter: Optional[Callable] = None,
+        mode: str = "train",
+        feature_key: str = "slic_dino",
+        env: str = "hilly",
+        use_corrospondences: bool = True,
+        training_data_percentage: int = 100,
+    ):
+        super(GraphTravAblationDatasetPreLoaded, self).__init__(
+            perugia_root,
+            transform,
+            pre_transform,
+            pre_filter,
+            mode,
+            feature_key,
+            env,
+            use_corrospondences,
+            training_data_percentage,
+        )
+
+        self.res = []
+        for i in range(len(self.paths)):
+            a, b = self.get(i)
+            self.res.append((a, b))
+
+        self.get = self.get_new
+
+    def get_new(self, idx: int) -> any:
+        return self.res[idx]
 
 
 def get_ablation_module(

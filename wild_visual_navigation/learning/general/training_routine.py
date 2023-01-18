@@ -5,6 +5,7 @@ import pickle
 
 # Frameworks
 import torch
+import pytorch_lightning
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -31,7 +32,6 @@ def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
     if exp["general"]["log_to_disk"]:
         model_path = create_experiment_folder(exp, env)
         exp["general"]["name"] = os.path.relpath(model_path, env["base"])
-        exp["general"]["model_path"] = model_path
 
         with open(os.path.join(model_path, "experiment_params.yaml"), "w") as f:
             yaml.dump(exp, f, default_flow_style=False)
@@ -70,7 +70,7 @@ def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
         )
         cb_ls.append(checkpoint_callback)
 
-    gpus = list(range(torch.cuda.device_count())) if torch.cuda.is_available() else None
+    gpus = 1 if torch.cuda.is_available() else None
     exp["trainer"]["gpus"] = gpus
 
     train_dl, val_dl, test_dl = get_ablation_module(**exp["ablation_data_module"], perugia_root=env["perugia_root"])

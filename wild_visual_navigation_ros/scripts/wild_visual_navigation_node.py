@@ -10,6 +10,10 @@ from wild_visual_navigation_msgs.srv import SaveLoadData, SaveLoadDataResponse
 from std_srvs.srv import SetBool
 from wild_visual_navigation.utils import SystemLevelTimer, SystemLevelContextTimer
 from wild_visual_navigation.utils import WVNMode
+from wild_visual_navigation.cfg import ExperimentParams
+from wild_visual_navigation.utils import override_params
+from wild_visual_navigation.learning.utils import load_yaml
+
 from geometry_msgs.msg import PoseStamped, Point, TwistStamped
 from nav_msgs.msg import Path
 from sensor_msgs.msg import Image, CameraInfo, CompressedImage
@@ -32,6 +36,8 @@ if torch.cuda.is_available():
 
 class WvnRosInterface:
     def __init__(self):
+        rospy.on_shutdown(self.shutdown_callback)
+
         # Timers to control the rate of the publishers
         self.last_image_ts = rospy.get_time()
         self.last_proprio_ts = rospy.get_time()
@@ -44,6 +50,7 @@ class WvnRosInterface:
 
         # Initialize traversability estimator
         self.traversability_estimator = TraversabilityEstimator(
+            params=self.params,
             device=self.device,
             image_size=self.network_input_image_height,  # Note: we assume height == width
             segmentation_type=self.segmentation_type,
@@ -54,7 +61,6 @@ class WvnRosInterface:
             optical_flow_estimator_type=self.optical_flow_estimator_type,
             mode=self.mode,
             running_store_folder=self.running_store_folder,
-            exp_file=self.exp_file,
             patch_size=self.dino_patch_size,
         )
 
@@ -101,6 +107,10 @@ class WvnRosInterface:
             self.learning_thread = Thread(target=self.learning_thread_loop, name="learning")
             self.learning_thread.start()
         print("[WVN] System ready")
+
+    def shutdown_callback(self):
+        # Write stuff to files
+        pass
 
     def __del__(self):
         """Destructor
@@ -207,13 +217,20 @@ class WvnRosInterface:
             os.makedirs(os.path.join(self.running_store_folder, "supervision_mask"), exist_ok=True)
 
         # Experiment file
-        self.exp_file = rospy.get_param("~exp", "nan")
+        exp_file = rospy.get_param("~exp", "nan")
 
         # Torch device
         self.device = rospy.get_param("~device", "cuda")
 
         # Visualization
         self.colormap = rospy.get_param("~colormap", "RdYlBu")
+
+        # Initialize traversability esimator parameters
+        self.params = ExperimentParams()
+        if exp_file != "nan":
+            exp_override = load_yaml(os.path.join(WVN_ROOT_DIR, "cfg/exp", exp_file))
+            self.params = override_params(self.params, exp_override)
+            self.params.general.name = self.mission_name
 
     def setup_rosbag_replay(self, tf_listener):
         self.tf_listener = tf_listener
