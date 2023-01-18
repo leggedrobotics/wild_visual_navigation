@@ -15,8 +15,8 @@ from wild_visual_navigation.learning.utils import TraversabilityLoss
 from wild_visual_navigation.utils import make_polygon_from_points
 from wild_visual_navigation.visu import LearningVisualizer
 from wild_visual_navigation.utils import KLTTracker, KLTTrackerOpenCV
-from wild_visual_navigation.learning.utils import load_yaml
-from wild_visual_navigation.utils import override_params
+
+
 from wild_visual_navigation import WVN_ROOT_DIR
 from pytorch_lightning import seed_everything
 from torch_geometric.data import Data, Batch
@@ -34,6 +34,7 @@ to_tensor = transforms.ToTensor()
 class TraversabilityEstimator:
     def __init__(
         self,
+        params: ExperimentParams,
         device: str = "cuda",
         max_distance: float = 3,
         image_size: int = 448,
@@ -46,7 +47,6 @@ class TraversabilityEstimator:
         mode: bool = False,
         vis_node_index: int = 10,
         running_store_folder=None,
-        exp_file="nan",
         **kwargs,
     ):
         self._device = device
@@ -93,10 +93,6 @@ class TraversabilityEstimator:
 
         # Lightning module
         seed_everything(42)
-        params = ExperimentParams()
-        if exp_file != "nan":
-            exp_override = load_yaml(os.path.join(WVN_ROOT_DIR, "cfg/exp", exp_file))
-            params = override_params(params, exp_override)
 
         self._exp_cfg = dataclasses.asdict(params)
 
