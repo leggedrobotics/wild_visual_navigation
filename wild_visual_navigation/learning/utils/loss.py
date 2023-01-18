@@ -8,14 +8,14 @@ from torch import nn
 
 class TraversabilityLoss(nn.Module):
     def __init__(
-        self, w_trav, w_reco, w_temp, anomaly_blanced, model, false_negative_weight=1.0, use_kalman_filter=True
+        self, w_trav, w_reco, w_temp, anomaly_balanced, model, false_negative_weight=1.0, use_kalman_filter=True
     ):
         super(TraversabilityLoss, self).__init__()
         self._w_trav = w_trav
         self._w_reco = w_reco
         self._w_temp = w_temp
         self._model = model
-        self._anomaly_balanced = anomaly_blanced
+        self._anomaly_balanced = anomaly_balanced
         self._false_negative_weight = false_negative_weight
 
         if self._anomaly_balanced:
