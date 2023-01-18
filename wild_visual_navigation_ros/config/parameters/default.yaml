@@ -65,6 +65,8 @@ colormap: "RdYlBu"
 print_image_callback_time: true
 print_proprio_callback_time: false
 log_time: true
+log_memory: true
+log_confidence: true
 
 use_debug_for_desired: true
 extraction_store_folder:  "nan"
