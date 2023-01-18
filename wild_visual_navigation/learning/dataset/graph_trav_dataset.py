@@ -48,13 +48,14 @@ class GraphTravAblationDataset(Dataset):
         env: str = "hilly",
         use_corrospondences: bool = True,
         training_data_percentage: int = 100,
+        minimal: bool = False,
     ):
         super().__init__()
 
         ls = []
         j = 0
         self.perugia_root = perugia_root
-
+        self.minimal = minimal
         with open(os.path.join(perugia_root, "wvn_output/split", f"{env}_{mode}.txt"), "r") as f:
             while True:
                 line = f.readline()
@@ -91,16 +92,18 @@ class GraphTravAblationDataset(Dataset):
         # TODO update the dataset generation to avoid 0,0 and the cropping operation
         img_p = os.path.join(self.perugia_root, self.paths[idx])
         graph_p = img_p.replace("image", f"features/{self.feature_key}/graph")
-        seg_p = img_p.replace("image", f"features/{self.feature_key}/seg")
         center_p = img_p.replace("image", f"features/{self.feature_key}/center")
 
-        img = torch.load(img_p)
         graph = torch.load(graph_p)
         center = torch.load(center_p)
-        seg = torch.load(seg_p)
-        graph.img = img[None]
         graph.center = center
-        graph.seg = seg[None]
+        if not self.minimal:
+            seg_p = img_p.replace("image", f"features/{self.feature_key}/seg")
+            img = torch.load(img_p)
+            seg = torch.load(seg_p)
+            graph.img = img[None]
+            graph.seg = seg[None]
+
         graph.y = (graph.y > 0).type(torch.float32)  # make now binary
 
         if self.mode == "test":
@@ -157,6 +160,41 @@ class GraphTravAblationDatasetPreLoaded(GraphTravAblationDataset):
         return self.res[idx]
 
 
+class GraphTravAblationDatasetInMemory(InMemoryDataset):
+    def __init__(
+        self,
+        perugia_root: str = "/media/Data/Datasets/2022_Perugia",
+        transform: Optional[Callable] = None,
+        pre_transform: Optional[Callable] = None,
+        pre_filter: Optional[Callable] = None,
+        mode: str = "train",
+        feature_key: str = "slic_dino",
+        env: str = "hilly",
+        use_corrospondences: bool = True,
+        training_data_percentage: int = 100,
+    ):
+        super(GraphTravAblationDatasetInMemory, self).__init__()
+
+        ds = GraphTravAblationDataset(
+            perugia_root,
+            transform,
+            pre_transform,
+            pre_filter,
+            mode,
+            feature_key,
+            env,
+            use_corrospondences,
+            training_data_percentage,
+            minimal=True,
+        )
+        data_list = []
+        for k in range(len(ds)):
+            a, b = ds[k]
+            data_list.append(a)
+
+        self.data, self.slices = self.collate(data_list)
+
+
 def get_ablation_module(
     perugia_root: str,
     batch_size: int = 1,
@@ -169,7 +207,7 @@ def get_ablation_module(
     **kwargs,
 ) -> LightningDataset:
 
-    train_dataset = GraphTravAblationDataset(
+    train_dataset = GraphTravAblationDatasetInMemory(
         perugia_root=perugia_root,
         mode="train",
         feature_key=feature_key,
