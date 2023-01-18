@@ -1,9 +1,16 @@
 from wild_visual_navigation.utils import KalmanFilter
 import torch
+import os
 
 
 class ConfidenceGenerator(torch.nn.Module):
-    def __init__(self, std_factor: float = 0.7, use_kalman_filter: bool = True):
+    def __init__(
+        self,
+        std_factor: float = 0.7,
+        use_kalman_filter: bool = True,
+        log_enabled: bool = False,
+        log_folder: str = "/tmp",
+    ):
         """Returns a confidence value for each number
 
         Args:
@@ -12,6 +19,9 @@ class ConfidenceGenerator(torch.nn.Module):
         """
         super(ConfidenceGenerator, self).__init__()
         self.std_factor = std_factor
+
+        self.log_enabled = log_enabled
+        self.log_folder = log_folder
 
         self.mean = torch.zeros(1, dtype=torch.float32)
         self.var = torch.ones(1, dtype=torch.float32)
@@ -72,7 +82,7 @@ class ConfidenceGenerator(torch.nn.Module):
 
         return confidence.type(torch.float32)
 
-    def update(self, x: torch.tensor, x_positive: torch.tensor):
+    def update(self, x: torch.tensor, x_positive: torch.tensor, step: int, log_step: bool = False):
         """Input a tensor with multiple error predictions.
         Returns the estimated confidence score within 2 standard deviations based on the running mean and variance.
 
@@ -81,9 +91,18 @@ class ConfidenceGenerator(torch.nn.Module):
         Returns:
             (torch.tensor): BS,N
         """
-        output =  self._update(x, x_positive)
+        output = self._update(x, x_positive)
         # Save data to disk
 
+        if self.log_enabled and log_step:
+            base_folder = self.log_folder + "/confidence_generator"
+            os.makedirs(base_folder, exist_ok=True)
+
+            with torch.no_grad():
+                torch.save(
+                    {"x": x.cpu(), "x_positive": x_positive.cpu(), "mean": self.mean.cpu(), "std": self.std.cpu()},
+                    os.path.join(base_folder, f"samples_{step:06}.pt"),
+                )
 
         return output
 
