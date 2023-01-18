@@ -99,15 +99,15 @@ def do(n, dry_run):
     mission = s.split("/")[-1]
 
     # 2022-05-12T11:56:13_mission_0_day_3
-    # running_store_folder = f"/media/Data/Datasets/2022_Perugia/wvn_output/day3/{mission}"
-    running_store_folder = f"/media/matias/datasets/2022_Perugia/wvn_output/day3/{mission}"
+    # extraction_store_foler = f"/media/Data/Datasets/2022_Perugia/wvn_output/day3/{mission}"
+    extraction_store_foler = f"/media/matias/datasets/2022_Perugia/wvn_output/day3/{mission}"
 
-    if os.path.exists(running_store_folder):
-        print(f"Stopped because folder already exists: {running_store_folder}")
+    if os.path.exists(extraction_store_foler):
+        print(f"Stopped because folder already exists: {extraction_store_foler}")
         return
 
     rosparam.set_param("wild_visual_navigation_node/mode", "extract_labels")
-    rosparam.set_param("wild_visual_navigation_node/running_store_folder", running_store_folder)
+    rosparam.set_param("wild_visual_navigation_node/extraction_store_foler", extraction_store_foler)
 
     # for proprioceptive callback
     state_msg_valid = False
