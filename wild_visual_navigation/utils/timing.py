@@ -143,8 +143,8 @@ class SystemLevelTimer:
                 for (k, v) in o.slt_time_summary.items():
                     n = o.slt_n_summary[k]
                     spacing = int(o.slt_n_level[k] * 5)
-                    mean = round(v / n, 3)
-                    std = round(o.slt_time_squared_summary[k] / n - mean**2, 3)
+                    mean = v / n
+                    std = round(((o.slt_time_squared_summary[k] / n) - (mean**2)) ** 0.5, 3)
                     s += (
                         "\n  +"
                         + "-" * spacing
@@ -152,7 +152,7 @@ class SystemLevelTimer:
                         + f"{round(v,2)}ms".ljust(20)
                         + f"counts: {n} ".ljust(15)
                         + f"std: {std} ".ljust(30)
-                        + f"mean: {mean} ".ljust(30)
+                        + f"mean: {round(mean,3)} ".ljust(30)
                     )
                 s += "\n"
         return s
@@ -163,7 +163,7 @@ class SystemLevelTimer:
             if hasattr(o, "slt_time_summary"):
                 mean = {k: o.slt_time_summary[k] / o.slt_n_summary[k] for k in o.slt_time_summary.keys()}
                 std = {
-                    k: o.slt_time_squared_summary[k] / o.slt_n_summary[k] - mean[k] ** 2
+                    k: (o.slt_time_squared_summary[k] / o.slt_n_summary[k] - mean[k] ** 2) ** 0.5
                     for k in o.slt_time_summary.keys()
                 }
                 store = [o.slt_n_level, o.slt_time_summary, std, mean]
