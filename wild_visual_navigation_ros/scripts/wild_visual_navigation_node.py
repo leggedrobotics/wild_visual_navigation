@@ -134,7 +134,8 @@ class WvnRosInterface:
         # Main loop
         while self.learning_thread_loop_running:
             # Optimize model
-            res = self.traversability_estimator.train()
+            with SystemLevelContextTimer(self, "training_step_time"):
+                res = self.traversability_estimator.train()
 
             if self.step != self.traversability_estimator.step:
                 self.step_time = rospy.get_time()
