@@ -4,6 +4,7 @@ import shutil
 from pathlib import Path
 from pytorch_lightning.utilities import rank_zero_only
 from wild_visual_navigation.cfg import ExperimentParams
+from typing import Union
 
 
 @rank_zero_only

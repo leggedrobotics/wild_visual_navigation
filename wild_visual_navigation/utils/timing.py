@@ -1,5 +1,8 @@
 import torch
 import time
+import copy
+import pickle
+import os
 
 
 class CpuTimer:
@@ -59,12 +62,15 @@ def accumulate_time(method):
             args[0].slt_time_summary = {}
             args[0].slt_n_summary = {}
             args[0].slt_n_level = {}
+            args[0].slt_time_squared_summary = {}
 
         if method.__name__ in args[0].slt_time_summary:
             args[0].slt_time_summary[method.__name__] += st
+            args[0].slt_time_squared_summary[method.__name__] += st**2
             args[0].slt_n_summary[method.__name__] += 1
         else:
             args[0].slt_time_summary[method.__name__] = st
+            args[0].slt_time_squared_summary[method.__name__] = st**2
             args[0].slt_n_summary[method.__name__] = 1
             args[0].slt_n_level[method.__name__] = 0
 
@@ -99,14 +105,17 @@ class SystemLevelContextTimer:
 
         if not hasattr(self.parent, "slt_time_summary"):
             self.parent.slt_time_summary = {}
+            self.parent.slt_time_squared_summary = {}
             self.parent.slt_n_summary = {}
             self.parent.slt_n_level = {}
 
         if self.name in self.parent.slt_time_summary:
             self.parent.slt_time_summary[self.name] += st
+            self.parent.slt_time_squared_summary[self.name] += st**2
             self.parent.slt_n_summary[self.name] += 1
         else:
             self.parent.slt_time_summary[self.name] = st
+            self.parent.slt_time_squared_summary[self.name] = st**2
             self.parent.slt_n_summary[self.name] = 1
             self.parent.slt_n_level[self.name] = 1
 
@@ -120,9 +129,11 @@ class SystemLevelContextTimer:
 
 
 class SystemLevelTimer:
-    def __init__(self, objects, names) -> None:
+    def __init__(self, objects, names, step_reference, time_reference) -> None:
         self.objects = objects
         self.names = names
+        self.step_reference = step_reference
+        self.time_reference = time_reference
 
     def __str__(self):
         s = ""
@@ -132,31 +143,39 @@ class SystemLevelTimer:
                 for (k, v) in o.slt_time_summary.items():
                     n = o.slt_n_summary[k]
                     spacing = int(o.slt_n_level[k] * 5)
-
+                    mean = round(v / n, 3)
+                    std = round(o.slt_time_squared_summary[k] / n - mean**2, 3)
                     s += (
                         "\n  +"
                         + "-" * spacing
                         + f"-  {k}:".ljust(35 - spacing)
                         + f"{round(v,2)}ms".ljust(20)
                         + f"counts: {n} ".ljust(15)
+                        + f"std: {std} ".ljust(30)
+                        + f"mean: {mean} ".ljust(30)
                     )
                 s += "\n"
         return s
 
+    def store(self, folder, key="system_level_timer"):
+        res = {}
+        for n, o in zip(self.names, self.objects):
+            if hasattr(o, "slt_time_summary"):
+                mean = {k: o.slt_time_summary[k] / o.slt_n_summary[k] for k in o.slt_time_summary.keys()}
+                std = {
+                    k: o.slt_time_squared_summary[k] / o.slt_n_summary[k] - mean[k] ** 2
+                    for k in o.slt_time_summary.keys()
+                }
+                store = [o.slt_n_level, o.slt_time_summary, std, mean]
+                res[n] = copy.deepcopy(store)
 
-def time_function(method):
-    def timed(*args, **kw):
-        start = torch.cuda.Event(enable_timing=True)
-        end = torch.cuda.Event(enable_timing=True)
-        start.record()
-        result = method(*args, **kw)
-        end.record()
-        torch.cuda.synchronize()
-        st = start.elapsed_time(end)
-        print(f"Function took: {st}")
-        return result
+        with open(os.path.join(folder, key + ".pkl"), "wb") as f:
+            pickle.dump(res, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-    return timed
+        s = self.__str__()
+        with open(os.path.join(folder, key + ".txt"), "w") as f:
+            for l in s.split("\n"):
+                f.write(l + "\n")
 
 
 if __name__ == "__main__":
