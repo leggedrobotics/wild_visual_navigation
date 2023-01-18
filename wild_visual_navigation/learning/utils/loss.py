@@ -30,7 +30,10 @@ class TraversabilityLoss(nn.Module):
 
         if self._anomaly_balanced:
             self._confidence_generator = ConfidenceGenerator(
-                confidence_std_factor=1.0, use_kalman_filter=use_kalman_filter, log_enabled=log_enabled, log_folder=log_folder
+                std_factor=confidence_std_factor,
+                use_kalman_filter=use_kalman_filter,
+                log_enabled=log_enabled,
+                log_folder=log_folder,
             )
 
     def reset(self):
