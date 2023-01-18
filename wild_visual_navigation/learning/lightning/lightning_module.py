@@ -202,7 +202,7 @@ class LightningTrav(pl.LightningModule):
         roc_proprioceptive_image.update(preds=buffer_pred, target=buffer_prop)
         auroc_proprioceptive_image.update(preds=buffer_pred, target=buffer_prop)
 
-        if self._mode == "test" and self._exp["loss"]["anomaly_blanced"]:
+        if self._mode == "test" and self._exp["loss"]["anomaly_balanced"]:
             reco_loss = F.mse_loss(res[:, 1:], graph.x, reduction="none").mean(dim=1)
             conf = self._traversability_loss._confidence_generator.inference_without_update(reco_loss)
             buffer_conf = graph.label.clone().type(torch.float32).flatten()
@@ -359,7 +359,7 @@ class LightningTrav(pl.LightningModule):
             "test_auroc_proprioceptive_image": test_auroc_proprioceptive_image,
         }
 
-        if self._exp["loss"]["anomaly_blanced"]:
+        if self._exp["loss"]["anomaly_balanced"]:
             test_auroc_anomaly_proprioceptive_image = self._test_auroc_anomaly_proprioceptive_image.compute().item()
             test_auroc_anomaly_gt_image = self._test_auroc_anomaly_gt_image.compute().item()
             dic["test_auroc_anomaly_proprioceptive_image"] = test_auroc_anomaly_proprioceptive_image
