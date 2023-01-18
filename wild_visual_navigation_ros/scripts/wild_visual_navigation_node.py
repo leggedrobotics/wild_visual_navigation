@@ -28,6 +28,7 @@ import torch
 import numpy as np
 from typing import Optional
 import traceback
+import signal
 
 if torch.cuda.is_available():
     torch.cuda.empty_cache()
@@ -35,8 +36,6 @@ if torch.cuda.is_available():
 
 class WvnRosInterface:
     def __init__(self):
-        rospy.on_shutdown(self.shutdown_callback)
-
         # Timers to control the rate of the publishers
         self.last_image_ts = rospy.get_time()
         self.last_proprio_ts = rospy.get_time()
@@ -103,6 +102,11 @@ class WvnRosInterface:
             self.traversability_estimator.slt_not_time = True
             self.traversability_estimator._visualizer.slt_not_time = True
             self.supervision_generator.slt_not_time = True
+
+        # Register shotdown callbacks
+        rospy.on_shutdown(self.shutdown_callback)
+        signal.signal(signal.SIGINT, self.shutdown_callback)
+        signal.signal(signal.SIGTERM, self.shutdown_callback)
 
         # Launch processes
         print("─" * 80)
