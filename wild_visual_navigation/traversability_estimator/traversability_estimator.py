@@ -100,7 +100,12 @@ class TraversabilityEstimator:
         self._step = 0
         self._last_trained_model = self._model.to(device)
         self._model.train()
-        self._traversability_loss = TraversabilityLoss(**self._exp_cfg["loss"], model=self._model)
+        self._traversability_loss = TraversabilityLoss(
+            **self._exp_cfg["loss"],
+            model=self._model,
+            log_enabled=params.general.log_confidence,
+            log_folder=params.general.model_path,
+        )
         self._traversability_loss.to(device)
 
         self._optimizer = torch.optim.AdamW(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
@@ -627,23 +632,26 @@ class TraversabilityEstimator:
 
             # Forward pass
             res = self._model(graph)
-            self._loss, loss_aux = self._traversability_loss(graph, res, graph_aux)
+
+            log_step = (self._step % 20) == 0
+            self._loss, loss_aux = self._traversability_loss(graph, res, graph_aux, step=self._step, log_step=log_step)
 
             # Backprop
             self._optimizer.zero_grad()
             self._loss.backward()
             self._optimizer.step()
 
-            # Update steps
-            self._step += 1
-
             # Print losses
-            if self._step % 20 == 0:
+            if log_step:
                 loss_trav = loss_aux["loss_trav"]
                 loss_reco = loss_aux["loss_reco"]
                 print(
                     f"step: {self._step} | loss: {self._loss:5f} | loss_trav: {loss_trav:5f} | loss_reco: {loss_reco:5f}"
                 )
+
+            # Update steps
+            self._step += 1
+
             # Update model
             with self._lock:
                 self.last_trained_model = self._model

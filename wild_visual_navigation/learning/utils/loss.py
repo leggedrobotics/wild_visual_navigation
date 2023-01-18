@@ -8,7 +8,16 @@ from torch import nn
 
 class TraversabilityLoss(nn.Module):
     def __init__(
-        self, w_trav, w_reco, w_temp, anomaly_blanced, model, false_negative_weight=1.0, use_kalman_filter=True
+        self,
+        w_trav,
+        w_reco,
+        w_temp,
+        anomaly_blanced,
+        model,
+        false_negative_weight=1.0,
+        use_kalman_filter=True,
+        log_enabled: bool = False,
+        log_folder: str = "/tmp",
     ):
         super(TraversabilityLoss, self).__init__()
         self._w_trav = w_trav
@@ -19,12 +28,22 @@ class TraversabilityLoss(nn.Module):
         self._false_negative_weight = false_negative_weight
 
         if self._anomaly_balanced:
-            self._confidence_generator = ConfidenceGenerator(std_factor=1.0, use_kalman_filter=use_kalman_filter)
+            self._confidence_generator = ConfidenceGenerator(
+                std_factor=1.0, use_kalman_filter=use_kalman_filter, log_enabled=log_enabled, log_folder=log_folder
+            )
 
     def reset(self):
         pass
 
-    def forward(self, batch: Data, res: torch.Tensor, batch_aux: Optional[Data] = None, update_generator: bool = True):
+    def forward(
+        self,
+        batch: Data,
+        res: torch.Tensor,
+        batch_aux: Optional[Data] = None,
+        update_generator: bool = True,
+        step: int = 0,
+        log_step: bool = False,
+    ):
         # Compute reconstruction loss
         loss_reco = F.mse_loss(res[batch.y_valid][:, 1:], batch.x[batch.y_valid])
 
@@ -33,27 +52,16 @@ class TraversabilityLoss(nn.Module):
             loss_reco_positive = F.mse_loss(res[batch.y_valid][:, 1:], batch.x[batch.y_valid], reduction="none").mean(
                 dim=1
             )
+
             loss_reco_raw = F.mse_loss(res[:, 1:], batch.x, reduction="none").mean(dim=1)
+
             with torch.no_grad():
                 if update_generator:
-                    confidence = self._confidence_generator.update(x=loss_reco_raw, x_positive=loss_reco_positive)
+                    confidence = self._confidence_generator.update(
+                        x=loss_reco_raw, x_positive=loss_reco_positive, step=step, log_step=log_step
+                    )
                 else:
                     confidence = self._confidence_generator.inference_without_update(x=loss_reco_raw)
-
-                # import matplotlib.pyplot as plt
-                # import numpy as np
-                # from datetime import datetime
-                # np_x = loss_reco_raw.cpu().numpy()
-                # np_x_pos = loss_reco_positive.cpu().numpy()
-                # N = 100
-                # bins = np.linspace(0, 20, N)
-
-                # plt.hist(np_x, bins, alpha=0.5, color='k')
-                # plt.hist(np_x_pos, bins, alpha=0.5, color='b')
-                # plt.plot(bins, np.exp( - (bins - self._confidence_generator.mean.item())**2 / (2 * self._confidence_generator.std.item()**2) ), color='b', linewidth=3)
-                # t = datetime.now().strftime("%H:%M:%S")
-                # plt.savefig(f"/tmp/wvn_confidence_distribution_{t}.png")
-                # plt.close("all")
 
             m = batch.y == 0
 

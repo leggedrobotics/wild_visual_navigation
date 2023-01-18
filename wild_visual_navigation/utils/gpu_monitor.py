@@ -1,5 +1,6 @@
 import torch
 import os
+import numpy as np
 
 
 def pynvml_gpu_memory_query(device, pid):
@@ -65,7 +66,7 @@ class GpuMonitor:
         return gpu_memory_query(self.device, self.pid)
 
 
-def accumulate_memory(method):
+def accumulate_memory(method, **kw):
     def measured(*args, **kw):
         if not hasattr(args[0], "slg_enabled") or torch.cuda.device_count() < 1:
             if not args[0].slg_enabled:
@@ -76,19 +77,21 @@ def accumulate_memory(method):
         end = gpu_memory_query(args[0].slg_device, args[0].slg_pid)
         delta = end - start
 
+        method_name = method.__name__
+
         # Check if we enabled the option to store samples
         if args[0].slg_store_samples:
             if not hasattr(args[0], "slg_memory_samples"):
                 args[0].slg_memory_samples = {}
 
-            if method.__name__ in args[0].slg_memory_samples:
-                args[0].slg_step_samples[method.__name__]["step"].append(args[0].reference_step)
-                args[0].slg_time_samples[method.__name__]["time"].append(args[0].reference_time)
-                args[0].slg_memory_samples[method.__name__]["delta_memory"].append(delta)
+            if method_name in args[0].slg_memory_samples:
+                args[0].slg_memory_samples[method_name]["step"].append(args[0].slg_step)
+                args[0].slg_memory_samples[method_name]["time"].append(args[0].slg_time)
+                args[0].slg_memory_samples[method_name]["delta_memory"].append(delta)
             else:
-                args[0].slg_step_samples[method.__name__] = {
-                    "step": [args[0].reference_step],
-                    "time": [args[0].reference_time],
+                args[0].slg_memory_samples[method_name] = {
+                    "step": [args[0].slg_step],
+                    "time": [args[0].slg_time],
                     "delta_memory": [delta],
                 }
 
@@ -98,7 +101,9 @@ def accumulate_memory(method):
 
 
 class SystemLevelGpuMonitor:
-    def __init__(self, objects, names, enabled=True, device=None, store_samples=False) -> None:
+    def __init__(
+        self, objects, names, enabled=True, device=None, store_samples=False, step_reference=0, time_reference=0
+    ) -> None:
         self.objects = objects
         self.names = names
 
@@ -107,25 +112,27 @@ class SystemLevelGpuMonitor:
             o.slg_pid = os.getpid()
             o.slg_device = device
             o.slg_store_samples = store_samples
+            o.slg_step = step_reference
+            o.slg_time = time_reference
 
     def __str__(self):
         pass
 
-    def store(self, path):
+    def store(self, folder):
         # We iterate the list of object to access the recorded data
         for n, o in zip(self.names, self.objects):
             if hasattr(o, "slg_memory_samples"):
                 # Each object has a slg_memory_samples dict
                 # Each entry of the dict is a numpy array with samples
                 for (k, v) in o.slg_memory_samples.items():
-                    out_filename = f"{path}/{n}_{k}.npy"
-                    print("Saving {out_filename}...")
+                    out_filename = f"{folder}/{n}_{k}.npy"
+                    print(f"Saving gpu samples to {out_filename}...")
                     np.save(out_filename, v)
 
 
 if __name__ == "__main__":
 
-    print("Start gpu memory measuring using context manager")
+    print("GPU memory measuring using context manager")
 
     tensors = []
     with GpuMonitor(f"Test: Total experiment"):
@@ -147,3 +154,30 @@ if __name__ == "__main__":
         with GpuMonitor(f"Test: Empty cache"):
             # This frees the total memory allocated without freeing the default
             torch.cuda.empty_cache()
+
+    print("GPU memory measuring using SystemLevelGpuMonitor")
+
+    class MyTest:
+        def __init__(self):
+            pass
+
+        @accumulate_memory
+        def test(self, s):
+            tensors = []
+            tensors.append(torch.zeros((s, s), device="cuda"))
+
+    my_test = MyTest()
+    gpu_monitor = SystemLevelGpuMonitor(
+        objects=[my_test],
+        names=["test"],
+        enabled=True,
+        device="cuda",
+        store_samples=True,
+        step_reference=0,
+        time_reference=0.1,
+    )
+    for i in range(5):
+        s = 10**i
+        my_test.test(10)
+
+    gpu_monitor.store("/tmp")
