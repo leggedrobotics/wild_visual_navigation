@@ -148,6 +148,7 @@ class WvnRosInterface:
 
             system_state.pause_learning = self.traversability_estimator.pause_learning
             system_state.mode = self.mode.value
+            system_state.step = self.step
             self.pub_system_state.publish(system_state)
 
             rate.sleep()
