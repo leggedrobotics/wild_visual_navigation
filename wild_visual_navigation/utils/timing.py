@@ -3,6 +3,7 @@ import time
 import copy
 import pickle
 import os
+from functools import wraps
 
 
 class CpuTimer:
@@ -45,6 +46,7 @@ class Timer:
 
 
 def accumulate_time(method):
+    @wraps(method)
     def timed(*args, **kw):
         if hasattr(args[0], "slt_not_time"):
             if args[0].slt_not_time:

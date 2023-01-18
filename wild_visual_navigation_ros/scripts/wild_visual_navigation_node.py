@@ -9,6 +9,7 @@ from wild_visual_navigation_msgs.msg import RobotState, SystemState
 from wild_visual_navigation_msgs.srv import SaveLoadData, SaveLoadDataResponse
 from std_srvs.srv import SetBool
 from wild_visual_navigation.utils import SystemLevelTimer, SystemLevelContextTimer
+from wild_visual_navigation.utils import SystemLevelGpuMonitor, accumulate_memory
 from wild_visual_navigation.utils import WVNMode
 from wild_visual_navigation.cfg import ExperimentParams
 from wild_visual_navigation.utils import override_params
@@ -103,6 +104,20 @@ class WvnRosInterface:
             self.traversability_estimator._visualizer.slt_not_time = True
             self.supervision_generator.slt_not_time = True
 
+        self.gpu_monitor = SystemLevelGpuMonitor(
+            objects=[
+                self,
+                self.traversability_estimator,
+                self.traversability_estimator._visualizer,
+                self.supervision_generator,
+            ],
+            names=["WVN", "TraversabilityEstimator", "Visualizer", "SupervisionGenerator"],
+            enabled=self.log_memory,
+            device=self.device,
+            store_samples=True,
+            step_reference=[self.step],
+            time_reference=[self.step_time],
+        )
         # Register shotdown callbacks
         rospy.on_shutdown(self.shutdown_callback)
         signal.signal(signal.SIGINT, self.shutdown_callback)
@@ -124,8 +139,18 @@ class WvnRosInterface:
             self.learning_thread_loop_running = False
             self.learning_thread.join()
 
+        print("Storing learned model...", end="")
+        self.traversability_estimator.save_checkpoint(self.params.general.model_path, "last_model.pt")
+        print("done")
+
         if self.log_time:
+            print("Storing timer data...", end="")
             self.timer.store(folder=self.params.general.model_path)
+            print("done")
+        if self.log_memory:
+            print("Storing memory data...", end="")
+            self.gpu_monitor.store(folder=self.params.general.model_path)
+            print("done")
 
     @accumulate_time
     def learning_thread_loop(self):
@@ -165,8 +190,6 @@ class WvnRosInterface:
         self.robot_state_topic = rospy.get_param("~robot_state_topic")
         self.desired_twist_topic = rospy.get_param("~desired_twist_topic")
         self.camera_topics = rospy.get_param("~camera_topics")
-        # self.image_topic = rospy.get_param("~image_topic", "/alphasense_driver_ros/cam4/debayered")
-        # self.info_topic = rospy.get_param("~camera_info_topic", "/alphasense_driver_ros/cam4/camera_info")
 
         # Frames
         self.fixed_frame = rospy.get_param("~fixed_frame")
@@ -209,6 +232,8 @@ class WvnRosInterface:
         self.print_image_callback_time = rospy.get_param("~print_image_callback_time")
         self.print_proprio_callback_time = rospy.get_param("~print_proprio_callback_time")
         self.log_time = rospy.get_param("~log_time")
+        self.log_memory = rospy.get_param("~log_memory")
+        self.log_confidence = rospy.get_param("~log_confidence")
 
         # Select mode: # debug, online, extract_labels
         self.use_debug_for_desired = rospy.get_param("~use_debug_for_desired")
@@ -246,6 +271,7 @@ class WvnRosInterface:
 
         self.params.general.name = self.mission_name
         self.params.general.timestamp = self.mission_timestamp
+        self.params.general.log_confidence = self.log_confidence
         self.step = -1
         self.step_time = rospy.get_time()
 
@@ -420,7 +446,7 @@ class WvnRosInterface:
 
         mission_path = os.path.join(req.path, req.mission_name)
         checkpoint_file = "model_checkpoint.pt"
-        self.traversability_estimator.save_checkpoint(mission_path, checkpoint_file)
+        self.traversability_estimator.save_checkpoint(self.params.general.model_path, "model_checkpoint.pt")
         return SaveLoadDataResponse(success=True, message=f"Checkpoint [{checkpoint_file}] saved in {mission_path}")
 
     def load_checkpoint_callback(self, req):
