@@ -85,7 +85,7 @@ class WvnRosInterface:
         self.setup_ros(setup_fully=self.mode != WVNMode.EXTRACT_LABELS)
 
         # Setup Timer if needed
-        if self.print_image_callback_time or self.print_proprio_callback_time:
+        if self.print_image_callback_time or self.print_proprio_callback_time or self.log_time:
             self.timer = SystemLevelTimer(
                 objects=[
                     self,
@@ -94,6 +94,8 @@ class WvnRosInterface:
                     self.supervision_generator,
                 ],
                 names=["WVN", "TraversabilityEstimator", "Visualizer", "SupervisionGenerator"],
+                step_reference=[self.step],
+                time_reference=[self.step_time],
             )
         else:
             # Turn off all timing
@@ -106,21 +108,20 @@ class WvnRosInterface:
         print("─" * 80)
         print("Launching [learning] thread")
         if self.mode != WVNMode.EXTRACT_LABELS:
+            self.learning_thread_loop_running = True
             self.learning_thread = Thread(target=self.learning_thread_loop, name="learning")
             self.learning_thread.start()
         print("[WVN] System ready")
 
     def shutdown_callback(self):
         # Write stuff to files
-        pass
-
-    def __del__(self):
-        """Destructor
-        Joins all the running threads
-        """
-        # Join threads
+        print("Shutdown callback called")
         if self.mode != WVNMode.EXTRACT_LABELS:
+            self.learning_thread_loop_running = False
             self.learning_thread.join()
+
+        if self.log_time:
+            self.timer.store(folder=self.params.general.model_path)
 
     @accumulate_time
     def learning_thread_loop(self):
@@ -131,9 +132,13 @@ class WvnRosInterface:
         rate = rospy.Rate(self.learning_thread_rate)
 
         # Main loop
-        while not rospy.is_shutdown():
+        while self.learning_thread_loop_running:
             # Optimize model
             res = self.traversability_estimator.train()
+
+            if self.step != self.traversability_estimator.step:
+                self.step_time = rospy.get_time()
+                self.step = self.traversability_estimator.step
 
             # Publish loss
             system_state = SystemState()
@@ -199,6 +204,7 @@ class WvnRosInterface:
         # Print timings
         self.print_image_callback_time = rospy.get_param("~print_image_callback_time", False)
         self.print_proprio_callback_time = rospy.get_param("~print_proprio_callback_time", False)
+        self.log_time = rospy.get_param("~log_time", True)
 
         # Select mode: # debug, online, extract_labels
         self.use_debug_for_desired = rospy.get_param("~use_debug_for_desired", True)
@@ -236,6 +242,8 @@ class WvnRosInterface:
 
         self.params.general.name = self.mission_name
         self.params.general.timestamp = self.mission_timestamp
+        self.step = -1
+        self.step_time = rospy.get_time()
 
     def setup_rosbag_replay(self, tf_listener):
         self.tf_listener = tf_listener
