@@ -14,7 +14,6 @@ subscribers:
     channels: ["rgb_image"]
     data_type: image
 
-
   alphasense_right_rgb:
     fusion: ['image_color']
     topic_name_camera: /alphasense_driver_ros/cam5/debayered
