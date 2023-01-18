@@ -60,7 +60,7 @@ class WvnRosInterface:
             proprio_distance_thr=self.proprio_graph_dist_thr,
             optical_flow_estimator_type=self.optical_flow_estimator_type,
             mode=self.mode,
-            running_store_folder=self.running_store_folder,
+            extraction_store_foler=self.extraction_store_foler,
             patch_size=self.dino_patch_size,
         )
 
@@ -200,7 +200,7 @@ class WvnRosInterface:
         # Select mode: # debug, online, extract_labels
         self.use_debug_for_desired = rospy.get_param("~use_debug_for_desired", True)
         self.mode = WVNMode.from_string(rospy.get_param("~mode", "debug"))
-        self.running_store_folder = rospy.get_param("~running_store_folder", "nan")
+        self.extraction_store_foler = rospy.get_param("~extraction_store_foler", "nan")
 
         # Parse operation modes
         if self.mode == WVNMode.ONLINE:
@@ -213,8 +213,8 @@ class WvnRosInterface:
             self.image_graph_dist_thr = 0.2
             self.proprio_graph_dist_thr = 0.1
 
-            os.makedirs(os.path.join(self.running_store_folder, "image"), exist_ok=True)
-            os.makedirs(os.path.join(self.running_store_folder, "supervision_mask"), exist_ok=True)
+            os.makedirs(os.path.join(self.extraction_store_foler, "image"), exist_ok=True)
+            os.makedirs(os.path.join(self.extraction_store_foler, "supervision_mask"), exist_ok=True)
 
         # Experiment file
         exp_file = rospy.get_param("~exp", "nan")
