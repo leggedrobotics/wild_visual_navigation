@@ -12,8 +12,7 @@ from wild_visual_navigation.utils import SystemLevelTimer, SystemLevelContextTim
 from wild_visual_navigation.utils import WVNMode
 from wild_visual_navigation.cfg import ExperimentParams
 from wild_visual_navigation.utils import override_params
-from wild_visual_navigation.learning.utils import load_yaml
-
+from wild_visual_navigation.learning.utils import load_yaml, load_env, create_experiment_folder
 from geometry_msgs.msg import PoseStamped, Point, TwistStamped
 from nav_msgs.msg import Path
 from sensor_msgs.msg import Image, CameraInfo, CompressedImage
@@ -48,6 +47,9 @@ class WvnRosInterface:
         # Visualization
         self.color_palette = sns.color_palette(self.colormap, as_cmap=True)
 
+        # Setup Mission Folder
+        create_experiment_folder(self.params, load_env())
+
         # Initialize traversability estimator
         self.traversability_estimator = TraversabilityEstimator(
             params=self.params,
@@ -60,7 +62,7 @@ class WvnRosInterface:
             proprio_distance_thr=self.proprio_graph_dist_thr,
             optical_flow_estimator_type=self.optical_flow_estimator_type,
             mode=self.mode,
-            running_store_folder=self.running_store_folder,
+            extraction_store_folder=self.extraction_store_folder,
             patch_size=self.dino_patch_size,
         )
 
@@ -83,7 +85,7 @@ class WvnRosInterface:
         self.setup_ros(setup_fully=self.mode != WVNMode.EXTRACT_LABELS)
 
         # Setup Timer if needed
-        if self.print_image_callback_time or self.print_proprio_callback_time:
+        if self.print_image_callback_time or self.print_proprio_callback_time or self.log_time:
             self.timer = SystemLevelTimer(
                 objects=[
                     self,
@@ -92,6 +94,8 @@ class WvnRosInterface:
                     self.supervision_generator,
                 ],
                 names=["WVN", "TraversabilityEstimator", "Visualizer", "SupervisionGenerator"],
+                step_reference=[self.step],
+                time_reference=[self.step_time],
             )
         else:
             # Turn off all timing
@@ -104,21 +108,20 @@ class WvnRosInterface:
         print("─" * 80)
         print("Launching [learning] thread")
         if self.mode != WVNMode.EXTRACT_LABELS:
+            self.learning_thread_loop_running = True
             self.learning_thread = Thread(target=self.learning_thread_loop, name="learning")
             self.learning_thread.start()
         print("[WVN] System ready")
 
     def shutdown_callback(self):
         # Write stuff to files
-        pass
-
-    def __del__(self):
-        """Destructor
-        Joins all the running threads
-        """
-        # Join threads
+        print("Shutdown callback called")
         if self.mode != WVNMode.EXTRACT_LABELS:
+            self.learning_thread_loop_running = False
             self.learning_thread.join()
+
+        if self.log_time:
+            self.timer.store(folder=self.params.general.model_path)
 
     @accumulate_time
     def learning_thread_loop(self):
@@ -129,9 +132,13 @@ class WvnRosInterface:
         rate = rospy.Rate(self.learning_thread_rate)
 
         # Main loop
-        while not rospy.is_shutdown():
+        while self.learning_thread_loop_running:
             # Optimize model
             res = self.traversability_estimator.train()
+
+            if self.step != self.traversability_estimator.step:
+                self.step_time = rospy.get_time()
+                self.step = self.traversability_estimator.step
 
             # Publish loss
             system_state = SystemState()
@@ -149,58 +156,58 @@ class WvnRosInterface:
     def read_params(self):
         """Reads all the parameters from the parameter server"""
         # Topics
-        self.robot_state_topic = rospy.get_param("~robot_state_topic", "/wild_visual_navigation_node/robot_state")
-        self.desired_twist_topic = rospy.get_param("~desired_twist_topic", "/log/state/desiredRobotTwist")
-        self.camera_topics = rospy.get_param("~camera_topics", "camera_topics")
+        self.robot_state_topic = rospy.get_param("~robot_state_topic")
+        self.desired_twist_topic = rospy.get_param("~desired_twist_topic")
+        self.camera_topics = rospy.get_param("~camera_topics")
         # self.image_topic = rospy.get_param("~image_topic", "/alphasense_driver_ros/cam4/debayered")
         # self.info_topic = rospy.get_param("~camera_info_topic", "/alphasense_driver_ros/cam4/camera_info")
 
         # Frames
-        self.fixed_frame = rospy.get_param("~fixed_frame", "odom")
-        self.base_frame = rospy.get_param("~base_frame", "base")
-        self.camera_frame = rospy.get_param("~camera_frame", "cam4_sensor_frame_helper")
-        self.footprint_frame = rospy.get_param("~footprint_frame", "footprint")
+        self.fixed_frame = rospy.get_param("~fixed_frame")
+        self.base_frame = rospy.get_param("~base_frame")
+        self.camera_frame = rospy.get_param("~camera_frame")
+        self.footprint_frame = rospy.get_param("~footprint_frame")
 
         # Robot size and specs
-        self.robot_length = rospy.get_param("~robot_length", 1.0)
-        self.robot_width = rospy.get_param("~robot_width", 0.6)
-        self.robot_height = rospy.get_param("~robot_height", 0.3)
+        self.robot_length = rospy.get_param("~robot_length")
+        self.robot_width = rospy.get_param("~robot_width")
+        self.robot_height = rospy.get_param("~robot_height")
 
         # Traversability estimation params
-        self.traversability_radius = rospy.get_param("~traversability_radius", 3.0)
-        self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr", 0.2)
-        self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.1)
-        self.network_input_image_height = rospy.get_param("~network_input_image_height", 224)  # 448
-        self.network_input_image_width = rospy.get_param("~network_input_image_width", 224)  # 448
-        self.segmentation_type = rospy.get_param("~segmentation_type", "slic")
-        self.feature_type = rospy.get_param("~feature_type", "dino")
-        self.dino_patch_size = rospy.get_param("~dino_patch_size", 8)
+        self.traversability_radius = rospy.get_param("~traversability_radius")
+        self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr")
+        self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr")
+        self.network_input_image_height = rospy.get_param("~network_input_image_height")
+        self.network_input_image_width = rospy.get_param("~network_input_image_width")
+        self.segmentation_type = rospy.get_param("~segmentation_type")
+        self.feature_type = rospy.get_param("~feature_type")
+        self.dino_patch_size = rospy.get_param("~dino_patch_size")
 
         # Supervision Generator
-        self.robot_max_velocity = rospy.get_param("~robot_max_velocity", 0.8)
-        self.untraversable_thr = rospy.get_param("~untraversable_thr", 0)
+        self.robot_max_velocity = rospy.get_param("~robot_max_velocity")
+        self.untraversable_thr = rospy.get_param("~untraversable_thr")
 
         # Optical flow params
-        self.optical_flow_estimator_type = rospy.get_param("~optical_flow_estimator_type", "sparse")
+        self.optical_flow_estimator_type = rospy.get_param("~optical_flow_estimator_type")
 
         # Threads
-        self.image_callback_rate = rospy.get_param("~image_callback_rate", 3)  # hertz
-        self.proprio_callback_rate = rospy.get_param("~proprio_callback_rate", 4)  # hertz
-        self.learning_thread_rate = rospy.get_param("~learning_thread_rate", 10)  # hertz
+        self.image_callback_rate = rospy.get_param("~image_callback_rate")  # hertz
+        self.proprio_callback_rate = rospy.get_param("~proprio_callback_rate")  # hertz
+        self.learning_thread_rate = rospy.get_param("~learning_thread_rate")  # hertz
 
         # Data storage
-        out_path = os.path.join(WVN_ROOT_DIR, "results")
-        self.output_path = rospy.get_param("~output_path", out_path)
-        self.mission_name = rospy.get_param("~mission_name", "default_mission")
+        self.mission_name = rospy.get_param("~mission_name")
+        self.mission_timestamp = rospy.get_param("~mission_timestamp")
 
         # Print timings
-        self.print_image_callback_time = rospy.get_param("~print_image_callback_time", False)
-        self.print_proprio_callback_time = rospy.get_param("~print_proprio_callback_time", False)
+        self.print_image_callback_time = rospy.get_param("~print_image_callback_time")
+        self.print_proprio_callback_time = rospy.get_param("~print_proprio_callback_time")
+        self.log_time = rospy.get_param("~log_time")
 
         # Select mode: # debug, online, extract_labels
-        self.use_debug_for_desired = rospy.get_param("~use_debug_for_desired", True)
+        self.use_debug_for_desired = rospy.get_param("~use_debug_for_desired")
         self.mode = WVNMode.from_string(rospy.get_param("~mode", "debug"))
-        self.running_store_folder = rospy.get_param("~running_store_folder", "nan")
+        self.extraction_store_folder = rospy.get_param("~extraction_store_folder")
 
         # Parse operation modes
         if self.mode == WVNMode.ONLINE:
@@ -213,24 +220,28 @@ class WvnRosInterface:
             self.image_graph_dist_thr = 0.2
             self.proprio_graph_dist_thr = 0.1
 
-            os.makedirs(os.path.join(self.running_store_folder, "image"), exist_ok=True)
-            os.makedirs(os.path.join(self.running_store_folder, "supervision_mask"), exist_ok=True)
+            os.makedirs(os.path.join(self.extraction_store_folder, "image"), exist_ok=True)
+            os.makedirs(os.path.join(self.extraction_store_folder, "supervision_mask"), exist_ok=True)
 
         # Experiment file
-        exp_file = rospy.get_param("~exp", "nan")
+        exp_file = rospy.get_param("~exp")
 
         # Torch device
-        self.device = rospy.get_param("~device", "cuda")
+        self.device = rospy.get_param("~device")
 
         # Visualization
-        self.colormap = rospy.get_param("~colormap", "RdYlBu")
+        self.colormap = rospy.get_param("~colormap")
 
         # Initialize traversability esimator parameters
         self.params = ExperimentParams()
         if exp_file != "nan":
             exp_override = load_yaml(os.path.join(WVN_ROOT_DIR, "cfg/exp", exp_file))
             self.params = override_params(self.params, exp_override)
-            self.params.general.name = self.mission_name
+
+        self.params.general.name = self.mission_name
+        self.params.general.timestamp = self.mission_timestamp
+        self.step = -1
+        self.step_time = rospy.get_time()
 
     def setup_rosbag_replay(self, tf_listener):
         self.tf_listener = tf_listener

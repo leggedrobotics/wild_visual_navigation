@@ -52,6 +52,16 @@ class LightningTrav(pl.LightningModule):
 
         self._traversability_loss = TraversabilityLoss(**self._exp["loss"], model=self._model)
 
+    def pass_batch(self, batch: any):
+        if isinstance(batch, tuple):
+            graph = batch[0]
+            graph_aux = batch[1]
+        else:
+            graph = batch
+            graph_aux = None
+
+        return graph, graph_aux
+
     def forward(self, data: torch.tensor):
         return self._model(data)
 
@@ -71,8 +81,7 @@ class LightningTrav(pl.LightningModule):
                 )
                 torch.save(self.state_dict(), path)
 
-        graph = batch[0]
-        graph_aux = batch[1]
+        graph, graph_aux = self.pass_batch(batch)
         BS = graph.ptr.numel() - 1
 
         res = self._model(graph)
@@ -236,9 +245,8 @@ class LightningTrav(pl.LightningModule):
             img.show()
 
     def validation_step(self, batch: any, batch_idx: int, dataloader_id: int = 0) -> torch.Tensor:
-        graph = batch[0]
+        graph, graph_aux = self.pass_batch(batch)
         BS = graph.ptr.numel() - 1
-        graph_aux = batch[1]
 
         res = self._model(graph)
 
@@ -307,9 +315,8 @@ class LightningTrav(pl.LightningModule):
         self._visu_count[self._mode] = 0
 
     def test_step(self, batch: any, batch_idx: int, dataloader_id: int = 0) -> torch.Tensor:
-        graph = batch[0]
+        graph, graph_aux = self.pass_batch(batch)
         BS = graph.ptr.numel() - 1
-        graph_aux = batch[1]
 
         res = self._model(graph)
 

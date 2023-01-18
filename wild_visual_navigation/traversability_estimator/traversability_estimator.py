@@ -46,12 +46,12 @@ class TraversabilityEstimator:
         min_samples_for_training: int = 10,
         mode: bool = False,
         vis_node_index: int = 10,
-        running_store_folder=None,
+        extraction_store_folder=None,
         **kwargs,
     ):
         self._device = device
         self._mode = mode
-        self._running_store_folder = running_store_folder
+        self._extraction_store_folder = extraction_store_folder
         self._min_samples_for_training = min_samples_for_training
         self._vis_node_index = vis_node_index
 
@@ -345,7 +345,7 @@ class TraversabilityEstimator:
             node.update_supervision_signal()
 
             if self._mode == WVNMode.EXTRACT_LABELS:
-                p = os.path.join(self._running_store_folder, "image", str(node.timestamp).replace(".", "_") + ".pt")
+                p = os.path.join(self._extraction_store_folder, "image", str(node.timestamp).replace(".", "_") + ".pt")
                 torch.save(node.image, p)
 
             return True
@@ -436,7 +436,7 @@ class TraversabilityEstimator:
 
                 if self._mode == WVNMode.EXTRACT_LABELS:
                     p = os.path.join(
-                        self._running_store_folder,
+                        self._extraction_store_folder,
                         "supervision_mask",
                         str(mnode.timestamp).replace(".", "_") + ".pt",
                     )
