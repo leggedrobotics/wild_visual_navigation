@@ -43,10 +43,13 @@ feature_type: "dino"
 dino_patch_size: 16 # DINO only
 
 # Optical flow params
-optical_flow_estimator_type: "sparse"
+optical_flow_estimator_type: "none"
 
 # Supervision Generator
 untraversable_thr: 0.01
+
+mission_name: "test"
+mission_timestamp: True
 
 # Threads
 image_callback_rate: 3 # hertz
@@ -56,6 +59,13 @@ learning_thread_rate: 10 # hertz
 # Runtime options
 device: "cuda"
 mode: "online" # check out comments in the class WVNMode
+colormap: "RdYlBu"
+
+
 print_image_callback_time: true
 print_proprio_callback_time: false
+log_time: true
+
 use_debug_for_desired: true
+extraction_store_folder:  "nan"
+exp: "nan"
