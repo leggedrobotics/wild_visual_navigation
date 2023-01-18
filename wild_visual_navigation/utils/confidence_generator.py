@@ -28,8 +28,8 @@ class ConfidenceGenerator(torch.nn.Module):
             )
             self._kalman_filter.init_process_model(proc_model=torch.eye(D) * 1, proc_cov=torch.eye(D) * kf_process_cov)
             self._kalman_filter.init_meas_model(meas_model=torch.eye(D), meas_cov=torch.eye(D) * kf_meas_cov)
-            self.update = self.update_kalman_filter
-            self.reset = self.reset_kalman_filter
+            self._update = self.update_kalman_filter
+            self._reset = self.reset_kalman_filter
         else:
             running_n = torch.zeros(1, dtype=torch.float64)
             running_sum = torch.zeros(1, dtype=torch.float64)
@@ -38,8 +38,8 @@ class ConfidenceGenerator(torch.nn.Module):
             self.running_n = torch.nn.Parameter(running_n, requires_grad=False)
             self.running_sum = torch.nn.Parameter(running_sum, requires_grad=False)
             self.running_sum_of_squares = torch.nn.Parameter(running_sum_of_squares, requires_grad=False)
-            self.update = self.update_running_mean
-            self.reset = self.reset_running_mean
+            self._update = self.update_running_mean
+            self._reset = self.reset_running_mean
 
     def update_running_mean(self, x: torch.tensor, x_positive: torch.tensor):
         # We assume the positive samples' loss follows a Gaussian distribution
@@ -80,7 +80,11 @@ class ConfidenceGenerator(torch.nn.Module):
         Returns:
             (torch.tensor): BS,N
         """
-        pass
+        output =  self._update(x, x_positive)
+        # Save data to disk
+
+
+        return output
 
     def inference_without_update(self, x: torch.tensor):
         if x.device != self.mean.device:
@@ -93,7 +97,7 @@ class ConfidenceGenerator(torch.nn.Module):
         return self.update(x)
 
     def reset(self):
-        pass
+        self._reset()
 
     def reset_running_mean(self):
         self.running_n[0] = 0

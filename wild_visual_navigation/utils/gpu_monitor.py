@@ -65,6 +65,64 @@ class GpuMonitor:
         return gpu_memory_query(self.device, self.pid)
 
 
+def accumulate_memory(method):
+    def measured(*args, **kw):
+        if not hasattr(args[0], "slg_enabled") or torch.cuda.device_count() < 1:
+            if not args[0].slg_enabled:
+                return method(*args, **kw)
+
+        start = gpu_memory_query(args[0].slg_device, args[0].slg_pid)
+        result = method(*args, **kw)
+        end = gpu_memory_query(args[0].slg_device, args[0].slg_pid)
+        delta = end - start
+
+        # Check if we enabled the option to store samples
+        if args[0].slg_store_samples:
+            if not hasattr(args[0], "slg_memory_samples"):
+                args[0].slg_memory_samples = {}
+
+            if method.__name__ in args[0].slg_memory_samples:
+                args[0].slg_step_samples[method.__name__]["step"].append(args[0].reference_step)
+                args[0].slg_time_samples[method.__name__]["time"].append(args[0].reference_time)
+                args[0].slg_memory_samples[method.__name__]["delta_memory"].append(delta)
+            else:
+                args[0].slg_step_samples[method.__name__] = {
+                    "step": [args[0].reference_step],
+                    "time": [args[0].reference_time],
+                    "delta_memory": [delta],
+                }
+
+        return result
+
+    return measured
+
+
+class SystemLevelGpuMonitor:
+    def __init__(self, objects, names, enabled=True, device=None, store_samples=False) -> None:
+        self.objects = objects
+        self.names = names
+
+        for o in self.objects:
+            o.slg_enabled = enabled
+            o.slg_pid = os.getpid()
+            o.slg_device = device
+            o.slg_store_samples = store_samples
+
+    def __str__(self):
+        pass
+
+    def store(self, path):
+        # We iterate the list of object to access the recorded data
+        for n, o in zip(self.names, self.objects):
+            if hasattr(o, "slg_memory_samples"):
+                # Each object has a slg_memory_samples dict
+                # Each entry of the dict is a numpy array with samples
+                for (k, v) in o.slg_memory_samples.items():
+                    out_filename = f"{path}/{n}_{k}.npy"
+                    print("Saving {out_filename}...")
+                    np.save(out_filename, v)
+
+
 if __name__ == "__main__":
 
     print("Start gpu memory measuring using context manager")

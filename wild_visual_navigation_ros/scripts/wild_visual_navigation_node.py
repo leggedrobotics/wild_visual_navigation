@@ -9,6 +9,7 @@ from wild_visual_navigation_msgs.msg import RobotState, SystemState
 from wild_visual_navigation_msgs.srv import SaveLoadData, SaveLoadDataResponse
 from std_srvs.srv import SetBool
 from wild_visual_navigation.utils import SystemLevelTimer, SystemLevelContextTimer
+from wild_visual_navigation.utils import SystemLevelGpuMonitor, accumulate_memory
 from wild_visual_navigation.utils import WVNMode
 from wild_visual_navigation.cfg import ExperimentParams
 from wild_visual_navigation.utils import override_params
@@ -93,6 +94,18 @@ class WvnRosInterface:
                 ],
                 names=["WVN", "TraversabilityEstimator", "Visualizer", "SupervisionGenerator"],
             )
+            self.gpu_monitor = SystemLevelGpuMonitor(
+                objects=[
+                    self,
+                    self.traversability_estimator,
+                    self.traversability_estimator._visualizer,
+                    self.supervision_generator,
+                ],
+                names=["wvn", "traversability_estimator", "visualizer", "supervision_generator"],
+                enabled=True,
+                device=self.device,
+                store_samples=True,
+            )
         else:
             # Turn off all timing
             self.slt_not_time = True
@@ -110,7 +123,10 @@ class WvnRosInterface:
 
     def shutdown_callback(self):
         # Write stuff to files
-        pass
+        output_folder = "/tmp"
+        print(f"Saving gpu stats to {output_folder}...", end="")
+        self.gpu_monitor.store(output_folder)
+        print("done")
 
     def __del__(self):
         """Destructor
@@ -120,6 +136,7 @@ class WvnRosInterface:
         if self.mode != WVNMode.EXTRACT_LABELS:
             self.learning_thread.join()
 
+    @accumulate_memory
     @accumulate_time
     def learning_thread_loop(self):
         """This implements the main thread that runs the training procedure
@@ -152,8 +169,6 @@ class WvnRosInterface:
         self.robot_state_topic = rospy.get_param("~robot_state_topic", "/wild_visual_navigation_node/robot_state")
         self.desired_twist_topic = rospy.get_param("~desired_twist_topic", "/log/state/desiredRobotTwist")
         self.camera_topics = rospy.get_param("~camera_topics", "camera_topics")
-        # self.image_topic = rospy.get_param("~image_topic", "/alphasense_driver_ros/cam4/debayered")
-        # self.info_topic = rospy.get_param("~camera_info_topic", "/alphasense_driver_ros/cam4/camera_info")
 
         # Frames
         self.fixed_frame = rospy.get_param("~fixed_frame", "odom")
@@ -451,6 +466,7 @@ class WvnRosInterface:
             rospy.logwarn(f"Couldn't get between {parent_frame} and {child_frame}")
             return (None, None)
 
+    @accumulate_memory
     @accumulate_time
     def robot_state_callback(self, state_msg, desired_twist_msg: TwistStamped):
         """Main callback to process proprioceptive info (robot state)
@@ -520,6 +536,7 @@ class WvnRosInterface:
             traceback.print_exc()
             print("error state callback", e)
 
+    @accumulate_memory
     @accumulate_time
     def image_callback(self, image_msg: Image, info_msg: CameraInfo, camera_options: dict):
         """Main callback to process incoming images
@@ -604,6 +621,7 @@ class WvnRosInterface:
             traceback.print_exc()
             print("error image callback", e)
 
+    @accumulate_memory
     @accumulate_time
     def publish_predictions(
         self, mission_node: MissionNode, image_msg: Image, info_msg: CameraInfo, scaled_camera_matrix: torch.Tensor
@@ -661,6 +679,7 @@ class WvnRosInterface:
             info_msg.P = scaled_camera_matrix[0, :3, :4].cpu().numpy().flatten().tolist()
             self.camera_handler[cam]["info_pub"].publish(info_msg)
 
+    @accumulate_memory
     @accumulate_time
     def visualize_proprioception(self):
         """Publishes all the visualizations related to proprioceptive info,
@@ -763,6 +782,7 @@ class WvnRosInterface:
         # Publish latest traversability
         self.pub_instant_traversability.publish(self.supervision_generator.traversability)
 
+    @accumulate_memory
     @accumulate_time
     def visualize_mission(self):
         """Publishes all the visualizations related to the mission graph"""
@@ -783,6 +803,7 @@ class WvnRosInterface:
 
         self.pub_mission_graph.publish(mission_graph_msg)
 
+    @accumulate_memory
     @accumulate_time
     def visualize_debug(self):
         """Publishes all the debugging, slow visualizations"""
