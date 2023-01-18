@@ -12,8 +12,7 @@ from wild_visual_navigation.utils import SystemLevelTimer, SystemLevelContextTim
 from wild_visual_navigation.utils import WVNMode
 from wild_visual_navigation.cfg import ExperimentParams
 from wild_visual_navigation.utils import override_params
-from wild_visual_navigation.learning.utils import load_yaml
-
+from wild_visual_navigation.learning.utils import load_yaml, load_env, create_experiment_folder
 from geometry_msgs.msg import PoseStamped, Point, TwistStamped
 from nav_msgs.msg import Path
 from sensor_msgs.msg import Image, CameraInfo, CompressedImage
@@ -47,6 +46,9 @@ class WvnRosInterface:
 
         # Visualization
         self.color_palette = sns.color_palette(self.colormap, as_cmap=True)
+
+        # Setup Mission Folder
+        create_experiment_folder(self.params, load_env())
 
         # Initialize traversability estimator
         self.traversability_estimator = TraversabilityEstimator(
@@ -192,6 +194,7 @@ class WvnRosInterface:
         out_path = os.path.join(WVN_ROOT_DIR, "results")
         self.output_path = rospy.get_param("~output_path", out_path)
         self.mission_name = rospy.get_param("~mission_name", "default_mission")
+        self.mission_timestamp = rospy.get_param("~mission_timestamp", True)
 
         # Print timings
         self.print_image_callback_time = rospy.get_param("~print_image_callback_time", False)
@@ -230,7 +233,9 @@ class WvnRosInterface:
         if exp_file != "nan":
             exp_override = load_yaml(os.path.join(WVN_ROOT_DIR, "cfg/exp", exp_file))
             self.params = override_params(self.params, exp_override)
-            self.params.general.name = self.mission_name
+
+        self.params.general.name = self.mission_name
+        self.params.general.timestamp = self.mission_timestamp
 
     def setup_rosbag_replay(self, tf_listener):
         self.tf_listener = tf_listener
