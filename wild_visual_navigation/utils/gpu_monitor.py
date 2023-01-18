@@ -1,6 +1,7 @@
 import torch
 import os
 import numpy as np
+from functools import wraps
 
 
 def pynvml_gpu_memory_query(device, pid):
@@ -66,7 +67,8 @@ class GpuMonitor:
         return gpu_memory_query(self.device, self.pid)
 
 
-def accumulate_memory(method, **kw):
+def accumulate_memory(method):
+    @wraps(method)
     def measured(*args, **kw):
         if not hasattr(args[0], "slg_enabled") or torch.cuda.device_count() < 1:
             if not args[0].slg_enabled:
@@ -178,6 +180,6 @@ if __name__ == "__main__":
     )
     for i in range(5):
         s = 10**i
-        my_test.test(10)
+        my_test.test(s)
 
     gpu_monitor.store("/tmp")
