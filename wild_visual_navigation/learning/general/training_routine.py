@@ -77,7 +77,11 @@ def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
 
     # Set correct input feature dimension
     training_sample = train_dl.dataset[0]
-    input_feature_dimension = training_sample[0].x.shape[1]
+    try:
+        input_feature_dimension = training_sample[0].x.shape[1]
+    except:
+        input_feature_dimension = training_sample.x.shape[1]
+
     exp["model"]["simple_mlp_cfg"]["input_size"] = input_feature_dimension
     exp["model"]["simple_gcn_cfg"]["input_size"] = input_feature_dimension
 

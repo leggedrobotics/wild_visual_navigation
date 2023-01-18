@@ -12,10 +12,11 @@ class TraversabilityLoss(nn.Module):
         w_trav,
         w_reco,
         w_temp,
-        anomaly_blanced,
+        anomaly_balanced,
         model,
         false_negative_weight=1.0,
         use_kalman_filter=True,
+        confidence_std_factor=1.0,
         log_enabled: bool = False,
         log_folder: str = "/tmp",
     ):
@@ -24,12 +25,12 @@ class TraversabilityLoss(nn.Module):
         self._w_reco = w_reco
         self._w_temp = w_temp
         self._model = model
-        self._anomaly_balanced = anomaly_blanced
+        self._anomaly_balanced = anomaly_balanced
         self._false_negative_weight = false_negative_weight
 
         if self._anomaly_balanced:
             self._confidence_generator = ConfidenceGenerator(
-                std_factor=1.0, use_kalman_filter=use_kalman_filter, log_enabled=log_enabled, log_folder=log_folder
+                confidence_std_factor=1.0, use_kalman_filter=use_kalman_filter, log_enabled=log_enabled, log_folder=log_folder
             )
 
     def reset(self):

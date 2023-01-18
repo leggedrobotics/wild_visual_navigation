@@ -20,7 +20,7 @@ def objective(trial, experiment: ExperimentParams):
     exp.loss.w_trav = trial.suggest_float("w_trav", 0.0, 2.0)
     exp.loss.w_temp = trial.suggest_float("w_temp", 0.0, 2.0)
     exp.loss.w_reco = trial.suggest_float("w_reco", 0.0, 2.0)
-    # exp.loss.anomaly_blanced = trial.suggest_categorical("anomaly_blanced", [True, False])
+    # exp.loss.anomaly_balanced = trial.suggest_categorical("anomaly_balanced", [True, False])
 
     # if not trial.suggest_categorical("use_temporal_consistency", [True, False]):
     # exp.loss.w_temp = 0.0

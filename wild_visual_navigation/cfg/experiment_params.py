@@ -43,11 +43,13 @@ class ExperimentParams(Serializable):
 
     @dataclass
     class LossParams:
-        anomaly_blanced: bool = True
+        anomaly_balanced: bool = True
         w_trav: float = 0.4
         w_reco: float = 1.1
         w_temp: float = 0.4
         use_kalman_filter: bool = True
+        false_negative_weight: float = 1.0
+        confidence_std_factor: float = 2.0
 
     loss: LossParams = LossParams()
 

@@ -6,7 +6,7 @@ float32 loss_total
 float32 loss_trav
 # Training loss
 float32 loss_reco
-# Training steps
-uint32 steps
+# Training step
+uint32 step
 # Pause learning flag
 bool pause_learning

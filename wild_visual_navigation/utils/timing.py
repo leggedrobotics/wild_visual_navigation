@@ -149,10 +149,10 @@ class SystemLevelTimer:
                         "\n  +"
                         + "-" * spacing
                         + f"-  {k}:".ljust(35 - spacing)
-                        + f"{round(v,2)}ms".ljust(20)
-                        + f"counts: {n} ".ljust(15)
-                        + f"std: {std} ".ljust(30)
-                        + f"mean: {round(mean,3)} ".ljust(30)
+                        + f"{round(v,2)}ms".ljust(18)
+                        + f"counts: {n} ".ljust(18)
+                        + f"std: {std} ".ljust(18)
+                        + f"mean: {round(mean,3)} ".ljust(18)
                     )
                 s += "\n"
         return s
