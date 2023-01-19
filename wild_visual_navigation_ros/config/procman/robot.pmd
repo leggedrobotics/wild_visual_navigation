@@ -1,0 +1,32 @@
+group "0.npc" {
+    cmd "0.0.alphasense_ptp" {
+        exec = "sudo service phc2sys restart";
+        host = "npc-digiforest";
+    }
+    cmd "0.1.anymal_msg_converter" {
+        exec = "rosrun wild_visual_navigation_anymal anymal_msg_converter_node.py";
+        host = "npc-digiforest";
+    }
+    cmd "0.2.field_local_planner" {
+        exec = "roslaunch wild_visual_navigation field_local_planner.launch";
+        host = "npc-digiforest";
+    }
+}
+
+group "1.jetson" {
+    cmd "wild_visual_navigation" {
+        exec = "roslaunch wild_visual_navigation_ros robot.launch";
+        host = "apc-digiforest";
+    }
+}
+
+group "2.utils" {
+    cmd "pause_training" {
+        exec = "rosservice call /wild_visual_navigation_node/pause_learning 'data: true'";
+        host = "npc-digiforest";
+    }
+    cmd "resume_training" {
+        exec = "rosservice call /wild_visual_navigation_node/pause_learning 'data: false'";
+        host = "npc-digiforest";
+    }
+}
