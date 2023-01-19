@@ -41,6 +41,8 @@ network_input_image_width: 224 # 448
 segmentation_type: "slic"
 feature_type: "dino"
 dino_patch_size: 16 # DINO only
+false_negative_weight: 1.0
+confidence_std_factor: 2.0
 
 # Optical flow params
 optical_flow_estimator_type: "none"
