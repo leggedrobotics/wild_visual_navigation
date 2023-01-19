@@ -441,15 +441,15 @@ class WvnRosInterface:
         Args:
             req (TriggerRequest): Trigger request service
         """
-        if req.path == "" or req.mission_name == "":
+        if req.path == "":
             return SaveLoadDataResponse(
                 success=False,
-                message=f"Either path [{req.path}] or mission_name [{req.mission_name}] is empty. Please check and try again",
+                message=f"Path [{req.path}] is empty. Please check and try again",
             )
 
-        mission_path = os.path.join(req.path, req.mission_name)
+        mission_path = req.path
         checkpoint_file = "model_checkpoint.pt"
-        self.traversability_estimator.save_checkpoint(self.params.general.model_path, "model_checkpoint.pt")
+        self.traversability_estimator.save_checkpoint(mission_path, "model_checkpoint.pt")
         return SaveLoadDataResponse(success=True, message=f"Checkpoint [{checkpoint_file}] saved in {mission_path}")
 
     def load_checkpoint_callback(self, req):
@@ -458,13 +458,13 @@ class WvnRosInterface:
         Args:
             req (TriggerRequest): Trigger request service
         """
-        if req.path == "" or req.mission_name == "":
+        if req.path == "":
             return SaveLoadDataResponse(
                 success=False,
-                message=f"Either path [{req.path}] or mission_name [{req.mission_name}] is empty. Please check and try again",
+                message=f"Path [{req.path}] is empty. Please check and try again",
             )
 
-        mission_path = os.path.join(req.path, req.mission_name)
+        mission_path = req.path
         checkpoint_file = "model_checkpoint.pt"
         self.traversability_estimator.load_checkpoint(mission_path, checkpoint_file)
         return SaveLoadDataResponse(success=True, message=f"Checkpoint [{checkpoint_file}] loaded successfully")
