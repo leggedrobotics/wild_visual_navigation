@@ -1,0 +1,4 @@
+model:
+  name: SimpleGCN
+  simple_gcn_cfg: 
+    hidden_sizes:  [128, 32, 1]

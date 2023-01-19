@@ -1,4 +1,4 @@
-abblation_data_module:
+ablation_data_module:
   env: forest
   feature_key: slic_dino
   test_equals_val: False

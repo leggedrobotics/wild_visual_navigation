@@ -21,90 +21,115 @@
 
 ## Overview
 
-| &nbsp; &nbsp; &nbsp; &nbsp; Scripts &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; |
-| - | - |
-| [Baseline Method](./scripts/baselines/bayesian_clustering.py ) | Lee, H. et al. Bayesian Clustering [[Paper](http://nmail.kaist.ac.kr/paper/auro2016.pdf)] |
-|... | ... |
-
-| &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Modules &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Input  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; | &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; Function &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; |
-| - | - |- |
-| [Feature Extraction](./wild_visual_navigation/feature_extractor) | Image | SLIC, STEGO |
-| [Image Projector](./wild_visual_navigation/image_projector) | Image, Pose, 3D Object | Projection onto Image |
-| [Label Generator](./wild_visual_navigation/label_generator) | Robot State | Generates Traversability Label |
-| [Traversability Estimator](./wild_visual_navigation/traversability_estimator) | TBD |  Traversability Estimator |
-| [Utils](./wild_visual_navigation/utils) | - | General Utilities |
-
-
 ![Overview](./assets/drawings/overview.svg)
 
 ## Citation
 
 ## Setup
 
-1. Install mamba to quickly install the conda environment.
-```shell
-conda activate base
-conda install -c conda-forge mamba
-
-# Set correct conda settings (should be correct by default)
-conda config --set safety_checks enabled
-conda config --set channel_priority false
-```
-
-2. Clone the repository.
+1. Clone the repository.
 ```shell
 mkdir ~/git && cd ~/git 
 git clone git@github.com:leggedrobotics/wild_visual_navigation.git
 ```
 
-3. Install the conda environment using mamba.
+2. Install the conda environment.
 ```shell
 # Make sure to be in the base conda environment
 cd ~/git/wild_visual_navigation
-mamba env create -f environment.yaml 
+conda env create -f environment.yaml 
 ```
 
-4. Install the wild_visual_navigation package.
+3. Install the wild_visual_navigation package.
 ```shell
 conda activate wvn
 cd ~/git
 pip3 install -e ./wild_visual_navigation
 ```
 
-5. (optional) Activate your W&B account for logging.
-```shell
-conda activate wvn
-# Input your login token from W&B
-wandb login 
-``` 
-### Requirements
+4. Configure global paths.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;All global paths are stored within a single yaml-file (`cfg\env\ge76.yaml`) for each machine.  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The correct yaml-file for a machine is identified based on the environment variable `ENV_WORKSTATION_NAME`.  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;You can generate a new configuration environment file in the same directory:  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Example: `cfg/env/your_workstation_name.yaml` 
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Content: 
+
+```yaml
+# If a relative path is given it is relative the the wild_visual_navigation project directory.
+base: results/learning
+perugia_root: /media/Data/Datasets/2022_Perugia
+```  
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;We recommend to directly set the environment variable in your `~/.bashrc` by adding the following:  
+  
+  ```shell
+  export ENV_WORKSTATION_NAME=your_workstation_name
+  ```  
+
 
 ## Experiments
-### Robot Usage / Rosbag play [Online]
+### Robot Usage [Online]
 Mode to run the pipeline either fully online on the robot or to simply replay rosbags on your system.
 
 - Launch ANYmal Converter:
-`rosrun wild_visual_navigation_anymal anymal_msg_converter_node.py`
+```shell
+rosrun wild_visual_navigation_anymal anymal_msg_converter_node.py
+```
 
 - Run WVN Node:
-`python wild_visual_navigation_ros/scripts/wild_visual_navigation_node.py _mode:=default _not_time:=True`
-There exist multiple configurations you can change via the ros-parameters.
+```shell
+python wild_visual_navigation_ros/scripts/wild_visual_navigation_node.py _mode:=debug
+```
+There are multiple parameters you can change via the ros-parameter server.
 Optionally the node offers services to store the created graph/trained network to the disk.
 
 - (optionally) RVIZ:
-`roslaunch wild_visual_navigation_ros view.launch`
+```shell
+roslaunch wild_visual_navigation_ros view.launch
+```
 
 - (replay only) Run Debayer:
-```roslaunch image_proc_cuda_ros image_proc_cuda_node.launch cam0:=false cam1:=false cam2:=false cam3:=false cam4:=true cam5:=false cam6:=false run_gamma_correction:=false run_white_balance:=true run_vignetting_correction:=false run_color_enhancer:=false run_color_calibration:=false run_undistortion:=true run_clahe:=false dump_images:=false needs_rotation_cam4:=true debayer_option:=bayer_gbrg8```
+```shell
+roslaunch image_proc_cuda_ros image_proc_cuda_node.launch cam0:=false cam1:=false cam2:=false cam3:=false cam4:=true cam5:=false cam6:=false run_gamma_correction:=false run_white_balance:=true run_vignetting_correction:=false run_color_enhancer:=false run_color_calibration:=false run_undistortion:=true run_clahe:=false dump_images:=false needs_rotation_cam4:=true debayer_option:=bayer_gbrg8
+```
 
 - (replay only) Replay Rosbag:
-```rosbag play --clock path_to_mission/*.bag```
+```shell
+rosbag play --clock path_to_mission/*.bag
+```
 
+### Replay Usage [Online]
+We provide a launch file to start all required nodes for close-loop integration.
+```shell
+roslaunch wild_visual_navigation_ros replay_launch.launch
+```
+The launch file allows to toggle the individual modules on and off.
+```xml
+  <arg name="anymal_converter"  default="True"/>
+  <arg name="anymal_rsl_launch" default="True"/>
+  <arg name="debayer"           default="True"/>
+  <arg name="rviz"              default="True"/>
+  <arg name="elevation_mapping" default="True"/>
+  <arg name="local_planner"     default="True"/>
+```
+
+- Run WVN Node:
+```shell
+python wild_visual_navigation_ros/scripts/wild_visual_navigation_node.py _mode:=default
+```
+
+- Replay Rosbag:
+```shell
+rosbag play --clock path_to_mission/*.bag
+```
 
 ### Learning Usage [Offline]
 #### Dataset Generation
 
-Sometimes it`s usefull to just analyze the network training therefore we provide the tools to extract a dataset usefull for learning from a given rosbag. 
+Sometimes it`s useful to just analyze the network training therefore we provide the tools to extract a dataset useful for learning from a given rosbag. 
 In the following we explain how you can generate the dataset with the following structure: 
 ```
 dataset_name
@@ -148,15 +173,50 @@ dataset_name
 5. Convert the correct `.pt` files to `.png` such that you can upload them for the test set to segments.ai **convert_test_images_for_labelling.py**
 6. Label them online
 7. Fetch the results using **download_bitmaps_from_segments_ai.py**
-8. Extract the features segments and graph from the image **extract_features_for_dataset**
+8. Extract the features segments and graph from the image **extract_features_for_dataset.py**
 
 
 #### Training the Network
-- Training from the final dataset.
+##### Training  
+We provide scripts for training the network for a single run where a parameter configuration yaml-file can be passed to override the parameters configured within `cfg/experiments_params.py`.
+Training from the final dataset.
+
 `python3 scripts/train_gnn.py --exp=exp_forest.yaml`
 
+##### Hyperparameter  
+We also provide scripts to use optuna for hyperparameter-searching: 
 
-## Contribution
+`python3 scripts/train_optuna.py --exp=exp_forest.yaml`
+
+Within the objective function you can easily adjust the trail parameter suggestions. 
+
+##### Ablations
+Finally, we categorize our ablations into `loss`, `network`, `feature`, `time_adaptation` and `knn_evaluation`.
+
+##### `loss`, `network`, and `feature`
+For `loss`, `network`, and `feature` we can simply run a training script and pass the correct keyword.
+We provide the configurations for those experiments within the `cfg/exp/ablation` folder.
+```
+python3 scripts/ablation/training_ablation.py --ablation_type=network
+```
+After running the training the results are stored respectively in `scripts/ablations/<ablation_type>_ablation` as a pickle file. 
+For each training run the trained network is evaluate on all testing scenes and the AUROC and ROC values are stored with respect to the hand labeled gt-labels and self-supervised proprioceptive-labels. 
+We provide a jupyter notebook to interpret the training results. 
+```
+python3 scripts/ablation/training_ablation_visu.ipynb
+```
+
+##### `time_adaptation`
+For the `time_adaptation` run simply run:
+```
+python3 scripts/ablation/time_adaptation.py
+```
+and for visualization:
+```
+python3 scripts/ablation/time_adaptation_visu.py
+```
+
+## Contributing
 
 ### Code formatting
 ```shell
@@ -176,15 +236,5 @@ Introduction to [pytest](https://github.com/pluralsight/intro-to-pytest).
 pytest
 ```
 Pytest is not checked on push.
-
-# Extract Dataset
-```
-cd /home/jonfrey/git/wild_visual_navigation/wild_visual_navigation_ros/scripts && python wild_visual_navigation_node.py
-```
-
-```
-roslaunch image_proc_cuda_ros image_proc_cuda_node.launch cam0:=false cam1:=false cam2:=false cam3:=false cam4:=true cam5:=false cam6:=false run_gamma_correction:=false run_white_balance:=true run_vignetting_correction:=false run_color_enhancer:=false run_color_calibration:=false run_undistortion:=true run_clahe:=false dump_images:=false needs_rotation_cam4:=true debayer_option:=bayer_gbrg8
-```
-
 
 ## Credits

@@ -1,8 +1,22 @@
 # Input topics
 robot_state_topic: "/wild_visual_navigation_node/robot_state"
-image_topic: "/alphasense_driver_ros/cam4/debayered"
-camera_info_topic: "/alphasense_driver_ros/cam4/camera_info"
+# desired_twist_topic: "/motion_reference/command_twist"
 desired_twist_topic: "/log/state/desiredRobotTwist"
+
+camera_topics:
+  front:
+    image_topic: "/alphasense_driver_ros/cam4/debayered"
+    info_topic: "/alphasense_driver_ros/cam4/camera_info"
+    use_for_training: true
+  # left:
+  #   image_topic: "/alphasense_driver_ros/cam3/debayered"
+  #   info_topic: "/alphasense_driver_ros/cam3/camera_info"
+  #   use_for_training: false
+  # right:
+  #   image_topic: "/alphasense_driver_ros/cam5/debayered"
+  #   info_topic: "/alphasense_driver_ros/cam5/camera_info"
+  #   use_for_training: false
+
 
 # Relevant frames
 fixed_frame: odom
@@ -26,22 +40,36 @@ network_input_image_height: 224 # 448
 network_input_image_width: 224 # 448
 segmentation_type: "slic"
 feature_type: "dino"
-dino_patch_size: 8 # DINO only
+dino_patch_size: 16 # DINO only
+false_negative_weight: 1.0
+confidence_std_factor: 2.0
 
 # Optical flow params
-optical_flow_estimator_type: "sparse"
+optical_flow_estimator_type: "none"
 
 # Supervision Generator
-robot_max_velocity: 0.8
 untraversable_thr: 0.01
 
+mission_name: "test"
+mission_timestamp: True
+
 # Threads
-run_online_learning: True
 image_callback_rate: 3 # hertz
 proprio_callback_rate: 4 # hertz
 learning_thread_rate: 10 # hertz
 
 # Runtime options
-print_image_callback_time: False
-use_debug_for_desired: True
-mode: "online"
+device: "cuda"
+mode: "online" # check out comments in the class WVNMode
+colormap: "RdYlBu"
+
+
+print_image_callback_time: true
+print_proprio_callback_time: false
+log_time: true
+log_memory: true
+log_confidence: true
+
+use_debug_for_desired: true
+extraction_store_folder:  "nan"
+exp: "nan"

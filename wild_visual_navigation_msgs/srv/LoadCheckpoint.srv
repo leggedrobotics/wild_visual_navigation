@@ -1,0 +1,8 @@
+# Path to the checkpoint to be loaded
+string checkpoint_path
+
+---
+# Indicate if the operation was successful
+bool success
+# Show some info from the server
+string message

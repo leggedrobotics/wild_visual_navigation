@@ -1,0 +1,11 @@
+# Base folder to save the data. If empty uses default folder
+string mission_path
+
+# Name of the checkpoint file. If empty uses "last_checkpoint.pt"
+string checkpoint_name
+
+---
+# Indicate if the operation was successful
+bool success
+# Show some info from the server
+string message
