@@ -18,15 +18,55 @@ group "1.jetson" {
         exec = "roslaunch wild_visual_navigation_ros robot.launch";
         host = "apc-digiforest";
     }
+    cmd "kill_wvn" {
+        exec = "rosnode kill /wild_visual_navigation_node";
+        host = "localhost";
+    }
 }
 
-group "2.utils" {
-    cmd "pause_training" {
+group "2.visualization" {
+    cmd "rviz" {
+        exec = "roslaunch wild_visual_navigation_ros view.launch";
+        host = "localhost";
+    }
+}
+
+group "3.recording" {
+    cmd "3.1.rosbag_record" {
+        exec = "rosservice call /rosbag_record_robot_coordinator/record_bag {}";
+        host = "localhost";
+    }
+    cmd "3.2.rosbag_stop" {
+        exec = "rosservice call /rosbag_record_robot_coordinator/stop_bag {}";
+        host = "localhost";
+    }
+    cmd "3.3.fetch_bags" {
+        exec = "/home/ori/git/anymal_rsl/anymal_rsl/anymal_rsl_utils/anymal_rsl_recording/anymal_rsl_recording/bin/copy_mission_data_from_robot.sh digiforest coyote /home/ori/logs";
+        host = "localhost";
+    }
+    cmd "3.4.delete_bags" {
+        exec = "/home/ori/git/anymal_rsl/anymal_rsl/anymal_rsl_utils/anymal_rsl_recording/anymal_rsl_recording/bin/remove_mission_data_from_robot.sh digiforest coyote";
+        host = "localhost";
+    }
+}
+
+
+
+group "x.learning_utils" {
+    cmd "x.1.pause_training" {
         exec = "rosservice call /wild_visual_navigation_node/pause_learning 'data: true'";
         host = "npc-digiforest";
     }
-    cmd "resume_training" {
+    cmd "x.2.resume_training" {
         exec = "rosservice call /wild_visual_navigation_node/pause_learning 'data: false'";
+        host = "npc-digiforest";
+    }
+    cmd "x.3.save_checkpoint" {
+        exec = "rosservice call /wild_visual_navigation_node/save_checkpoint 'path: '/root/git/wild_visual_navigation/results/2023-01-19T11-00-52_test''";
+        host = "apc-digiforest";
+    }
+    cmd "x.4.load_checkpoint" {
+        exec = "rosservice call /wild_visual_navigation_node/load_checkpoint 'path: '/root/git/wild_visual_navigation/results/2023-01-19T11-00-52_test''";
         host = "npc-digiforest";
     }
 }
