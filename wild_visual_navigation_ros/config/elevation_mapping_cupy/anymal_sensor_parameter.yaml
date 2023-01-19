@@ -1,25 +1,25 @@
 #### Subscribers ########
 subscribers:
-  alphasense_front_rgb:
-    fusion: ['image_color']
-    topic_name_camera: /alphasense_driver_ros/cam4/debayered
-    topic_name_camera_info: /alphasense_driver_ros/cam4/camera_info
-    channels: ["rgb_image"]
-    data_type: image
+  # alphasense_front_rgb:
+  #   fusion: ['image_color']
+  #   topic_name_camera: /alphasense_driver_ros/cam4/debayered
+  #   topic_name_camera_info: /alphasense_driver_ros/cam4/camera_info
+  #   channels: ["rgb_image"]
+  #   data_type: image
   
-  alphasense_left_rgb:
-    fusion: ['image_color']
-    topic_name_camera: /alphasense_driver_ros/cam3/debayered
-    topic_name_camera_info: /alphasense_driver_ros/cam3/camera_info
-    channels: ["rgb_image"]
-    data_type: image
+  # alphasense_left_rgb:
+  #   fusion: ['image_color']
+  #   topic_name_camera: /alphasense_driver_ros/cam3/debayered
+  #   topic_name_camera_info: /alphasense_driver_ros/cam3/camera_info
+  #   channels: ["rgb_image"]
+  #   data_type: image
 
-  alphasense_right_rgb:
-    fusion: ['image_color']
-    topic_name_camera: /alphasense_driver_ros/cam5/debayered
-    topic_name_camera_info: /alphasense_driver_ros/cam5/camera_info
-    channels: ["rgb_image"]
-    data_type: image
+  # alphasense_right_rgb:
+  #   fusion: ['image_color']
+  #   topic_name_camera: /alphasense_driver_ros/cam5/debayered
+  #   topic_name_camera_info: /alphasense_driver_ros/cam5/camera_info
+  #   channels: ["rgb_image"]
+  #   data_type: image
 
   wvn_front_traversability:
     fusion: ['image_exponential']
@@ -42,12 +42,12 @@ subscribers:
   #   channels: ["visual_traversability"]
   #   data_type: image
   
-  wvn_front_confidence:
-    fusion: ['image_exponential']
-    topic_name_camera: '/wild_visual_navigation_node/front/confidence'
-    topic_name_camera_info: '/wild_visual_navigation_node/front/camera_info'
-    channels: ["visual_confidence"]
-    data_type: image
+  # wvn_front_confidence:
+  #   fusion: ['image_exponential']
+  #   topic_name_camera: '/wild_visual_navigation_node/front/confidence'
+  #   topic_name_camera_info: '/wild_visual_navigation_node/front/camera_info'
+  #   channels: ["visual_confidence"]
+  #   data_type: image
   
   # wvn_left_confidence:
   #   fusion: ['image_exponential']
