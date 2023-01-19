@@ -30,6 +30,7 @@ import numpy as np
 from typing import Optional
 import traceback
 import signal
+import sys
 
 if torch.cuda.is_available():
     torch.cuda.empty_cache()
@@ -151,6 +152,8 @@ class WvnRosInterface:
             print("Storing memory data...", end="")
             self.gpu_monitor.store(folder=self.params.general.model_path)
             print("done")
+        
+        sys.exit(0)
 
     @accumulate_time
     def learning_thread_loop(self):
