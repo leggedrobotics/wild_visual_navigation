@@ -145,7 +145,6 @@ class MissionNode(BaseNode):
     def clear_debug_data(self):
         """Removes all data not required for training"""
         try:
-            print(f"clear_debug_data {self}")
             del self._image
             del self._supervision_mask
             if torch.cuda.is_available():

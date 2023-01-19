@@ -6,7 +6,12 @@ from wild_visual_navigation.traversability_estimator import MissionNode, Proprio
 import wild_visual_navigation_ros.ros_converter as rc
 from wild_visual_navigation.utils import accumulate_time
 from wild_visual_navigation_msgs.msg import RobotState, SystemState
-from wild_visual_navigation_msgs.srv import SaveLoadData, SaveLoadDataResponse
+from wild_visual_navigation_msgs.srv import (
+    LoadCheckpoint,
+    SaveCheckpoint,
+    LoadCheckpointResponse,
+    SaveCheckpointResponse,
+)
 from std_srvs.srv import SetBool
 from wild_visual_navigation.utils import SystemLevelTimer, SystemLevelContextTimer
 from wild_visual_navigation.utils import SystemLevelGpuMonitor, accumulate_memory
@@ -133,15 +138,15 @@ class WvnRosInterface:
             self.learning_thread.start()
         print("[WVN] System ready")
 
-    def shutdown_callback(self):
+    def shutdown_callback(self, *args, **kwargs):
         # Write stuff to files
         print("Shutdown callback called")
         if self.mode != WVNMode.EXTRACT_LABELS:
             self.learning_thread_loop_running = False
             self.learning_thread.join()
 
-        print("Storing learned model...", end="")
-        self.traversability_estimator.save_checkpoint(self.params.general.model_path, "last_model.pt")
+        print("Storing learned checkpoint...", end="")
+        self.traversability_estimator.save_checkpoint(self.params.general.model_path, "last_checkpoint.pt")
         print("done")
 
         if self.log_time:
@@ -237,6 +242,7 @@ class WvnRosInterface:
         self.log_time = rospy.get_param("~log_time")
         self.log_memory = rospy.get_param("~log_memory")
         self.log_confidence = rospy.get_param("~log_confidence")
+        self.verbose = rospy.get_param("~verbose", False)
 
         # Select mode: # debug, online, extract_labels
         self.use_debug_for_desired = rospy.get_param("~use_debug_for_desired")
@@ -371,10 +377,8 @@ class WvnRosInterface:
 
         # Services
         # Like, reset graph or the like
-        self.save_graph_service = rospy.Service("~save_graph", SaveLoadData, self.save_graph_callback)
-        self.save_pickle_service = rospy.Service("~save_pickle", SaveLoadData, self.save_pickle_callback)
-        self.save_checkpt_service = rospy.Service("~save_checkpoint", SaveLoadData, self.save_checkpoint_callback)
-        self.load_checkpt_service = rospy.Service("~load_checkpoint", SaveLoadData, self.load_checkpoint_callback)
+        self.save_checkpt_service = rospy.Service("~save_checkpoint", SaveCheckpoint, self.save_checkpoint_callback)
+        self.load_checkpt_service = rospy.Service("~load_checkpoint", LoadCheckpoint, self.load_checkpoint_callback)
 
         self.pause_learning_service = rospy.Service("~pause_learning", SetBool, self.pause_learning_callback)
 
@@ -395,79 +399,38 @@ class WvnRosInterface:
         return True, message
 
     @accumulate_time
-    def save_graph_callback(self, req):
-        """Service call to store the mission graph as a dataset
-
-        Args:
-            req (SaveLoadDataRequest): SaveLoadData obejct with the request
-
-        Returns:
-            res (SaveLoadDataResponse): Status of the request
-        """
-        if req.path == "" or req.mission_name == "":
-            return SaveLoadDataResponse(
-                success=False,
-                message=f"Either output_path [{req.path}] or mission_name [{req.mission_name}] is empty. Please check and try again",
-            )
-
-        mission_path = os.path.join(req.path, req.mission_name)
-        t = Thread(target=self.traversability_estimator.save_graph, args=(mission_path,))
-        t.start()
-        t.join()
-        return SaveLoadDataResponse(success=True, message=f"Graph saved in {mission_path}")
-
-    @accumulate_time
-    def save_pickle_callback(self, req):
-        """Service call to store the traversability estimator instance as a pickle file
-
-        Args:
-            req (TriggerRequest): Trigger request service
-        """
-        if req.path == "" or req.mission_name == "":
-            return SaveLoadDataResponse(
-                success=False,
-                message=f"Either path [{req.path}] or mission_name [{req.mission_name}] is empty. Please check and try again",
-            )
-
-        mission_path = os.path.join(req.path, req.mission_name)
-        pickle_file = "traversability_estimator.pickle"
-        self.traversability_estimator.save(mission_path, pickle_file)
-        return SaveLoadDataResponse(success=True, message=f"Pickle [{pickle_file}] saved in {mission_path}")
-
-    @accumulate_time
     def save_checkpoint_callback(self, req):
-        """Service call to store the learned model
+        """Service call to store the learned checkpoint
 
         Args:
             req (TriggerRequest): Trigger request service
         """
-        if req.path == "":
-            return SaveLoadDataResponse(
-                success=False,
-                message=f"Path [{req.path}] is empty. Please check and try again",
-            )
+        if req.checkpoint_name == "":
+            req.checkpoint_name = "last_checkpoint.pt"
 
-        mission_path = req.path
-        checkpoint_file = "model_checkpoint.pt"
-        self.traversability_estimator.save_checkpoint(mission_path, "model_checkpoint.pt")
-        return SaveLoadDataResponse(success=True, message=f"Checkpoint [{checkpoint_file}] saved in {mission_path}")
+        if req.mission_path == "":
+            message = f"[WARNING] Store checkpoint {req.checkpoint_name} default mission path: {self.params.general.model_path}/{req.checkpoint_name}"
+            req.mission_path = self.params.general.model_path
+        else:
+            message = f"Store checkpoint {req.checkpoint_name} to: {req.mission_path}/{req.checkpoint_name}"
+
+        self.traversability_estimator.save_checkpoint(req.mission_path, req.checkpoint_name)
+        return SaveCheckpointResponse(success=True, message=message)
 
     def load_checkpoint_callback(self, req):
-        """Service call to load a learned model
+        """Service call to load a learned checkpoint
 
         Args:
             req (TriggerRequest): Trigger request service
         """
-        if req.path == "":
-            return SaveLoadDataResponse(
+        if req.checkpoint_path == "":
+            return LoadCheckpointResponse(
                 success=False,
-                message=f"Path [{req.path}] is empty. Please check and try again",
+                message=f"Path [{req.checkpoint_path}] is empty. Please check and try again",
             )
-
-        mission_path = req.path
-        checkpoint_file = "model_checkpoint.pt"
-        self.traversability_estimator.load_checkpoint(mission_path, checkpoint_file)
-        return SaveLoadDataResponse(success=True, message=f"Checkpoint [{checkpoint_file}] loaded successfully")
+        checkpoint_path = req.checkpoint_path
+        self.traversability_estimator.load_checkpoint(checkpoint_path)
+        return LoadCheckpointResponse(success=True, message=f"Checkpoint [{checkpoint_path}] loaded successfully")
 
     @accumulate_time
     def query_tf(self, parent_frame: str, child_frame: str, stamp: Optional[rospy.Time] = None):
@@ -485,14 +448,14 @@ class WvnRosInterface:
             try:
                 self.tf_listener.waitForTransform(parent_frame, child_frame, stamp, rospy.Duration(1.0))
             except Exception as e:
-                print("Error in querry tf: ", e)
+                print("Error in query tf: ", e)
                 return (None, None)
 
         try:
             (trans, rot) = self.tf_listener.lookupTransform(parent_frame, child_frame, stamp)
             return (trans, rot)
         except Exception as e:
-            print("Error in querry tf: ", e)
+            print("Error in query tf: ", e)
             # (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException): avoid all errors
             rospy.logwarn(f"Couldn't get between {parent_frame} and {child_frame}")
             return (None, None)
@@ -565,6 +528,7 @@ class WvnRosInterface:
         except Exception as e:
             traceback.print_exc()
             print("error state callback", e)
+            raise Exception("Error in robot state callback")
 
     @accumulate_time
     def image_callback(self, image_msg: Image, info_msg: CameraInfo, camera_options: dict):
@@ -574,17 +538,19 @@ class WvnRosInterface:
             image_msg (sensor_msgs/Image): Incoming image
             info_msg (sensor_msgs/CameraInfo): Camera info message associated to the image
         """
-
-        print(f"\nImage callback: {camera_options['name']}... ", end="")
+        if self.verbose:
+            print(f"\nImage callback: {camera_options['name']}... ", end="")
         try:
 
             # Run the callback so as to match the desired rate
             ts = image_msg.header.stamp.to_sec()
             if abs(ts - self.last_image_ts) < 1.0 / self.image_callback_rate:
-                print("skip")
+                if self.verbose:
+                    print("skip")
                 return
             else:
-                print("process")
+                if self.verbose:
+                    print("process")
             self.last_image_ts = ts
 
             # Query transforms from TF
@@ -649,6 +615,7 @@ class WvnRosInterface:
         except Exception as e:
             traceback.print_exc()
             print("error image callback", e)
+            raise Exception("Error in image callback")
 
     @accumulate_time
     def publish_predictions(
@@ -801,7 +768,8 @@ class WvnRosInterface:
 
         # Publish
         if len(footprints_marker.points) % 3 != 0:
-            print(f"number of points for footprint is {len(footprints_marker.points)}")
+            if self.verbose:
+                print(f"number of points for footprint is {len(footprints_marker.points)}")
             return
         self.pub_graph_footprints.publish(footprints_marker)
         self.pub_debug_proprio_graph.publish(proprio_graph_msg)

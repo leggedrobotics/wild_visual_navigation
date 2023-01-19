@@ -17,7 +17,8 @@ add_message_files(
 
 add_service_files(
   FILES
-  SaveLoadData.srv
+  SaveCheckpoint.srv
+  LoadCheckpoint.srv
 )
 
 generate_messages(
