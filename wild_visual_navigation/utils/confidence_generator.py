@@ -23,9 +23,12 @@ class ConfidenceGenerator(torch.nn.Module):
         self.log_enabled = log_enabled
         self.log_folder = log_folder
 
-        self.mean = torch.zeros(1, dtype=torch.float32)
-        self.var = torch.ones(1, dtype=torch.float32)
-        self.std = torch.ones(1, dtype=torch.float32)
+        mean = torch.zeros(1, dtype=torch.float32)
+        var = torch.ones(1, dtype=torch.float32)
+        std = torch.ones(1, dtype=torch.float32)
+        self.mean = torch.nn.Parameter(mean, requires_grad=False)
+        self.var = torch.nn.Parameter(var, requires_grad=False)
+        self.std = torch.nn.Parameter(std, requires_grad=False)
 
         if use_kalman_filter:
             kf_process_cov = 0.2
