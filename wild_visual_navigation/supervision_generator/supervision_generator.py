@@ -1,7 +1,7 @@
 from wild_visual_navigation import WVN_ROOT_DIR
-from wild_visual_navigation.supervision_generator import KalmanFilter
 from wild_visual_navigation.traversability_estimator.graphs import DistanceWindowGraph
 from wild_visual_navigation.traversability_estimator.nodes import TwistNode
+from wild_visual_navigation.utils import KalmanFilter
 from liegroups import SE2, SE3
 from os.path import join
 import os
@@ -217,14 +217,16 @@ def run_supervision_generator():
         t, curr, des = data[i]
 
         # Update traversability
-        aff, aff_cov, is_unaff = ag.update_velocity_tracking(curr[0], des[0], max_velocity=0.8, velocities=["vx", "vy"])
-        saved_data.append([t.item(), curr.norm().item(), des.norm().item(), aff.item(), aff_cov.item(), is_unaff])
+        trav, trav_cov, is_untrav = ag.update_velocity_tracking(
+            curr[0], des[0], max_velocity=0.8, velocities=["vx", "vy"]
+        )
+        saved_data.append([t.item(), curr.norm().item(), des.norm().item(), trav.item(), trav_cov.item(), is_untrav])
 
-    df = pd.DataFrame(saved_data, columns=["ts", "curr", "des", "aff", "aff_cov", "is_untraversable"])
+    df = pd.DataFrame(saved_data, columns=["ts", "curr", "des", "trav", "trav_cov", "is_untraversable"])
     df["ts"] = df["ts"] - df["ts"][0]
 
-    df["aff_upper"] = df["aff"] + df["aff_cov"]
-    df["aff_lower"] = df["aff"] - df["aff_cov"]
+    df["trav_upper"] = df["trav"] + df["trav_cov"]
+    df["trav_lower"] = df["trav"] - df["trav_cov"]
 
     fig, axs = plt.subplots(2, 1, sharex=True)
     # Top plot
@@ -235,7 +237,7 @@ def run_supervision_generator():
     axs[0].legend(loc="upper right")
 
     # Bottom plot
-    axs[1].plot(df["ts"], df["aff"], label="Traversability", color="tab:blue", linewidth=2)
+    axs[1].plot(df["ts"], df["trav"], label="Traversability", color="tab:blue", linewidth=2)
     axs[1].plot(
         df["ts"],
         np.ones(df["ts"].shape) * ag.untraversable_thr,
@@ -255,8 +257,8 @@ def run_supervision_generator():
     axs[1].set_ylabel("Traversability")
     axs[1].set_title("Traversability")
     axs[1].legend(loc="upper right")
-    # plt.plot(df["ts"], df["aff_cov"], label="Traversability Cov", color="m")
-    # plt.fill_between(df["ts"], df["aff_lower"], df["aff_upper"], alpha=0.3, label="1$\sigma$", color="b")
+    # plt.plot(df["ts"], df["trav_cov"], label="Traversability Cov", color="m")
+    # plt.fill_between(df["ts"], df["trav_lower"], df["trav_upper"], alpha=0.3, label="1$\sigma$", color="b")
 
     plt.xlabel("Time [s]")
     plt.tight_layout()

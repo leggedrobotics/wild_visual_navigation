@@ -115,6 +115,8 @@ class MissionNode(BaseNode):
         image: torch.tensor = None,
         image_projector: ImageProjector = None,
         correspondence=None,
+        camera_name="cam",
+        use_for_training=True,
     ):
         super().__init__(timestamp=timestamp, pose_base_in_world=pose_base_in_world)
         # Initialize members
@@ -124,6 +126,8 @@ class MissionNode(BaseNode):
         )
         self._image = image
         self._image_projector = image_projector
+        self._camera_name = camera_name
+        self._use_for_training = use_for_training
 
         # Uninitialized members
         self._features = None
@@ -141,9 +145,10 @@ class MissionNode(BaseNode):
     def clear_debug_data(self):
         """Removes all data not required for training"""
         try:
-            print(f"clear_debug_data {self}")
             del self._image
             del self._supervision_mask
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
         except Exception as e:
             print(e)
             pass  # Image already removed
@@ -210,6 +215,10 @@ class MissionNode(BaseNode):
         )
 
     @property
+    def camera_name(self):
+        return self._camera_name
+
+    @property
     def confidence(self):
         return self._confidence
 
@@ -264,6 +273,14 @@ class MissionNode(BaseNode):
     @property
     def supervision_mask(self):
         return self._supervision_mask
+
+    @property
+    def use_for_training(self):
+        return self._use_for_training
+
+    @camera_name.setter
+    def camera_name(self, camera_name):
+        self._camera_name = camera_name
 
     @confidence.setter
     def confidence(self, confidence):
@@ -320,6 +337,10 @@ class MissionNode(BaseNode):
     @supervision_mask.setter
     def supervision_mask(self, supervision_mask):
         self._supervision_mask = supervision_mask
+
+    @use_for_training.setter
+    def use_for_training(self, use_for_training):
+        self._use_for_training = use_for_training
 
     def save(self, output_path: str, index: int, graph_only: bool = False, previous_node: Optional[BaseNode] = None):
         if self._feature_positions is not None:
@@ -399,6 +420,7 @@ class ProprioceptionNode(BaseNode):
         pose_footprint_in_base: torch.tensor = torch.eye(4),
         pose_footprint_in_world: torch.tensor = None,
         twist_in_base: torch.tensor = None,
+        desired_twist_in_base: torch.tensor = None,
         length: float = 0.1,
         width: float = 0.1,
         height: float = 0.1,
@@ -418,6 +440,7 @@ class ProprioceptionNode(BaseNode):
             else pose_footprint_in_world
         )
         self._twist_in_base = twist_in_base
+        self._desired_twist_in_base = desired_twist_in_base
         self._length = length
         self._width = width
         self._height = height
@@ -435,6 +458,8 @@ class ProprioceptionNode(BaseNode):
         super().change_device(device)
         self._pose_footprint_in_base = self._pose_footprint_in_base.to(device)
         self._pose_footprint_in_world = self._pose_footprint_in_world.to(device)
+        self._twist_in_base = self._twist_in_base.to(device)
+        self._desired_twist_in_base = self._desired_twist_in_base.to(device)
         self._proprioceptive_state = self._proprioceptive_state.to(device)
 
     def get_bounding_box_points(self):
@@ -490,6 +515,7 @@ class ProprioceptionNode(BaseNode):
             # tsp[1] ---- tsp[0]
             #  |            |
             # osp[0] ---- osp[1]
+            # with 'tsp': this_side_points and 'osp': other_side_points
 
             # Concat points to define the polygon
             points = torch.concat((this_side_points, other_side_points), dim=0)
@@ -510,6 +536,14 @@ class ProprioceptionNode(BaseNode):
     @property
     def traversability_var(self):
         return self._traversability_var
+
+    @property
+    def twist_in_base(self):
+        return self._twist_in_base
+
+    @property
+    def desired_twist_in_base(self):
+        return self._desired_twist_in_base
 
     @property
     def is_untraversable(self):

@@ -12,11 +12,13 @@ add_message_files(
   FILES
   CustomState.msg
   RobotState.msg
+  SystemState.msg
 )
 
 add_service_files(
   FILES
-  SaveLoadData.srv
+  SaveCheckpoint.srv
+  LoadCheckpoint.srv
 )
 
 generate_messages(

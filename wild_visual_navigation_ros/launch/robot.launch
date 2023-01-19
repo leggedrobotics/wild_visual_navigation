@@ -1,0 +1,11 @@
+<launch>
+  <!-- Arguments -->
+  <arg name="elevation_mapping" default="True"/>
+
+  <!-- Use Elevation Mapping-->
+  <include if="$(arg elevation_mapping)" file="$(find wild_visual_navigation_ros)/launch/elevation_mapping_cupy.launch"/>
+
+  <!-- Launch node -->
+  <include file="$(find wild_visual_navigation_ros)/launch/wild_visual_navigation.launch"/>
+
+</launch>

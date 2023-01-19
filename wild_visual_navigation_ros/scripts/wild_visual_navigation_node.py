@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation.supervision_generator import SupervisionGenerator
@@ -6,13 +5,23 @@ from wild_visual_navigation.traversability_estimator import TraversabilityEstima
 from wild_visual_navigation.traversability_estimator import MissionNode, ProprioceptionNode
 import wild_visual_navigation_ros.ros_converter as rc
 from wild_visual_navigation.utils import accumulate_time
-from wild_visual_navigation_msgs.msg import RobotState
-from wild_visual_navigation_msgs.srv import SaveLoadData, SaveLoadDataResponse
-from wild_visual_navigation.utils import Timer
+from wild_visual_navigation_msgs.msg import RobotState, SystemState
+from wild_visual_navigation_msgs.srv import (
+    LoadCheckpoint,
+    SaveCheckpoint,
+    LoadCheckpointResponse,
+    SaveCheckpointResponse,
+)
+from std_srvs.srv import SetBool
+from wild_visual_navigation.utils import SystemLevelTimer, SystemLevelContextTimer
+from wild_visual_navigation.utils import SystemLevelGpuMonitor, accumulate_memory
 from wild_visual_navigation.utils import WVNMode
+from wild_visual_navigation.cfg import ExperimentParams
+from wild_visual_navigation.utils import override_params
+from wild_visual_navigation.learning.utils import load_yaml, load_env, create_experiment_folder
 from geometry_msgs.msg import PoseStamped, Point, TwistStamped
 from nav_msgs.msg import Path
-from sensor_msgs.msg import Image, CameraInfo
+from sensor_msgs.msg import Image, CameraInfo, CompressedImage
 from std_msgs.msg import ColorRGBA, Float32, Float32MultiArray
 from threading import Thread
 from visualization_msgs.msg import Marker
@@ -25,8 +34,11 @@ import torch
 import numpy as np
 from typing import Optional
 import traceback
+import signal
+import sys
 
-torch.cuda.empty_cache()
+if torch.cuda.is_available():
+    torch.cuda.empty_cache()
 
 
 class WvnRosInterface:
@@ -41,8 +53,12 @@ class WvnRosInterface:
         # Visualization
         self.color_palette = sns.color_palette(self.colormap, as_cmap=True)
 
+        # Setup Mission Folder
+        create_experiment_folder(self.params, load_env())
+
         # Initialize traversability estimator
         self.traversability_estimator = TraversabilityEstimator(
+            params=self.params,
             device=self.device,
             image_size=self.network_input_image_height,  # Note: we assume height == width
             segmentation_type=self.segmentation_type,
@@ -52,8 +68,7 @@ class WvnRosInterface:
             proprio_distance_thr=self.proprio_graph_dist_thr,
             optical_flow_estimator_type=self.optical_flow_estimator_type,
             mode=self.mode,
-            running_store_folder=self.running_store_folder,
-            exp_file=self.exp_file,
+            extraction_store_folder=self.extraction_store_folder,
             patch_size=self.dino_patch_size,
         )
 
@@ -69,115 +84,208 @@ class WvnRosInterface:
             untraversable_thr=self.untraversable_thr,  # 0.1
             time_horizon=0.05,
         )
+        # Initialize camera handler for subscription/publishing
+        self.camera_handler = {}
 
         # Setup ros
         self.setup_ros(setup_fully=self.mode != WVNMode.EXTRACT_LABELS)
 
+        # Setup Timer if needed
+        if self.print_image_callback_time or self.print_proprio_callback_time or self.log_time:
+            self.timer = SystemLevelTimer(
+                objects=[
+                    self,
+                    self.traversability_estimator,
+                    self.traversability_estimator._visualizer,
+                    self.supervision_generator,
+                ],
+                names=["WVN", "TraversabilityEstimator", "Visualizer", "SupervisionGenerator"],
+                step_reference=[self.step],
+                time_reference=[self.step_time],
+            )
+        else:
+            # Turn off all timing
+            self.slt_not_time = True
+            self.traversability_estimator.slt_not_time = True
+            self.traversability_estimator._visualizer.slt_not_time = True
+            self.supervision_generator.slt_not_time = True
+
+        self.gpu_monitor = SystemLevelGpuMonitor(
+            objects=[
+                self,
+                self.traversability_estimator,
+                self.traversability_estimator._visualizer,
+                self.supervision_generator,
+            ],
+            names=["WVN", "TraversabilityEstimator", "Visualizer", "SupervisionGenerator"],
+            enabled=self.log_memory,
+            device=self.device,
+            store_samples=True,
+            step_reference=[self.step],
+            time_reference=[self.step_time],
+        )
+        # Register shotdown callbacks
+        rospy.on_shutdown(self.shutdown_callback)
+        signal.signal(signal.SIGINT, self.shutdown_callback)
+        signal.signal(signal.SIGTERM, self.shutdown_callback)
+
         # Launch processes
         print("─" * 80)
-
-        # Setup slow threads
         print("Launching [learning] thread")
-        if self.run_online_learning:
+        if self.mode != WVNMode.EXTRACT_LABELS:
+            self.learning_thread_loop_running = True
             self.learning_thread = Thread(target=self.learning_thread_loop, name="learning")
             self.learning_thread.start()
         print("[WVN] System ready")
 
-    def __str__(self):
-        s = "WvnRosInterface:"
-        if hasattr(self, "time_summary"):
-            for (k, v) in self.time_summary.items():
-                n = self.n_summary[k]
-                s += f"\n  {k}:".ljust(25) + f" {round(v,2)}ms  counts: {n} "
-        return s
-
-    def __del__(self):
-        """Destructor
-        Joins all the running threads
-        """
-        # Join threads
-        if self.run_online_learning:
+    def shutdown_callback(self, *args, **kwargs):
+        # Write stuff to files
+        print("Shutdown callback called")
+        if self.mode != WVNMode.EXTRACT_LABELS:
+            self.learning_thread_loop_running = False
             self.learning_thread.join()
+
+        print("Storing learned checkpoint...", end="")
+        self.traversability_estimator.save_checkpoint(self.params.general.model_path, "last_checkpoint.pt")
+        print("done")
+
+        if self.log_time:
+            print("Storing timer data...", end="")
+            self.timer.store(folder=self.params.general.model_path)
+            print("done")
+        if self.log_memory:
+            print("Storing memory data...", end="")
+            self.gpu_monitor.store(folder=self.params.general.model_path)
+            print("done")
+
+        sys.exit(0)
+
+    @accumulate_time
+    def learning_thread_loop(self):
+        """This implements the main thread that runs the training procedure
+        We can only set the rate using rosparam
+        """
+        # Set rate
+        rate = rospy.Rate(self.learning_thread_rate)
+
+        # Main loop
+        while self.learning_thread_loop_running:
+            # Optimize model
+            with SystemLevelContextTimer(self, "training_step_time"):
+                res = self.traversability_estimator.train()
+
+            if self.step != self.traversability_estimator.step:
+                self.step_time = rospy.get_time()
+                self.step = self.traversability_estimator.step
+
+            # Publish loss
+            system_state = SystemState()
+            for k in res.keys():
+                if hasattr(system_state, k):
+                    setattr(system_state, k, res[k])
+
+            system_state.pause_learning = self.traversability_estimator.pause_learning
+            system_state.mode = self.mode.value
+            system_state.step = self.step
+            self.pub_system_state.publish(system_state)
+
+            rate.sleep()
 
     @accumulate_time
     def read_params(self):
         """Reads all the parameters from the parameter server"""
         # Topics
-        self.robot_state_topic = rospy.get_param("~robot_state_topic", "/wild_visual_navigation_node/robot_state")
-        self.image_topic = rospy.get_param("~image_topic", "/alphasense_driver_ros/cam4/debayered")
-        self.info_topic = rospy.get_param("~camera_info_topic", "/alphasense_driver_ros/cam4/camera_info")
-        self.desired_twist_topic = rospy.get_param("~desired_twist_topic", "/log/state/desiredRobotTwist")
+        self.robot_state_topic = rospy.get_param("~robot_state_topic")
+        self.desired_twist_topic = rospy.get_param("~desired_twist_topic")
+        self.camera_topics = rospy.get_param("~camera_topics")
 
         # Frames
-        self.fixed_frame = rospy.get_param("~fixed_frame", "odom")
-        self.base_frame = rospy.get_param("~base_frame", "base")
-        self.camera_frame = rospy.get_param("~camera_frame", "cam4_sensor_frame_helper")
-        self.footprint_frame = rospy.get_param("~footprint_frame", "footprint")
+        self.fixed_frame = rospy.get_param("~fixed_frame")
+        self.base_frame = rospy.get_param("~base_frame")
+        self.camera_frame = rospy.get_param("~camera_frame")
+        self.footprint_frame = rospy.get_param("~footprint_frame")
 
         # Robot size and specs
-        self.robot_length = rospy.get_param("~robot_length", 1.0)
-        self.robot_width = rospy.get_param("~robot_width", 0.6)
-        self.robot_height = rospy.get_param("~robot_height", 0.3)
+        self.robot_length = rospy.get_param("~robot_length")
+        self.robot_width = rospy.get_param("~robot_width")
+        self.robot_height = rospy.get_param("~robot_height")
 
         # Traversability estimation params
-        self.traversability_radius = rospy.get_param("~traversability_radius", 3.0)
-        self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr", 0.2)
-        self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.1)
-        self.network_input_image_height = rospy.get_param("~network_input_image_height", 224)  # 448
-        self.network_input_image_width = rospy.get_param("~network_input_image_width", 224)  # 448
-        self.segmentation_type = rospy.get_param("~segmentation_type", "slic")
-        self.feature_type = rospy.get_param("~feature_type", "dino")
-        self.dino_patch_size = rospy.get_param("~dino_patch_size", 8)
+        self.traversability_radius = rospy.get_param("~traversability_radius")
+        self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr")
+        self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr")
+        self.network_input_image_height = rospy.get_param("~network_input_image_height")
+        self.network_input_image_width = rospy.get_param("~network_input_image_width")
+        self.segmentation_type = rospy.get_param("~segmentation_type")
+        self.feature_type = rospy.get_param("~feature_type")
+        self.dino_patch_size = rospy.get_param("~dino_patch_size")
+        self.confidence_std_factor = rospy.get_param("~confidence_std_factor")
 
         # Supervision Generator
-        self.robot_max_velocity = rospy.get_param("~robot_max_velocity", 0.8)
-        self.untraversable_thr = rospy.get_param("~untraversable_thr", 0)
+        self.robot_max_velocity = rospy.get_param("~robot_max_velocity")
+        self.untraversable_thr = rospy.get_param("~untraversable_thr")
 
         # Optical flow params
-        self.optical_flow_estimator_type = rospy.get_param("~optical_flow_estimator_type", "sparse")
+        self.optical_flow_estimator_type = rospy.get_param("~optical_flow_estimator_type")
 
         # Threads
-        self.run_online_learning = rospy.get_param("~run_online_learning", True)
-        self.image_callback_rate = rospy.get_param("~image_callback_rate", 3)  # hertz
-        self.proprio_callback_rate = rospy.get_param("~proprio_callback_rate", 4)  # hertz
-        self.learning_thread_rate = rospy.get_param("~learning_thread_rate", 10)  # hertz
+        self.image_callback_rate = rospy.get_param("~image_callback_rate")  # hertz
+        self.proprio_callback_rate = rospy.get_param("~proprio_callback_rate")  # hertz
+        self.learning_thread_rate = rospy.get_param("~learning_thread_rate")  # hertz
 
         # Data storage
-        out_path = os.path.join(WVN_ROOT_DIR, "results")
-        self.output_path = rospy.get_param("~output_path", out_path)
-        self.mission_name = rospy.get_param("~mission_name", "default_mission")
+        self.mission_name = rospy.get_param("~mission_name")
+        self.mission_timestamp = rospy.get_param("~mission_timestamp")
 
         # Print timings
-        self.print_image_callback_time = rospy.get_param("~print_image_callback_time", False)
+        self.print_image_callback_time = rospy.get_param("~print_image_callback_time")
+        self.print_proprio_callback_time = rospy.get_param("~print_proprio_callback_time")
+        self.log_time = rospy.get_param("~log_time")
+        self.log_memory = rospy.get_param("~log_memory")
+        self.log_confidence = rospy.get_param("~log_confidence")
+        self.verbose = rospy.get_param("~verbose", False)
 
         # Select mode: # debug, online, extract_labels
-        self.use_debug_for_desired = rospy.get_param("~use_debug_for_desired", True)
-        self.mode = WVNMode.from_string(rospy.get_param("~mode", "default"))
-        self.running_store_folder = rospy.get_param("~running_store_folder", "nan")
+        self.use_debug_for_desired = rospy.get_param("~use_debug_for_desired")
+        self.mode = WVNMode.from_string(rospy.get_param("~mode", "debug"))
+        self.extraction_store_folder = rospy.get_param("~extraction_store_folder")
 
         # Parse operation modes
         if self.mode == WVNMode.ONLINE:
             print("\nWARNING: online_mode enabled. The graph will not store any debug/training data such as images\n")
 
         elif self.mode == WVNMode.EXTRACT_LABELS:
-            self.run_online_learning = False
             self.image_callback_rate = 3
             self.proprio_callback_rate = 4
             self.optical_flow_estimator_type = False
             self.image_graph_dist_thr = 0.2
             self.proprio_graph_dist_thr = 0.1
 
-            os.makedirs(os.path.join(self.running_store_folder, "image"), exist_ok=True)
-            os.makedirs(os.path.join(self.running_store_folder, "supervision_mask"), exist_ok=True)
+            os.makedirs(os.path.join(self.extraction_store_folder, "image"), exist_ok=True)
+            os.makedirs(os.path.join(self.extraction_store_folder, "supervision_mask"), exist_ok=True)
 
         # Experiment file
-        self.exp_file = rospy.get_param("~exp", "nan")
+        exp_file = rospy.get_param("~exp")
 
         # Torch device
-        self.device = rospy.get_param("~device", "cuda")
+        self.device = rospy.get_param("~device")
 
         # Visualization
-        self.colormap = rospy.get_param("~colormap", "RdYlBu")
+        self.colormap = rospy.get_param("~colormap")
+
+        # Initialize traversability esimator parameters
+        self.params = ExperimentParams()
+        if exp_file != "nan":
+            exp_override = load_yaml(os.path.join(WVN_ROOT_DIR, "cfg/exp", exp_file))
+            self.params = override_params(self.params, exp_override)
+
+        self.params.general.name = self.mission_name
+        self.params.general.timestamp = self.mission_timestamp
+        self.params.general.log_confidence = self.log_confidence
+        self.params.loss.confidence_std_factor = self.confidence_std_factor
+        self.params.loss.false_negative_weight = self.false_negative_weight
+        self.step = -1
+        self.step_time = rospy.get_time()
 
     def setup_rosbag_replay(self, tf_listener):
         self.tf_listener = tf_listener
@@ -197,36 +305,66 @@ class WvnRosInterface:
             self.robot_state_sub = message_filters.ApproximateTimeSynchronizer(
                 [robot_state_sub, desired_twist_sub], queue_size=10, slop=0.1
             )
+
+            print("Start waiting for RobotState topic being published!")
+            rospy.wait_for_message(self.robot_state_topic, RobotState)
+            print("Start waiting for TwistStamped topic being published!")
+            rospy.wait_for_message(self.desired_twist_topic, TwistStamped)
+
             self.robot_state_sub.registerCallback(self.robot_state_callback)
 
-            # policy_debug_info_sub = message_filters.Subscriber("/debug_info", Float32MultiArray, queue_size=10)
-            # self.robot_state_policy_debug_info_sub = message_filters.ApproximateTimeSynchronizer(
-            #    [robot_state_sub, policy_debug_info_sub], queue_size=1, slop=9999999999999, allow_headerless=True,
-            # )
-            # self.robot_state_policy_debug_info_sub.registerCallback(self.robot_state_policy_debug_info_callback)
-
             # Image callback
-            self.image_sub = message_filters.Subscriber(self.image_topic, Image)
-            self.info_sub = message_filters.Subscriber(self.info_topic, CameraInfo)
-            self.image_synchronizer = message_filters.ApproximateTimeSynchronizer(
-                [self.image_sub, self.info_sub], queue_size=2, slop=0.1
-            )
-            self.image_synchronizer.registerCallback(self.image_callback)
+            for cam in self.camera_topics:
+                # Initialize camera handler for given cam
+                self.camera_handler[cam] = {}
+                # Store camera name
+                self.camera_topics[cam]["name"] = cam
+                # Set subscribers
+                base_topic = self.camera_topics[cam]["image_topic"].replace("/compressed", "")
+                is_compressed = self.camera_topics[cam]["image_topic"] != base_topic
+                if is_compressed:
+                    image_sub = message_filters.Subscriber(self.camera_topics[cam]["image_topic"], CompressedImage)
+                else:
+                    image_sub = message_filters.Subscriber(self.camera_topics[cam]["image_topic"], Image)
 
-        # Publishers
-        self.pub_image_labeled = rospy.Publisher(
-            "/wild_visual_navigation_node/last_node_image_labeled", Image, queue_size=10
-        )
-        self.pub_image_mask = rospy.Publisher("/wild_visual_navigation_node/last_node_image_mask", Image, queue_size=10)
-        self.pub_image_prediction_input = rospy.Publisher(
-            "/wild_visual_navigation_node/current_prediction_input", Image, queue_size=10
-        )
-        self.pub_image_prediction = rospy.Publisher(
-            "/wild_visual_navigation_node/current_prediction", Image, queue_size=10
-        )
-        self.pub_image_prediction_uncertainty = rospy.Publisher(
-            "/wild_visual_navigation_node/current_uncertainty", Image, queue_size=10
-        )
+                info_sub = message_filters.Subscriber(self.camera_topics[cam]["info_topic"], CameraInfo)
+                sync = message_filters.ApproximateTimeSynchronizer([image_sub, info_sub], queue_size=2, slop=0.1)
+                sync.registerCallback(self.image_callback, self.camera_topics[cam])
+                self.camera_handler[cam]["image_sub"] = image_sub
+                self.camera_handler[cam]["info_sub"] = info_sub
+                self.camera_handler[cam]["sync"] = sync
+
+                # Set publishers
+                input_pub = rospy.Publisher(f"/wild_visual_navigation_node/{cam}/image_input", Image, queue_size=10)
+                trav_pub = rospy.Publisher(f"/wild_visual_navigation_node/{cam}/traversability", Image, queue_size=10)
+                conf_pub = rospy.Publisher(f"/wild_visual_navigation_node/{cam}/confidence", Image, queue_size=10)
+                info_pub = rospy.Publisher(f"/wild_visual_navigation_node/{cam}/camera_info", CameraInfo, queue_size=10)
+                self.camera_handler[cam]["input_pub"] = input_pub
+                self.camera_handler[cam]["trav_pub"] = trav_pub
+                self.camera_handler[cam]["conf_pub"] = conf_pub
+                self.camera_handler[cam]["info_pub"] = info_pub
+
+                if self.mode == WVNMode.DEBUG:
+                    # Debugging publishers
+                    last_image_labeled_pub = rospy.Publisher(
+                        f"/wild_visual_navigation_node/{cam}/debug/last_node_image_labeled", Image, queue_size=10
+                    )
+                    last_image_mask_pub = rospy.Publisher(
+                        f"/wild_visual_navigation_node/{cam}/debug/last_node_image_mask", Image, queue_size=10
+                    )
+                    last_image_trav_pub = rospy.Publisher(
+                        f"/wild_visual_navigation_node/{cam}/debug/last_image_traversability", Image, queue_size=10
+                    )
+                    last_image_conf_pub = rospy.Publisher(
+                        f"/wild_visual_navigation_node/{cam}/debug/last_image_confidence", Image, queue_size=10
+                    )
+                    self.camera_handler[cam]["debug"] = {}
+                    self.camera_handler[cam]["debug"]["image_labeled"] = last_image_labeled_pub
+                    self.camera_handler[cam]["debug"]["image_mask"] = last_image_mask_pub
+                    self.camera_handler[cam]["debug"]["image_trav"] = last_image_trav_pub
+                    self.camera_handler[cam]["debug"]["image_conf"] = last_image_conf_pub
+
+        # 3D outputs
         self.pub_debug_proprio_graph = rospy.Publisher(
             "/wild_visual_navigation_node/proprioceptive_graph", Path, queue_size=10
         )
@@ -234,99 +372,68 @@ class WvnRosInterface:
         self.pub_graph_footprints = rospy.Publisher(
             "/wild_visual_navigation_node/graph_footprints", Marker, queue_size=10
         )
+        # 1D outputs
         self.pub_instant_traversability = rospy.Publisher(
             "/wild_visual_navigation_node/instant_traversability", Float32, queue_size=10
         )
-        self.pub_training_loss = rospy.Publisher("/wild_visual_navigation_node/training_loss", Float32, queue_size=10)
-
-        self.pub_traversability = rospy.Publisher(
-            "/wild_visual_navigation_node/traversability_raw", Image, queue_size=10
-        )
-        self.pub_confidence = rospy.Publisher("/wild_visual_navigation_node/confidence_raw", Image, queue_size=10)
-        self.pub_label = rospy.Publisher("/wild_visual_navigation_node/label_raw", Image, queue_size=10)
-        self.pub_camera_info = rospy.Publisher("/wild_visual_navigation_node/camera_info", CameraInfo, queue_size=10)
+        self.pub_system_state = rospy.Publisher("/wild_visual_navigation_node/system_state", SystemState, queue_size=10)
 
         # Services
         # Like, reset graph or the like
-        self.save_graph_service = rospy.Service("~save_graph", SaveLoadData, self.save_graph_callback)
-        self.save_pickle_service = rospy.Service("~save_pickle", SaveLoadData, self.save_pickle_callback)
-        self.save_checkpt_service = rospy.Service("~save_checkpoint", SaveLoadData, self.save_checkpoint_callback)
-        self.load_checkpt_service = rospy.Service("~load_checkpoint", SaveLoadData, self.load_checkpoint_callback)
+        self.save_checkpt_service = rospy.Service("~save_checkpoint", SaveCheckpoint, self.save_checkpoint_callback)
+        self.load_checkpt_service = rospy.Service("~load_checkpoint", LoadCheckpoint, self.load_checkpoint_callback)
 
-    @accumulate_time
-    def save_graph_callback(self, req):
-        """Service call to store the mission graph as a dataset
+        self.pause_learning_service = rospy.Service("~pause_learning", SetBool, self.pause_learning_callback)
 
-        Args:
-            req (SaveLoadDataRequest): SaveLoadData obejct with the request
+    def pause_learning_callback(self, req):
+        """Start and stop the network training"""
+        prev_state = self.traversability_estimator.pause_learning
+        self.traversability_estimator.pause_learning = req.data
+        if not req.data and prev_state:
+            message = "Resume training!"
+        elif req.data and prev_state:
+            message = "Training was already paused!"
+        elif not req.data and not prev_state:
+            message = "Training was already running!"
+        elif req.data and not prev_state:
+            message = "Pause training!"
+        message += f" Updated the network for {self.traversability_estimator.step} steps"
 
-        Returns:
-            res (SaveLoadDataResponse): Status of the request
-        """
-        if req.path == "" or req.mission_name == "":
-            return SaveLoadDataResponse(
-                success=False,
-                message=f"Either output_path [{req.path}] or mission_name [{req.mission_name}] is empty. Please check and try again",
-            )
-
-        mission_path = os.path.join(req.path, req.mission_name)
-        t = Thread(target=self.traversability_estimator.save_graph, args=(mission_path,))
-        t.start()
-        t.join()
-        return SaveLoadDataResponse(success=True, message=f"Graph saved in {mission_path}")
-
-    @accumulate_time
-    def save_pickle_callback(self, req):
-        """Service call to store the traversability estimator instance as a pickle file
-
-        Args:
-            req (TriggerRequest): Trigger request service
-        """
-        if req.path == "" or req.mission_name == "":
-            return SaveLoadDataResponse(
-                success=False,
-                message=f"Either path [{req.path}] or mission_name [{req.mission_name}] is empty. Please check and try again",
-            )
-
-        mission_path = os.path.join(req.path, req.mission_name)
-        pickle_file = "traversability_estimator.pickle"
-        self.traversability_estimator.save(mission_path, pickle_file)
-        return SaveLoadDataResponse(success=True, message=f"Pickle [{pickle_file}] saved in {mission_path}")
+        return True, message
 
     @accumulate_time
     def save_checkpoint_callback(self, req):
-        """Service call to store the learned model
+        """Service call to store the learned checkpoint
 
         Args:
             req (TriggerRequest): Trigger request service
         """
-        if req.path == "" or req.mission_name == "":
-            return SaveLoadDataResponse(
-                success=False,
-                message=f"Either path [{req.path}] or mission_name [{req.mission_name}] is empty. Please check and try again",
-            )
+        if req.checkpoint_name == "":
+            req.checkpoint_name = "last_checkpoint.pt"
 
-        mission_path = os.path.join(req.path, req.mission_name)
-        checkpoint_file = "model_checkpoint.pt"
-        self.traversability_estimator.save_checkpoint(mission_path, checkpoint_file)
-        return SaveLoadDataResponse(success=True, message=f"Checkpoint [{checkpoint_file}] saved in {mission_path}")
+        if req.mission_path == "":
+            message = f"[WARNING] Store checkpoint {req.checkpoint_name} default mission path: {self.params.general.model_path}/{req.checkpoint_name}"
+            req.mission_path = self.params.general.model_path
+        else:
+            message = f"Store checkpoint {req.checkpoint_name} to: {req.mission_path}/{req.checkpoint_name}"
+
+        self.traversability_estimator.save_checkpoint(req.mission_path, req.checkpoint_name)
+        return SaveCheckpointResponse(success=True, message=message)
 
     def load_checkpoint_callback(self, req):
-        """Service call to load a learned model
+        """Service call to load a learned checkpoint
 
         Args:
             req (TriggerRequest): Trigger request service
         """
-        if req.path == "" or req.mission_name == "":
-            return SaveLoadDataResponse(
+        if req.checkpoint_path == "":
+            return LoadCheckpointResponse(
                 success=False,
-                message=f"Either path [{req.path}] or mission_name [{req.mission_name}] is empty. Please check and try again",
+                message=f"Path [{req.checkpoint_path}] is empty. Please check and try again",
             )
-
-        mission_path = os.path.join(req.path, req.mission_name)
-        checkpoint_file = "model_checkpoint.pt"
-        self.traversability_estimator.load_checkpoint(mission_path, checkpoint_file)
-        return SaveLoadDataResponse(success=True, message=f"Checkpoint [{checkpoint_file}] loaded successfully")
+        checkpoint_path = req.checkpoint_path
+        self.traversability_estimator.load_checkpoint(checkpoint_path)
+        return LoadCheckpointResponse(success=True, message=f"Checkpoint [{checkpoint_path}] loaded successfully")
 
     @accumulate_time
     def query_tf(self, parent_frame: str, child_frame: str, stamp: Optional[rospy.Time] = None):
@@ -344,24 +451,17 @@ class WvnRosInterface:
             try:
                 self.tf_listener.waitForTransform(parent_frame, child_frame, stamp, rospy.Duration(1.0))
             except Exception as e:
-                print("Error in querry tf: ", e)
+                print("Error in query tf: ", e)
                 return (None, None)
 
         try:
             (trans, rot) = self.tf_listener.lookupTransform(parent_frame, child_frame, stamp)
             return (trans, rot)
         except Exception as e:
-            print("Error in querry tf: ", e)
+            print("Error in query tf: ", e)
             # (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException): avoid all errors
             rospy.logwarn(f"Couldn't get between {parent_frame} and {child_frame}")
             return (None, None)
-
-    # def robot_state_policy_debug_info_callback(self, state_msg, debug_info_msg):
-    #     desired_twist_msg = TwistStamped()
-    #     desired_twist_msg.twist.linear.x = debug_info_msg.data[0]
-    #     desired_twist_msg.twist.linear.y = debug_info_msg.data[1]
-    #     desired_twist_msg.twist.angular.z = debug_info_msg.data[2]
-    #     self.robot_state_callback(state_msg, desired_twist_msg)
 
     @accumulate_time
     def robot_state_callback(self, state_msg, desired_twist_msg: TwistStamped):
@@ -409,6 +509,7 @@ class WvnRosInterface:
                 pose_base_in_world=pose_base_in_world,
                 pose_footprint_in_base=pose_footprint_in_base,
                 twist_in_base=current_twist_tensor,
+                desired_twist_in_base=desired_twist_tensor,
                 width=self.robot_width,
                 length=self.robot_length,
                 height=self.robot_width,
@@ -421,30 +522,38 @@ class WvnRosInterface:
             # Add node to the graph
             self.traversability_estimator.add_proprio_node(proprio_node)
 
-            if self.mode != WVNMode.EXTRACT_LABELS:
-                # Visualizations (45ms)
+            if self.mode == WVNMode.DEBUG or self.mode == WVNMode.ONLINE:
                 self.visualize_proprioception()
+
+            if self.print_proprio_callback_time:
+                print(self.timer)
 
         except Exception as e:
             traceback.print_exc()
             print("error state callback", e)
+            raise Exception("Error in robot state callback")
 
     @accumulate_time
-    def image_callback(self, image_msg: Image, info_msg: CameraInfo):
+    def image_callback(self, image_msg: Image, info_msg: CameraInfo, camera_options: dict):
         """Main callback to process incoming images
 
         Args:
             image_msg (sensor_msgs/Image): Incoming image
             info_msg (sensor_msgs/CameraInfo): Camera info message associated to the image
         """
-
-        print("\nImage callback")
+        if self.verbose:
+            print(f"\nImage callback: {camera_options['name']}... ", end="")
         try:
 
             # Run the callback so as to match the desired rate
             ts = image_msg.header.stamp.to_sec()
             if abs(ts - self.last_image_ts) < 1.0 / self.image_callback_rate:
+                if self.verbose:
+                    print("skip")
                 return
+            else:
+                if self.verbose:
+                    print("process")
             self.last_image_ts = ts
 
             # Query transforms from TF
@@ -478,25 +587,25 @@ class WvnRosInterface:
                 image=torch_image,
                 image_projector=image_projector,
                 correspondence=torch.zeros((1,)) if self.optical_flow_estimator_type != "sparse" else None,
+                camera_name=camera_options["name"],
+                use_for_training=camera_options["use_for_training"],
             )
 
-            with Timer("image_callback - add_mission_node"):
-                # Add node to graph
-                added_new_node = self.traversability_estimator.add_mission_node(mission_node)
+            # Add node to graph
+            added_new_node = self.traversability_estimator.add_mission_node(mission_node)
 
-            # Update prediction
-            self.traversability_estimator.update_prediction(mission_node)
+            with SystemLevelContextTimer(self, "update_prediction"):
+                # Update prediction
+                self.traversability_estimator.update_prediction(mission_node)
 
-            with Timer("image_callback - update visualizations"):
-                if self.mode != WVNMode.EXTRACT_LABELS:
-                    # Publish current predictions
-                    self.publish_predictions(mission_node, image_msg, info_msg, image_projector.scaled_camera_matrix)
+            if self.mode == WVNMode.ONLINE or self.mode == WVNMode.DEBUG:
+                self.publish_predictions(mission_node, image_msg, info_msg, image_projector.scaled_camera_matrix)
 
-                    # Publish supervision data depending on the mode
-                    if self.mode != WVNMode.ONLINE:
-                        self.visualize_mission()
-                    else:
-                        self.visualize_mission(fast=True)
+            if self.mode == WVNMode.DEBUG:
+                # Publish current predictions
+                self.visualize_mission()
+                # Publish supervision data depending on the mode
+                self.visualize_debug()
 
             # If a new node was added, update the node is used to visualize the supervision signals
             if added_new_node:
@@ -504,11 +613,12 @@ class WvnRosInterface:
 
             # Print callback time if required
             if self.print_image_callback_time:
-                print(self)
+                print(self.timer)
 
         except Exception as e:
             traceback.print_exc()
             print("error image callback", e)
+            raise Exception("Error in image callback")
 
     @accumulate_time
     def publish_predictions(
@@ -520,20 +630,36 @@ class WvnRosInterface:
             mission_node (MissionNode): Mission node
         """
         # Publish predictions
-        if mission_node is not None and self.run_online_learning:
+        if mission_node is not None and self.mode != WVNMode.EXTRACT_LABELS:
+            # Get camera name
+            cam = mission_node.camera_name
+
             # Traversability
             out_trav = torch.zeros(mission_node.feature_segments.shape, device=self.device)
             out_conf = torch.zeros(mission_node.feature_segments.shape, device=self.device)
+            fs = mission_node.feature_segments.reshape(-1)
+            out_trav = out_trav.reshape(-1)
+            out_conf = out_conf.reshape(-1)
+            out_trav = mission_node.prediction[fs, 0]
+            out_conf = mission_node.confidence[fs]
+            out_trav = out_trav.reshape(mission_node.feature_segments.shape)
+            out_conf = out_conf.reshape(mission_node.feature_segments.shape)
 
-            for i in range(mission_node.prediction.shape[0]):
-                out_trav[i == mission_node.feature_segments] = mission_node.prediction[i, 0]
-                out_conf[i == mission_node.feature_segments] = mission_node.confidence[i]
+            # Color, resized image used as the network input
+            msg = rc.torch_to_ros_image(mission_node.image.cpu(), "rgb8")
+            msg.header = image_msg.header
+            msg.width = out_trav.shape[0]
+            msg.height = out_trav.shape[1]
+            self.camera_handler[cam]["input_pub"].publish(msg)
 
+            # Output traversability
             msg = rc.numpy_to_ros_image(out_trav.cpu().numpy(), "passthrough")
             msg.header = image_msg.header
             msg.width = out_trav.shape[0]
             msg.height = out_trav.shape[1]
-            self.pub_traversability.publish(msg)
+            self.camera_handler[cam]["trav_pub"].publish(msg)
+
+            # Output confidence
             # out_conf[:,:] = 1
             # out_conf[int(out_conf.shape[0]/2):,:] = 0
             # out_conf[:,int(out_conf.shape[1]/2):] = 0
@@ -541,31 +667,15 @@ class WvnRosInterface:
             msg.header = image_msg.header
             msg.width = out_trav.shape[0]
             msg.height = out_trav.shape[1]
-            self.pub_confidence.publish(msg)
+            self.camera_handler[cam]["conf_pub"].publish(msg)
 
+            # Output camera info
+            # The header stays the same, only the image, width, K and P change due to the different resolution
             info_msg.width = out_trav.shape[0]
             info_msg.height = out_trav.shape[1]
             info_msg.K = scaled_camera_matrix[0, :3, :3].cpu().numpy().flatten().tolist()
             info_msg.P = scaled_camera_matrix[0, :3, :4].cpu().numpy().flatten().tolist()
-            self.pub_camera_info.publish(info_msg)
-            # self.pub_label.publish(rc.numpy_to_ros_image(np_labeled_image))
-
-    @accumulate_time
-    def learning_thread_loop(self):
-        """This implements the main thread that runs the training procedure
-        We can only set the rate using rosparam
-        """
-        # Set rate
-        rate = rospy.Rate(self.learning_thread_rate)
-
-        # Main loop
-        while not rospy.is_shutdown():
-            # Optimize model
-            loss = self.traversability_estimator.train()
-
-            # Publish loss
-            self.pub_training_loss.publish(loss)
-            rate.sleep()
+            self.camera_handler[cam]["info_pub"].publish(info_msg)
 
     @accumulate_time
     def visualize_proprioception(self):
@@ -661,7 +771,8 @@ class WvnRosInterface:
 
         # Publish
         if len(footprints_marker.points) % 3 != 0:
-            print(f"number of points for footprint is {len(footprints_marker.points)}")
+            if self.verbose:
+                print(f"number of points for footprint is {len(footprints_marker.points)}")
             return
         self.pub_graph_footprints.publish(footprints_marker)
         self.pub_debug_proprio_graph.publish(proprio_graph_msg)
@@ -670,57 +781,58 @@ class WvnRosInterface:
         self.pub_instant_traversability.publish(self.supervision_generator.traversability)
 
     @accumulate_time
-    def visualize_mission(self, fast: bool = False):
-        """Publishes all the visualizations related to mission graph, like the graph
-        itself, visual features, supervision signals, and traversability estimates
-        """
+    def visualize_mission(self):
+        """Publishes all the visualizations related to the mission graph"""
         # Get current time for later
         now = rospy.Time.now()
+
+        # Publish mission graph
+        mission_graph_msg = Path()
+        mission_graph_msg.header.frame_id = self.fixed_frame
+        mission_graph_msg.header.stamp = now
+
+        for node in self.traversability_estimator.get_mission_nodes():
+            pose = PoseStamped()
+            pose.header.stamp = now
+            pose.header.frame_id = self.fixed_frame
+            pose.pose = rc.torch_to_ros_pose(node.pose_cam_in_world)
+            mission_graph_msg.poses.append(pose)
+
+        self.pub_mission_graph.publish(mission_graph_msg)
+
+    @accumulate_time
+    def visualize_debug(self):
+        """Publishes all the debugging, slow visualizations"""
 
         # Get visualization node
         vis_node = self.traversability_estimator.get_mission_node_for_visualization()
 
-        if not fast:
-            # Publish predictions
-            if vis_node is not None and self.run_online_learning:
-                with Timer("plot_mission_node_prediction"):
-                    (
-                        np_prediction_image,
-                        np_uncertainty_image,
-                    ) = self.traversability_estimator.plot_mission_node_prediction(vis_node)
+        # Publish predictions
+        if vis_node is not None and self.mode != WVNMode.EXTRACT_LABELS:
+            cam = vis_node.camera_name
+            (
+                np_prediction_image,
+                np_uncertainty_image,
+            ) = self.traversability_estimator.plot_mission_node_prediction(vis_node)
 
-                with Timer("publish_mission_node_prediction"):
-                    self.pub_image_prediction_input.publish(rc.torch_to_ros_image(vis_node.image))
-                    self.pub_image_prediction.publish(rc.numpy_to_ros_image(np_prediction_image))
-                    self.pub_image_prediction_uncertainty.publish(rc.numpy_to_ros_image(np_uncertainty_image))
+            # self.pub_image_input.publish(rc.torch_to_ros_image(vis_node.image))
+            self.camera_handler[cam]["debug"]["image_trav"].publish(rc.numpy_to_ros_image(np_prediction_image))
+            self.camera_handler[cam]["debug"]["image_conf"].publish(rc.numpy_to_ros_image(np_uncertainty_image))
 
-            # Publish reprojections of last node in graph
-            if vis_node is not None:
-                with Timer("plot_mission_node_training"):
-                    np_labeled_image, np_mask_image = self.traversability_estimator.plot_mission_node_training(vis_node)
-                if np_labeled_image is None or np_mask_image is None:
-                    return
-                with Timer("publish_mission_node_training"):
-                    self.pub_image_labeled.publish(rc.numpy_to_ros_image(np_labeled_image))
-                    self.pub_image_mask.publish(rc.numpy_to_ros_image(np_mask_image))
+        # Publish reprojections of last node in graph
+        if vis_node is not None:
+            cam = vis_node.camera_name
 
-        # Publish mission graph
-        with Timer("publish_mission_graph"):
-            mission_graph_msg = Path()
-            mission_graph_msg.header.frame_id = self.fixed_frame
-            mission_graph_msg.header.stamp = now
+            np_labeled_image, np_mask_image = self.traversability_estimator.plot_mission_node_training(vis_node)
 
-            for node in self.traversability_estimator.get_mission_nodes():
-                pose = PoseStamped()
-                pose.header.stamp = now
-                pose.header.frame_id = self.fixed_frame
-                pose.pose = rc.torch_to_ros_pose(node.pose_cam_in_world)
-                mission_graph_msg.poses.append(pose)
-
-            self.pub_mission_graph.publish(mission_graph_msg)
+            if np_labeled_image is None or np_mask_image is None:
+                return
+            self.camera_handler[cam]["debug"]["image_labeled"].publish(rc.numpy_to_ros_image(np_labeled_image))
+            self.camera_handler[cam]["debug"]["image_mask"].publish(rc.numpy_to_ros_image(np_mask_image))
 
 
 if __name__ == "__main__":
+    node_name = "wild_visual_navigation_node"
     rospy.init_node("wild_visual_navigation_node")
     wvn = WvnRosInterface()
     rospy.spin()

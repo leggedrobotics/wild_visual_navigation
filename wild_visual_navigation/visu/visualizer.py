@@ -16,7 +16,7 @@ from wild_visual_navigation.learning.utils import get_confidence
 from wild_visual_navigation.visu import get_img_from_fig
 from wild_visual_navigation.visu import paper_colors_rgb_u8, paper_colors_rgba_u8
 from wild_visual_navigation.visu import paper_colors_rgb_f, paper_colors_rgba_f
-from wild_visual_navigation.utils import Timer
+from wild_visual_navigation.utils import Timer, accumulate_time
 
 __all__ = ["LearningVisualizer"]
 
@@ -36,7 +36,6 @@ class LearningVisualizer:
         self._store = store
         self._log = log
         self._c_maps = {"RdYlBu": np.array([np.uint8(np.array(c) * 255) for c in sns.color_palette("RdYlBu", 256)])}
-
         if not (p_visu is None):
             if not os.path.exists(self._p_visu):
                 os.makedirs(self._p_visu)
@@ -90,7 +89,6 @@ class LearningVisualizer:
         assert len(y_tag) == l
 
         # not used
-        palette = paper_colors_rgb_u8
         for j, (_x, _y, _y_lower, _y_upper, _y_tag) in enumerate(zip(x, y, y_lower, y_upper, y_tag)):
             k = [k for k in paper_colors_rgb_f.keys()][j]
 
@@ -113,6 +111,7 @@ class LearningVisualizer:
         plt.close()
         return res
 
+    @accumulate_time
     def plot_mission_node_prediction(self, node: any):
         if node._image is None or node._prediction is None:
             return None
@@ -121,33 +120,32 @@ class LearningVisualizer:
         reco_pred = node._prediction[:, 1:]
         conf_pred = get_confidence(reco_pred, node._features)
 
-        with Timer("visualizer - plot_traversability_graph_on_seg trav"):
-            trav_img = self.plot_traversability_graph_on_seg(
-                trav_pred,
-                node.feature_segments,
-                node.as_pyg_data(),
-                node.feature_positions,
-                node.image,
-                colormap="RdYlBu",
-                colorize_invalid_centers=True,
-                not_log=True,
-                store=False,
-            )
+        trav_img = self.plot_traversability_graph_on_seg(
+            trav_pred,
+            node.feature_segments,
+            node.as_pyg_data(),
+            node.feature_positions,
+            node.image,
+            colormap="RdYlBu",
+            colorize_invalid_centers=True,
+            not_log=True,
+            store=False,
+        )
 
-        with Timer("visualizer - plot_traversability_graph_on_seg conf"):
-            conf_img = self.plot_traversability_graph_on_seg(
-                conf_pred,
-                node.feature_segments,
-                node.as_pyg_data(),
-                node.feature_positions,
-                node.image,
-                colormap="RdYlBu",
-                colorize_invalid_centers=True,
-                not_log=True,
-                store=False,
-            )
+        conf_img = self.plot_traversability_graph_on_seg(
+            conf_pred,
+            node.feature_segments,
+            node.as_pyg_data(),
+            node.feature_positions,
+            node.image,
+            colormap="RdYlBu",
+            colorize_invalid_centers=True,
+            not_log=True,
+            store=False,
+        )
         return trav_img, conf_img
 
+    @accumulate_time
     def plot_mission_node_training(self, node: any):
         if node._image is None or node._prediction is None:
             return None
@@ -169,7 +167,7 @@ class LearningVisualizer:
         supervision_mask[mask] = 0
         mask_img = self.plot_detectron(
             node.image.clone(),
-            torch.round(torch.clamp(255 * supervision_mask[0], 0, 255)),
+            torch.round(torch.clamp(255 * supervision_mask[0], 0, 255)).type(torch.long),
             max_seg=256,
             colormap="RdYlBu",
             overlay_mask=mask[0],
@@ -178,6 +176,7 @@ class LearningVisualizer:
 
         return supervison_img, mask_img
 
+    @accumulate_time
     @image_functionality
     def plot_traversability_graph_on_seg(
         self,
@@ -191,33 +190,36 @@ class LearningVisualizer:
         colorize_invalid_centers=False,
         **kwargs,
     ):
-        # Transfer the node traversbility score to the segment
-        # with Timer("visualizer - plot_traversability_graph_on_seg - copy_score"):
-        # ~15 ms
         m = torch.zeros_like(seg, dtype=prediction.dtype)
-        for i in range(seg.max() + 1):
-            m[seg == i] = prediction[i]
-
-        # Plot Segments on Image
-        # with Timer("visualizer - plot_traversability_graph_on_seg - plot_segments"):
-        # ~50 ms
-        i1 = self.plot_detectron_cont(
-            img.detach().cpu().numpy(), m.detach().cpu().numpy(), not_log=True, store=False, colormap=colormap
+        m = m.reshape(-1)
+        m = (prediction[seg.reshape(-1)].reshape(seg.shape) * 255).type(torch.long)
+        i1 = self.plot_detectron(
+            img,
+            m,
+            max_seg=256,
+            not_log=True,
+            store=False,
+            colormap=colormap,
+            alpha=0.6,
+            boundary_seg=seg,
+            draw_bound=False,
         )
         i2 = (torch.from_numpy(i1).type(torch.float32) / 255).permute(2, 0, 1)
 
         # Plot Graph on Image
-        return self.plot_traversability_graph(
-            prediction,
-            graph,
-            center,
-            i2,
-            not_log=True,
-            store=False,
-            colormap=colormap,
-            colorize_invalid_centers=colorize_invalid_centers,
-        )
+        return i1
+        # self.plot_traversability_graph(
+        #     prediction,
+        #     graph,
+        #     center,
+        #     i2,
+        #     not_log=True,
+        #     store=False,
+        #     colormap=colormap,
+        #     colorize_invalid_centers=colorize_invalid_centers,
+        # )
 
+    @accumulate_time
     @image_functionality
     def plot_traversability_graph(
         self, prediction, graph, center, img, max_val=1.0, colormap="RdYlBu", colorize_invalid_centers=False, **kwargs
@@ -271,44 +273,29 @@ class LearningVisualizer:
 
         return np.array(img_pil)
 
+    @accumulate_time
     @image_functionality
     def plot_detectron(
-        self, img, seg, alpha=0.5, draw_bound=True, max_seg=40, colormap="Set2", overlay_mask=None, **kwargs
+        self,
+        img,
+        seg,
+        alpha=0.5,
+        draw_bound=True,
+        max_seg=40,
+        colormap="Set2",
+        overlay_mask=None,
+        boundary_seg=None,
+        **kwargs,
     ):
         img = self.plot_image(img, not_log=True)
-        # assert seg.max() < max_seg and seg.min() >= 0, f"Seg out of Bounds: 0-{max_seg}, Given: {seg.min()}-{seg.max()}"
-        try:
-            np_seg = seg.clone().cpu().numpy()
-        except Exception:
-            pass
-        np_seg = np_seg.astype(np.uint32)
+        seg_img = self.plot_segmentation(seg.clone(), max_seg=max_seg, colormap=colormap, store=False, not_log=True)
 
-        H, W, C = img.shape
-        overlay = np.zeros_like(img)
-        c_map = sns.color_palette(colormap, max_seg)
-
-        uni = np.unique(np_seg)
-        # Commented out center extraction code
-        # centers = []
-        for u in uni:
-            m = np_seg == u
-            try:
-                col = np.uint8(np.array(c_map[u])[:3] * 255)
-            except Exception as e:
-                print(e)
-                continue
-            overlay[m] = col
-            # segs_mask = skimage.measure.label(m)
-            # regions = skimage.measure.regionprops(segs_mask)
-            # regions.sort(key=lambda x: x.area, reverse=True)
-            # cen = np.mean(regions[0].coords, axis=0).astype(np.uint32)[::-1]
-            # centers.append((self._meta_data["stuff_classes"][u], cen))
-
+        H, W = img.shape[:2]
         back = np.zeros((H, W, 4))
         back[:, :, :3] = img
         back[:, :, 3] = 255
         fore = np.zeros((H, W, 4))
-        fore[:, :, :3] = overlay
+        fore[:, :, :3] = seg_img
         fore[:, :, 3] = alpha * 255
         if overlay_mask is not None:
             try:
@@ -318,50 +305,26 @@ class LearningVisualizer:
             fore[overlay_mask] = 0
 
         img_new = Image.alpha_composite(Image.fromarray(np.uint8(back)), Image.fromarray(np.uint8(fore)))
-
         img_new = img_new.convert("RGB")
-        mask = skimage.segmentation.mark_boundaries(np.array(img_new), np_seg, color=(255, 255, 255))
-        mask = mask.sum(axis=2)
-        m = mask == mask.max()
-        img_new = np.array(img_new)
+
         if draw_bound:
+            if boundary_seg is not None:
+                seg = boundary_seg
+
+            if torch.is_tensor(seg):
+                seg = seg.cpu().numpy()
+            if seg.shape[0] == 1:
+                seg = seg[0]
+
+            mask = skimage.segmentation.mark_boundaries(np.array(img_new), seg, color=(255, 255, 255))
+            mask = mask.sum(axis=2)
+            m = mask == mask.max()
+            img_new = np.array(img_new)
             img_new[m] = (255, 255, 255)
+
         return np.uint8(img_new)
 
-    @image_functionality
-    def plot_detectron_cont(self, img, seg, alpha=0.3, max_val=1.0, colormap="RdYlBu", **kwargs):
-        img = self.plot_image(img, not_log=True, store=False)
-        assert (
-            seg.max() <= max_val and seg.min() >= 0
-        ), f"Seg out of Bounds: 0-{max_val}, Given: {seg.min()}-{seg.max()}"
-        try:
-            seg = seg.clone().cpu().numpy()
-        except Exception:
-            pass
-        seg = np.uint8(seg.astype(np.float32) * 255)
-
-        H, W, C = img.shape
-        overlay = np.zeros_like(img)
-
-        if colormap not in self._c_maps:
-            self._c_maps[colormap] = np.array([np.uint8(np.array(c) * 255) for c in sns.color_palette(colormap, 256)])
-        c_map = self._c_maps[colormap]
-
-        uni = np.unique(seg)
-        for u in uni:
-            m = seg == u
-            overlay[m] = c_map[u]
-
-        back = np.zeros((H, W, 4))
-        back[:, :, :3] = img
-        back[:, :, 3] = 255
-        fore = np.zeros((H, W, 4))
-        fore[:, :, :3] = overlay
-        fore[:, :, 3] = alpha * 255
-        img_new = Image.alpha_composite(Image.fromarray(np.uint8(back)), Image.fromarray(np.uint8(fore)))
-        img_new = np.array(img_new.convert("RGB"))
-        return np.uint8(img_new)
-
+    @accumulate_time
     @image_functionality
     def plot_graph_result(self, graph, center, img, seg, res, use_seg=False, colormap="RdYlBu", **kwargs):
         """Plot Graph GT and Predtion on Image
@@ -424,31 +387,32 @@ class LearningVisualizer:
         res = np.concatenate(ls, axis=1)
         return res
 
+    @accumulate_time
     @image_functionality
-    def plot_segmentation(self, seg, max_seg=40, colormap="Set2", **kwargs):
-        try:
-            seg = seg.clone().cpu().numpy()
-        except Exception:
-            pass
-
+    def plot_segmentation(
+        self,
+        seg,
+        max_seg=40,
+        colormap="Set2",
+        **kwargs,
+    ):
         if seg.shape[0] == 1:
             seg = seg[0]
 
         if seg.dtype == bool:
             max_seg = 2
 
-        c_map = sns.color_palette(colormap, max_seg)
+        c_map = torch.tensor(sns.color_palette(colormap, max_seg), device=seg.device)
+        c_map = (c_map * 255).type(torch.uint8)
+        H, W = seg.shape
+        out_img = torch.zeros((H, W, 3), dtype=torch.uint8)
+        sf = seg.flatten()
+        out_img = out_img.reshape(-1, 3)
 
-        H, W = seg.shape[:2]
-        img = np.zeros((H, W, 3), dtype=np.uint8)
+        out_img = c_map[sf]
+        return out_img.reshape(H, W, 3).cpu().numpy()
 
-        uni = np.unique(seg)
-
-        for u in uni:
-            img[seg == u] = np.uint8(np.array(c_map[u])[:3] * 255)
-
-        return img
-
+    @accumulate_time
     @image_functionality
     def plot_image(self, img, **kwargs):
         """
@@ -473,6 +437,7 @@ class LearningVisualizer:
         img = np.uint8(img)
         return img
 
+    @accumulate_time
     @image_functionality
     def plot_optical_flow(self, flow: torch.Tensor, img1: torch.Tensor, img2: torch.Tensor, s=10, **kwargs):
         """Draws line connection between to images based on estimated flow
@@ -505,6 +470,7 @@ class LearningVisualizer:
                     pass
         return np.array(pil_img).astype(np.uint8)
 
+    @accumulate_time
     @image_functionality
     def plot_sparse_optical_flow(
         self, pre_pos: torch.Tensor, cur_pos: torch.Tensor, img1: torch.Tensor, img2: torch.Tensor, **kwargs
@@ -535,49 +501,51 @@ class LearningVisualizer:
                 pass
         return np.array(pil_img).astype(np.uint8)
 
-    @image_functionality
-    def plot_correspondence_segment(
-        self,
-        seg_prev: torch.Tensor,
-        seg_current: torch.Tensor,
-        img_prev: torch.Tensor,
-        img_current: torch.Tensor,
-        center_prev: torch.Tensor,
-        center_current: torch.Tensor,
-        correspondence: torch.Tensor,
-        **kwargs,
-    ):
-        """_summary_
+    # @image_functionality
+    # def plot_correspondence_segment(
+    #     self,
+    #     seg_prev: torch.Tensor,
+    #     seg_current: torch.Tensor,
+    #     img_prev: torch.Tensor,
+    #     img_current: torch.Tensor,
+    #     center_prev: torch.Tensor,
+    #     center_current: torch.Tensor,
+    #     correspondence: torch.Tensor,
+    #     **kwargs,
+    # ):
+    #     """_summary_
 
-        Args:
-            seg_prev (torch.Tensor, dtype=torch.long, shape=(H,W))): Segmentation
-            seg_current (torch.Tensor, dtype=torch.long, shape=(H,W)): Segmentation
-            img_prev (torch.Tensor,  dtype=torch.float32, shape=(C,H,W) or (H,W,C)): Image
-            img_current (torch.Tensor,  dtype=torch.float32, shape=(C,H,W) or (H,W,C)): Image
-            center_prev (torch.Tensor,  dtype=torch.float32, shape=(N,2)): Center positions to index seg reverse order
-            center_current (torch.Tensor,  dtype=torch.float32, shape=(N,2)): Center positions to index seg reverse order
-            correspondence (torch.Tensor,  dtype=torch.long, shape=(N,2)): 0 previous seg, 1 current seg
+    #     Args:
+    #         seg_prev (torch.Tensor, dtype=torch.long, shape=(H,W))): Segmentation
+    #         seg_current (torch.Tensor, dtype=torch.long, shape=(H,W)): Segmentation
+    #         img_prev (torch.Tensor,  dtype=torch.float32, shape=(C,H,W) or (H,W,C)): Image
+    #         img_current (torch.Tensor,  dtype=torch.float32, shape=(C,H,W) or (H,W,C)): Image
+    #         center_prev (torch.Tensor,  dtype=torch.float32, shape=(N,2)): Center positions to index seg reverse order
+    #         center_current (torch.Tensor,  dtype=torch.float32, shape=(N,2)): Center positions to index seg reverse order
+    #         correspondence (torch.Tensor,  dtype=torch.long, shape=(N,2)): 0 previous seg, 1 current seg
 
-        Returns:
-            (np.array, dtype=np.uint8, shape=(H,2xW,C)): Concatenated image with segments and connected centers
-        """
-        prev_img = self.plot_detectron(img_prev, seg_prev, max_seg=seg_prev.max() + 1, not_log=True, store=False)
-        current_img = self.plot_detectron(
-            img_current, seg_current, max_seg=seg_current.max() + 1, not_log=True, store=False
-        )
-        img = np.concatenate([prev_img, current_img], axis=1)
+    #     Returns:
+    #         (np.array, dtype=np.uint8, shape=(H,2xW,C)): Concatenated image with segments and connected centers
+    #     """
+    #     prev_img = self.plot_detectron(img_prev, seg_prev, max_seg=seg_prev.max() + 1, not_log=True, store=False)
+    #     current_img = self.plot_detectron(
+    #         img_current, seg_current, max_seg=seg_current.max() + 1, not_log=True, store=False
+    #     )
+    #     img = np.concatenate([prev_img, current_img], axis=1)
 
-        pil_img = Image.fromarray(img, "RGB")
-        draw = ImageDraw.Draw(pil_img)
-        col = (0, 255, 0)
-        for cp, cc in zip(center_prev[correspondence[:, 0]], center_current[correspondence[:, 1]]):
-            try:
-                draw.line(
-                    [(cp[0].item(), cp[1].item()), (cc[0].item() + img_prev.shape[1], cc[1].item())], fill=col, width=2
-                )
-            except:
-                pass
-        return np.array(pil_img).astype(np.uint8)
+    #     pil_img = Image.fromarray(img, "RGB")
+    #     draw = ImageDraw.Draw(pil_img)
+    #     col = (0, 255, 0)
+    #     for cp_, cc_ in zip(center_prev[correspondence[:, 0]], center_current[correspondence[:, 1]]):
+    #         try:
+    #             draw.line(
+    #                 [(cp_[0].item(), cp_[1].item()), (cc_[0].item() + img_prev.shape[1], cc_[1].item())],
+    #                 fill=col,
+    #                 width=2,
+    #             )
+    #         except:
+    #             pass
+    #     return np.array(pil_img).astype(np.uint8)
 
 
 if __name__ == "__main__":
@@ -610,47 +578,68 @@ if __name__ == "__main__":
     y_conf = np.random.random((100,)) * 0.2 + 0.05
     y_lower = [y - y_conf, y - y_conf + 0.3]
     y_upper = [y + y_conf, y + y_conf + 0.3]
-    visu.plot_roc(
-        [x, x],
-        [y, y + 0.3],
-        y_lower=y_lower,
-        y_upper=y_upper,
-        title="roc 2.3",
-        y_tag=["train", "test"],
-        tag="10_ROC",
-        store=True,
-    )
+    # visu.plot_roc(
+    #     [x, x],
+    #     [y, y + 0.3],
+    #     y_lower=y_lower,
+    #     y_upper=y_upper,
+    #     title="roc 2.3",
+    #     y_tag=["train", "test"],
+    #     tag="10_ROC",
+    #     store=True,
+    # )
 
-    print("Plot Image: CHW", img.shape, img.dtype, type(img))
-    visu.plot_image(img=img, store=True, tag="1")
-    print("Plot Image: HWC", img.permute(1, 2, 0).shape, img.dtype, type(img))
-    visu.plot_image(img=img.permute(1, 2, 0), store=True, tag="2")
+    # print("Plot Image: CHW", img.shape, img.dtype, type(img))
+    # visu.plot_image(img=img, store=True, tag="1")
+    # print("Plot Image: HWC", img.permute(1, 2, 0).shape, img.dtype, type(img))
+    # visu.plot_image(img=img.permute(1, 2, 0), store=True, tag="2")
+    ele = 100
+    N = 1
+    se = seg.clone()
+    not_log = True
+    store = True
+    with Timer("plot_segmentation"):
+        visu.plot_segmentation(seg=seg, store=store, max_seg=ele, tag="3", not_log=not_log)
+    with Timer("plot_segmentation quick"):
+        visu.plot_segmentation_quick(seg, store=store, max_seg=ele, tag="3_quick", not_log=not_log)
 
     # seg = np.random.randint( 0, 100, (400,400) )
-    print("plot_segmentation: HW", seg.shape, seg.dtype, type(seg))
-    visu.plot_segmentation(seg=seg, store=True, max_seg=100, tag="3")
-    print("plot_segmentation: CHW", seg[None].shape, seg.dtype, type(seg))
-    visu.plot_segmentation(seg=seg[None], max_seg=100, store=True, tag="4")
+    # store = False
+    # for N in [1,10,20,50, 100]:
+    #     for ele in [10,100,200,500]:
+    #         seg = torch.remainder(se.clone(), ele)
 
-    print("plot_segmentation: HW", seg.shape, seg.dtype, type(seg))
-    visu.plot_detectron(img=img, seg=seg, store=True, max_seg=100, tag="5")
+    #         print(f"Iterations {N}, elements {ele}")
+    #         with Timer("plot_segmentation"):
+    #             for i in range(N):
+    #                 visu.plot_segmentation(seg=seg, store=store, max_seg=ele, tag="3", not_log=not_log)
+    #         with Timer("plot_segmentation quick"):
+    #             for i in range(N):
+    #                 visu.plot_segmentation_quick(seg, store=store, max_seg=ele, tag="3_quick", not_log=not_log)
 
-    print("plot_segmentation_count: HW", seg.shape, seg.dtype, type(seg))
-    seg = seg.type(torch.float32) / seg.max()
-    visu.plot_detectron_cont(img=img, seg=seg, store=True, tag="6")
+    # print("plot_segmentation: HW", seg.shape, seg.dtype, type(seg))
+    # with Timer("plot_detectron"):
+    #     for i in range(N):
+    #         visu.plot_detectron(img=img, seg=seg, store=store, max_seg=ele, tag="5", not_log=not_log, draw_bound=False)
+    with Timer("plot_detectron_quick"):
+        for i in range(N):
+            visu.plot_detectron(
+                img=img, seg=seg, store=store, max_seg=ele, tag="5_quick", not_log=not_log, draw_bound=False
+            )
 
-    i1 = visu.plot_traversability_graph(trav_pred, graph, center, img, not_log=True)
-    i2 = visu.plot_traversability_graph(graph.y, graph, center, img, not_log=True)
-    visu.plot_list(imgs=[i1, i2], tag="7_Trav_Graph_only", store=True)
+    print("Start seg")
+    # i1 = visu.plot_traversability_graph(trav_pred, graph, center, img, not_log=True)
+    # i2 = visu.plot_traversability_graph(graph.y, graph, center, img, not_log=True)
+    # visu.plot_list(imgs=[i1, i2], tag="7_Trav_Graph_only", store=True)
 
-    seg = torch.load(os.path.join(WVN_ROOT_DIR, "assets/graph/seg.pt"))
-    # Visualize Graph with Segmentation
-    i1 = visu.plot_traversability_graph_on_seg(trav_pred, seg, graph, center, img, not_log=True)
-    i2 = visu.plot_traversability_graph_on_seg(graph.y, seg, graph, center, img, not_log=True)
-    i3 = visu.plot_image(img, not_log=True)
-    visu.plot_list(imgs=[i1, i2, i3], tag="8_Trav", store=True)
+    # seg = torch.load(os.path.join(WVN_ROOT_DIR, "assets/graph/seg.pt"))
+    # # Visualize Graph with Segmentation
+    # i1 = visu.plot_traversability_graph_on_seg(trav_pred, seg, graph, center, img, not_log=True)
+    # i2 = visu.plot_traversability_graph_on_seg(graph.y, seg, graph, center, img, not_log=True)
+    # i3 = visu.plot_image(img, not_log=True)
+    # visu.plot_list(imgs=[i1, i2, i3], tag="8_Trav", store=True)
 
-    i1 = visu.plot_traversability_graph_on_seg(conf, seg, graph, center, img, not_log=True)
-    i2 = visu.plot_traversability_graph_on_seg(graph.y_valid.type(torch.float32), seg, graph, center, img, not_log=True)
-    i3 = visu.plot_image(img, not_log=True)
-    visu.plot_list(imgs=[i1, i2, i3], tag="9_Confidence", store=True)
+    # i1 = visu.plot_traversability_graph_on_seg(conf, seg, graph, center, img, not_log=True)
+    # i2 = visu.plot_traversability_graph_on_seg(graph.y_valid.type(torch.float32), seg, graph, center, img, not_log=True)
+    # i3 = visu.plot_image(img, not_log=True)
+    # visu.plot_list(imgs=[i1, i2, i3], tag="9_Confidence", store=True)

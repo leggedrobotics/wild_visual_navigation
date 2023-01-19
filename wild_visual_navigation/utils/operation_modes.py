@@ -2,14 +2,27 @@ from enum import Enum
 
 
 class WVNMode(Enum):
-    DEFAULT = 0
+    DEBUG = 0
     ONLINE = 1
     EXTRACT_LABELS = 2
 
     def from_string(string):
-        if string == "default":
-            return WVNMode.DEFAULT
+        if string == "debug":
+            # Learning theard on
+            # Everything published via ROS
+            #       current_traversability: True
+            #       current_confidence: True
+            #       mission_graph: False
+            #       debug_topics: False
+
+            return WVNMode.DEBUG
         elif string == "online":
+            # Learning theard on
+            # ROS Predictions Published:
+            #       current_traversability: True
+            #       current_confidence: True
+            #       mission_graph: False
+            #       debug_topics: False
             return WVNMode.ONLINE
         elif string == "extract_labels":
             return WVNMode.EXTRACT_LABELS
