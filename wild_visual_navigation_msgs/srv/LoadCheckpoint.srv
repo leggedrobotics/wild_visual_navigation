@@ -1,8 +1,5 @@
-# Base folder to save the data
-string path
-
-# Name of the mission to store the dataset
-string mission_name
+# Path to the checkpoint to be loaded
+string checkpoint_path
 
 ---
 # Indicate if the operation was successful
