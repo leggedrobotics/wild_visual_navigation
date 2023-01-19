@@ -543,6 +543,7 @@ class TraversabilityEstimator:
                 "step": self._step,
                 "model_state_dict": self._model.state_dict(),
                 "optimizer_state_dict": self._optimizer.state_dict(),
+                "traversability_loss": self._traversability_loss.state_dict(),
                 "loss": self._loss,
             },
             checkpoint_file,

@@ -152,7 +152,7 @@ class WvnRosInterface:
             print("Storing memory data...", end="")
             self.gpu_monitor.store(folder=self.params.general.model_path)
             print("done")
-        
+
         sys.exit(0)
 
     @accumulate_time
