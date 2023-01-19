@@ -49,7 +49,7 @@ class ExperimentParams(Serializable):
         w_temp: float = 0.4
         use_kalman_filter: bool = True
         false_negative_weight: float = 1.0
-        confidence_std_factor: float = 2.0
+        confidence_std_factor: float = 4.0
 
     loss: LossParams = LossParams()
 
