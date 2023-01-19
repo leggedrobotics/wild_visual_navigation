@@ -53,7 +53,7 @@ class LightningTrav(pl.LightningModule):
         self._traversability_loss = TraversabilityLoss(**self._exp["loss"], model=self._model)
 
     def pass_batch(self, batch: any):
-        if isinstance(batch, tuple):
+        if isinstance(batch, list):
             graph = batch[0]
             graph_aux = batch[1]
         else:
@@ -340,7 +340,7 @@ class LightningTrav(pl.LightningModule):
 
         return loss
 
-    def test_epoch_end(self, outputs: any):
+    def test_epoch_end(self, outputs: any, plot=False):
         ################ NEW VERSION ################
         # label is the gt label
         test_roc_gt_image = self._test_roc_gt_image.compute()
@@ -372,23 +372,24 @@ class LightningTrav(pl.LightningModule):
         dtr = {}
         fpr_pro, tpr_pro, thresholds_pro = test_roc_proprioceptive_image
         auroc_pro = test_auroc_proprioceptive_image
-        self._visualizer.plot_roc(
-            x=fpr_pro,
-            y=tpr_pro,
-            y_tag=f"AUCROC_{auroc_pro:.4f}",
-            tag=f"{self._mode}_ROC_proprioceptive_{self.nr_test_run}",
-        )
-        self.log(f"{self._mode}_auroc_proprioceptive_{self.nr_test_run}", auroc_pro, on_epoch=True, prog_bar=False)
-
         fpr_gt, tpr_gt, thresholds_gt = test_roc_gt_image
         auroc_gt = test_auroc_gt_image
-        self._visualizer.plot_roc(
-            x=fpr_gt,
-            y=tpr_gt,
-            y_tag=f"AUCROC_{auroc_gt:.4f}_{self.nr_test_run}",
-            tag=f"{self._mode}_ROC_gt_{self.nr_test_run}",
-        )
-        self.log(f"{self._mode}_auroc_gt_{self.nr_test_run}", auroc_gt, on_epoch=True, prog_bar=False)
+        if plot:
+            self._visualizer.plot_roc(
+                x=fpr_pro,
+                y=tpr_pro,
+                y_tag=f"AUCROC_{auroc_pro:.4f}",
+                tag=f"{self._mode}_ROC_proprioceptive_{self.nr_test_run}",
+            )
+            self.log(f"{self._mode}_auroc_proprioceptive_{self.nr_test_run}", auroc_pro, on_epoch=True, prog_bar=False)
+
+            self._visualizer.plot_roc(
+                x=fpr_gt,
+                y=tpr_gt,
+                y_tag=f"AUCROC_{auroc_gt:.4f}_{self.nr_test_run}",
+                tag=f"{self._mode}_ROC_gt_{self.nr_test_run}",
+            )
+            self.log(f"{self._mode}_auroc_gt_{self.nr_test_run}", auroc_gt, on_epoch=True, prog_bar=False)
 
         dtr[f"test_roc_gt_fpr"] = (fpr_gt,)
         dtr[f"test_roc_gt_tpr"] = (tpr_gt,)
