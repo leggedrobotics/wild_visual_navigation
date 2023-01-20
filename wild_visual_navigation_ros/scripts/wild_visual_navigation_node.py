@@ -220,6 +220,7 @@ class WvnRosInterface:
         self.feature_type = rospy.get_param("~feature_type")
         self.dino_patch_size = rospy.get_param("~dino_patch_size")
         self.confidence_std_factor = rospy.get_param("~confidence_std_factor")
+        self.false_negative_weight = rospy.get_param("~false_negative_weight")
 
         # Supervision Generator
         self.robot_max_velocity = rospy.get_param("~robot_max_velocity")
@@ -384,6 +385,7 @@ class WvnRosInterface:
         self.load_checkpt_service = rospy.Service("~load_checkpoint", LoadCheckpoint, self.load_checkpoint_callback)
 
         self.pause_learning_service = rospy.Service("~pause_learning", SetBool, self.pause_learning_callback)
+        self.reset_service = rospy.Service("~reset", SetBool, self.reset_callback)
 
     def pause_learning_callback(self, req):
         """Start and stop the network training"""
@@ -400,6 +402,27 @@ class WvnRosInterface:
         message += f" Updated the network for {self.traversability_estimator.step} steps"
 
         return True, message
+    
+    def reset_callback(self, req):
+        """Resets the system"""
+        print("WARNING: System reset!")
+
+        print("Storing learned checkpoint...", end="")
+        self.traversability_estimator.save_checkpoint(self.params.general.model_path, "last_checkpoint.pt")
+        print("done")
+
+        if self.log_time:
+            print("Storing timer data...", end="")
+            self.timer.store(folder=self.params.general.model_path)
+            print("done")
+        if self.log_memory:
+            print("Storing memory data...", end="")
+            self.gpu_monitor.store(folder=self.params.general.model_path)
+            print("done")
+        
+        # Reset traversability estimator
+        self.traversability_estimator.reset()
+
 
     @accumulate_time
     def save_checkpoint_callback(self, req):

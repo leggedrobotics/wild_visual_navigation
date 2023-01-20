@@ -37,7 +37,8 @@ class TraversabilityLoss(nn.Module):
             )
 
     def reset(self):
-        pass
+        if self._anomaly_balanced:
+            self._confidence_generator.reset()
 
     def forward(
         self,
