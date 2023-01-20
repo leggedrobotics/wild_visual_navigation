@@ -54,6 +54,7 @@ class TraversabilityEstimator:
         self._extraction_store_folder = extraction_store_folder
         self._min_samples_for_training = min_samples_for_training
         self._vis_node_index = vis_node_index
+        self._params = params
 
         # Local graphs
         self._proprio_graph = DistanceWindowGraph(max_distance=max_distance, edge_distance=proprio_distance_thr)
@@ -72,7 +73,7 @@ class TraversabilityEstimator:
         self._feature_type = feature_type
 
         self._feature_extractor = FeatureExtractor(
-            device,
+            self._device,
             segmentation_type=self._segmentation_type,
             feature_type=self._feature_type,
             input_size=image_size,
@@ -82,11 +83,16 @@ class TraversabilityEstimator:
         self._optical_flow_estimator_type = optical_flow_estimator_type
 
         if optical_flow_estimator_type == "sparse":
-            self._optical_flow_estimator = KLTTrackerOpenCV(device=device)
+            self._optical_flow_estimator = KLTTrackerOpenCV(device=self._device)
 
         # Mutex
-        self._lock = Lock()
+        self._learning_lock = Lock()
+        self._mission_lock = Lock()
+        self._proprio_lock = Lock()
+        
         self._pause_training = False
+        self._pause_mission_graph = False
+        self._pause_proprio_graph = False
 
         # Visualization
         self._visualizer = LearningVisualizer()
@@ -94,8 +100,8 @@ class TraversabilityEstimator:
         # Lightning module
         seed_everything(42)
 
-        self._exp_cfg = dataclasses.asdict(params)
-        self._model = get_model(self._exp_cfg["model"]).to(device)
+        self._exp_cfg = dataclasses.asdict(self._params)
+        self._model = get_model(self._exp_cfg["model"]).to(self._device)
         self._model.train()
         
         self._optimizer = torch.optim.AdamW(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
@@ -106,7 +112,7 @@ class TraversabilityEstimator:
             log_enabled=self._exp_cfg["general"]["log_confidence"],
             log_folder=self._exp_cfg["general"]["model_path"],
         )
-        self._traversability_loss.to(device)
+        self._traversability_loss.to(self._device)
 
         # visualization data
         self._step = 0
@@ -118,17 +124,25 @@ class TraversabilityEstimator:
         """We modify the state so the object can be pickled"""
         state = self.__dict__.copy()
         # Remove the unpicklable entries.
-        del state["_lock"]
+        del state["_learning_lock"]
         return state
 
     def __setstate__(self, state: dict):
         """We modify the state so the object can be pickled"""
         self.__dict__.update(state)
         # Restore the unpickable entries
-        self._lock = Lock()
+        self._learning_lock = Lock()
     
     def reset(self):
-        with self._lock():
+        with self._mission_lock:
+            self._pause_mission_graph = True
+            self._mission_graph.clear()
+
+        with self._proprio_lock:
+            self._pause_proprio_graph = True
+            self._proprio_graph.clear()
+
+        with self._learning_lock:
             self._pause_training = True
             
             # Reset all the learning stuff
@@ -136,7 +150,8 @@ class TraversabilityEstimator:
             self._loss = torch.tensor([torch.inf])
             
             # Re-create model
-            self._model = get_model(self._exp_cfg["model"]).to(device)
+            self._exp_cfg = dataclasses.asdict(self._params)
+            self._model = get_model(self._exp_cfg["model"]).to(self._device)
             self._model.train()
             
             # Re-create optimizer
@@ -149,10 +164,15 @@ class TraversabilityEstimator:
                 log_enabled=self._exp_cfg["general"]["log_confidence"],
                 log_folder=self._exp_cfg["general"]["model_path"],
             )
-            self._traversability_loss.to(device)
+            self._traversability_loss.to(self._device)
             
             # Resume training
             self._pause_training = False
+        
+        self._pause_mission_graph = False
+        self._pause_proprio_graph = False
+
+
 
     @property
     def loss(self):
@@ -207,7 +227,7 @@ class TraversabilityEstimator:
     def update_prediction(self, node: MissionNode):
         data = Data(x=node.features, edge_index=node.feature_edges)
         with torch.inference_mode():
-            with self._lock:
+            with self._learning_lock:
                 node.prediction = self._model(data)
                 reco_loss = F.mse_loss(node.prediction[:, 1:], node.features, reduction="none").mean(dim=1)
                 node.confidence = self._traversability_loss._confidence_generator.inference_without_update(reco_loss)
@@ -342,6 +362,9 @@ class TraversabilityEstimator:
             node (BaseNode): new node in the image graph
         """
 
+        if self._pause_mission_graph:
+            return False
+
         # Compute image features
         self.update_features(node)
 
@@ -349,7 +372,10 @@ class TraversabilityEstimator:
         previous_node = self._mission_graph.get_last_node()
 
         # Add image node
-        if self._mission_graph.add_node(node) and node.use_for_training:
+        with self._mission_lock:
+            success = self._mission_graph.add_node(node)
+        
+        if success and node.use_for_training:
             # Print some info
             total_nodes = self._mission_graph.get_num_nodes()
             s = f"adding node [{node}], "
@@ -389,13 +415,17 @@ class TraversabilityEstimator:
         Args:
             node (BaseNode): new node in the proprioceptive graph
         """
+        if self._pause_proprio_graph:
+            return False
+
         # If the node is not valid, we do nothing
         if not pnode.is_valid():
             return False
 
         # Get last added proprio node
-        last_pnode = self._proprio_graph.get_last_node()
-        success = self._proprio_graph.add_node(pnode)
+        with self._proprio_lock:
+            last_pnode = self._proprio_graph.get_last_node()
+            success = self._proprio_graph.add_node(pnode)
 
         if not success:
             # Update traversability of latest node
@@ -505,7 +535,7 @@ class TraversabilityEstimator:
         os.makedirs(mission_path, exist_ok=True)
         output_file = os.path.join(mission_path, filename)
         self.change_device("cpu")
-        self._lock = None
+        self._learning_lock = None
         pickle.dump(self, open(output_file, "wb"))
         self._pause_training = False
 
@@ -555,26 +585,27 @@ class TraversabilityEstimator:
             mission_path (str): Folder where to put the data
             checkpoint_name (str): Name for the checkpoint file
         """
+        with self._learning_lock:
+            self._pause_training = True
 
-        self._pause_training = True
-        # Prepare folder
-        os.makedirs(mission_path, exist_ok=True)
-        checkpoint_file = os.path.join(mission_path, checkpoint_name)
+            # Prepare folder
+            os.makedirs(mission_path, exist_ok=True)
+            checkpoint_file = os.path.join(mission_path, checkpoint_name)
 
-        # Save checkpoint
-        torch.save(
-            {
-                "step": self._step,
-                "model_state_dict": self._model.state_dict(),
-                "optimizer_state_dict": self._optimizer.state_dict(),
-                "traversability_loss_state_dict": self._traversability_loss.state_dict(),
-                "loss": self._loss.item(),
-            },
-            checkpoint_file,
-        )
+            # Save checkpoint
+            torch.save(
+                {
+                    "step": self._step,
+                    "model_state_dict": self._model.state_dict(),
+                    "optimizer_state_dict": self._optimizer.state_dict(),
+                    "traversability_loss_state_dict": self._traversability_loss.state_dict(),
+                    "loss": self._loss.item(),
+                },
+                checkpoint_file,
+            )
 
-        print(f"Saved checkpoint to file {checkpoint_file}")
-        self._pause_training = False
+            print(f"Saved checkpoint to file {checkpoint_file}")
+            self._pause_training = False
 
     def load_checkpoint(self, checkpoint_path: str):
         """Loads the torch checkpoint and optimization state
@@ -583,7 +614,7 @@ class TraversabilityEstimator:
             checkpoint_path (str): Global path to the checkpoint
         """
 
-        with self._lock:
+        with self._learning_lock:
             self._pause_training = True
 
             # Load checkpoint
@@ -649,7 +680,7 @@ class TraversabilityEstimator:
             # Prepare new batch
             graph, graph_aux = self.make_batch(self._exp_cfg["ablation_data_module"]["batch_size"])
 
-            with self._lock:
+            with self._learning_lock:
                 # Forward pass
                 res = self._model(graph)
 
@@ -673,10 +704,6 @@ class TraversabilityEstimator:
 
             # Update steps
             self._step += 1
-
-            # Update model
-            with self._lock:
-                self.last_trained_model = self._model
 
             # Return loss
             return {

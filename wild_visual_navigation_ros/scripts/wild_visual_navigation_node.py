@@ -12,7 +12,7 @@ from wild_visual_navigation_msgs.srv import (
     LoadCheckpointResponse,
     SaveCheckpointResponse,
 )
-from std_srvs.srv import SetBool
+from std_srvs.srv import SetBool, Trigger, TriggerResponse
 from wild_visual_navigation.utils import SystemLevelTimer, SystemLevelContextTimer
 from wild_visual_navigation.utils import SystemLevelGpuMonitor, accumulate_memory
 from wild_visual_navigation.utils import WVNMode
@@ -385,7 +385,7 @@ class WvnRosInterface:
         self.load_checkpt_service = rospy.Service("~load_checkpoint", LoadCheckpoint, self.load_checkpoint_callback)
 
         self.pause_learning_service = rospy.Service("~pause_learning", SetBool, self.pause_learning_callback)
-        self.reset_service = rospy.Service("~reset", SetBool, self.reset_callback)
+        self.reset_service = rospy.Service("~reset", Trigger, self.reset_callback)
 
     def pause_learning_callback(self, req):
         """Start and stop the network training"""
@@ -420,8 +420,14 @@ class WvnRosInterface:
             self.gpu_monitor.store(folder=self.params.general.model_path)
             print("done")
         
+        # Create new mission folder
+        create_experiment_folder(self.params, load_env())
+
         # Reset traversability estimator
         self.traversability_estimator.reset()
+
+        print("Reset done")
+        return TriggerResponse(True, "Reset done!")
 
 
     @accumulate_time
