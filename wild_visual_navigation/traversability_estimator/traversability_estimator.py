@@ -95,20 +95,23 @@ class TraversabilityEstimator:
         seed_everything(42)
 
         self._exp_cfg = dataclasses.asdict(params)
-
         self._model = get_model(self._exp_cfg["model"]).to(device)
-        self._step = 0
         self._model.train()
+        
+        self._optimizer = torch.optim.AdamW(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
+
         self._traversability_loss = TraversabilityLoss(
             **self._exp_cfg["loss"],
             model=self._model,
-            log_enabled=params.general.log_confidence,
-            log_folder=params.general.model_path,
+            log_enabled=self._exp_cfg["general"]["log_confidence"],
+            log_folder=self._exp_cfg["general"]["model_path"],
         )
         self._traversability_loss.to(device)
 
-        self._optimizer = torch.optim.AdamW(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
+        # visualization data
+        self._step = 0
         self._loss = torch.tensor([torch.inf])
+
         torch.set_grad_enabled(True)
 
     def __getstate__(self):
@@ -123,6 +126,33 @@ class TraversabilityEstimator:
         self.__dict__.update(state)
         # Restore the unpickable entries
         self._lock = Lock()
+    
+    def reset(self):
+        with self._lock():
+            self._pause_training = True
+            
+            # Reset all the learning stuff
+            self._step = 0
+            self._loss = torch.tensor([torch.inf])
+            
+            # Re-create model
+            self._model = get_model(self._exp_cfg["model"]).to(device)
+            self._model.train()
+            
+            # Re-create optimizer
+            self._optimizer = torch.optim.AdamW(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
+            
+            # Re-create traversability loss
+            self._traversability_loss = TraversabilityLoss(
+                **self._exp_cfg["loss"],
+                model=self._model,
+                log_enabled=self._exp_cfg["general"]["log_confidence"],
+                log_folder=self._exp_cfg["general"]["model_path"],
+            )
+            self._traversability_loss.to(device)
+            
+            # Resume training
+            self._pause_training = False
 
     @property
     def loss(self):
