@@ -49,6 +49,7 @@ class LightningTrav(pl.LightningModule):
         # It is only used to log the test results to the disk.
         # TODO remove this part.
         self.nr_test_run = -1
+        self._val_step = 0
 
         self._traversability_loss = TraversabilityLoss(**self._exp["loss"], model=self._model)
 
@@ -98,12 +99,17 @@ class LightningTrav(pl.LightningModule):
         return loss
 
     def visu(self, graph: Data, res: torch.tensor):
-        if not hasattr(graph, "img"):
-            return
-
-        for b in range(graph.img.shape[0]):
+        try:
+            self.log( "confidence_mean", self._traversability_loss._confidence_generator.mean.item(), on_step=True, on_epoch=True, batch_size=1)
+            self.log( "confidence_std", self._traversability_loss._confidence_generator.std.item(), on_step=True, on_epoch=True, batch_size=1)
+        except:
+            pass
+        
+        for b in range(graph.ptr.shape[0]-1):
             log_video = self._exp["visu"][f"log_{self._mode}_video"]
-
+            if self._mode == "val":
+                self._val_step += 1    
+            
             if not log_video:
                 # check if visualization should be skipped
                 if not (
@@ -112,51 +118,67 @@ class LightningTrav(pl.LightningModule):
                 ):
                     break
 
+                if (self._mode == "val" and self._val_step % 20 != 0):
+                    continue
+                
             self._visu_count[self._mode] += 1
 
             pred = res[graph.ptr[b] : graph.ptr[b + 1]]
             center = graph.center[graph.ptr[b] : graph.ptr[b + 1]]
-            seg = graph.seg[b]
-            img = graph.img[b]
-
+            
             c = self._visu_count[self._mode]
             c = "0" * int(6 - len(str(c))) + str(c)
-            e = self.current_epoch
 
-            # Visualize Graph with Segmentation
-            t1 = self._visualizer.plot_traversability_graph_on_seg(
-                pred[:, 0], seg, graph[b], center, img, not_log=True, colorize_invalid_centers=True
-            )
-            t2 = self._visualizer.plot_traversability_graph_on_seg(graph[b].y, seg, graph[b], center, img, not_log=True)
-            t_img = self._visualizer.plot_image(img, not_log=True)
-            self._visualizer.plot_list(
-                imgs=[t1, t2, t_img], tag=f"C{c}_{self._mode}_GraphTrav", store_folder=f"{self._mode}/graph_trav"
-            )
+            if hasattr(graph, "img"):
+                seg = graph.seg[b]
+                img = graph.img[b]
+                
+                # Visualize Graph with Segmentation
+                t1 = self._visualizer.plot_traversability_graph_on_seg(
+                    pred[:, 0], seg, graph[b], center, img, not_log=True, colorize_invalid_centers=True
+                )
+                t2 = self._visualizer.plot_traversability_graph_on_seg(graph[b].y, seg, graph[b], center, img, not_log=True)
+                t_img = self._visualizer.plot_image(img, not_log=True)
+                self._visualizer.plot_list(
+                    imgs=[t1, t2, t_img], tag=f"C{c}_{self._mode}_GraphTrav", store_folder=f"{self._mode}/graph_trav"
+                )
 
+                reco_loss = F.mse_loss(pred[:, 1:], graph[b].x, reduction="none").mean(dim=1)
+                conf = self._traversability_loss._confidence_generator.inference_without_update(reco_loss)
+
+                # # Visualize Graph with Segmentation
+                c1 = self._visualizer.plot_traversability_graph_on_seg(
+                    conf, seg, graph[b], center, img, not_log=True, colorize_invalid_centers=True
+                )
+                c2 = self._visualizer.plot_traversability_graph_on_seg(
+                    graph[b].y_valid.type(torch.float32), seg, graph[b], center, img, not_log=True
+                )
+                c_img = self._visualizer.plot_image(img, not_log=True)
+                self._visualizer.plot_list(
+                    imgs=[c1, c2, c_img], tag=f"C{c}_{self._mode}_GraphConf", store_folder=f"{self._mode}/graph_conf"
+                )
+
+                # if self._mode == "test":
+                #     t_gt = self._visualizer.plot_traversability_graph_on_seg(
+                #         graph[b].y_gt, seg, graph[b], center, img, not_log=True, colorize_invalid_centers=True
+                #     )
+                #     self._visualizer.plot_list(
+                #         imgs=[t1, t2, t_gt, t_img],
+                #         tag=f"C{c}_{self._mode}_GraphTravGT",
+                #         store_folder=f"{self._mode}/graph_trav_gt",
+                #     )
+                
+            
+            # Logging the confidence
+            mean = self._traversability_loss._confidence_generator.mean.item()
+            std = self._traversability_loss._confidence_generator.std.item()
             reco_loss = F.mse_loss(pred[:, 1:], graph[b].x, reduction="none").mean(dim=1)
-            conf = self._traversability_loss._confidence_generator.inference_without_update(reco_loss)
-
-            # # Visualize Graph with Segmentation
-            c1 = self._visualizer.plot_traversability_graph_on_seg(
-                conf, seg, graph[b], center, img, not_log=True, colorize_invalid_centers=True
-            )
-            c2 = self._visualizer.plot_traversability_graph_on_seg(
-                graph[b].y_valid.type(torch.float32), seg, graph[b], center, img, not_log=True
-            )
-            c_img = self._visualizer.plot_image(img, not_log=True)
-            self._visualizer.plot_list(
-                imgs=[c1, c2, c_img], tag=f"C{c}_{self._mode}_GraphConf", store_folder=f"{self._mode}/graph_conf"
-            )
-
-            # if self._mode == "test":
-            #     t_gt = self._visualizer.plot_traversability_graph_on_seg(
-            #         graph[b].y_gt, seg, graph[b], center, img, not_log=True, colorize_invalid_centers=True
-            #     )
-            #     self._visualizer.plot_list(
-            #         imgs=[t1, t2, t_gt, t_img],
-            #         tag=f"C{c}_{self._mode}_GraphTravGT",
-            #         store_folder=f"{self._mode}/graph_trav_gt",
-            #     )
+            confidence = self._traversability_loss._confidence_generator.inference_without_update(reco_loss)
+            
+            self._visualizer.plot_histogram(reco_loss, graph[b].y, mean, std, tag=f"C{c}_{self._mode}__confidence_generator_prop")
+            
+            if hasattr( graph[b], "y_gt"):
+                self._visualizer.plot_histogram(reco_loss, graph[b].y_gt, mean, std, tag=f"C{c}_{self._mode}__confidence_generator_gt")
 
     def training_epoch_end(self, outputs: EPOCH_OUTPUT):
         # Log epoch metric
@@ -172,6 +194,7 @@ class LightningTrav(pl.LightningModule):
         self._validation_auroc_proprioceptive_image.reset()
         self._validation_roc_proprioceptive.reset()
         self._validation_auroc_proprioceptive.reset()
+        self._val_step = 0
 
     def log_metrics(
         self,
@@ -369,6 +392,9 @@ class LightningTrav(pl.LightningModule):
             test_auroc_anomaly_gt_image = self._test_auroc_anomaly_gt_image.compute().item()
             dic["test_auroc_anomaly_proprioceptive_image"] = test_auroc_anomaly_proprioceptive_image
             dic["test_auroc_anomaly_gt_image"] = test_auroc_anomaly_gt_image
+        
+        dic2 = {k:v.item() for k, v in  self.trainer.logged_metrics.items() if k.find("step") == -1}
+        dic.update(dic2)
 
         self.accumulated_test_results.append(dic)
         ################ NEW VERSION FINISHED  ################
@@ -386,7 +412,7 @@ class LightningTrav(pl.LightningModule):
                 y_tag=f"AUCROC_{auroc_pro:.4f}",
                 tag=f"{self._mode}_ROC_proprioceptive_{self.nr_test_run}",
             )
-            self.log(f"{self._mode}_auroc_proprioceptive_{self.nr_test_run}", auroc_pro, on_epoch=True, prog_bar=False)
+            self.log(f"{self._mode}_auroc_proprioceptive_{self.nr_test_run}", auroc_pro, on_epoch=True, on_step=False, prog_bar=False, batch_size=1)
 
             self._visualizer.plot_roc(
                 x=fpr_gt,
@@ -394,7 +420,7 @@ class LightningTrav(pl.LightningModule):
                 y_tag=f"AUCROC_{auroc_gt:.4f}_{self.nr_test_run}",
                 tag=f"{self._mode}_ROC_gt_{self.nr_test_run}",
             )
-            self.log(f"{self._mode}_auroc_gt_{self.nr_test_run}", auroc_gt, on_epoch=True, prog_bar=False)
+            self.log(f"{self._mode}_auroc_gt_{self.nr_test_run}", auroc_gt, on_epoch=True, prog_bar=False,  on_step=False, batch_size=1)
 
         dtr[f"test_roc_gt_fpr"] = (fpr_gt,)
         dtr[f"test_roc_gt_tpr"] = (tpr_gt,)
@@ -438,4 +464,7 @@ class LightningTrav(pl.LightningModule):
         return dtr
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
-        return torch.optim.Adam(self._model.parameters(), lr=self._exp["optimizer"]["lr"])
+        if self._exp["optimizer"]["name"] == "ADAM":
+            return torch.optim.Adam(self._model.parameters(), lr=self._exp["optimizer"]["lr"])
+        elif self._exp["optimizer"]["name"] == "SGD":
+            return torch.optim.SGD(self._model.parameters(), lr=self._exp["optimizer"]["lr"])
