@@ -11,6 +11,10 @@ group "0.npc" {
         exec = "roslaunch wild_visual_navigation field_local_planner.launch";
         host = "npc-digiforest";
     }
+    cmd "0.2.field_local_planner_geometric" {
+        exec = "roslaunch field_local_planner_ros rmp.launch";
+        host = "npc-digiforest";
+    }
 }
 
 group "1.jetson" {
@@ -18,6 +22,7 @@ group "1.jetson" {
         exec = "roslaunch wild_visual_navigation_ros robot.launch";
         host = "apc-digiforest";
     }
+    
     cmd "kill_wvn" {
         exec = "rosnode kill /wild_visual_navigation_node";
         host = "localhost";
