@@ -1,0 +1,151 @@
+# Plugin
+local_planner: field_local_planner::RmpPlugin
+
+# Base settings
+requires_sensing: true # it should be true for all the local planners
+control_rate: 10 # in Hz, rate at which the control command is computed
+base_inverted: false # to flip the orientation of the robot 180 deg
+differential_mode: false # If the robot moves with a differential model
+
+# Robot size
+robot_length: 1.0
+robot_width: 0.5
+robot_height: 0.5
+
+# Frames
+base_frame: base
+fixed_frame: odom
+valid_goal_frames: ["odom", "map"]
+
+# Grid map conversion to cloud
+grid_map_to_cloud: false
+grid_map_to_cloud_range: 2.0
+grid_map_to_cloud_filter_size: 0.05 # meters
+
+# Thresholds
+distance_to_goal_thr: 0.1 # meters
+orientation_to_goal_thr: 0.1  # radians
+
+# Velocity limits
+max_linear_velocity_x: 1.0    # m/s
+max_linear_velocity_y: 1.0    # m/s
+max_angular_velocity_z: 1.0   # rad/s
+
+# Other parameters
+rmp:
+  # Tune the sphere radius used for the control points
+  sphere_radius_factor: 1.2
+
+  # RMP computes an optimal acceleration (force) that
+  # Must be integrated to get a velocity
+  # This basically scales the acceleration
+  integration_time: 1.0
+  
+  # Control points define the points where the accelerations are exerted on the body
+  control_points:
+    -
+      id: center
+      point_factor: [0.0, 0.0]
+      color: [0.00, 0.00, 0.00]
+      radius: 0.35
+      affected_by:
+        - geodesic_goal
+        - geodesic_heading
+        - goal_position
+        - goal_orientation
+        - damping
+    -
+      id: front_left
+      point_factor: [0.6, 0.3]
+      color: [0.00, 0.00, 0.00]
+      radius: 0.3
+      affected_by: 
+        - sdf_obstacle
+    -
+      id: front_right
+      point_factor: [0.6, -0.3]
+      color: [0.00, 0.00, 0.00]
+      radius: 0.3
+      affected_by: 
+        - sdf_obstacle
+    -
+      id: back_left
+      point_factor: [-0.6, 0.3]
+      color: [0.00, 0.00, 0.00]
+      radius: 0.3
+      affected_by: 
+        - sdf_obstacle
+    -
+      id: back_right
+      point_factor: [-0.6, -0.3]
+      color: [0.00, 0.00, 0.00]
+      radius: 0.3
+      affected_by: 
+        - sdf_obstacle
+      
+  # This defines the parameters for the RMPs
+  policies:
+    geodesic_goal:
+      weight: 1.0
+      gain: 2.0
+      color: [1.0, 1.0, 0.0] # yellow
+      metric:
+        type: logistic
+        offset: 0.5
+        steepness: 10.0
+    geodesic_heading:
+      weight: 1.0 # 1.0
+      gain: 2.0
+      color: [1.0, 1.0, 0.0] # yellow
+      metric:
+        type: logistic
+        offset: 0.5
+        steepness: 10.0
+    goal_position:
+      weight: 1.0
+      gain: 2.0
+      color: [1.0, 0.5, 0.0] # orange
+      metric:
+        type: invlogistic
+        offset: 0.5
+        steepness: 10.0
+    goal_orientation:
+      weight: 1.0 # 1.0
+      gain: 2.0
+      color: [1.0, 0.5, 0.0] # orange
+      metric:
+        type: invlogistic
+        offset: 0.5
+        steepness: 10.0
+    velocity_heading:
+      weight: 0.0
+      gain: 1.0
+      color: [0.0, 1.0, 0.0] # green
+      metric:
+        type: logistic
+        offset: 1.0
+        steepness: 10.0
+    damping:
+      weight: 1.0 # 1.0
+      gain: 0.01
+      color: [0.0, 0.0, 1.0] # blue
+      metric:
+        type: constant
+        offset: 1.0
+        steepness: 1.0
+    sdf_obstacle:
+      weight: 1.0 # 1.0
+      gain: 0.025
+      color: [1.0, 0.0, 0.0] # red
+      metric:
+        type: projector_invlogistic
+        offset: 0.2
+        steepness: 1.0
+    regularization:
+      weight: 0.0 # 1.0
+      gain: 0.001
+      color: [0.0, 0.0, 0.0] # black
+      metric:
+        type: constant
+        offset: 0.0
+        steepness: 1.0

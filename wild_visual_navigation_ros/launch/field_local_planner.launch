@@ -2,7 +2,7 @@
 <launch>
 
   <!-- Load local planner parameters -->
-  <rosparam ns="field_local_planner" file="$(find field_local_planner_rmp_plugin)/config/rmp.yaml" subst_value="true"/>
+  <rosparam ns="field_local_planner" file="$(find wild_visual_navigation_ros)/config/field_local_planner/rmp.yaml" subst_value="true"/>
   
   <!-- Debugging flags -->
   <arg name="debug"          default="false"/>
