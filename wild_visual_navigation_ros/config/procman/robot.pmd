@@ -50,7 +50,16 @@ group "3.recording" {
     }
 }
 
-
+group "4.monitoring" {
+    cmd "lpc_disk" {
+        exec = "rostopic echo /disk_monitor_lpc/status/disks[1]";
+        host = "localhost";
+    }
+    cmd "npc_disk" {
+        exec = "rostopic echo /disk_monitor_npc/status/disks[1]";
+        host = "localhost";
+    }
+}
 
 group "x.learning_utils" {
     cmd "x.1.pause_training" {

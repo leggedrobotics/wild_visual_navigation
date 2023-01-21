@@ -1,3 +1,0 @@
-<launch>
-    <node pkg="procman_ros" type="sheriff" name="wvn_procman" output="screen" args=" -l $(find wild_visual_navigation_ros)/config/procman/robot.pmd"/>
-</launch>
