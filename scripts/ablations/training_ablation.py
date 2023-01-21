@@ -11,6 +11,7 @@ from wild_visual_navigation.cfg import ExperimentParams
 from wild_visual_navigation.learning.general import training_routine
 from wild_visual_navigation.utils import override_params
 import argparse
+import logging
 
 if __name__ == "__main__":
     """Test how much time and data it takes for a model to convergee on a scene.
@@ -23,18 +24,20 @@ if __name__ == "__main__":
         - This procedure is repeated over all scenes and percentage of data used from the training dataset.
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ablation_type", type=str, default="network", help="Overwrite params")
-    args = parser.parse_args()
+    parser.add_argument("--ablation_type", type=str, default="network", help="Folder containing the ablation configs.")
+    parser.add_argument("--number_training_runs", type=int, default=1, help="Number of run per config.")
+    parser.add_argument("--test_all_datasets", type=bool, default=False, help="Test on all datasets.")
+    parser.add_argument("--special_key", type=str, default="", help="Test on all datasets.")
 
-    number_training_runs = 1
+    args = parser.parse_args()
 
     exp = ExperimentParams()
     exp.general.log_to_disk = False
-    exp.trainer.max_steps = 1000
+    exp.trainer.max_steps = 10000
     exp.trainer.max_epochs = None
     exp.logger.name = "skip"
     exp.ablation_data_module.val_equals_test = False
-    exp.ablation_data_module.test_all_datasets = True
+    exp.ablation_data_module.test_all_datasets = args.test_all_datasets
     exp.trainer.profiler = None
     exp.trainer.enable_checkpointing = False
     exp.cb_checkpoint.active = False
@@ -46,9 +49,10 @@ if __name__ == "__main__":
     exp.trainer.check_val_every_n_epoch = 100000
     exp.general.store_model_every_n_steps = None
 
+    number_training_runs = args.number_training_runs
     folder = args.ablation_type
+    special_key = args.special_key
     exp.general.model_path = os.path.join(WVN_ROOT_DIR, f"scripts/ablations/{folder}_ablation")
-
     Path(exp.general.model_path).mkdir(parents=True, exist_ok=True)
 
     directory = Path(os.path.join(WVN_ROOT_DIR, f"cfg/exp/ablation/{folder}"))
@@ -65,14 +69,20 @@ if __name__ == "__main__":
                 p = str(p)
                 exp_override = load_yaml(p)
                 override_params(exp, exp_override)
+                exp.trainer.progress_bar_refresh_rate = 0
+                exp.trainer.weights_summary = None
+                exp.trainer.enable_progress_bar = False
                 res = training_routine(exp, seed=run)
                 run_results[str(run)] = copy.deepcopy(res)
                 j += 1
+                print(f"Run number {j}: Scene {scene}, Run: {run}, Config: {p}")
             model_results[p] = copy.deepcopy(run_results)
         results_epoch[scene] = copy.deepcopy(model_results)
 
     # Store epoch output to disk.
-    p = os.path.join(WVN_ROOT_DIR, f"scripts/ablations/{folder}_ablation/{folder}_ablation_test_results.pkl")
+    p = os.path.join(
+        WVN_ROOT_DIR, f"scripts/ablations/{folder}_ablation/{folder}_ablation_test_results{special_key}.pkl"
+    )
 
     try:
         os.remove(p)

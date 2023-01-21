@@ -7,8 +7,8 @@ from simple_parsing.helpers import Serializable
 class ExperimentParams(Serializable):
     @dataclass
     class GeneralParams:
-        name: str = "simple_gcn/debug"
-        timestamp: bool = False
+        name: str = "fix_forest_dataset/debug"
+        timestamp: bool = True
         tag_list: List[str] = field(default_factory=lambda: ["debug"])
         skip_train: bool = False
         store_model_every_n_steps: Optional[int] = None
@@ -45,11 +45,13 @@ class ExperimentParams(Serializable):
     class LossParams:
         anomaly_balanced: bool = True
         w_trav: float = 0.4
+        w_trav_start: Optional[float] = None
+        w_trav_increase: Optional[float] = 0.0004
         w_reco: float = 1.1
-        w_temp: float = 0.4
-        use_kalman_filter: bool = True
-        false_negative_weight: float = 1.0
-        confidence_std_factor: float = 2.0
+        w_temp: float = 0.0  # 0.4
+        use_kalman_filter: bool = False
+        false_negative_weight: float = 1.5
+        confidence_std_factor: float = 1.5
 
     loss: LossParams = LossParams()
 
@@ -61,12 +63,15 @@ class ExperimentParams(Serializable):
         limit_train_batches: float = 1.0
         limit_val_batches: float = 1.0
         limit_test_batches: float = 1.0
-        max_epochs: Optional[int] = 10
+        max_epochs: Optional[int] = None
         profiler: bool = False
         num_sanity_val_steps: int = 0
-        check_val_every_n_epoch: int = 10
+        check_val_every_n_epoch: int = 1
         enable_checkpointing: bool = True
-        max_steps: int = -1
+        max_steps: int = 10000
+        enable_progress_bar: bool = True
+        weights_summary: Optional[str] = "top"
+        progress_bar_refresh_rate: Optional[int] = None
 
     trainer: TrainerParams = TrainerParams()
 
@@ -75,11 +80,12 @@ class ExperimentParams(Serializable):
         batch_size: int = 8
         num_workers: int = 0
         env: str = "forest"
-        feature_key: str = "slic100_dino112_8"
+        feature_key: str = "slic100_dino224_16"
         test_equals_val: bool = False
-        val_equals_test: bool = False
+        val_equals_test: bool = True
         test_all_datasets: bool = False
         training_data_percentage: int = 100
+        training_in_memory: bool = True
 
     ablation_data_module: AblationDataModuleParams = AblationDataModuleParams()
 

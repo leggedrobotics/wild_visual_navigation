@@ -72,6 +72,9 @@ class LightningTrav(pl.LightningModule):
         self._visualizer.epoch = self.current_epoch
 
     def training_step(self, batch: any, batch_idx: int) -> torch.Tensor:
+        if self.global_step > 200:
+            self._traversability_loss.schedule_w_trav()
+
         nr = self._exp["general"]["store_model_every_n_steps"]
         if type(nr) == int:
             if self.global_step % nr == 0:
@@ -202,7 +205,7 @@ class LightningTrav(pl.LightningModule):
         roc_proprioceptive_image.update(preds=buffer_pred, target=buffer_prop)
         auroc_proprioceptive_image.update(preds=buffer_pred, target=buffer_prop)
 
-        if self._mode == "test" and self._exp["loss"]["anomaly_balanced"]:
+        if self._mode == "test" and self._exp["loss"]["w_reco"] != 0:
             reco_loss = F.mse_loss(res[:, 1:], graph.x, reduction="none").mean(dim=1)
             conf = self._traversability_loss._confidence_generator.inference_without_update(reco_loss)
             buffer_conf = graph.label.clone().type(torch.float32).flatten()
@@ -299,15 +302,17 @@ class LightningTrav(pl.LightningModule):
             validation_roc_proprioceptive_image = self._validation_roc_proprioceptive_image.compute()
             validation_roc_proprioceptive_image = [a.cpu().numpy() for a in validation_roc_proprioceptive_image]
             validation_auroc_proprioceptive_image = self._validation_auroc_proprioceptive_image.compute().item()
+            res = {
+                "validation_roc_gt_image": validation_roc_gt_image,
+                "validation_auroc_gt_image": validation_auroc_gt_image,
+                "validation_roc_proprioceptive_image": validation_roc_proprioceptive_image,
+                "validation_auroc_proprioceptive_image": validation_auroc_proprioceptive_image,
+            }
+            self.accumulated_val_results.append(res)
 
-            self.accumulated_val_results.append(
-                {
-                    "validation_roc_gt_image": validation_roc_gt_image,
-                    "validation_auroc_gt_image": validation_auroc_gt_image,
-                    "validation_roc_proprioceptive_image": validation_roc_proprioceptive_image,
-                    "validation_auroc_proprioceptive_image": validation_auroc_proprioceptive_image,
-                }
-            )
+            for k, v in res.items():
+                if k.find("auroc") != -1:
+                    self.log(k, v, on_epoch=True)
 
     # TESTING
     def on_test_epoch_start(self):
@@ -359,7 +364,7 @@ class LightningTrav(pl.LightningModule):
             "test_auroc_proprioceptive_image": test_auroc_proprioceptive_image,
         }
 
-        if self._exp["loss"]["anomaly_balanced"]:
+        if self._exp["loss"]["w_reco"] != 0:
             test_auroc_anomaly_proprioceptive_image = self._test_auroc_anomaly_proprioceptive_image.compute().item()
             test_auroc_anomaly_gt_image = self._test_auroc_anomaly_gt_image.compute().item()
             dic["test_auroc_anomaly_proprioceptive_image"] = test_auroc_anomaly_proprioceptive_image

@@ -61,9 +61,9 @@ class ConfidenceGenerator(torch.nn.Module):
         self.running_sum += x_positive.sum()
         self.running_sum_of_squares += (x_positive**2).sum()
 
-        self.mean = self.running_sum / self.running_n
-        self.var = self.running_sum_of_squares / self.running_n - self.mean**2
-        self.std = torch.sqrt(self.var)
+        self.mean[0] = self.running_sum[0] / self.running_n
+        self.var[0] = self.running_sum_of_squares / self.running_n - self.mean**2
+        self.std[0] = torch.sqrt(self.var)
 
         # Then the confidence is computed as the distance to the center of the Gaussian given factor*sigma
         confidence = torch.exp(-(((x - self.mean) / (2 * self.std * self.std_factor)) ** 2))
