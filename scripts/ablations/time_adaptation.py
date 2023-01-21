@@ -21,7 +21,7 @@ if __name__ == "__main__":
         - This procedure is repeated over all scenes and percentage of data used from the training dataset.
     """
 
-    number_training_runs = 10
+    number_training_runs = 1
     exp = ExperimentParams()
     exp.general.log_to_disk = False
     exp.trainer.max_steps = 10000
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     for scene in ["forest", "hilly", "grassland"]:
         exp.ablation_data_module.env = scene
         percentage_results = {}
-        for percentage in range(10, 100, 10):
+        for percentage in range(10, 110, 10):
             exp.ablation_data_module.training_data_percentage = percentage
             run_results = {}
             for run in range(number_training_runs):
@@ -65,7 +65,7 @@ if __name__ == "__main__":
         results_epoch[scene] = copy.deepcopy(percentage_results)
 
     # Store epoch output to disk.
-    p = os.path.join(WVN_ROOT_DIR, "scripts/ablations/time_adaptation/time_adaptation_epochs.pkl")
+    p = os.path.join(WVN_ROOT_DIR, "scripts/ablations/time_adaptation/time_adaptation_epochs_loss_scheduled.pkl")
     try:
         os.remove(p)
     except OSError as error:
@@ -77,7 +77,10 @@ if __name__ == "__main__":
     exp.general.skip_train = True
     exp.ablation_data_module.val_equals_test = False
     results_step = []
-    for p in Path(exp.general.model_path).rglob("*.pt"):
+
+    p_inter = os.path.join(WVN_ROOT_DIR, "scripts/ablations/time_adaptation/time_adaptation_steps_loss_scheduled.pkl")
+
+    for j, p in enumerate(Path(exp.general.model_path).rglob("*.pt")):
         _, _, _, scene, percentage, run, steps = str(p).split("/")[-1].split("_")
         percentage, run, steps = int(percentage), int(run), int(steps.split(".")[0])
         exp.ablation_data_module.env = scene
@@ -87,8 +90,18 @@ if __name__ == "__main__":
         results_step.append({"scene": scene, "percentage": percentage, "run": run, "steps": steps, "results": res})
         torch.cuda.empty_cache()
 
+        if j % 1000 == 0:
+            # Store step output to disk.
+            try:
+                os.remove(p_inter.replace(".pkl", f"_inter_{j}.pkl"))
+            except OSError as error:
+                pass
+
+            with open(p_inter.replace(".pkl", f"_inter_{j}.pkl"), "wb") as handle:
+                pickle.dump(results_step, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
     # Store step output to disk.
-    p = os.path.join(WVN_ROOT_DIR, "scripts/ablations/time_adaptation/time_adaptation_steps.pkl")
+    p = os.path.join(WVN_ROOT_DIR, "scripts/ablations/time_adaptation/time_adaptation_steps_loss_scheduled.pkl")
     try:
         os.remove(p)
     except OSError as error:
