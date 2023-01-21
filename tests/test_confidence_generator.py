@@ -23,7 +23,7 @@ def generate_traversability_test_signal(N=500, T=10, events=[3, 8], event_length
 def test_confidence_generator():
     device = torch.device("cpu")
     N = 1000
-    sigma_factor = 10.0
+    sigma_factor = 0.5
 
     # Design a long 1D traversability signal
     t, x = generate_traversability_test_signal(N=N, T=30, events=[3, 12], event_length=[5.0, 10], device=device)
@@ -51,7 +51,7 @@ def test_confidence_generator():
     x_noisy_positive[~x_is_positive] = torch.nan
 
     # Add more noise to simulate predictions we don't know
-    more_noise = 1.0 * (torch.rand(x.shape, device=device) - 0.5)
+    more_noise = 1.0 * (torch.rand(x.shape, device=device) - 0.5) + 1.0
     x_noisy += more_noise * ~x_is_positive
 
     # Add constant bias
@@ -78,9 +78,9 @@ def test_confidence_generator():
 
         # Run confidence generator
         if is_pos:
-            c = cg.update(s, s)
+            c = cg.update(s, s[None], step=i)
         else:
-            c = cg.update(s, torch.tensor([]))  # masking tensors returns empty tensor
+            c = cg.update(s, torch.tensor([]), step=i)  # masking tensors returns empty tensor
 
         # Get mean and confidence
         loss_mean[0, i] = cg.mean[0]
@@ -111,7 +111,7 @@ def test_confidence_generator():
     # Naive loss distribution mean
     axs[1].fill_between(
         t_np,
-        loss_mean_np[0] - sigma_factor * loss_std_np[0],
+        t_np*0.0,
         loss_mean_np[0] + sigma_factor * loss_std_np[0],
         alpha=0.2,
         label=f"Loss mean $\pm{sigma_factor}\sigma$",
@@ -120,7 +120,7 @@ def test_confidence_generator():
 
     axs[1].fill_between(
         t_np,
-        loss_mean_np[0] - loss_std_np[0],
+        t_np*0.0,
         loss_mean_np[0] + loss_std_np[0],
         alpha=0.6,
         label="Loss mean $\pm\sigma$",
