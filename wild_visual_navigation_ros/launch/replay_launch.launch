@@ -16,6 +16,7 @@
   <param name="/use_sim_time" type="bool" value="True" />
 
   <!-- Load parameters -->
+  <rosparam command="delete" param="$(arg name)" />
   <rosparam command="load" file="$(arg params_file)" ns="$(arg name)"/>
 
   <!-- Launch ANYmal message converter node -->
@@ -42,6 +43,7 @@
     <arg name="needs_rotation_cam3"       value="True" />
     <arg name="needs_rotation_cam4"       value="True" />
     <arg name="debayer_option"            value="bayer_gbrg8" />
+    <!-- <arg name="debayer_option"            value="auto" /> -->
     <arg name="output_frame3"             value="cam3_sensor_frame_helper"/>
     <arg name="output_frame4"             value="cam4_sensor_frame_helper"/>    
     <arg name="output_frame5"             value="cam5_sensor_frame_helper"/>

@@ -24,6 +24,7 @@ from threading import Lock
 import dataclasses
 import os
 import pickle
+import time
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
@@ -87,9 +88,7 @@ class TraversabilityEstimator:
 
         # Mutex
         self._learning_lock = Lock()
-        self._mission_lock = Lock()
-        self._proprio_lock = Lock()
-        
+
         self._pause_training = False
         self._pause_mission_graph = False
         self._pause_proprio_graph = False
@@ -103,7 +102,7 @@ class TraversabilityEstimator:
         self._exp_cfg = dataclasses.asdict(self._params)
         self._model = get_model(self._exp_cfg["model"]).to(self._device)
         self._model.train()
-        
+
         self._optimizer = torch.optim.AdamW(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
 
         self._traversability_loss = TraversabilityLoss(
@@ -132,31 +131,29 @@ class TraversabilityEstimator:
         self.__dict__.update(state)
         # Restore the unpickable entries
         self._learning_lock = Lock()
-    
+
     def reset(self):
-        with self._mission_lock:
-            self._pause_mission_graph = True
-            self._mission_graph.clear()
-
-        with self._proprio_lock:
-            self._pause_proprio_graph = True
-            self._proprio_graph.clear()
-
         with self._learning_lock:
             self._pause_training = True
-            
+            self._pause_mission_graph = True
+            self._pause_proprio_graph = True
+            time.sleep(2.0)
+
+            self._proprio_graph.clear()
+            self._mission_graph.clear()
+
             # Reset all the learning stuff
             self._step = 0
             self._loss = torch.tensor([torch.inf])
-            
+
             # Re-create model
             self._exp_cfg = dataclasses.asdict(self._params)
             self._model = get_model(self._exp_cfg["model"]).to(self._device)
             self._model.train()
-            
+
             # Re-create optimizer
             self._optimizer = torch.optim.AdamW(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
-            
+
             # Re-create traversability loss
             self._traversability_loss = TraversabilityLoss(
                 **self._exp_cfg["loss"],
@@ -165,14 +162,11 @@ class TraversabilityEstimator:
                 log_folder=self._exp_cfg["general"]["model_path"],
             )
             self._traversability_loss.to(self._device)
-            
+
             # Resume training
             self._pause_training = False
-        
-        self._pause_mission_graph = False
-        self._pause_proprio_graph = False
-
-
+            self._pause_mission_graph = False
+            self._pause_proprio_graph = False
 
     @property
     def loss(self):
@@ -372,9 +366,8 @@ class TraversabilityEstimator:
         previous_node = self._mission_graph.get_last_node()
 
         # Add image node
-        with self._mission_lock:
-            success = self._mission_graph.add_node(node)
-        
+        success = self._mission_graph.add_node(node)
+
         if success and node.use_for_training:
             # Print some info
             total_nodes = self._mission_graph.get_num_nodes()
@@ -423,9 +416,8 @@ class TraversabilityEstimator:
             return False
 
         # Get last added proprio node
-        with self._proprio_lock:
-            last_pnode = self._proprio_graph.get_last_node()
-            success = self._proprio_graph.add_node(pnode)
+        last_pnode = self._proprio_graph.get_last_node()
+        success = self._proprio_graph.add_node(pnode)
 
         if not success:
             # Update traversability of latest node
