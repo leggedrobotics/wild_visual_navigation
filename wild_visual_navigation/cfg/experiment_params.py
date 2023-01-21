@@ -7,7 +7,7 @@ from simple_parsing.helpers import Serializable
 class ExperimentParams(Serializable):
     @dataclass
     class GeneralParams:
-        name: str = "fix_forest_dataset/debug"
+        name: str = "hilly/anomaly_balanced_GCN"
         timestamp: bool = True
         tag_list: List[str] = field(default_factory=lambda: ["debug"])
         skip_train: bool = False
@@ -30,15 +30,9 @@ class ExperimentParams(Serializable):
 
     @dataclass
     class OptimizerParams:
-        @dataclass
-        class AdamwCfgParams:
-            momentum: float = 0.9
-            weight_decay: float = 4.0e-05
-
-        name: str = "ADAMW"
+        name: str = "ADAM"
         lr: float = 0.001
-        adamw_cfg: AdamwCfgParams = AdamwCfgParams()
-
+        
     optimizer: OptimizerParams = OptimizerParams()
 
     @dataclass
@@ -46,12 +40,12 @@ class ExperimentParams(Serializable):
         anomaly_balanced: bool = True
         w_trav: float = 0.4
         w_trav_start: Optional[float] = None
-        w_trav_increase: Optional[float] = 0.0004
+        w_trav_increase: Optional[float] = None #0.0004
         w_reco: float = 1.1
         w_temp: float = 0.0  # 0.4
-        use_kalman_filter: bool = False
-        false_negative_weight: float = 1.5
-        confidence_std_factor: float = 1.5
+        method: str = "latest_measurment"
+        false_negative_weight: float = 1.0
+        confidence_std_factor: float = 0.5
 
     loss: LossParams = LossParams()
 
@@ -91,22 +85,29 @@ class ExperimentParams(Serializable):
 
     @dataclass
     class ModelParams:
-        name: str = "SimpleGCN"
+        name: str = "SimpleMLP"
         load_ckpt: Optional[str] = None
 
         @dataclass
         class SimpleMlpCfgParams:
             input_size: int = 90
-            hidden_sizes: List[int] = field(default_factory=lambda: [64, 32, 1])
+            hidden_sizes: List[int] = field(default_factory=lambda: [256, 128, 1])
             reconstruction: bool = True
 
         simple_mlp_cfg: SimpleMlpCfgParams = SimpleMlpCfgParams()
+        
+        @dataclass
+        class DoubleMlpCfgParams:
+            input_size: int = 90
+            hidden_sizes: List[int] = field(default_factory=lambda: [64, 32, 1])
+
+        double_mlp_cfg: DoubleMlpCfgParams = DoubleMlpCfgParams()
 
         @dataclass
         class SimpleGcnCfgParams:
             input_size: int = 90
             reconstruction: bool = True
-            hidden_sizes: List[int] = field(default_factory=lambda: [64, 32, 1])
+            hidden_sizes: List[int] = field(default_factory=lambda: [256, 128, 1])
 
         simple_gcn_cfg: SimpleGcnCfgParams = SimpleGcnCfgParams()
 
@@ -132,9 +133,9 @@ class ExperimentParams(Serializable):
 
     @dataclass
     class VisuParams:
-        train: int = 2
-        val: int = 2
-        test: int = 2
+        train: int = 0
+        val: int = 0
+        test: int = 0
         log_test_video: bool = False
         log_val_video: bool = False
         log_train_video: bool = False

@@ -1,0 +1,3 @@
+loss:
+  confidence_std_factor: 1.5
+  false_negative_weight: 1.5
