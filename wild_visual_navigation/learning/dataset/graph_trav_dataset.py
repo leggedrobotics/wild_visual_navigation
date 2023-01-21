@@ -110,7 +110,6 @@ class GraphTravAblationDataset(Dataset):
             key = (self.paths[idx]).split("/")[-1][:-3]
             store = os.path.join(self.perugia_root, f"wvn_output/labeling/{self.env}/labels/{key}.pt")
             label = torch.load(store)
-
             y_gt = []
             for i in torch.unique(seg):
                 m = label[seg == i]
@@ -204,16 +203,26 @@ def get_ablation_module(
     feature_key: str = "slic_dino",
     test_equals_val: bool = False,
     val_equals_test: bool = False,
+    training_in_memory: bool = True,
     **kwargs,
 ) -> LightningDataset:
 
-    train_dataset = GraphTravAblationDatasetInMemory(
-        perugia_root=perugia_root,
-        mode="train",
-        feature_key=feature_key,
-        env=env,
-        training_data_percentage=kwargs.get("training_data_percentage", 100),
-    )
+    if training_in_memory:
+        train_dataset = GraphTravAblationDatasetInMemory(
+            perugia_root=perugia_root,
+            mode="train",
+            feature_key=feature_key,
+            env=env,
+            training_data_percentage=kwargs.get("training_data_percentage", 100),
+        )
+    else:
+        train_dataset = GraphTravAblationDataset(
+            perugia_root=perugia_root,
+            mode="train",
+            feature_key=feature_key,
+            env=env,
+            training_data_percentage=kwargs.get("training_data_percentage", 100),
+        )
     val_dataset = [GraphTravAblationDataset(perugia_root=perugia_root, mode="val", feature_key=feature_key, env=env)]
 
     if test_equals_val:

@@ -19,22 +19,37 @@ class TraversabilityLoss(nn.Module):
         confidence_std_factor=1.0,
         log_enabled: bool = False,
         log_folder: str = "/tmp",
+        w_trav_start: Optional[float] = None,
+        w_trav_increase: Optional[float] = None,
     ):
         super(TraversabilityLoss, self).__init__()
-        self._w_trav = w_trav
+        if w_trav_start is None:
+            self._w_trav_start = w_trav
+            self._w_trav = w_trav
+        else:
+            assert w_trav_start <= w_trav
+            self._w_trav = w_trav_start
+            self._w_trav_start = w_trav
+        self._w_trav_increase = w_trav_increase
+
         self._w_reco = w_reco
         self._w_temp = w_temp
         self._model = model
         self._anomaly_balanced = anomaly_balanced
         self._false_negative_weight = false_negative_weight
 
-        if self._anomaly_balanced:
-            self._confidence_generator = ConfidenceGenerator(
-                std_factor=confidence_std_factor,
-                use_kalman_filter=use_kalman_filter,
-                log_enabled=log_enabled,
-                log_folder=log_folder,
-            )
+        self._confidence_generator = ConfidenceGenerator(
+            std_factor=confidence_std_factor,
+            use_kalman_filter=use_kalman_filter,
+            log_enabled=log_enabled,
+            log_folder=log_folder,
+        )
+
+    def schedule_w_trav(self):
+        if not self._w_trav_increase is None:
+            self._w_trav += self._w_trav_increase
+            self._w_trav = min(self._w_trav_start, self._w_trav)
+            print(self._w_trav)
 
     def reset(self):
         if self._anomaly_balanced:
@@ -53,34 +68,33 @@ class TraversabilityLoss(nn.Module):
         loss_reco = F.mse_loss(res[batch.y_valid][:, 1:], batch.x[batch.y_valid])
 
         # Compute traversability loss
+
+        loss_reco_positive = F.mse_loss(res[batch.y_valid][:, 1:], batch.x[batch.y_valid], reduction="none").mean(dim=1)
+
+        loss_reco_raw = F.mse_loss(res[:, 1:], batch.x, reduction="none").mean(dim=1)
+
+        with torch.no_grad():
+            if update_generator:
+                confidence = self._confidence_generator.update(
+                    x=loss_reco_raw, x_positive=loss_reco_positive, step=step, log_step=log_step
+                )
+            else:
+                confidence = self._confidence_generator.inference_without_update(x=loss_reco_raw)
+
+        m = batch.y == 0
+
+        loss_trav_raw_labeled = F.mse_loss(res[batch.y_valid, 0], batch.y[batch.y_valid], reduction="none")
+        loss_trav_raw_not_labeled = F.mse_loss(res[~batch.y_valid, 0], batch.y[~batch.y_valid], reduction="none")
+
+        # Scale the loss
+        loss_trav_raw_not_labeled = loss_trav_raw_not_labeled * (1 - confidence)[~batch.y_valid]
+        loss_trav_raw_labeled = loss_trav_raw_labeled * self._false_negative_weight
+
+        loss_trav_raw = F.mse_loss(res[:, 0], batch.y[:])
         if self._anomaly_balanced:
-            loss_reco_positive = F.mse_loss(res[batch.y_valid][:, 1:], batch.x[batch.y_valid], reduction="none").mean(
-                dim=1
-            )
-
-            loss_reco_raw = F.mse_loss(res[:, 1:], batch.x, reduction="none").mean(dim=1)
-
-            with torch.no_grad():
-                if update_generator:
-                    confidence = self._confidence_generator.update(
-                        x=loss_reco_raw, x_positive=loss_reco_positive, step=step, log_step=log_step
-                    )
-                else:
-                    confidence = self._confidence_generator.inference_without_update(x=loss_reco_raw)
-
-            m = batch.y == 0
-
-            loss_trav_raw_labeled = F.mse_loss(res[batch.y_valid, 0], batch.y[batch.y_valid], reduction="none")
-            loss_trav_raw_not_labeled = F.mse_loss(res[~batch.y_valid, 0], batch.y[~batch.y_valid], reduction="none")
-
-            # Scale the loss
-            loss_trav_raw_not_labeled = loss_trav_raw_not_labeled * (1 - confidence)[~batch.y_valid]
-            loss_trav_raw_labeled = loss_trav_raw_labeled * self._false_negative_weight
-
             loss_trav_out = (loss_trav_raw_not_labeled.sum() + loss_trav_raw_labeled.sum()) / (m.numel())
-            loss_trav_raw = F.mse_loss(res[:, 0], batch.y[:])
+
         else:
-            loss_trav_raw = F.mse_loss(res[:, 0], batch.y[:])
             loss_trav_out = loss_trav_raw
 
         # Compute temoporal loss
