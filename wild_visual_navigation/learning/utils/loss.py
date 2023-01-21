@@ -14,8 +14,8 @@ class TraversabilityLoss(nn.Module):
         w_temp,
         anomaly_balanced,
         model,
+        method="running_mean",
         false_negative_weight=1.0,
-        use_kalman_filter=True,
         confidence_std_factor=1.0,
         log_enabled: bool = False,
         log_folder: str = "/tmp",
@@ -40,7 +40,7 @@ class TraversabilityLoss(nn.Module):
 
         self._confidence_generator = ConfidenceGenerator(
             std_factor=confidence_std_factor,
-            use_kalman_filter=use_kalman_filter,
+            method=method,
             log_enabled=log_enabled,
             log_folder=log_folder,
         )
@@ -49,7 +49,6 @@ class TraversabilityLoss(nn.Module):
         if not self._w_trav_increase is None:
             self._w_trav += self._w_trav_increase
             self._w_trav = min(self._w_trav_start, self._w_trav)
-            print(self._w_trav)
 
     def reset(self):
         if self._anomaly_balanced:
@@ -65,37 +64,27 @@ class TraversabilityLoss(nn.Module):
         log_step: bool = False,
     ):
         # Compute reconstruction loss
-        loss_reco = F.mse_loss(res[batch.y_valid][:, 1:], batch.x[batch.y_valid])
-
-        # Compute traversability loss
-
-        loss_reco_positive = F.mse_loss(res[batch.y_valid][:, 1:], batch.x[batch.y_valid], reduction="none").mean(dim=1)
-
-        loss_reco_raw = F.mse_loss(res[:, 1:], batch.x, reduction="none").mean(dim=1)
+        loss_reco = F.mse_loss(res[:, 1:], batch.x, reduction="none").mean(dim=1)
 
         with torch.no_grad():
             if update_generator:
                 confidence = self._confidence_generator.update(
-                    x=loss_reco_raw, x_positive=loss_reco_positive, step=step, log_step=log_step
+                    x=loss_reco, x_positive=loss_reco[batch.y_valid] , step=step, log_step=log_step
                 )
             else:
-                confidence = self._confidence_generator.inference_without_update(x=loss_reco_raw)
+                confidence = self._confidence_generator.inference_without_update(x=loss_reco)
 
-        m = batch.y == 0
-
-        loss_trav_raw_labeled = F.mse_loss(res[batch.y_valid, 0], batch.y[batch.y_valid], reduction="none")
-        loss_trav_raw_not_labeled = F.mse_loss(res[~batch.y_valid, 0], batch.y[~batch.y_valid], reduction="none")
+        loss_trav_raw = F.mse_loss(res[:, 0], batch.y[:], reduction="none")
+        loss_trav_raw_labeled = loss_trav_raw[batch.y_valid]
+        loss_trav_raw_not_labeled = loss_trav_raw[~batch.y_valid]
 
         # Scale the loss
-        loss_trav_raw_not_labeled = loss_trav_raw_not_labeled * (1 - confidence)[~batch.y_valid]
-        loss_trav_raw_labeled = loss_trav_raw_labeled * self._false_negative_weight
-
-        loss_trav_raw = F.mse_loss(res[:, 0], batch.y[:])
+        loss_trav_raw_not_labeled_weighted = loss_trav_raw_not_labeled * (1 - confidence)[~batch.y_valid]
+        
         if self._anomaly_balanced:
-            loss_trav_out = (loss_trav_raw_not_labeled.sum() + loss_trav_raw_labeled.sum()) / (m.numel())
-
+            loss_trav_confidence = (loss_trav_raw_not_labeled_weighted.sum() + loss_trav_raw_labeled.sum()) / (batch.y.shape[0])
         else:
-            loss_trav_out = loss_trav_raw
+            loss_trav_confidence = loss_trav_raw.mean()
 
         # Compute temoporal loss
         if self._w_temp > 0 and batch_aux is not None:
@@ -116,15 +105,15 @@ class TraversabilityLoss(nn.Module):
 
             loss_temp = F.mse_loss(res[current_indexes, 0], aux_res[previous_indexes, 0])
         else:
-            loss_temp = torch.zeros_like(loss_trav_out)
+            loss_temp = torch.zeros_like(loss_trav_confidence)
 
         # Compute total loss
-        loss = self._w_trav * loss_trav_out + self._w_reco * loss_reco + self._w_temp * loss_temp
+        loss = self._w_trav * loss_trav_confidence + self._w_reco * loss_reco[batch.y_valid].mean() + self._w_temp * loss_temp
         return loss, {
-            "loss_reco": loss_reco,
-            "loss_trav": loss_trav_raw,
-            "loss_temp": loss_temp,
-            "loss_trav_confidence": loss_trav_out,
+            "loss_reco": loss_reco[batch.y_valid].mean(),
+            "loss_trav": loss_trav_raw.mean(),
+            "loss_temp": loss_temp.mean(),
+            "loss_trav_confidence": loss_trav_confidence,
         }
 
 

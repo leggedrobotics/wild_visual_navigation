@@ -111,6 +111,20 @@ class LearningVisualizer:
         plt.close()
         return res
 
+    @image_functionality
+    def plot_histogram(self, reco_loss, y, mean, std, **kwargs):
+        np_x = reco_loss.cpu().detach().numpy()
+        np_x_pos = reco_loss[y==1].cpu().detach().numpy()
+        N = 100
+        bins = np.linspace(0, 4, N)
+        fig, ax = plt.subplots(figsize=(3, 3))
+        ax.hist(np_x, bins, alpha=0.5, color='k')
+        ax.hist(np_x_pos, bins, alpha=0.5, color='b')
+        ax.plot(bins, np.exp( - (bins - mean)**2 / (2 * std**2) ), color='b', linewidth=3)
+        res = np.array(get_img_from_fig(fig))
+        plt.close()
+        return res
+    
     @accumulate_time
     def plot_mission_node_prediction(self, node: any):
         if node._image is None or node._prediction is None:
