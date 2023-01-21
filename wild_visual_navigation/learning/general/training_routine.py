@@ -2,6 +2,9 @@ import os
 import yaml
 import dataclasses
 import pickle
+import warnings
+
+warnings.filterwarnings("ignore", ".*does not have many workers.*")
 
 # Frameworks
 import torch
@@ -90,9 +93,9 @@ def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
     if type(exp["model"]["load_ckpt"]) == str:
         ckpt = torch.load(exp["model"]["load_ckpt"])
         try:
-            res = model.load_state_dict(ckpt["state_dict"])
+            res = model.load_state_dict(ckpt["state_dict"], strict=False)
         except:
-            res = model.load_state_dict(ckpt)
+            res = model.load_state_dict(ckpt, strict=False)
         print("Loaded model checkpoint:", res)
     trainer = Trainer(**exp["trainer"], callbacks=cb_ls, logger=logger)
 
