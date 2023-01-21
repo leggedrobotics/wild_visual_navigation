@@ -111,7 +111,7 @@ def test_confidence_generator():
     # Naive loss distribution mean
     axs[1].fill_between(
         t_np,
-        t_np*0.0,
+        t_np * 0.0,
         loss_mean_np[0] + sigma_factor * loss_std_np[0],
         alpha=0.2,
         label=f"Loss mean $\pm{sigma_factor}\sigma$",
@@ -120,7 +120,7 @@ def test_confidence_generator():
 
     axs[1].fill_between(
         t_np,
-        t_np*0.0,
+        t_np * 0.0,
         loss_mean_np[0] + loss_std_np[0],
         alpha=0.6,
         label="Loss mean $\pm\sigma$",

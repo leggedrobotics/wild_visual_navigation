@@ -80,7 +80,7 @@ class ConfidenceGenerator(torch.nn.Module):
 
             assert torch.isnan(self.mean).any() == False, "Nan Value in mean detected"
         self.std[0] = torch.sqrt(self.var)[0, 0]
-        
+
         # Then the confidence is computed as the distance to the center of the Gaussian given factor*sigma
         confidence = torch.exp(-(((x - self.mean) / (2 * self.std * self.std_factor)) ** 2))
         confidence[x < self.mean] = 1.0
