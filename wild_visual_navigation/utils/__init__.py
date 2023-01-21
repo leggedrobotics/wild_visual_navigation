@@ -6,4 +6,4 @@ from .confidence_generator import ConfidenceGenerator
 from .operation_modes import WVNMode
 from .dataset_info import perugia_dataset, ROOT_DIR
 from .override_params import override_params
-from .gpu_monitor import GpuMonitor, SystemLevelGpuMonitor, accumulate_memory
+from .gpu_monitor import GpuMonitor, SystemLevelGpuMonitor, SystemLevelContextGpuMonitor, accumulate_memory

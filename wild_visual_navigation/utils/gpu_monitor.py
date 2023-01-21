@@ -115,6 +115,66 @@ def accumulate_memory(method):
     return measured
 
 
+class SystemLevelContextGpuMonitor:
+    def __init__(self, parent, name="") -> None:
+        self.parent = parent
+        if hasattr(self.parent, "slg_enabled"):
+            if not self.parent.slg_enabled:
+                return
+        self.name = name
+
+    def __enter__(self):
+        if (
+            hasattr(self.parent, "slg_enabled")
+            and hasattr(self.parent, "slg_device")
+            and hasattr(self.parent, "slg_pid")
+        ):
+            if self.parent.slg_enabled:
+                self.mem_start = gpu_memory_query(self.parent.slg_device, self.parent.slg_pid)
+
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        if hasattr(self.parent, "slg_device") and hasattr(self.parent, "slg_pid"):
+            mem_end = gpu_memory_query(self.parent.slg_device, self.parent.slg_pid)
+            mem_delta = mem_end - self.mem_start
+        else:
+            return
+
+        if hasattr(self.parent, "slg_enabled") and hasattr(self.parent, "slg_store_samples"):
+            if self.parent.slg_enabled and self.parent.slg_store_samples:
+                # Check if we enabled the option to store samples
+                if not hasattr(self.parent, "slg_memory_samples"):
+                    self.parent.slg_memory_samples = {}
+
+                if not hasattr(self.parent, "slg_step") or not hasattr(self.parent, "slg_time"):
+                    # Wait until the step and step time is initialized
+                    return
+
+                store_sample = self.parent.slg_step % self.parent.slg_skip_n_samples == 0
+
+                if self.name in self.parent.slg_memory_samples and store_sample:
+                    self.parent.slg_memory_samples[self.name]["step"].append(self.parent.slg_step)
+                    self.parent.slg_memory_samples[self.name]["time"].append(self.parent.slg_time)
+                    self.parent.slg_memory_samples[self.name]["ini_memory"].append(self.mem_start)
+                    self.parent.slg_memory_samples[self.name]["end_memory"].append(mem_end)
+                    self.parent.slg_memory_samples[self.name]["delta_memory"].append(mem_delta)
+                else:
+                    self.parent.slg_memory_samples[self.name] = {
+                        "step": [self.parent.slg_step],
+                        "time": [self.parent.slg_time],
+                        "ini_memory": [self.mem_start],
+                        "end_memory": [mem_end],
+                        "delta_memory": [mem_delta],
+                    }
+
+    def tic(self):
+        self.start.record()
+
+    def toc(self):
+        self.end.record()
+        torch.cuda.synchronize()
+        return self.start.elapsed_time(self.end)
+
+
 class SystemLevelGpuMonitor:
     def __init__(self, objects, names, enabled=True, device=None, store_samples=False, skip_n_samples=1) -> None:
         self.objects = objects
@@ -131,20 +191,24 @@ class SystemLevelGpuMonitor:
         pass
 
     def update(self, step, time):
+        # print(f"New step {step}, time {time}")
         for o in self.objects:
             if o.slg_enabled:
                 o.slg_step = step
                 o.slg_time = time
 
     def store(self, folder):
+        base_folder = folder + "/gpu_monitor"
+        os.makedirs(base_folder, exist_ok=True)
+        print(f"Saving gpu samples to {base_folder}...")
         # We iterate the list of object to access the recorded data
         for n, o in zip(self.names, self.objects):
             if hasattr(o, "slg_memory_samples"):
                 # Each object has a slg_memory_samples dict
                 # Each entry of the dict is a numpy array with samples
                 for (k, v) in o.slg_memory_samples.items():
-                    out_filename = f"{folder}/{n}_{k}.csv"
-                    print(f"Saving gpu samples to {out_filename}...")
+                    out_filename = f"{base_folder}/{n}_{k}.csv"
+                    print(f"   {out_filename}")
                     df = pd.DataFrame(v)
                     df.to_csv(out_filename)
 
@@ -180,22 +244,27 @@ if __name__ == "__main__":
         def __init__(self):
             self.step = 0
             self.time = 0.1
+            self.tensors = []
 
         @accumulate_memory
         def test(self, s):
-            tensors = []
-            tensors.append(torch.zeros((s, s), device="cuda"))
+            self.tensors.append(torch.zeros((s, s), device="cuda"))
+
+        @accumulate_memory
+        def test2(self, s):
+            self.tensors.append(torch.zeros((4, s, s), device="cuda"))
 
     i = 0
     t = 0.1
     my_test = MyTest()
     gpu_monitor = SystemLevelGpuMonitor(
-        objects=[my_test], names=["test"], enabled=False, device="cuda", store_samples=True, skip_n_samples=1
+        objects=[my_test], names=["test"], enabled=True, device="cuda", store_samples=True, skip_n_samples=1
     )
-    for n in range(10):
+    for n in range(400):
         step = n
         time = n / 10
         gpu_monitor.update(step, time)
         my_test.test(n)
+        my_test.test2(n)
 
     gpu_monitor.store("/tmp")

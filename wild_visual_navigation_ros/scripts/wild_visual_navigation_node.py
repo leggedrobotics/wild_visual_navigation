@@ -14,7 +14,7 @@ from wild_visual_navigation_msgs.srv import (
 )
 from std_srvs.srv import SetBool, Trigger, TriggerResponse
 from wild_visual_navigation.utils import SystemLevelTimer, SystemLevelContextTimer
-from wild_visual_navigation.utils import SystemLevelGpuMonitor, accumulate_memory
+from wild_visual_navigation.utils import SystemLevelGpuMonitor, SystemLevelContextGpuMonitor, accumulate_memory
 from wild_visual_navigation.utils import WVNMode
 from wild_visual_navigation.cfg import ExperimentParams
 from wild_visual_navigation.utils import override_params
@@ -91,24 +91,16 @@ class WvnRosInterface:
         self.setup_ros(setup_fully=self.mode != WVNMode.EXTRACT_LABELS)
 
         # Setup Timer if needed
-        if self.print_image_callback_time or self.print_proprio_callback_time or self.log_time:
-            self.timer = SystemLevelTimer(
-                objects=[
-                    self,
-                    self.traversability_estimator,
-                    self.traversability_estimator._visualizer,
-                    self.supervision_generator,
-                ],
-                names=["WVN", "TraversabilityEstimator", "Visualizer", "SupervisionGenerator"],
-                step_reference=[self.step],
-                time_reference=[self.step_time],
-            )
-        else:
-            # Turn off all timing
-            self.slt_not_time = True
-            self.traversability_estimator.slt_not_time = True
-            self.traversability_estimator._visualizer.slt_not_time = True
-            self.supervision_generator.slt_not_time = True
+        self.timer = SystemLevelTimer(
+            objects=[
+                self,
+                self.traversability_estimator,
+                self.traversability_estimator._visualizer,
+                self.supervision_generator,
+            ],
+            names=["WVN", "TraversabilityEstimator", "Visualizer", "SupervisionGenerator"],
+            enabled=(self.print_image_callback_time or self.print_proprio_callback_time or self.log_time),
+        )
 
         self.gpu_monitor = SystemLevelGpuMonitor(
             objects=[
@@ -139,12 +131,9 @@ class WvnRosInterface:
 
     def shutdown_callback(self, *args, **kwargs):
         # Write stuff to files
-        print("Shutdown callback called")
-        print("Joining learning thread...", end="")
+        rospy.logwarn("Shutdown callback called")
         if self.mode != WVNMode.EXTRACT_LABELS:
             self.learning_thread_stop_event.set()
-            self.learning_thread.join()
-        print("done")
 
         print("Storing learned checkpoint...", end="")
         self.traversability_estimator.save_checkpoint(self.params.general.model_path, "last_checkpoint.pt")
@@ -158,6 +147,12 @@ class WvnRosInterface:
             print("Storing memory data...", end="")
             self.gpu_monitor.store(folder=self.params.general.model_path)
             print("done")
+
+        print("Joining learning thread...", end="")
+        if self.mode != WVNMode.EXTRACT_LABELS:
+            self.learning_thread_stop_event.set()
+            self.learning_thread.join()
+        print("done")
 
         rospy.signal_shutdown(f"Wild Visual Navigation killed {args}")
         sys.exit(0)
@@ -174,11 +169,13 @@ class WvnRosInterface:
         while True:
             self.learning_thread_stop_event.wait(timeout=0.01)
             if self.learning_thread_stop_event.is_set():
+                rospy.logwarn("Stopped learning thread")
                 break
 
             # Optimize model
-            with SystemLevelContextTimer(self, "training_step_time"):
-                res = self.traversability_estimator.train()
+            with SystemLevelContextGpuMonitor(self, "training_step_time"):
+                with SystemLevelContextTimer(self, "training_step_time"):
+                    res = self.traversability_estimator.train()
 
             if self.step != self.traversability_estimator.step:
                 self.step_time = rospy.get_time()
@@ -633,9 +630,10 @@ class WvnRosInterface:
             # Add node to graph
             added_new_node = self.traversability_estimator.add_mission_node(mission_node)
 
-            with SystemLevelContextTimer(self, "update_prediction"):
-                # Update prediction
-                self.traversability_estimator.update_prediction(mission_node)
+            with SystemLevelContextGpuMonitor(self, "update_prediction"):
+                with SystemLevelContextTimer(self, "update_prediction"):
+                    # Update prediction
+                    self.traversability_estimator.update_prediction(mission_node)
 
             if self.mode == WVNMode.ONLINE or self.mode == WVNMode.DEBUG:
                 self.publish_predictions(mission_node, image_msg, info_msg, image_projector.scaled_camera_matrix)
