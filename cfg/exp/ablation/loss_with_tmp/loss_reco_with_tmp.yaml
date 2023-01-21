@@ -1,0 +1,4 @@
+loss:
+  anomaly_balanced: False
+  w_reco: 0
+  w_temp: 0.4

@@ -23,14 +23,22 @@ if __name__ == "__main__":
         - Calling the testing is therefore not necessary.
         - This procedure is repeated over all scenes and percentage of data used from the training dataset.
     """
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--ablation_type", type=str, default="network", help="Folder containing the ablation configs.")
     parser.add_argument("--number_training_runs", type=int, default=1, help="Number of run per config.")
     parser.add_argument("--test_all_datasets", type=bool, default=False, help="Test on all datasets.")
     parser.add_argument("--special_key", type=str, default="", help="Test on all datasets.")
+    # python scripts/ablations/training_ablation.py --ablation_type=network --number_training_runs=3 --special_key=""
+    # python scripts/ablations/training_ablation.py --ablation_type=confidence_fn --number_training_runs=3 --special_key=""
+    # python scripts/ablations/training_ablation.py --ablation_type=feature --number_training_runs=3 --special_key=""
+    # python scripts/ablations/training_ablation.py --ablation_type=loss --number_training_runs=3 --special_key=""
+    # python scripts/ablations/training_ablation.py --ablation_type=loss_with_tmp --number_training_runs=3 --special_key=""
+    # python scripts/ablations/training_ablation.py --ablation_type=w_temp --number_training_runs=3 --special_key=""
+    # python scripts/ablations/training_ablation.py --ablation_type=lr --number_training_runs=3 --special_key=""
 
     args = parser.parse_args()
-
+    print(args)
     exp = ExperimentParams()
     exp.general.log_to_disk = False
     exp.trainer.max_steps = 10000

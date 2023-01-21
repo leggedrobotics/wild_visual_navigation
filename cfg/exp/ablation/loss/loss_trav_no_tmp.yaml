@@ -1,0 +1,3 @@
+loss:
+  anomaly_balanced: False
+  w_temp: 0

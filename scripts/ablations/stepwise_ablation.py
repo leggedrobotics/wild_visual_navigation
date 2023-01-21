@@ -20,11 +20,29 @@ if __name__ == "__main__":
         - Calling the testing is therefore not necessary.
         - This procedure is repeated over all scenes and percentage of data used from the training dataset.
     """
-
-    number_training_runs = 1
     exp = ExperimentParams()
-    exp.general.log_to_disk = False
+
+    # #Experiment 1: Time adaptation
+    # number_training_runs = 1
+    # data_start_percentage = 10
+    # data_stop_percentage = 100
+    # data_percentage_increment = 10
+    # scenes = ["forest", "hilly", "grassland"]
+    # exp.general.store_model_every_n_steps = 100
+    # exp.trainer.max_steps = 10000
+    # output_key = "time_adaptation"
+
+    # Experiment 2: Learning curves
+    number_training_runs = 1
+    data_start_percentage = 100
+    data_stop_percentage = 100
+    data_percentage_increment = 10
+    scenes = ["forest"]
+    exp.general.store_model_every_n_steps = 100
     exp.trainer.max_steps = 10000
+    output_key = "learning_curvers"
+
+    exp.general.log_to_disk = False
     exp.trainer.max_epochs = None
     exp.logger.name = "skip"
     exp.ablation_data_module.val_equals_test = True
@@ -36,28 +54,31 @@ if __name__ == "__main__":
     exp.visu.train = 0
     exp.visu.val = 0
     exp.visu.test = 0
-    exp.general.model_path = os.path.join(WVN_ROOT_DIR, "scripts/ablations/time_adaptation")
+    exp.general.model_path = os.path.join(WVN_ROOT_DIR, f"scripts/ablations/{output_key}")
 
     # If check_val_every_n_epoch in the current setting the test dataloader is used for validation.
     # All results during validation are stored and returned by the training routine.
-    exp.trainer.check_val_every_n_epoch = 100000
+    exp.trainer.check_val_every_n_epoch = 1000000
 
-    # Currently the model weights are stored every 10 steps.
+    # Currently the model weights are stored every n steps.
     # This allows to reload the model and test it on the test dataloader.
-    exp.general.store_model_every_n_steps = 100
 
     Path(exp.general.model_path).mkdir(parents=True, exist_ok=True)
+    percent = range(data_start_percentage, data_stop_percentage + data_percentage_increment, data_percentage_increment)
+
+    with open(os.path.join(exp.general.model_path, "experiment_params.pkl"), "wb") as handle:
+        pickle.dump(exp, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     # Train model in various configurations and the validation results per epoch are returned in results_epoch.
     results_epoch = {}
-    for scene in ["forest", "hilly", "grassland"]:
+    for scene in scenes:
         exp.ablation_data_module.env = scene
         percentage_results = {}
-        for percentage in range(10, 110, 10):
+        for percentage in percent:
             exp.ablation_data_module.training_data_percentage = percentage
             run_results = {}
             for run in range(number_training_runs):
-                exp.general.store_model_every_n_steps_key = f"ablation_time_adaptation_{scene}_{percentage}_{run}"
+                exp.general.store_model_every_n_steps_key = f"ablation_{output_key}_{scene}_{percentage}_{run}"
                 res = training_routine(exp, seed=run)
                 run_results[f"run_{run}"] = copy.deepcopy(res)
                 torch.cuda.empty_cache()
@@ -65,7 +86,7 @@ if __name__ == "__main__":
         results_epoch[scene] = copy.deepcopy(percentage_results)
 
     # Store epoch output to disk.
-    p = os.path.join(WVN_ROOT_DIR, "scripts/ablations/time_adaptation/time_adaptation_epochs_loss_scheduled.pkl")
+    p = os.path.join(WVN_ROOT_DIR, "scripts/ablations/{output_key}/{output_key}_epochs.pkl")
     try:
         os.remove(p)
     except OSError as error:
@@ -78,7 +99,7 @@ if __name__ == "__main__":
     exp.ablation_data_module.val_equals_test = False
     results_step = []
 
-    p_inter = os.path.join(WVN_ROOT_DIR, "scripts/ablations/time_adaptation/time_adaptation_steps_loss_scheduled.pkl")
+    p_inter = os.path.join(WVN_ROOT_DIR, "scripts/ablations/{output_key}/{output_key}_steps.pkl")
 
     for j, p in enumerate(Path(exp.general.model_path).rglob("*.pt")):
         _, _, _, scene, percentage, run, steps = str(p).split("/")[-1].split("_")
@@ -87,7 +108,9 @@ if __name__ == "__main__":
         exp.model.load_ckpt = str(p)
 
         res = training_routine(exp, seed=run)
-        results_step.append({"scene": scene, "percentage": percentage, "run": run, "steps": steps, "results": res})
+        results_step.append(
+            {"scene": scene, "percentage": percentage, "run": run, "steps": steps, "results": res, "model_path": str(p)}
+        )
         torch.cuda.empty_cache()
 
         if j % 1000 == 0:
@@ -101,7 +124,7 @@ if __name__ == "__main__":
                 pickle.dump(results_step, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     # Store step output to disk.
-    p = os.path.join(WVN_ROOT_DIR, "scripts/ablations/time_adaptation/time_adaptation_steps_loss_scheduled.pkl")
+    p = os.path.join(WVN_ROOT_DIR, "scripts/ablations/{output_key}/{output_key}_steps_loss_scheduled.pkl")
     try:
         os.remove(p)
     except OSError as error:
