@@ -29,12 +29,12 @@ if __name__ == "__main__":
     parser.add_argument("--number_training_runs", type=int, default=1, help="Number of run per config.")
     parser.add_argument("--test_all_datasets", type=bool, default=False, help="Test on all datasets.")
     parser.add_argument("--special_key", type=str, default="", help="Test on all datasets.")
-    # python scripts/ablations/training_ablation.py --ablation_type=network --number_training_runs=3 --special_key=""
-    # python scripts/ablations/training_ablation.py --ablation_type=confidence_fn --number_training_runs=3 --special_key=""
-    # python scripts/ablations/training_ablation.py --ablation_type=feature --number_training_runs=3 --special_key=""
-    # python scripts/ablations/training_ablation.py --ablation_type=loss --number_training_runs=3 --special_key=""
-    # python scripts/ablations/training_ablation.py --ablation_type=loss_with_tmp --number_training_runs=3 --special_key=""
-    # python scripts/ablations/training_ablation.py --ablation_type=w_temp --number_training_runs=3 --special_key=""
+    # python scripts/ablations/training_ablation.py --ablation_type=network --number_training_runs=3 --special_key="" &&\
+    # python scripts/ablations/training_ablation.py --ablation_type=confidence_fn --number_training_runs=3 --special_key="" &&\
+    # python scripts/ablations/training_ablation.py --ablation_type=feature --number_training_runs=3 --special_key="" &&\
+    # python scripts/ablations/training_ablation.py --ablation_type=loss --number_training_runs=3 --special_key="" &&\
+    # python scripts/ablations/training_ablation.py --ablation_type=loss_with_tmp --number_training_runs=3 --special_key="" &&\
+    # python scripts/ablations/training_ablation.py --ablation_type=w_temp --number_training_runs=3 --special_key="" &&\
     # python scripts/ablations/training_ablation.py --ablation_type=lr --number_training_runs=3 --special_key=""
 
     args = parser.parse_args()
@@ -49,6 +49,7 @@ if __name__ == "__main__":
     exp.trainer.profiler = None
     exp.trainer.enable_checkpointing = False
     exp.cb_checkpoint.active = False
+    exp.ablation_data_module.training_in_memory = True
 
     exp.verify_params()
     exp.visu.train = 0

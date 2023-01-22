@@ -99,7 +99,7 @@ class LearningVisualizer:
                 ax.fill_between(_x, _y_lower, _y_upper, color=paper_colors_rgb_f[k + "_light"], alpha=0.2)
 
         ax.plot(np.linspace(0, 1, 100), np.linspace(0, 1, 100), linestyle="--", color="gray")
-        ax.set_xlabel("False postive rate")
+        ax.set_xlabel("False positive rate")
         ax.set_ylabel("True positive rate")
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
@@ -299,6 +299,7 @@ class LearningVisualizer:
         colormap="Set2",
         overlay_mask=None,
         boundary_seg=None,
+        boundary_alpha=0,
         **kwargs,
     ):
         img = self.plot_image(img, not_log=True)
@@ -319,7 +320,7 @@ class LearningVisualizer:
             fore[overlay_mask] = 0
 
         img_new = Image.alpha_composite(Image.fromarray(np.uint8(back)), Image.fromarray(np.uint8(fore)))
-        img_new = img_new.convert("RGB")
+        img_rgb = img_new.convert("RGB")
 
         if draw_bound:
             if boundary_seg is not None:
@@ -330,11 +331,14 @@ class LearningVisualizer:
             if seg.shape[0] == 1:
                 seg = seg[0]
 
-            mask = skimage.segmentation.mark_boundaries(np.array(img_new), seg, color=(255, 255, 255))
+            mask = skimage.segmentation.mark_boundaries(np.array(img_rgb), seg, color=(255, 255, 255))
             mask = mask.sum(axis=2)
             m = mask == mask.max()
-            img_new = np.array(img_new)
-            img_new[m] = (255, 255, 255)
+            fore = np.zeros((H, W, 4))
+            fore[m, :] = [255,255,255, boundary_alpha]
+
+            img_new = Image.alpha_composite(img_new.convert("RGBA"), Image.fromarray(np.uint8(fore)))
+            img_new = img_new.convert("RGB")
 
         return np.uint8(img_new)
 

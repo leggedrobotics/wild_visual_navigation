@@ -2,7 +2,7 @@
 from wild_visual_navigation.learning.dataset import get_ablation_module
 from wild_visual_navigation.learning.utils import load_env
 from wild_visual_navigation import WVN_ROOT_DIR
-
+from wild_visual_navigation.cfg import ExperimentParams
 import torch
 from torchmetrics import Accuracy, AUROC
 
@@ -33,11 +33,12 @@ models = {
 results_epoch = {}
 
 for scene in ["forest", "hilly", "grassland"]:
+    exp = ExperimentParams()
     ablation_data_module = {
         "batch_size": 1,
         "num_workers": 0,
         "env": scene,
-        "feature_key": "slic_dino",
+        "feature_key": exp.ablation_data_module.feature_key,
         "test_equals_val": False,
         "test_all_datasets": test_all_datasets,
     }
