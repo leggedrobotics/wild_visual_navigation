@@ -208,7 +208,6 @@ class WvnRosInterface:
         # Frames
         self.fixed_frame = rospy.get_param("~fixed_frame")
         self.base_frame = rospy.get_param("~base_frame")
-        self.camera_frame = rospy.get_param("~camera_frame")
         self.footprint_frame = rospy.get_param("~footprint_frame")
 
         # Robot size and specs
@@ -335,7 +334,7 @@ class WvnRosInterface:
                     image_sub = message_filters.Subscriber(self.camera_topics[cam]["image_topic"], Image)
 
                 info_sub = message_filters.Subscriber(self.camera_topics[cam]["info_topic"], CameraInfo)
-                sync = message_filters.ApproximateTimeSynchronizer([image_sub, info_sub], queue_size=2, slop=0.1)
+                sync = message_filters.ApproximateTimeSynchronizer([image_sub, info_sub], queue_size=2, slop=0.5)
                 sync.registerCallback(self.image_callback, self.camera_topics[cam])
                 self.camera_handler[cam]["image_sub"] = image_sub
                 self.camera_handler[cam]["info_sub"] = info_sub
@@ -599,7 +598,7 @@ class WvnRosInterface:
             if not suc:
                 return
             suc, pose_cam_in_base = rc.ros_tf_to_torch(
-                self.query_tf(self.base_frame, self.camera_frame, image_msg.header.stamp), device=self.device
+                self.query_tf(self.base_frame, image_msg.header.frame_id, image_msg.header.stamp), device=self.device
             )
             if not suc:
                 return
