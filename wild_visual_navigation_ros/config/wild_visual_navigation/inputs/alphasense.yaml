@@ -12,6 +12,6 @@ camera_topics:
   #   info_topic: "/alphasense_driver_ros/cam5/camera_info"
   #   use_for_training: false
 
-# Provides 1080 (height) x 1920 (width) images
+# Provides 1080 (height) x 1440 (width) images
 network_input_image_height: 224 # 448
 network_input_image_width: 224 # 448

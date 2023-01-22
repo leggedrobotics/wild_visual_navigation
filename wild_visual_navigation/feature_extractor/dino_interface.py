@@ -1,6 +1,7 @@
 from wild_visual_navigation import WVN_ROOT_DIR
 import os
 from os.path import join
+from typing import Tuple
 import torch.nn.functional as F
 import torch
 from omegaconf import DictConfig
@@ -12,7 +13,7 @@ class DinoInterface:
     def __init__(
         self,
         device: str,
-        input_size: int = 448,
+        input_size: Tuple[int, int] = (448, 448),
         input_interp: str = "bilinear",
         model_type: str = "vit_small",
         patch_size: int = 8,
@@ -32,6 +33,10 @@ class DinoInterface:
         # Pretrained weights
         if self.cfg.pretrained_weights is None:
             self.cfg.pretrained_weights = self.download_pretrained_model(self.cfg)
+        
+        # Check if the dimensions are consistent with patch size
+        assert((input_size[0] / patch_size) % 1 == 0.0)
+        assert((input_size[1] / patch_size) % 1 == 0.0)
 
         # Initialize DINO
         self.model = DinoFeaturizer(self.dim, self.cfg)
@@ -53,7 +58,7 @@ class DinoInterface:
         self.transform = T.Compose(
             [
                 T.Resize(self._input_size, interp),
-                T.CenterCrop(self._input_size),
+                # T.CenterCrop(self._input_size),
                 T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
             ]
         )
@@ -61,7 +66,7 @@ class DinoInterface:
         self.crop = T.Compose(
             [
                 T.Resize(self._input_size, interp),
-                T.CenterCrop(self._input_size),
+                # T.CenterCrop(self._input_size),
             ]
         )
 
@@ -131,11 +136,11 @@ class DinoInterface:
         features = self.model(img)[1]
 
         # resize and interpolate features
-        B, D, H, W = img.shape
-        new_size = (H, H)
-        pad = int((W - H) / 2)
-        features = F.interpolate(features, new_size, mode="bilinear", align_corners=True)
-        features = F.pad(features, pad=[pad, pad, 0, 0])
+        # B, D, H, W = img.shape
+        # new_size = (H, H)
+        # pad = int((W - H) / 2)
+        # features = F.interpolate(features, new_size, mode="bilinear", align_corners=True)
+        # features = F.pad(features, pad=[pad, pad, 0, 0])
 
         return features
 

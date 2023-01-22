@@ -60,7 +60,7 @@ class WvnRosInterface:
         self.traversability_estimator = TraversabilityEstimator(
             params=self.params,
             device=self.device,
-            image_size=self.network_input_image_height,  # Note: we assume height == width
+            image_size=(self.network_input_image_height, self.network_input_image_width),
             segmentation_type=self.segmentation_type,
             feature_type=self.feature_type,
             max_distance=self.traversability_radius,
@@ -685,15 +685,15 @@ class WvnRosInterface:
             # Color, resized image used as the network input
             msg = rc.torch_to_ros_image(mission_node.image.cpu(), "rgb8")
             msg.header = image_msg.header
-            msg.width = out_trav.shape[0]
-            msg.height = out_trav.shape[1]
+            msg.height = out_trav.shape[0]
+            msg.width = out_trav.shape[1]
             self.camera_handler[cam]["input_pub"].publish(msg)
 
             # Output traversability
             msg = rc.numpy_to_ros_image(out_trav.cpu().numpy(), "passthrough")
             msg.header = image_msg.header
-            msg.width = out_trav.shape[0]
-            msg.height = out_trav.shape[1]
+            msg.height = out_trav.shape[0]
+            msg.width = out_trav.shape[1]
             self.camera_handler[cam]["trav_pub"].publish(msg)
 
             # Output confidence
@@ -702,14 +702,14 @@ class WvnRosInterface:
             # out_conf[:,int(out_conf.shape[1]/2):] = 0
             msg = rc.numpy_to_ros_image(out_conf.cpu().numpy(), "passthrough")
             msg.header = image_msg.header
-            msg.width = out_trav.shape[0]
-            msg.height = out_trav.shape[1]
+            msg.height = out_trav.shape[0]
+            msg.width = out_trav.shape[1]
             self.camera_handler[cam]["conf_pub"].publish(msg)
 
             # Output camera info
             # The header stays the same, only the image, width, K and P change due to the different resolution
-            info_msg.width = out_trav.shape[0]
-            info_msg.height = out_trav.shape[1]
+            info_msg.height = out_trav.shape[0]
+            info_msg.width = out_trav.shape[1]
             info_msg.K = scaled_camera_matrix[0, :3, :3].cpu().numpy().flatten().tolist()
             info_msg.P = scaled_camera_matrix[0, :3, :4].cpu().numpy().flatten().tolist()
             self.camera_handler[cam]["info_pub"].publish(info_msg)
@@ -856,8 +856,16 @@ class WvnRosInterface:
             ) = self.traversability_estimator.plot_mission_node_prediction(vis_node)
 
             # self.pub_image_input.publish(rc.torch_to_ros_image(vis_node.image))
-            self.camera_handler[cam]["debug"]["image_trav"].publish(rc.numpy_to_ros_image(np_prediction_image))
-            self.camera_handler[cam]["debug"]["image_conf"].publish(rc.numpy_to_ros_image(np_uncertainty_image))
+            # Output traversability
+            msg = rc.numpy_to_ros_image(np_prediction_image, "passthrough")
+            msg.height = np_prediction_image.shape[0]
+            msg.width = np_prediction_image.shape[1]
+            self.camera_handler[cam]["debug"]["image_trav"].publish(msg)
+
+            msg = rc.numpy_to_ros_image(np_uncertainty_image, "passthrough")
+            msg.height = np_uncertainty_image.shape[0]
+            msg.width = np_uncertainty_image.shape[1]
+            self.camera_handler[cam]["debug"]["image_conf"].publish(msg)
 
         # Publish reprojections of last node in graph
         if vis_node is not None:
@@ -867,8 +875,16 @@ class WvnRosInterface:
 
             if np_labeled_image is None or np_mask_image is None:
                 return
-            self.camera_handler[cam]["debug"]["image_labeled"].publish(rc.numpy_to_ros_image(np_labeled_image))
-            self.camera_handler[cam]["debug"]["image_mask"].publish(rc.numpy_to_ros_image(np_mask_image))
+            
+            msg = rc.numpy_to_ros_image(np_labeled_image, "passthrough")
+            msg.height = np_labeled_image.shape[0]
+            msg.width = np_labeled_image.shape[1]
+            self.camera_handler[cam]["debug"]["image_labeled"].publish(msg)
+
+            msg = rc.numpy_to_ros_image(np_mask_image, "passthrough")
+            msg.height = np_mask_image.shape[0]
+            msg.width = np_mask_image.shape[1]
+            self.camera_handler[cam]["debug"]["image_mask"].publish(msg)
 
 
 if __name__ == "__main__":

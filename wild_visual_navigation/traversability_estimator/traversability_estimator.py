@@ -16,11 +16,11 @@ from wild_visual_navigation.utils import make_polygon_from_points
 from wild_visual_navigation.visu import LearningVisualizer
 from wild_visual_navigation.utils import KLTTracker, KLTTrackerOpenCV
 
-
 from wild_visual_navigation import WVN_ROOT_DIR
 from pytorch_lightning import seed_everything
 from torch_geometric.data import Data, Batch
 from threading import Lock
+from typing import Tuple
 import dataclasses
 import os
 import pickle
@@ -38,7 +38,7 @@ class TraversabilityEstimator:
         params: ExperimentParams,
         device: str = "cuda",
         max_distance: float = 3,
-        image_size: int = 448,
+        image_size: Tuple[int, int] = (448, 448),
         image_distance_thr: float = None,
         proprio_distance_thr: float = None,
         segmentation_type: str = "slic",
