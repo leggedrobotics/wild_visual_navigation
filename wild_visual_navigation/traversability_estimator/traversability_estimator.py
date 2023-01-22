@@ -107,7 +107,7 @@ class TraversabilityEstimator:
         )
         self._traversability_loss.to(device)
 
-        self._optimizer = torch.optim.AdamW(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
+        self._optimizer = torch.optim.Adam(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
         self._loss = torch.tensor([torch.inf])
         torch.set_grad_enabled(True)
 
