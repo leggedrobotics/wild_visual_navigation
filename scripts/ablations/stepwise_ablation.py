@@ -6,7 +6,7 @@ import time
 import pickle
 import copy
 from wild_visual_navigation import WVN_ROOT_DIR
-from wild_visual_navigation.learning.utils import load_yaml
+from wild_visual_navigation.learning.utils import load_yaml, load_env
 from wild_visual_navigation.cfg import ExperimentParams
 from wild_visual_navigation.learning.general import training_routine
 
@@ -21,7 +21,7 @@ if __name__ == "__main__":
         - This procedure is repeated over all scenes and percentage of data used from the training dataset.
     """
     exp = ExperimentParams()
-
+    env = load_env()
     # #Experiment 1: Time adaptation
     # number_training_runs = 1
     # data_start_percentage = 10
@@ -43,6 +43,7 @@ if __name__ == "__main__":
     output_key = "learning_curve"
     exp.ablation_data_module.training_in_memory = True
 
+    exp.trainer.check_val_every_n_epoch = 1000000
     exp.general.log_to_disk = False
     exp.trainer.max_epochs = None
     exp.logger.name = "skip"
@@ -55,11 +56,11 @@ if __name__ == "__main__":
     exp.visu.train = 0
     exp.visu.val = 0
     exp.visu.test = 0
-    exp.general.model_path = os.path.join(WVN_ROOT_DIR, f"scripts/ablations/{output_key}")
+    ws = os.environ["ENV_WORKSTATION_NAME"]
+    exp.general.model_path = os.path.join(env["base"], f"ablations/{output_key}_{ws}")
 
     # If check_val_every_n_epoch in the current setting the test dataloader is used for validation.
     # All results during validation are stored and returned by the training routine.
-    exp.trainer.check_val_every_n_epoch = 1000000
 
     # Currently the model weights are stored every n steps.
     # This allows to reload the model and test it on the test dataloader.
@@ -87,7 +88,7 @@ if __name__ == "__main__":
         results_epoch[scene] = copy.deepcopy(percentage_results)
 
     # Store epoch output to disk.
-    p = os.path.join(WVN_ROOT_DIR, f"scripts/ablations/{output_key}/{output_key}_epochs.pkl")
+    p = os.path.join(exp.general.model_path, f"{output_key}_epochs.pkl")
     try:
         os.remove(p)
     except OSError as error:
@@ -100,7 +101,7 @@ if __name__ == "__main__":
     exp.ablation_data_module.val_equals_test = False
     results_step = []
 
-    p_inter = os.path.join(WVN_ROOT_DIR, f"scripts/ablations/{output_key}/{output_key}_steps.pkl")
+    p_inter = os.path.join(exp.general.model_path, f"{output_key}_steps.pkl")
 
     for j, p in enumerate(Path(exp.general.model_path).rglob("*.pt")):
         _, _, _, scene, percentage, run, steps = str(p).split("/")[-1].split("_")
@@ -125,7 +126,7 @@ if __name__ == "__main__":
                 pickle.dump(results_step, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     # Store step output to disk.
-    p = os.path.join(WVN_ROOT_DIR, f"scripts/ablations/{output_key}/{output_key}_steps.pkl")
+    p = os.path.join(exp.general.model_path, f"{output_key}_steps.pkl")
     try:
         os.remove(p)
     except OSError as error:

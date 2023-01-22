@@ -10,6 +10,9 @@ import seaborn as sns
 import pytorch_lightning as pl
 from typing import Optional
 import matplotlib.pyplot as plt
+import matplotlib
+
+matplotlib.use("Agg")
 
 from wild_visual_navigation.visu import image_functionality
 from wild_visual_navigation.learning.utils import get_confidence
@@ -114,17 +117,17 @@ class LearningVisualizer:
     @image_functionality
     def plot_histogram(self, reco_loss, y, mean, std, **kwargs):
         np_x = reco_loss.cpu().detach().numpy()
-        np_x_pos = reco_loss[y==1].cpu().detach().numpy()
+        np_x_pos = reco_loss[y == 1].cpu().detach().numpy()
         N = 100
         bins = np.linspace(0, 4, N)
         fig, ax = plt.subplots(figsize=(3, 3))
-        ax.hist(np_x, bins, alpha=0.5, color='k')
-        ax.hist(np_x_pos, bins, alpha=0.5, color='b')
-        ax.plot(bins, np.exp( - (bins - mean)**2 / (2 * std**2) ), color='b', linewidth=3)
+        ax.hist(np_x, bins, alpha=0.5, color="k")
+        ax.hist(np_x_pos, bins, alpha=0.5, color="b")
+        ax.plot(bins, np.exp(-((bins - mean) ** 2) / (2 * std**2)), color="b", linewidth=3)
         res = np.array(get_img_from_fig(fig))
         plt.close()
         return res
-    
+
     @accumulate_time
     def plot_mission_node_prediction(self, node: any):
         if node._image is None or node._prediction is None:
@@ -335,7 +338,7 @@ class LearningVisualizer:
             mask = mask.sum(axis=2)
             m = mask == mask.max()
             fore = np.zeros((H, W, 4))
-            fore[m, :] = [255,255,255, boundary_alpha]
+            fore[m, :] = [255, 255, 255, boundary_alpha]
 
             img_new = Image.alpha_composite(img_new.convert("RGBA"), Image.fromarray(np.uint8(fore)))
             img_new = img_new.convert("RGB")

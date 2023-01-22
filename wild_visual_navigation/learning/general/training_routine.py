@@ -28,6 +28,7 @@ __all__ = ["training_routine"]
 
 
 def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
+    experiment.verify_params()
     seed_everything(seed)
     exp = dataclasses.asdict(experiment)
     env = load_env()
