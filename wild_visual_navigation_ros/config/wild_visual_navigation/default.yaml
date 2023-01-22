@@ -21,7 +21,6 @@ camera_topics:
 # Relevant frames
 fixed_frame: odom
 base_frame: base
-camera_frame: cam4_sensor_frame_helper
 footprint_frame: footprint
 
 # Robot size
