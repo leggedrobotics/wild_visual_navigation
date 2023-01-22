@@ -29,8 +29,9 @@ inpainting:
     method: "telea"                           # telea or ns
 # Apply smoothing for inpainted layer
 
-# # Apply smoothing.
-# smooth_filter:                                
+# Apply smoothing.
+# smooth_filter_visual_traversability:
+#   name: smooth_filter
 #   enable: True
 #   fill_nan: False
 #   is_height_layer: False
