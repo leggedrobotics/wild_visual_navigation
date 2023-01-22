@@ -61,7 +61,8 @@ if __name__ == "__main__":
     number_training_runs = args.number_training_runs
     folder = args.ablation_type
     special_key = args.special_key
-    exp.general.model_path = os.path.join(WVN_ROOT_DIR, f"scripts/ablations/{folder}_ablation")
+    ws = os.environ["ENV_WORKSTATION_NAME"]
+    exp.general.model_path = os.path.join(WVN_ROOT_DIR, f"results/ablations/{folder}_ablation_{ws}")
     Path(exp.general.model_path).mkdir(parents=True, exist_ok=True)
 
     directory = Path(os.path.join(WVN_ROOT_DIR, f"cfg/exp/ablation/{folder}"))
@@ -89,9 +90,7 @@ if __name__ == "__main__":
         results_epoch[scene] = copy.deepcopy(model_results)
 
     # Store epoch output to disk.
-    p = os.path.join(
-        WVN_ROOT_DIR, f"scripts/ablations/{folder}_ablation/{folder}_ablation_test_results{special_key}.pkl"
-    )
+    p = os.path.join(exp.general.model_path, f"{folder}_ablation_test_results{special_key}.pkl")
 
     try:
         os.remove(p)

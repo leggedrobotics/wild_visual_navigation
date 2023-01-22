@@ -32,7 +32,7 @@ class ExperimentParams(Serializable):
     class OptimizerParams:
         name: str = "ADAM"
         lr: float = 0.001
-        
+
     optimizer: OptimizerParams = OptimizerParams()
 
     @dataclass
@@ -40,11 +40,10 @@ class ExperimentParams(Serializable):
         anomaly_balanced: bool = True
         w_trav: float = 0.4
         w_trav_start: Optional[float] = None
-        w_trav_increase: Optional[float] = None #0.0004
+        w_trav_increase: Optional[float] = None  # 0.0004
         w_reco: float = 1.1
         w_temp: float = 0.0  # 0.4
         method: str = "latest_measurment"
-        false_negative_weight: float = 1.0
         confidence_std_factor: float = 0.5
 
     loss: LossParams = LossParams()
@@ -95,7 +94,7 @@ class ExperimentParams(Serializable):
             reconstruction: bool = True
 
         simple_mlp_cfg: SimpleMlpCfgParams = SimpleMlpCfgParams()
-        
+
         @dataclass
         class DoubleMlpCfgParams:
             input_size: int = 90

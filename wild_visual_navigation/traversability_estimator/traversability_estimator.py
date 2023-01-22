@@ -624,9 +624,7 @@ class TraversabilityEstimator:
                 res = self._model(graph)
 
                 log_step = (self._step % 20) == 0
-                self._loss, loss_aux = self._traversability_loss(
-                    graph, res, graph_aux, step=self._step, log_step=log_step
-                )
+                self._loss, loss_aux = self._traversability_loss(graph, res, step=self._step, log_step=log_step)
 
                 # Backprop
                 self._optimizer.zero_grad()
