@@ -39,13 +39,13 @@ class GraphTravDataset(InMemoryDataset):
 class GraphTravAblationDataset(Dataset):
     def __init__(
         self,
+        feature_key: str,
+        mode: str,
+        env: str,
         perugia_root: str = "/media/Data/Datasets/2022_Perugia",
         transform: Optional[Callable] = None,
         pre_transform: Optional[Callable] = None,
         pre_filter: Optional[Callable] = None,
-        mode: str = "train",
-        feature_key: str = "slic_dino",
-        env: str = "hilly",
         use_corrospondences: bool = True,
         training_data_percentage: int = 100,
         minimal: bool = False,
@@ -126,13 +126,13 @@ class GraphTravAblationDataset(Dataset):
 class GraphTravAblationDatasetPreLoaded(GraphTravAblationDataset):
     def __init__(
         self,
-        perugia_root: str = "/media/Data/Datasets/2022_Perugia",
+        feature_key: str,
+        mode: str,
+        env: str,
+        perugia_root: str,
         transform: Optional[Callable] = None,
         pre_transform: Optional[Callable] = None,
         pre_filter: Optional[Callable] = None,
-        mode: str = "train",
-        feature_key: str = "slic_dino",
-        env: str = "hilly",
         use_corrospondences: bool = True,
         training_data_percentage: int = 100,
     ):
@@ -162,13 +162,13 @@ class GraphTravAblationDatasetPreLoaded(GraphTravAblationDataset):
 class GraphTravAblationDatasetInMemory(InMemoryDataset):
     def __init__(
         self,
-        perugia_root: str = "/media/Data/Datasets/2022_Perugia",
+        feature_key: str,
+        mode: str,
+        env: str,
+        perugia_root: str,
         transform: Optional[Callable] = None,
         pre_transform: Optional[Callable] = None,
         pre_filter: Optional[Callable] = None,
-        mode: str = "train",
-        feature_key: str = "slic_dino",
-        env: str = "hilly",
         use_corrospondences: bool = True,
         training_data_percentage: int = 100,
     ):
@@ -196,11 +196,11 @@ class GraphTravAblationDatasetInMemory(InMemoryDataset):
 
 def get_ablation_module(
     perugia_root: str,
+    env: str,
+    feature_key: str,
     batch_size: int = 1,
     num_workers: int = 0,
     visu: bool = False,
-    env: str = "forest",
-    feature_key: str = "slic_dino",
     test_equals_val: bool = False,
     val_equals_test: bool = False,
     training_in_memory: bool = True,

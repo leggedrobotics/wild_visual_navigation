@@ -33,14 +33,15 @@ if __name__ == "__main__":
     # output_key = "time_adaptation"
 
     # Experiment 2: Learning curves
-    number_training_runs = 1
+    number_training_runs = 10
     data_start_percentage = 100
     data_stop_percentage = 100
     data_percentage_increment = 10
-    scenes = ["forest"]
+    scenes = ["hilly"]
     exp.general.store_model_every_n_steps = 100
     exp.trainer.max_steps = 10000
-    output_key = "learning_curvers"
+    output_key = "learning_curve"
+    exp.ablation_data_module.training_in_memory = True
 
     exp.general.log_to_disk = False
     exp.trainer.max_epochs = None
@@ -86,7 +87,7 @@ if __name__ == "__main__":
         results_epoch[scene] = copy.deepcopy(percentage_results)
 
     # Store epoch output to disk.
-    p = os.path.join(WVN_ROOT_DIR, "scripts/ablations/{output_key}/{output_key}_epochs.pkl")
+    p = os.path.join(WVN_ROOT_DIR, f"scripts/ablations/{output_key}/{output_key}_epochs.pkl")
     try:
         os.remove(p)
     except OSError as error:
@@ -99,7 +100,7 @@ if __name__ == "__main__":
     exp.ablation_data_module.val_equals_test = False
     results_step = []
 
-    p_inter = os.path.join(WVN_ROOT_DIR, "scripts/ablations/{output_key}/{output_key}_steps.pkl")
+    p_inter = os.path.join(WVN_ROOT_DIR, f"scripts/ablations/{output_key}/{output_key}_steps.pkl")
 
     for j, p in enumerate(Path(exp.general.model_path).rglob("*.pt")):
         _, _, _, scene, percentage, run, steps = str(p).split("/")[-1].split("_")
@@ -124,7 +125,7 @@ if __name__ == "__main__":
                 pickle.dump(results_step, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     # Store step output to disk.
-    p = os.path.join(WVN_ROOT_DIR, "scripts/ablations/{output_key}/{output_key}_steps_loss_scheduled.pkl")
+    p = os.path.join(WVN_ROOT_DIR, f"scripts/ablations/{output_key}/{output_key}_steps.pkl")
     try:
         os.remove(p)
     except OSError as error:
