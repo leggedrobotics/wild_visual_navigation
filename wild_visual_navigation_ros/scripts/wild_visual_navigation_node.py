@@ -225,7 +225,6 @@ class WvnRosInterface:
         self.feature_type = rospy.get_param("~feature_type")
         self.dino_patch_size = rospy.get_param("~dino_patch_size")
         self.confidence_std_factor = rospy.get_param("~confidence_std_factor")
-        self.false_negative_weight = rospy.get_param("~false_negative_weight")
 
         # Supervision Generator
         self.robot_max_velocity = rospy.get_param("~robot_max_velocity")
@@ -289,7 +288,7 @@ class WvnRosInterface:
         self.params.general.timestamp = self.mission_timestamp
         self.params.general.log_confidence = self.log_confidence
         self.params.loss.confidence_std_factor = self.confidence_std_factor
-        self.params.loss.false_negative_weight = self.false_negative_weight
+        self.params.loss.w_trav = 0
         self.step = -1
         self.step_time = rospy.get_time()
 
