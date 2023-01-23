@@ -28,7 +28,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: AS Front (cam4)
+    SyncSource: AB Wide Angle Front
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -173,6 +173,8 @@ Visualization Manager:
           Value: true
         cam6_sensor_frame_helper:
           Value: true
+        control:
+          Value: true
         depth_camera_front_camera:
           Value: true
         depth_camera_front_camera_parent:
@@ -265,6 +267,8 @@ Visualization Manager:
           Value: true
         front_handle:
           Value: true
+        goal_field_local_planner:
+          Value: true
         handle:
           Value: true
         hatch:
@@ -276,6 +280,8 @@ Visualization Manager:
         interface_hatch:
           Value: true
         lidar:
+          Value: true
+        loco_footprint:
           Value: true
         odom:
           Value: true
@@ -458,9 +464,15 @@ Visualization Manager:
               {}
             top_shell:
               {}
+          control:
+            {}
           feetcenter:
             {}
           footprint:
+            {}
+          goal_field_local_planner:
+            {}
+          loco_footprint:
             {}
           point_cloud_odom:
             {}
@@ -933,7 +945,7 @@ Visualization Manager:
               Topic: /wild_visual_navigation_node/proprioceptive_graph
               Unreliable: false
               Value: true
-          Enabled: true
+          Enabled: false
           Name: Self Supervision
         - Class: rviz/Group
           Displays:
@@ -1366,7 +1378,7 @@ Visualization Manager:
               Unreliable: false
               Use ColorMap: true
               Value: true
-          Enabled: true
+          Enabled: false
           Name: Local planner
       Enabled: true
       Name: Wild Visual Navigation
@@ -1423,7 +1435,7 @@ Visualization Manager:
           Color Layer: visual_traversability
           Color Transformer: IntensityLayer
           ColorMap: coolwarm
-          Enabled: true
+          Enabled: false
           Height Layer: elevation
           Height Transformer: GridMapLayer
           History Length: 1
@@ -1434,10 +1446,10 @@ Visualization Manager:
           Min Intensity: 0
           Name: Visual Traversability
           Show Grid Lines: true
-          Topic: /elevation_mapping/semantic_map_raw
+          Topic: /elevation_mapping/elevation_map_wifi
           Unreliable: false
           Use ColorMap: true
-          Value: true
+          Value: false
         - Alpha: 1
           Autocompute Intensity Bounds: false
           Class: grid_map_rviz_plugin/GridMap
@@ -1534,7 +1546,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 2.9575653076171875
+      Distance: 4.495607852935791
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -1542,17 +1554,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.7205976247787476
-        Y: -0.6952180862426758
-        Z: -6.100984137447085e-06
+        X: -0.43503594398498535
+        Y: -0.060001373291015625
+        Z: -5.147309821040835e-06
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.8197959661483765
+      Pitch: 0.8897967338562012
       Target Frame: base
-      Yaw: 5.225382328033447
+      Yaw: 2.725396156311035
     Saved: ~
 Window Geometry:
   AB Wide Angle Front:
