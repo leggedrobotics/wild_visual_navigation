@@ -127,7 +127,6 @@ class TraversabilityLoss(nn.Module):
                     previous_indexes.append(graph[j].correspondence[:, 0] + aux_ptr)
                 previous_indexes = torch.cat(previous_indexes)
                 current_indexes = torch.cat(current_indexes)
-
             loss_temp = F.mse_loss(res[current_indexes, 0], aux_res[previous_indexes, 0])
         else:
             loss_temp = torch.zeros_like(loss_trav_confidence)

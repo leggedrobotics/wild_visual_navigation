@@ -229,12 +229,21 @@ class LightningTrav(pl.LightningModule):
         buffer_prop = graph.y[seg_pixel_index].reshape(BS, H, W)
 
         # label is the gt label
-        roc_gt_image.update(preds=buffer_pred, target=graph.label.type(torch.long))
-        auroc_gt_image.update(preds=buffer_pred, target=graph.label.type(torch.long))
+        roc_gt_image(preds=buffer_pred, target=graph.label.type(torch.long))
+        auroc_gt_image(preds=buffer_pred, target=graph.label.type(torch.long))
 
         # generate proprioceptive label
-        roc_proprioceptive_image.update(preds=buffer_pred, target=buffer_prop.type(torch.long))
-        auroc_proprioceptive_image.update(preds=buffer_pred, target=buffer_prop.type(torch.long))
+        roc_proprioceptive_image(preds=buffer_pred, target=buffer_prop.type(torch.long))
+        auroc_proprioceptive_image(preds=buffer_pred, target=buffer_prop.type(torch.long))
+
+        self.log(f"{self._mode}_auroc_gt_image", auroc_gt_image, on_epoch=True, on_step=False, batch_size=BS)
+        self.log(
+            f"{self._mode}_auroc_proprioceptive_image",
+            auroc_proprioceptive_image,
+            on_epoch=True,
+            on_step=False,
+            batch_size=BS,
+        )
 
         if self._mode == "test" and self._exp["loss"]["w_reco"] != 0:
             nr_channel_reco = graph.x.shape[1]
@@ -243,9 +252,24 @@ class LightningTrav(pl.LightningModule):
             buffer_conf = graph.label.clone().type(torch.float32).flatten()
             buffer_conf = conf[seg_pixel_index].reshape(BS, H, W)
 
-            self._test_auroc_anomaly_proprioceptive_image.update(preds=buffer_conf, target=buffer_prop.type(torch.long))
-            self._test_auroc_anomaly_gt_image.update(preds=buffer_conf, target=graph.label.type(torch.long))
+            self._test_auroc_anomaly_proprioceptive_image(preds=buffer_conf, target=buffer_prop.type(torch.long))
+            self._test_auroc_anomaly_gt_image(preds=buffer_conf, target=graph.label.type(torch.long))
 
+            self.log(
+                "test_auroc_anomaly_proprioceptive_image",
+                self._test_auroc_anomaly_proprioceptive_image,
+                on_epoch=True,
+                on_step=False,
+                batch_size=BS,
+            )
+            self.log(
+                "test_auroc_anomaly_gt_image",
+                self._test_auroc_anomaly_gt_image,
+                on_epoch=True,
+                on_step=False,
+                batch_size=BS,
+            )
+        
         if debug:
             b = 0
             # Visualize the labels quickly
@@ -287,8 +311,15 @@ class LightningTrav(pl.LightningModule):
 
         loss, loss_aux = self._traversability_loss(graph, res)
 
-        self._validation_roc_proprioceptive.update(preds=res[:, 0], target=graph.y.type(torch.long))
-        self._validation_auroc_proprioceptive.update(res[:, 0], graph.y.type(torch.long))
+        self._validation_roc_proprioceptive(preds=res[:, 0], target=graph.y.type(torch.long))
+        self._validation_auroc_proprioceptive(res[:, 0], graph.y.type(torch.long))
+        self.log(
+            "validation_auroc_proprioceptive",
+            self._validation_auroc_proprioceptive,
+            on_epoch=True,
+            on_step=False,
+            batch_size=BS,
+        )
 
         if hasattr(graph, "label"):
             self.log_metrics(
@@ -399,10 +430,10 @@ class LightningTrav(pl.LightningModule):
 
         if self._exp["loss"]["w_reco"] != 0:
             test_auroc_anomaly_proprioceptive_image = self._test_auroc_anomaly_proprioceptive_image.compute().item()
+
             test_auroc_anomaly_gt_image = self._test_auroc_anomaly_gt_image.compute().item()
             dic["test_auroc_anomaly_proprioceptive_image"] = test_auroc_anomaly_proprioceptive_image
             dic["test_auroc_anomaly_gt_image"] = test_auroc_anomaly_gt_image
-
         dic2 = {k: v.item() for k, v in self.trainer.logged_metrics.items() if k.find("step") == -1}
         dic.update(dic2)
 

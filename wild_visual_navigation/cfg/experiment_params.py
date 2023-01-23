@@ -7,7 +7,7 @@ from simple_parsing.helpers import Serializable
 class ExperimentParams(Serializable):
     @dataclass
     class GeneralParams:
-        name: str = "hilly/anomaly_balanced_GCN"
+        name: str = "debug/debug"
         timestamp: bool = True
         tag_list: List[str] = field(default_factory=lambda: ["debug"])
         skip_train: bool = False
@@ -62,7 +62,7 @@ class ExperimentParams(Serializable):
         num_sanity_val_steps: int = 0
         check_val_every_n_epoch: int = 1
         enable_checkpointing: bool = True
-        max_steps: int = 10000
+        max_steps: int = 100
         enable_progress_bar: bool = True
         weights_summary: Optional[str] = "top"
         progress_bar_refresh_rate: Optional[int] = None
@@ -73,13 +73,13 @@ class ExperimentParams(Serializable):
     class AblationDataModuleParams:
         batch_size: int = 8
         num_workers: int = 0
-        env: str = "forest"
+        env: str = "hilly"
         feature_key: str = "slic100_dino224_16"
         test_equals_val: bool = False
-        val_equals_test: bool = True
+        val_equals_test: bool = False
         test_all_datasets: bool = False
         training_data_percentage: int = 100
-        training_in_memory: bool = False
+        training_in_memory: bool = True
 
     ablation_data_module: AblationDataModuleParams = AblationDataModuleParams()
 
