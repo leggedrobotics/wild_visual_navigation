@@ -14,13 +14,15 @@ class TraversabilityLoss(nn.Module):
         w_temp,
         anomaly_balanced,
         model,
-        method="running_mean",
-        confidence_std_factor=1.0,
+        method,
+        confidence_std_factor,
+        trav_cross_entropy=False,
         log_enabled: bool = False,
         log_folder: str = "/tmp",
         w_trav_start: Optional[float] = None,
         w_trav_increase: Optional[float] = None,
     ):
+        # TODO remove trav_cross_entropy default param when running in online mode
         super(TraversabilityLoss, self).__init__()
         if w_trav_start is None:
             self._w_trav_start = w_trav
@@ -35,6 +37,11 @@ class TraversabilityLoss(nn.Module):
         self._w_temp = w_temp
         self._model = model
         self._anomaly_balanced = anomaly_balanced
+        self._trav_cross_entropy = trav_cross_entropy
+        if self._trav_cross_entropy:
+            self._trav_loss_func = F.binary_cross_entropy
+        else:
+            self._trav_loss_func = F.mse_loss
 
         self._confidence_generator = ConfidenceGenerator(
             std_factor=confidence_std_factor,
@@ -60,7 +67,8 @@ class TraversabilityLoss(nn.Module):
         log_step: bool = False,
     ):
         # Compute reconstruction loss
-        loss_reco = F.mse_loss(res[:, 1:], graph.x, reduction="none").mean(dim=1)
+        nr_channel_reco = graph.x.shape[1]
+        loss_reco = F.mse_loss(res[:, -nr_channel_reco:], graph.x, reduction="none").mean(dim=1)
 
         with torch.no_grad():
             if update_generator:
@@ -70,7 +78,15 @@ class TraversabilityLoss(nn.Module):
             else:
                 confidence = self._confidence_generator.inference_without_update(x=loss_reco)
 
-        loss_trav_raw = F.mse_loss(res[:, 0], graph.y[:], reduction="none")
+        label = graph.y[:]
+        if self._trav_cross_entropy:
+            label = label.type(torch.long)
+            loss_trav_raw = self._trav_loss_func(
+                res[:, :-nr_channel_reco].squeeze()[:, 0], label.type(torch.float32), reduction="none"
+            )
+        else:
+            loss_trav_raw = self._trav_loss_func(res[:, :-nr_channel_reco].squeeze(), label, reduction="none")
+
         loss_trav_raw_labeled = loss_trav_raw[graph.y_valid]
         loss_trav_raw_not_labeled = loss_trav_raw[~graph.y_valid]
 

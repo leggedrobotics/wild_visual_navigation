@@ -146,7 +146,8 @@ class LightningTrav(pl.LightningModule):
                     imgs=[t1, t2, t_img], tag=f"C{c}_{self._mode}_GraphTrav", store_folder=f"{self._mode}/graph_trav"
                 )
 
-                reco_loss = F.mse_loss(pred[:, 1:], graph[b].x, reduction="none").mean(dim=1)
+                nr_channel_reco = graph[b].x.shape[1]
+                reco_loss = F.mse_loss(pred[:, -nr_channel_reco:], graph[b].x, reduction="none").mean(dim=1)
                 conf = self._traversability_loss._confidence_generator.inference_without_update(reco_loss)
 
                 # # Visualize Graph with Segmentation
@@ -174,7 +175,8 @@ class LightningTrav(pl.LightningModule):
             # Logging the confidence
             mean = self._traversability_loss._confidence_generator.mean.item()
             std = self._traversability_loss._confidence_generator.std.item()
-            reco_loss = F.mse_loss(pred[:, 1:], graph[b].x, reduction="none").mean(dim=1)
+            nr_channel_reco = graph[b].x.shape[1]
+            reco_loss = F.mse_loss(pred[:, -nr_channel_reco:], graph[b].x, reduction="none").mean(dim=1)
             confidence = self._traversability_loss._confidence_generator.inference_without_update(reco_loss)
 
             self._visualizer.plot_histogram(
@@ -227,21 +229,22 @@ class LightningTrav(pl.LightningModule):
         buffer_prop = graph.y[seg_pixel_index].reshape(BS, H, W)
 
         # label is the gt label
-        roc_gt_image.update(preds=buffer_pred, target=graph.label)
-        auroc_gt_image.update(preds=buffer_pred, target=graph.label)
+        roc_gt_image.update(preds=buffer_pred, target=graph.label.type(torch.long))
+        auroc_gt_image.update(preds=buffer_pred, target=graph.label.type(torch.long))
 
         # generate proprioceptive label
-        roc_proprioceptive_image.update(preds=buffer_pred, target=buffer_prop)
-        auroc_proprioceptive_image.update(preds=buffer_pred, target=buffer_prop)
+        roc_proprioceptive_image.update(preds=buffer_pred, target=buffer_prop.type(torch.long))
+        auroc_proprioceptive_image.update(preds=buffer_pred, target=buffer_prop.type(torch.long))
 
         if self._mode == "test" and self._exp["loss"]["w_reco"] != 0:
-            reco_loss = F.mse_loss(res[:, 1:], graph.x, reduction="none").mean(dim=1)
+            nr_channel_reco = graph.x.shape[1]
+            reco_loss = F.mse_loss(res[:, -nr_channel_reco:], graph.x, reduction="none").mean(dim=1)
             conf = self._traversability_loss._confidence_generator.inference_without_update(reco_loss)
             buffer_conf = graph.label.clone().type(torch.float32).flatten()
             buffer_conf = conf[seg_pixel_index].reshape(BS, H, W)
 
-            self._test_auroc_anomaly_proprioceptive_image.update(preds=buffer_conf, target=buffer_prop)
-            self._test_auroc_anomaly_gt_image.update(preds=buffer_conf, target=graph.label)
+            self._test_auroc_anomaly_proprioceptive_image.update(preds=buffer_conf, target=buffer_prop.type(torch.long))
+            self._test_auroc_anomaly_gt_image.update(preds=buffer_conf, target=graph.label.type(torch.long))
 
         if debug:
             b = 0
@@ -284,8 +287,8 @@ class LightningTrav(pl.LightningModule):
 
         loss, loss_aux = self._traversability_loss(graph, res)
 
-        self._validation_roc_proprioceptive.update(preds=res[:, 0], target=(graph.y > 0).type(torch.long))
-        self._validation_auroc_proprioceptive.update(res[:, 0], (graph.y > 0).type(torch.long))
+        self._validation_roc_proprioceptive.update(preds=res[:, 0], target=graph.y.type(torch.long))
+        self._validation_auroc_proprioceptive.update(res[:, 0], graph.y.type(torch.long))
 
         if hasattr(graph, "label"):
             self.log_metrics(
