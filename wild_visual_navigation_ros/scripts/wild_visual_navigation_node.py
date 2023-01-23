@@ -875,7 +875,7 @@ class WvnRosInterface:
 
             if np_labeled_image is None or np_mask_image is None:
                 return
-            
+
             msg = rc.numpy_to_ros_image(np_labeled_image, "passthrough")
             msg.height = np_labeled_image.shape[0]
             msg.width = np_labeled_image.shape[1]

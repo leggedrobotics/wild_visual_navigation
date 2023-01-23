@@ -69,7 +69,7 @@ class TraversabilityLoss(nn.Module):
         with torch.no_grad():
             if update_generator:
                 confidence = self._confidence_generator.update(
-                    x=loss_reco, x_positive=loss_reco[batch.y_valid] , step=step, log_step=log_step
+                    x=loss_reco, x_positive=loss_reco[batch.y_valid], step=step, log_step=log_step
                 )
             else:
                 confidence = self._confidence_generator.inference_without_update(x=loss_reco)
@@ -80,9 +80,11 @@ class TraversabilityLoss(nn.Module):
 
         # Scale the loss
         loss_trav_raw_not_labeled_weighted = loss_trav_raw_not_labeled * (1 - confidence)[~batch.y_valid]
-        
+
         if self._anomaly_balanced:
-            loss_trav_confidence = (loss_trav_raw_not_labeled_weighted.sum() + loss_trav_raw_labeled.sum()) / (batch.y.shape[0])
+            loss_trav_confidence = (loss_trav_raw_not_labeled_weighted.sum() + loss_trav_raw_labeled.sum()) / (
+                batch.y.shape[0]
+            )
         else:
             loss_trav_confidence = loss_trav_raw.mean()
 
@@ -108,7 +110,11 @@ class TraversabilityLoss(nn.Module):
             loss_temp = torch.zeros_like(loss_trav_confidence)
 
         # Compute total loss
-        loss = self._w_trav * loss_trav_confidence + self._w_reco * loss_reco[batch.y_valid].mean() + self._w_temp * loss_temp
+        loss = (
+            self._w_trav * loss_trav_confidence
+            + self._w_reco * loss_reco[batch.y_valid].mean()
+            + self._w_temp * loss_temp
+        )
         return loss, {
             "loss_reco": loss_reco[batch.y_valid].mean(),
             "loss_trav": loss_trav_raw.mean(),

@@ -18,7 +18,12 @@ from PIL import Image, ImageDraw
 
 class FeatureExtractor:
     def __init__(
-        self, device: str, segmentation_type: str = "slic", feature_type: str = "dino", input_size: Tuple[int, int] = (448, 448), **kwargs
+        self,
+        device: str,
+        segmentation_type: str = "slic",
+        feature_type: str = "dino",
+        input_size: Tuple[int, int] = (448, 448),
+        **kwargs,
     ):
         """Feature extraction from image
 

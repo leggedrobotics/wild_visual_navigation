@@ -35,44 +35,44 @@ class ImageProjector:
         E = torch.eye(4).expand(K.shape).to(device)
 
         # Store original parameters
-        self.K = K
-        self.height = h
-        self.width = w
+        self.input_K = K
+        self.input_height = h
+        self.input_width = w
 
-        new_h = self.height.item() if new_h is None else new_h
+        new_h = self.input_height if new_h is None else new_h
 
         # Compute scale
-        sy = new_h / h
-        sx = (new_w / w) if (new_w is not None) else sy
+        scale_y = new_h / h
+        scale_x = (new_w / w) if (new_w is not None) else scale_y
 
         # Compute scaled parameters
-        sh = new_h
-        sw = new_w if new_w is not None else sh
+        scaled_height = new_h
+        scaled_width = new_w if new_w is not None else scaled_height
 
         # Prepare image cropper
-        if new_w is None or new_w == new_h:
-            self.image_crop = T.Compose([T.Resize(new_h, T.InterpolationMode.NEAREST), T.CenterCrop(new_h)])
+        if scaled_height == scaled_width:
+            self.image_crop = T.Compose([T.Resize(scaled_height, T.InterpolationMode.NEAREST), T.CenterCrop(scaled_height)])
         else:
-            self.image_crop = T.Resize([new_h, new_w], T.InterpolationMode.NEAREST)
+            self.image_crop = T.Resize([scaled_height, scaled_width], T.InterpolationMode.NEAREST)
 
         # Adjust camera matrix
         # Fill values
-        sK = K.clone()
-        if new_w is None or new_w == new_h:
-            sK[:, 0, 0] = K[:, 1, 1] * sy
-            sK[:, 0, 2] = K[:, 1, 2] * sy
-            sK[:, 1, 1] = K[:, 1, 1] * sy
-            sK[:, 1, 2] = K[:, 1, 2] * sy
+        scaled_K = K.clone()
+        if scaled_height == scaled_height:
+            scaled_K[:, 0, 0] = K[:, 1, 1] * scale_y
+            scaled_K[:, 0, 2] = K[:, 1, 2] * scale_y
+            scaled_K[:, 1, 1] = K[:, 1, 1] * scale_y
+            scaled_K[:, 1, 2] = K[:, 1, 2] * scale_y
         else:
-            sK[:, 0, 0] = K[:, 0, 0] * sx
-            sK[:, 0, 2] = K[:, 0, 2] * sx
-            sK[:, 1, 1] = K[:, 1, 1] * sy
-            sK[:, 1, 2] = K[:, 1, 2] * sy
+            scaled_K[:, 0, 0] = K[:, 0, 0] * scale_x
+            scaled_K[:, 0, 2] = K[:, 0, 2] * scale_x
+            scaled_K[:, 1, 1] = K[:, 1, 1] * scale_y
+            scaled_K[:, 1, 2] = K[:, 1, 2] * scale_y
 
         # Initialize camera with scaled parameters
-        sh = torch.IntTensor([sh]).to(device)
-        sw = torch.IntTensor([sw]).to(device)
-        self.camera = PinholeCamera(sK, E, sh, sw)
+        scaled_height = torch.IntTensor([scaled_height]).to(device)
+        scaled_width = torch.IntTensor([scaled_width]).to(device)
+        self.camera = PinholeCamera(intrinsics=scaled_K, extrinsics=E, height=scaled_height, width=scaled_width)
 
         # Preallocate masks
         B = self.camera.batch_size
@@ -92,7 +92,7 @@ class ImageProjector:
         Args:
             device (str): new device
         """
-        self.K = self.K.to(device)
+        self.input_K = self.input_K.to(device)
         self.camera = PinholeCamera(
             self.camera.intrinsics.to(device),
             self.camera.extrinsics.to(device),
@@ -104,11 +104,11 @@ class ImageProjector:
         """Check that the points are valid after projecting them on the image
 
         Args:
-            points_3d: (torch.Tensor, dtype=torch.float32, shape=(B, N, 3)): B batches of N points in camera frame
-            points_2d: (torch.Tensor, dtype=torch.float32, shape=(B, N, 2)): B batches of N points on the image
+            points_3d: (torch.Tensor, dtype=torch.float32, scaled_heightape=(B, N, 3)): B batches of N points in camera frame
+            points_2d: (torch.Tensor, dtype=torch.float32, scaled_heightape=(B, N, 2)): B batches of N points on the image
 
         Returns:
-            valid_points: (torch.Tensor, dtype=torch.bool, shape=(B, N, 1)): B batches of N bools
+            valid_points: (torch.Tensor, dtype=torch.bool, scaled_heightape=(B, N, 1)): B batches of N bools
         """
 
         # Check cheirality (if points are behind the camera, i.e, negative z)
@@ -126,10 +126,10 @@ class ImageProjector:
         """Applies the pinhole projection model to a batch of points
 
         Args:
-            points: (torch.Tensor, dtype=torch.float32, shape=(B, N, 3)): B batches of N input points in world frame
+            points: (torch.Tensor, dtype=torch.float32, scaled_heightape=(B, N, 3)): B batches of N input points in world frame
 
         Returns:
-            projected_points: (torch.Tensor, dtype=torch.float32, shape=(B, N, 2)): B batches of N output points on image space
+            projected_points: (torch.Tensor, dtype=torch.float32, scaled_heightape=(B, N, 2)): B batches of N output points on image space
         """
 
         # Adjust input points depending on the extrinsics
@@ -152,8 +152,8 @@ class ImageProjector:
         """Projects the points and returns an image with the projection
 
         Args:
-            points: (torch.Tensor, dtype=torch.float32, shape=(B, N, 3)): B batches, of N input points in 3D space
-            colors: (torch.Tensor, rtype=torch.float32, shape=(B, 3))
+            points: (torch.Tensor, dtype=torch.float32, scaled_heightape=(B, N, 3)): B batches, of N input points in 3D space
+            colors: (torch.Tensor, rtype=torch.float32, scaled_heightape=(B, 3))
 
         Returns:
             out_img (torch.tensor, dtype=torch.int64): Image with projected points
@@ -180,7 +180,7 @@ class ImageProjector:
 
         # Draw on image (if applies)
         if image is not None:
-            if len(image.shape) != 4:
+            if len(image.scaled_heightape) != 4:
                 image = image[None]
             image_overlay = draw_convex_polygon(image, projected_points, colors)
 
@@ -250,7 +250,7 @@ def run_image_projector():
         points = torch.FloatTensor([[1, 1, 0], [-1, 1, 0], [-1, -1, 0], [1, -1, 0]]) * 0.5
         X = make_polygon_from_points(points)
 
-    N, D = X.shape
+    N, D = X.scaled_heightape
     X = X.expand(B, N, D)
     colors = torch.tensor([0, 1, 0]).expand(B, 3)
 
@@ -272,13 +272,13 @@ def run_image_projector():
                     except Exception as e:
                         continue
 
-        ax[i, 0].imshow(tensor_to_image(k_img[i]))
+        ax[i, 0].imscaled_heightow(tensor_to_image(k_img[i]))
         ax[i, 0].set_title("Image")
-        ax[i, 1].imshow(tensor_to_image(k_mask[i]))
+        ax[i, 1].imscaled_heightow(tensor_to_image(k_mask[i]))
         ax[i, 1].set_title("Labels")
-        ax[i, 2].imshow(tensor_to_image(k_img_overlay[i]))
+        ax[i, 2].imscaled_heightow(tensor_to_image(k_img_overlay[i]))
         ax[i, 2].set_title("Overlay")
-        ax[i, 3].imshow(tensor_to_image(k_points_overlay))
+        ax[i, 3].imscaled_heightow(tensor_to_image(k_points_overlay))
         ax[i, 3].set_title("Overlay - dots")
     remove_axes(ax)
     plt.tight_layout()
