@@ -177,8 +177,6 @@ class WvnRosInterface:
             with SystemLevelContextGpuMonitor(self, "training_step_time"):
                 with SystemLevelContextTimer(self, "training_step_time"):
                     res = self.traversability_estimator.train()
-                    if self.verbose:
-                        print(f"train() returned {res}")
 
             if self.step != self.traversability_estimator.step:
                 self.step_time = rospy.get_time()
