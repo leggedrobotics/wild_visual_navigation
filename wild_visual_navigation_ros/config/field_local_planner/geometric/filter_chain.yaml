@@ -56,7 +56,7 @@ grid_map_filters:
   - name: traversability
     type: gridMapFilters/MathExpressionFilter
     params:
-      output_layer: traversability
+      output_layer: geometric_traversability
       # expression: (0.5 * (1.0 - (slope / 0.6)) + 0.5 * height_traversability) .* (1.0 - unknown_space)
       expression: (0.5 * (1.0 - (slope / 0.6)) + 0.5 * height_traversability)
   
@@ -64,7 +64,7 @@ grid_map_filters:
   - name: sdf
     type: gridMapFiltersDrs/SignedDistanceField2dFilter
     params:
-      input_layer: visual_traversability
+      input_layer: geometric_traversability
       output_layer: sdf
       normalize_gradients: true
       threshold: 0.1
@@ -72,7 +72,7 @@ grid_map_filters:
   - name: geodesic
     type: gridMapFiltersDrs/GeodesicDistanceField2dFilter
     params:
-      input_layer: visual_traversability
+      input_layer: geometric_traversability
       output_layer: geodesic
       normalize_gradients: true
       attractor_topic: /field_local_planner/current_goal

@@ -4,9 +4,14 @@
   <arg name="debug"          default="false"/>
   <arg name="real_carrot"    default="true"/>
   <arg name="base_inverted"  default="true"/>
+  <arg name="traversability" default="visual"/> <!-- visual or geometric -->
+
   <arg name="elevation_map_topic"           default="/elevation_mapping/semantic_map_raw"/>
   <arg name="elevation_map_filtered_topic"  default="/elevation_mapping/elevation_map_filtered"/>
   <arg name="elevation_map_wifi_topic"      default="/elevation_mapping/elevation_map_wifi"/>
+
+  <arg name="elevation_map_filtered_filter_chain"  default="$(find wild_visual_navigation_ros)/config/field_local_planner/$(arg traversability)/filter_chain.yaml"/>
+  <arg name="elevation_map_wifi_filter_chain"      default="$(find wild_visual_navigation_ros)/config/field_local_planner/$(arg traversability)/filter_chain_wifi.yaml"/>
 
   <!-- Load local planner parameters -->
   <rosparam ns="field_local_planner" file="$(find wild_visual_navigation_ros)/config/field_local_planner/rmp.yaml" subst_value="true"/>
@@ -18,7 +23,7 @@
   <include file="$(find grid_map_filters_drs)/launch/filter_chain.launch">
     <arg name="input_topic"           value="$(arg elevation_map_topic)"/>
     <arg name="output_topic"          value="$(arg elevation_map_filtered_topic)"/>
-    <arg name="filter_chain_config"   value="$(find wild_visual_navigation_ros)/config/field_local_planner/filter_chain.yaml"/>
+    <arg name="filter_chain_config"   value="$(arg elevation_map_filtered_filter_chain)"/>
     <arg name="viz_config"            value="$(find field_local_planner_rmp_plugin)/config/filter_chain_visualizations.yaml"/>
     <arg name="viz"                   value="true"/>
   </include>
@@ -28,7 +33,7 @@
     <arg name="suffix"                value="_wifi"/>
     <arg name="input_topic"           value="$(arg elevation_map_filtered_topic)"/>
     <arg name="output_topic"          value="$(arg elevation_map_wifi_topic)"/>
-    <arg name="filter_chain_config"   value="$(find field_local_planner_rmp_plugin)/config/filter_chain_wifi.yaml"/>
+    <arg name="filter_chain_config"   value="$(arg elevation_map_wifi_filter_chain)"/>
     <arg name="viz"                   value="false"/>
   </include>
 
