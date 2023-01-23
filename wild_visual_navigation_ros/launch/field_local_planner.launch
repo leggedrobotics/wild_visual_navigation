@@ -11,7 +11,7 @@
   <!-- Load local planner parameters -->
   <rosparam ns="field_local_planner" file="$(find wild_visual_navigation_ros)/config/field_local_planner/rmp.yaml" subst_value="true"/>
   <!-- Overwrite params -->
-  <rosparam ns="field_local_planner" param="base_inverted" subst_value="True">$(arg base_inverted)<rosparam/>
+  <rosparam ns="field_local_planner" param="base_inverted" subst_value="True">$(arg base_inverted)</rosparam>
 
   <!-- Launch grid map filters -->
   <!-- The first computes all the representations -->
