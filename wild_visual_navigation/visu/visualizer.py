@@ -341,7 +341,7 @@ class LearningVisualizer:
             fore[m, :] = [255, 255, 255, boundary_alpha]
 
             img_new = Image.alpha_composite(img_new.convert("RGBA"), Image.fromarray(np.uint8(fore)))
-            img_new = img_new.convert("RGB")
+        img_new = img_new.convert("RGB")
 
         return np.uint8(img_new)
 

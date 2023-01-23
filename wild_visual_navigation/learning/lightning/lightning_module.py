@@ -40,6 +40,7 @@ class LightningTrav(pl.LightningModule):
         self._test_auroc_gt_image = AUROC(task="binary")
         self._test_auroc_anomaly_proprioceptive_image = AUROC(task="binary")
         self._test_auroc_anomaly_gt_image = AUROC(task="binary")
+
         # The Accumulated results are used to store the results of the test dataloader. Allows after testing to have summary avaiable.
         self.accumulated_test_results = []
 
@@ -308,9 +309,10 @@ class LightningTrav(pl.LightningModule):
         fpr, tpr, thresholds = self._validation_roc_proprioceptive.compute()
         auroc = self._validation_auroc_proprioceptive.compute().item()
 
-        self._visualizer.plot_roc(
-            x=fpr.cpu().numpy(), y=tpr.cpu().numpy(), y_tag=f"AUCROC_{auroc:.4f}", tag=f"ROC_{self._mode}"
-        )
+        if False:
+            self._visualizer.plot_roc(
+                x=fpr.cpu().numpy(), y=tpr.cpu().numpy(), y_tag=f"AUCROC_{auroc:.4f}", tag=f"ROC_{self._mode}"
+            )
 
         self.log(f"{self._mode}_auroc", auroc, on_epoch=True, prog_bar=False)
 
