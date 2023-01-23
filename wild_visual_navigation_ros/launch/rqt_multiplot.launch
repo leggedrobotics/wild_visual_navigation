@@ -1,0 +1,6 @@
+<launch>
+  <arg name="config_file"       default="$(find wild_visual_navigation_ros)/config/rqt_multiplot/learning.xml" />
+
+  <!-- Multiplot -->
+    <node name="wild_visual_navigation_multiplot" pkg="rqt_multiplot" type="rqt_multiplot" args="--multiplot-config $(arg config_file)"/>
+</launch>
