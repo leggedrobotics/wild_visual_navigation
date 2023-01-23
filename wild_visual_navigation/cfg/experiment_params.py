@@ -7,7 +7,7 @@ from simple_parsing.helpers import Serializable
 class ExperimentParams(Serializable):
     @dataclass
     class GeneralParams:
-        name: str = "hilly/anomaly_balanced_GCN"
+        name: str = "debug/debug"
         timestamp: bool = True
         tag_list: List[str] = field(default_factory=lambda: ["debug"])
         skip_train: bool = False
@@ -32,20 +32,20 @@ class ExperimentParams(Serializable):
     class OptimizerParams:
         name: str = "ADAM"
         lr: float = 0.001
-        
+
     optimizer: OptimizerParams = OptimizerParams()
 
     @dataclass
     class LossParams:
         anomaly_balanced: bool = True
-        w_trav: float = 0.4
+        w_trav: float = 0.03
         w_trav_start: Optional[float] = None
-        w_trav_increase: Optional[float] = None #0.0004
-        w_reco: float = 1.1
-        w_temp: float = 0.0  # 0.4
+        w_trav_increase: Optional[float] = None  # 0.0004
+        w_reco: float = 0.5
+        w_temp: float = 0.75  # 0.75
         method: str = "latest_measurment"
-        false_negative_weight: float = 1.0
         confidence_std_factor: float = 0.5
+        trav_cross_entropy: bool = False
 
     loss: LossParams = LossParams()
 
@@ -73,13 +73,13 @@ class ExperimentParams(Serializable):
     class AblationDataModuleParams:
         batch_size: int = 8
         num_workers: int = 0
-        env: str = "forest"
+        env: str = "hilly"
         feature_key: str = "slic100_dino224_16"
         test_equals_val: bool = False
-        val_equals_test: bool = True
+        val_equals_test: bool = False
         test_all_datasets: bool = False
         training_data_percentage: int = 100
-        training_in_memory: bool = True
+        training_in_memory: bool = False
 
     ablation_data_module: AblationDataModuleParams = AblationDataModuleParams()
 
@@ -95,7 +95,7 @@ class ExperimentParams(Serializable):
             reconstruction: bool = True
 
         simple_mlp_cfg: SimpleMlpCfgParams = SimpleMlpCfgParams()
-        
+
         @dataclass
         class DoubleMlpCfgParams:
             input_size: int = 90
@@ -133,13 +133,13 @@ class ExperimentParams(Serializable):
 
     @dataclass
     class VisuParams:
-        train: int = 0
-        val: int = 0
+        train: int = 5
+        val: int = 5
         test: int = 0
         log_test_video: bool = False
         log_val_video: bool = False
         log_train_video: bool = False
-        log_every_n_epochs: int = 10
+        log_every_n_epochs: int = 5
 
         @dataclass
         class LearningVisuParams:
@@ -155,3 +155,8 @@ class ExperimentParams(Serializable):
         if not self.general.log_to_disk:
             assert self.trainer.profiler != "advanced", "Should not be advanced if not logging to disk"
             assert self.cb_checkpoint.active == False, "Should be False if not logging to disk"
+
+        if self.loss.trav_cross_entropy:
+            self.model.simple_mlp_cfg.hidden_sizes[-1] = 2
+            self.model.double_mlp_cfg.hidden_sizes[-1] = 2
+            self.model.simple_gcn_cfg.hidden_sizes[-1] = 2
