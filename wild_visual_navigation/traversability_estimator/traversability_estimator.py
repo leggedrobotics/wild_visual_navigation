@@ -103,8 +103,6 @@ class TraversabilityEstimator:
         self._model = get_model(self._exp_cfg["model"]).to(self._device)
         self._model.train()
 
-        self._optimizer = torch.optim.AdamW(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
-
         self._traversability_loss = TraversabilityLoss(
             **self._exp_cfg["loss"],
             model=self._model,
@@ -113,9 +111,9 @@ class TraversabilityEstimator:
         )
         self._traversability_loss.to(self._device)
 
-        # visualization data
-        self._step = 0
+        self._optimizer = torch.optim.Adam(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
         self._loss = torch.tensor([torch.inf])
+        self._step = 0
 
         torch.set_grad_enabled(True)
 
@@ -677,9 +675,7 @@ class TraversabilityEstimator:
                 res = self._model(graph)
 
                 log_step = (self._step % 20) == 0
-                self._loss, loss_aux = self._traversability_loss(
-                    graph, res, graph_aux, step=self._step, log_step=log_step
-                )
+                self._loss, loss_aux = self._traversability_loss(graph, res, step=self._step, log_step=log_step)
 
                 # Backprop
                 self._optimizer.zero_grad()

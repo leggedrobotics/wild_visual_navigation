@@ -9,6 +9,7 @@ class SimpleGCN(torch.nn.Module):
         super(SimpleGCN, self).__init__()
 
         self.layers = []
+        self.nr_sigmoid_layers = hidden_sizes[-1]
         inp = input_size
         for j, h in enumerate(hidden_sizes):
             if reconstruction and j == len(hidden_sizes) - 1:
@@ -28,5 +29,5 @@ class SimpleGCN(torch.nn.Module):
                 x = layer(x, edge_index)
 
         # x = F.dropout(x, training=self.training)
-        x[:, 0] = torch.sigmoid(x[:, 0])
+        x[:, : self.nr_sigmoid_layers] = torch.sigmoid(x[:, : self.nr_sigmoid_layers])
         return x

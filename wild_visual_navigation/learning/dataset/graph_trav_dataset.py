@@ -12,42 +12,17 @@ from torch_geometric.data import Data
 import random
 
 
-class GraphTravDataset(InMemoryDataset):
-    def __init__(
-        self,
-        root: str,
-        transform: Optional[Callable] = None,
-        pre_transform: Optional[Callable] = None,
-        pre_filter: Optional[Callable] = None,
-        mode: str = "train",
-        percentage: float = 0.8,
-    ):
-        super().__init__(root, transform)
-        paths = [str(s) for s in Path(os.path.join(root, "graph")).rglob("*.pt")]
-        paths.sort()
-        if mode == "train":
-            paths = paths[: int(len(paths) * percentage)]
-        elif mode == "val":
-            paths = paths[int(len(paths) * percentage) :]
-        else:
-            raise ValueError("Mode unknown")
-
-        data_list = [torch.load(p) for p in paths]
-        self.data, self.slices = self.collate(data_list)
-
-
 class GraphTravAblationDataset(Dataset):
     def __init__(
         self,
-        perugia_root: str = "/media/Data/Datasets/2022_Perugia",
+        feature_key: str,
+        mode: str,
+        env: str,
+        perugia_root: str,
+        training_data_percentage: int,
         transform: Optional[Callable] = None,
         pre_transform: Optional[Callable] = None,
         pre_filter: Optional[Callable] = None,
-        mode: str = "train",
-        feature_key: str = "slic_dino",
-        env: str = "hilly",
-        use_corrospondences: bool = True,
-        training_data_percentage: int = 100,
         minimal: bool = False,
     ):
         super().__init__()
@@ -83,7 +58,6 @@ class GraphTravAblationDataset(Dataset):
         self.paths = ls
         self.feature_key = feature_key
         self.crop = T.Compose([T.Resize(448, T.InterpolationMode.NEAREST), T.CenterCrop(448)])
-        self.use_corrospondences = use_corrospondences
 
     def len(self) -> int:
         return len(self.paths)
@@ -120,90 +94,52 @@ class GraphTravAblationDataset(Dataset):
             graph.y_gt = torch.stack(y_gt).type(torch.float32)
             graph.label = ~label[None]
 
-        return graph, Data(x=graph.x_previous, edge_index=graph.edge_index_previous)
-
-
-class GraphTravAblationDatasetPreLoaded(GraphTravAblationDataset):
-    def __init__(
-        self,
-        perugia_root: str = "/media/Data/Datasets/2022_Perugia",
-        transform: Optional[Callable] = None,
-        pre_transform: Optional[Callable] = None,
-        pre_filter: Optional[Callable] = None,
-        mode: str = "train",
-        feature_key: str = "slic_dino",
-        env: str = "hilly",
-        use_corrospondences: bool = True,
-        training_data_percentage: int = 100,
-    ):
-        super(GraphTravAblationDatasetPreLoaded, self).__init__(
-            perugia_root,
-            transform,
-            pre_transform,
-            pre_filter,
-            mode,
-            feature_key,
-            env,
-            use_corrospondences,
-            training_data_percentage,
-        )
-
-        self.res = []
-        for i in range(len(self.paths)):
-            a, b = self.get(i)
-            self.res.append((a, b))
-
-        self.get = self.get_new
-
-    def get_new(self, idx: int) -> any:
-        return self.res[idx]
+        graph.x_previous_count = graph.x_previous.shape[0]
+        return graph
 
 
 class GraphTravAblationDatasetInMemory(InMemoryDataset):
     def __init__(
         self,
-        perugia_root: str = "/media/Data/Datasets/2022_Perugia",
+        feature_key: str,
+        mode: str,
+        env: str,
+        perugia_root: str,
+        training_data_percentage: int,
         transform: Optional[Callable] = None,
         pre_transform: Optional[Callable] = None,
         pre_filter: Optional[Callable] = None,
-        mode: str = "train",
-        feature_key: str = "slic_dino",
-        env: str = "hilly",
-        use_corrospondences: bool = True,
-        training_data_percentage: int = 100,
     ):
         super(GraphTravAblationDatasetInMemory, self).__init__()
 
         ds = GraphTravAblationDataset(
-            perugia_root,
-            transform,
-            pre_transform,
-            pre_filter,
-            mode,
-            feature_key,
-            env,
-            use_corrospondences,
-            training_data_percentage,
+            feature_key=feature_key,
+            mode=mode,
+            env=env,
+            perugia_root=perugia_root,
+            transform=transform,
+            pre_transform=pre_transform,
+            pre_filter=pre_filter,
+            training_data_percentage=training_data_percentage,
             minimal=True,
         )
         data_list = []
         for k in range(len(ds)):
-            a, b = ds[k]
-            data_list.append(a)
+            data_list.append(ds[k])
 
         self.data, self.slices = self.collate(data_list)
 
 
 def get_ablation_module(
     perugia_root: str,
-    batch_size: int = 1,
-    num_workers: int = 0,
-    visu: bool = False,
-    env: str = "forest",
-    feature_key: str = "slic_dino",
-    test_equals_val: bool = False,
-    val_equals_test: bool = False,
-    training_in_memory: bool = True,
+    env: str,
+    feature_key: str,
+    batch_size: int,
+    num_workers: int,
+    test_equals_val: bool,
+    val_equals_test: bool,
+    training_in_memory: bool,
+    training_data_percentage: int,
     **kwargs,
 ) -> LightningDataset:
 
@@ -213,7 +149,7 @@ def get_ablation_module(
             mode="train",
             feature_key=feature_key,
             env=env,
-            training_data_percentage=kwargs.get("training_data_percentage", 100),
+            training_data_percentage=training_data_percentage,
         )
     else:
         train_dataset = GraphTravAblationDataset(
@@ -221,24 +157,62 @@ def get_ablation_module(
             mode="train",
             feature_key=feature_key,
             env=env,
-            training_data_percentage=kwargs.get("training_data_percentage", 100),
+            training_data_percentage=training_data_percentage,
         )
-    val_dataset = [GraphTravAblationDataset(perugia_root=perugia_root, mode="val", feature_key=feature_key, env=env)]
+    val_dataset = [
+        GraphTravAblationDataset(
+            perugia_root=perugia_root,
+            mode="val",
+            feature_key=feature_key,
+            env=env,
+            training_data_percentage=training_data_percentage,
+        )
+    ]
 
     if test_equals_val:
         test_dataset = [
-            GraphTravAblationDataset(perugia_root=perugia_root, mode="val", feature_key=feature_key, env=env)
+            GraphTravAblationDataset(
+                perugia_root=perugia_root,
+                mode="val",
+                feature_key=feature_key,
+                env=env,
+                training_data_percentage=training_data_percentage,
+            )
         ]
     else:
         test_dataset = [
-            GraphTravAblationDataset(perugia_root=perugia_root, mode="test", feature_key=feature_key, env=env)
+            GraphTravAblationDataset(
+                perugia_root=perugia_root,
+                mode="test",
+                feature_key=feature_key,
+                env=env,
+                training_data_percentage=training_data_percentage,
+            )
         ]
 
     if kwargs.get("test_all_datasets"):
         test_dataset = [
-            GraphTravAblationDataset(perugia_root=perugia_root, mode="test", feature_key=feature_key, env="forest"),
-            GraphTravAblationDataset(perugia_root=perugia_root, mode="test", feature_key=feature_key, env="grassland"),
-            GraphTravAblationDataset(perugia_root=perugia_root, mode="test", feature_key=feature_key, env="hilly"),
+            GraphTravAblationDataset(
+                perugia_root=perugia_root,
+                mode="test",
+                feature_key=feature_key,
+                env="forest",
+                training_data_percentage=training_data_percentage,
+            ),
+            GraphTravAblationDataset(
+                perugia_root=perugia_root,
+                mode="test",
+                feature_key=feature_key,
+                env="grassland",
+                training_data_percentage=training_data_percentage,
+            ),
+            GraphTravAblationDataset(
+                perugia_root=perugia_root,
+                mode="test",
+                feature_key=feature_key,
+                env="hilly",
+                training_data_percentage=training_data_percentage,
+            ),
         ]
 
     if val_equals_test:
@@ -253,6 +227,3 @@ def get_ablation_module(
 
 if __name__ == "__main__":
     root = str(os.path.join(WVN_ROOT_DIR, "results/perugia_forest"))
-    dataset = GraphTravDataset(root=root)
-    dl = DataListLoader(dataset, batch_size=8)
-    datamodule = get_pl_graph_trav_module()
