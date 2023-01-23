@@ -62,7 +62,7 @@ class ExperimentParams(Serializable):
         num_sanity_val_steps: int = 0
         check_val_every_n_epoch: int = 1
         enable_checkpointing: bool = True
-        max_steps: int = 100
+        max_steps: int = 10000
         enable_progress_bar: bool = True
         weights_summary: Optional[str] = "top"
         progress_bar_refresh_rate: Optional[int] = None
@@ -79,7 +79,7 @@ class ExperimentParams(Serializable):
         val_equals_test: bool = False
         test_all_datasets: bool = False
         training_data_percentage: int = 100
-        training_in_memory: bool = True
+        training_in_memory: bool = False
 
     ablation_data_module: AblationDataModuleParams = AblationDataModuleParams()
 
@@ -134,12 +134,12 @@ class ExperimentParams(Serializable):
     @dataclass
     class VisuParams:
         train: int = 5
-        val: int = 0
+        val: int = 5
         test: int = 0
         log_test_video: bool = False
         log_val_video: bool = False
         log_train_video: bool = False
-        log_every_n_epochs: int = 1
+        log_every_n_epochs: int = 5
 
         @dataclass
         class LearningVisuParams:
