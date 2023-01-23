@@ -23,7 +23,9 @@ for scene in ["forest", "hilly", "grassland"]:
         "env": scene,
         "feature_key": "slic_dino",
         "test_equals_val": False,
+        "val_equals_test": False,
         "test_all_datasets": test_all_datasets,
+        "training_data_percentage": 100,
         "training_in_memory": False,
     }
     train_loader, val_loader, test_loader = get_ablation_module(
