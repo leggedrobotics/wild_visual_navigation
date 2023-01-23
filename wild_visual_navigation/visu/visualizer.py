@@ -347,6 +347,43 @@ class LearningVisualizer:
 
     @accumulate_time
     @image_functionality
+    def plot_detectron_classification(
+        self,
+        img,
+        seg,
+        alpha=0.5,
+        overlay_mask=None,
+        **kwargs,
+    ):
+        cmap = cm.get_cmap("RdYlBu", 256)
+        cmap = np.concatenate([cmap(np.linspace(0, 0.3, 128)), cmap(np.linspace(0.7, 1.0, 127))])
+        cmap = torch.from_numpy(cmap).to(seg)[:, :3]
+
+        img = self.plot_image(img, not_log=True)
+        seg_img = self.plot_segmentation(
+            (seg * 255).type(torch.long), max_seg=256, colormap=cmap, store=False, not_log=True
+        )
+
+        H, W = img.shape[:2]
+        back = np.zeros((H, W, 4))
+        back[:, :, :3] = img
+        back[:, :, 3] = 255
+        fore = np.zeros((H, W, 4))
+        fore[:, :, :3] = seg_img
+        fore[:, :, 3] = alpha * 255
+        if overlay_mask is not None:
+            try:
+                overlay_mask = overlay_mask.cpu().numpy()
+            except Exception:
+                pass
+            fore[overlay_mask] = 0
+
+        img_new = Image.alpha_composite(Image.fromarray(np.uint8(back)), Image.fromarray(np.uint8(fore)))
+        img_new = img_new.convert("RGB")
+        return np.uint8(img_new)
+
+    @accumulate_time
+    @image_functionality
     def plot_graph_result(self, graph, center, img, seg, res, use_seg=False, colormap="RdYlBu", **kwargs):
         """Plot Graph GT and Predtion on Image
 
@@ -417,13 +454,16 @@ class LearningVisualizer:
         colormap="Set2",
         **kwargs,
     ):
+        # c_map either a string of a color or a tensor where the shape aligns with max_seg given. should be on same device as seg
         if seg.shape[0] == 1:
             seg = seg[0]
 
         if seg.dtype == bool:
             max_seg = 2
-
-        c_map = torch.tensor(sns.color_palette(colormap, max_seg), device=seg.device)
+        if isinstance(colormap, str):
+            c_map = torch.tensor(sns.color_palette(colormap, max_seg), device=seg.device)
+        else:
+            c_map = colormap
         c_map = (c_map * 255).type(torch.uint8)
         H, W = seg.shape
         out_img = torch.zeros((H, W, 3), dtype=torch.uint8)

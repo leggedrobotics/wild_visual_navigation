@@ -24,6 +24,7 @@ class LightningTrav(pl.LightningModule):
         self._mode = "train"
         self._log = log
 
+        self._auxilary_training_roc = ROC(task="binary")
         self._validation_roc_gt_image = ROC(task="binary")
         self._validation_auroc_gt_image = AUROC(task="binary")
         self._validation_roc_proprioceptive_image = ROC(task="binary")
@@ -81,13 +82,24 @@ class LightningTrav(pl.LightningModule):
         loss, loss_aux = self._traversability_loss(graph, res)
 
         for k, v in loss_aux.items():
-            self.log(f"{self._mode}_{k}", v.item(), on_epoch=True, prog_bar=True, batch_size=BS)
+            if k.find("loss") != -1:
+                self.log(f"{self._mode}_{k}", v.item(), on_epoch=True, prog_bar=True, batch_size=BS)
         self.log(f"{self._mode}_loss", loss.item(), on_epoch=True, prog_bar=True, batch_size=BS)
 
-        self.visu(graph, res)
+        self.visu(graph, res, loss_aux["confidence"])
+
+        # This mask should contain all the segments corrosponding to trees.
+        mask_anomaly = loss_aux["confidence"] < 0.5
+        mask_proprioceptive = graph.y == 1
+        # Remove the segments that are for sure not an anomalies given that we have walked on them.
+        mask_anomaly[mask_proprioceptive] = False
+        # Elements are valid if they are either an anomaly or we have walked on them to fit the ROC
+        mask_valid = mask_anomaly | mask_proprioceptive
+        self._auxilary_training_roc(res[mask_valid, 0], graph.y[mask_valid].type(torch.long))
+
         return loss
 
-    def visu(self, graph: Data, res: torch.tensor):
+    def visu(self, graph: Data, res: torch.tensor, confidence: torch.tensor):
         try:
             self.log(
                 "confidence_mean",
@@ -172,12 +184,53 @@ class LightningTrav(pl.LightningModule):
                 #         store_folder=f"{self._mode}/graph_trav_gt",
                 #     )
 
+                buffer_confidence = graph.seg.clone().type(torch.float32).flatten()
+                BS, H, W = graph.seg.shape
+                # Use the position within the batch to offset the segmentation
+                # This avoids iterating over the batch dimension
+                batch_pixel_index_offset = graph.ptr[:-1, None, None].repeat(1, H, W)
+                seg_pixel_index = (graph.seg + batch_pixel_index_offset).flatten()
+                buffer_confidence = confidence[seg_pixel_index].reshape(BS, H, W)
+
+                self._visualizer.plot_detectron_classification(img, buffer_confidence[b], tag="Confidence MAP")
+
+                if self._mode == "val":
+                    buffer_trav = graph.seg.clone().type(torch.float32).flatten()
+                    buffer_trav = res[seg_pixel_index, 0].reshape(BS, H, W)
+
+                    self._visualizer.plot_detectron_classification(
+                        img,
+                        buffer_trav[b],
+                        tag=f"C{c}_{self._mode}_Traversability",
+                    )
+
+                    # Compute the threshold for traversability scaling
+                    print("Computing threshold")
+                    fpr, tpr, thresholds = self._auxilary_training_roc.compute()
+                    index = torch.where(fpr > 0.2)[0][0]
+                    threshold = thresholds[index]
+
+                    # Apply pisewise linear scaling 0->0; threshold->0.5; 1->1
+                    scaled_traversability = buffer_trav.clone()
+                    scale1 = 0.5 / threshold
+                    scale2 = threshold / 0.5
+                    m = scaled_traversability < threshold
+                    scaled_traversability[m] *= scale1
+                    scaled_traversability[~m] -= threshold
+                    scaled_traversability[~m] *= 0.5 / (1 - threshold)
+                    scaled_traversability[~m] += 0.5
+                    scaled_traversability.clip(0, 1)
+                    self._visualizer.plot_detectron_classification(
+                        img,
+                        scaled_traversability[b],
+                        tag=f"C{c}_{self._mode}_Scaled_Traversability",
+                    )
+
             # Logging the confidence
             mean = self._traversability_loss._confidence_generator.mean.item()
             std = self._traversability_loss._confidence_generator.std.item()
             nr_channel_reco = graph[b].x.shape[1]
             reco_loss = F.mse_loss(pred[:, -nr_channel_reco:], graph[b].x, reduction="none").mean(dim=1)
-            confidence = self._traversability_loss._confidence_generator.inference_without_update(reco_loss)
 
             self._visualizer.plot_histogram(
                 reco_loss, graph[b].y, mean, std, tag=f"C{c}_{self._mode}__confidence_generator_prop"
@@ -212,6 +265,7 @@ class LightningTrav(pl.LightningModule):
         auroc_proprioceptive_image,
         graph,
         res,
+        confidence,
         debug=False,
     ):
         # project graph predictions and label onto the image
@@ -246,11 +300,8 @@ class LightningTrav(pl.LightningModule):
         )
 
         if self._mode == "test" and self._exp["loss"]["w_reco"] != 0:
-            nr_channel_reco = graph.x.shape[1]
-            reco_loss = F.mse_loss(res[:, -nr_channel_reco:], graph.x, reduction="none").mean(dim=1)
-            conf = self._traversability_loss._confidence_generator.inference_without_update(reco_loss)
             buffer_conf = graph.label.clone().type(torch.float32).flatten()
-            buffer_conf = conf[seg_pixel_index].reshape(BS, H, W)
+            buffer_conf = confidence[seg_pixel_index].reshape(BS, H, W)
 
             self._test_auroc_anomaly_proprioceptive_image(preds=buffer_conf, target=buffer_prop.type(torch.long))
             self._test_auroc_anomaly_gt_image(preds=buffer_conf, target=graph.label.type(torch.long))
@@ -269,7 +320,7 @@ class LightningTrav(pl.LightningModule):
                 on_step=False,
                 batch_size=BS,
             )
-        
+
         if debug:
             b = 0
             # Visualize the labels quickly
@@ -329,14 +380,16 @@ class LightningTrav(pl.LightningModule):
                 self._validation_auroc_proprioceptive_image,
                 graph,
                 res,
+                loss_aux["confidence"],
             )
 
         for k, v in loss_aux.items():
-            self.log(f"{self._mode}_{k}", v.item(), on_epoch=True, prog_bar=True, batch_size=BS)
+            if k.find("loss") != -1:
+                self.log(f"{self._mode}_{k}", v.item(), on_epoch=True, prog_bar=True, batch_size=BS)
 
         self.log(f"{self._mode}_loss", loss.item(), on_epoch=True, prog_bar=True, batch_size=BS)
 
-        self.visu(graph, res)
+        self.visu(graph, res, loss_aux["confidence"])
         return loss
 
     def validation_epoch_end(self, outputs: EPOCH_OUTPUT):
@@ -399,13 +452,14 @@ class LightningTrav(pl.LightningModule):
             self._test_auroc_proprioceptive_image,
             graph,
             res,
+            loss_aux["confidence"],
         )
 
         for k, v in loss_aux.items():
             self.log(f"{self._mode}_{k}", v.item(), on_epoch=True, prog_bar=True, batch_size=BS)
         self.log(f"{self._mode}_loss", loss.item(), on_epoch=True, prog_bar=True, batch_size=BS)
 
-        self.visu(graph, res)
+        self.visu(graph, res, loss_aux["confidence"])
 
         return loss
 

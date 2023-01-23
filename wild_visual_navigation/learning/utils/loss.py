@@ -139,4 +139,5 @@ class TraversabilityLoss(nn.Module):
             "loss_trav": loss_trav_raw.mean(),
             "loss_temp": loss_temp.mean(),
             "loss_trav_confidence": loss_trav_confidence,
+            "confidence": confidence,
         }
