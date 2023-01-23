@@ -67,6 +67,7 @@ class WvnRosInterface:
             image_distance_thr=self.image_graph_dist_thr,
             proprio_distance_thr=self.proprio_graph_dist_thr,
             optical_flow_estimator_type=self.optical_flow_estimator_type,
+            min_samples_for_training=self.min_samples_for_training,
             mode=self.mode,
             extraction_store_folder=self.extraction_store_folder,
             patch_size=self.dino_patch_size,
@@ -176,6 +177,8 @@ class WvnRosInterface:
             with SystemLevelContextGpuMonitor(self, "training_step_time"):
                 with SystemLevelContextTimer(self, "training_step_time"):
                     res = self.traversability_estimator.train()
+                    if self.verbose:
+                        print(f"train() returned {res}")
 
             if self.step != self.traversability_estimator.step:
                 self.step_time = rospy.get_time()
@@ -226,6 +229,7 @@ class WvnRosInterface:
         self.dino_patch_size = rospy.get_param("~dino_patch_size")
         self.confidence_std_factor = rospy.get_param("~confidence_std_factor")
         self.false_negative_weight = rospy.get_param("~false_negative_weight")
+        self.min_samples_for_training = rospy.get_param("~min_samples_for_training")
 
         # Supervision Generator
         self.robot_max_velocity = rospy.get_param("~robot_max_velocity")
@@ -279,7 +283,7 @@ class WvnRosInterface:
         # Visualization
         self.colormap = rospy.get_param("~colormap")
 
-        # Initialize traversability esimator parameters
+        # Initialize traversability estimator parameters
         self.params = ExperimentParams()
         if exp_file != "nan":
             exp_override = load_yaml(os.path.join(WVN_ROOT_DIR, "cfg/exp", exp_file))

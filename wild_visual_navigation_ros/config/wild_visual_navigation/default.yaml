@@ -42,6 +42,7 @@ feature_type: "dino"
 dino_patch_size: 16 # DINO only
 false_negative_weight: 1.0
 confidence_std_factor: 2.0
+min_samples_for_training: 10
 
 # Optical flow params
 optical_flow_estimator_type: "none"
