@@ -23,13 +23,13 @@ grid_map_to_cloud_range: 2.0
 grid_map_to_cloud_filter_size: 0.05 # meters
 
 # Thresholds
-distance_to_goal_thr: 0.1 # meters
-orientation_to_goal_thr: 0.1  # radians
+distance_to_goal_thr: 0.2 # meters
+orientation_to_goal_thr: 0.2  # radians
 
 # Velocity limits
-max_linear_velocity_x: 1.0    # m/s
-max_linear_velocity_y: 1.0    # m/s
-max_angular_velocity_z: 1.0   # rad/s
+max_linear_velocity_x: 0.3    # m/s
+max_linear_velocity_y: 0.3    # m/s
+max_angular_velocity_z: 0.3   # rad/s
 
 # Other parameters
 rmp:
