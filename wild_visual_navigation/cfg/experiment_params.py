@@ -76,7 +76,7 @@ class ExperimentParams(Serializable):
         env: str = "forest"
         feature_key: str = "slic100_dino224_16"
         test_equals_val: bool = False
-        val_equals_test: bool = False
+        val_equals_test: bool = True
         test_all_datasets: bool = False
         training_data_percentage: int = 100
         training_in_memory: bool = False
@@ -139,7 +139,7 @@ class ExperimentParams(Serializable):
         log_test_video: bool = False
         log_val_video: bool = False
         log_train_video: bool = False
-        log_every_n_epochs: int = 10
+        log_every_n_epochs: int = 1
 
         @dataclass
         class LearningVisuParams:
