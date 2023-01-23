@@ -23,26 +23,27 @@ if __name__ == "__main__":
     exp = ExperimentParams()
     env = load_env()
     # #Experiment 1: Time adaptation
-    # number_training_runs = 1
-    # data_start_percentage = 10
+    number_training_runs = 1
+    data_start_percentage = 10
+    data_stop_percentage = 100
+    data_percentage_increment = 10
+    scenes = ["forest", "hilly", "grassland"]
+    exp.general.store_model_every_n_steps = 100
+    exp.trainer.max_steps = 10000
+    output_key = "time_adaptation"
+
+    # Experiment 2: Learning curves
+    # number_training_runs = 10
+    # data_start_percentage = 100
     # data_stop_percentage = 100
     # data_percentage_increment = 10
     # scenes = ["forest", "hilly", "grassland"]
     # exp.general.store_model_every_n_steps = 100
     # exp.trainer.max_steps = 10000
-    # output_key = "time_adaptation"
-
-    # Experiment 2: Learning curves
-    number_training_runs = 10
-    data_start_percentage = 100
-    data_stop_percentage = 100
-    data_percentage_increment = 10
-    scenes = ["hilly"]
-    exp.general.store_model_every_n_steps = 100
-    exp.trainer.max_steps = 10000
-    output_key = "learning_curve"
+    # output_key = "learning_curve"
+    
+    
     exp.ablation_data_module.training_in_memory = True
-
     exp.trainer.check_val_every_n_epoch = 1000000
     exp.general.log_to_disk = False
     exp.trainer.max_epochs = None
@@ -81,7 +82,7 @@ if __name__ == "__main__":
             run_results = {}
             for run in range(number_training_runs):
                 exp.general.store_model_every_n_steps_key = f"ablation_{output_key}_{scene}_{percentage}_{run}"
-                res = training_routine(exp, seed=run)
+                res, _ = training_routine(exp, seed=run)
                 run_results[f"run_{run}"] = copy.deepcopy(res)
                 torch.cuda.empty_cache()
             percentage_results[f"percentage_{percentage}"] = copy.deepcopy(run_results)
@@ -109,7 +110,7 @@ if __name__ == "__main__":
         exp.ablation_data_module.env = scene
         exp.model.load_ckpt = str(p)
 
-        res = training_routine(exp, seed=run)
+        res, _ = training_routine(exp, seed=run)
         results_step.append(
             {"scene": scene, "percentage": percentage, "run": run, "steps": steps, "results": res, "model_path": str(p)}
         )

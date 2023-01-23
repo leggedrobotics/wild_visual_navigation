@@ -286,7 +286,7 @@ class WvnRosInterface:
         self.params.loss.false_negative_weight = self.false_negative_weight
         self.step = -1
         self.step_time = rospy.get_time()
-        
+
         assert self.optical_flow_estimator_type == "none", "Optical flow estimator not tested due to changes"
 
     def setup_rosbag_replay(self, tf_listener):

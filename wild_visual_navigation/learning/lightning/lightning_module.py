@@ -308,9 +308,10 @@ class LightningTrav(pl.LightningModule):
         fpr, tpr, thresholds = self._validation_roc_proprioceptive.compute()
         auroc = self._validation_auroc_proprioceptive.compute().item()
 
-        self._visualizer.plot_roc(
-            x=fpr.cpu().numpy(), y=tpr.cpu().numpy(), y_tag=f"AUCROC_{auroc:.4f}", tag=f"ROC_{self._mode}"
-        )
+        if False:
+            self._visualizer.plot_roc(
+                x=fpr.cpu().numpy(), y=tpr.cpu().numpy(), y_tag=f"AUCROC_{auroc:.4f}", tag=f"ROC_{self._mode}"
+            )
 
         self.log(f"{self._mode}_auroc", auroc, on_epoch=True, prog_bar=False)
 

@@ -27,7 +27,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--ablation_type", type=str, default="network", help="Folder containing the ablation configs.")
     parser.add_argument("--number_training_runs", type=int, default=1, help="Number of run per config.")
-    parser.add_argument("--test_all_datasets", type=bool, default=False, help="Test on all datasets.")
+    parser.add_argument('--test_all_datasets', dest='test_all_datasets', action='store_true', help="Test on all datasets.")
+    parser.set_defaults(test_all_datasets=False)
+    parser.add_argument('--store_final_model', dest='store_final_model', action='store_true', help="store_final_model on all datasets.")
+    parser.set_defaults(test_all_datasets=False)
+    
     parser.add_argument("--special_key", type=str, default="", help="Test on all datasets.")
     # python scripts/ablations/training_ablation.py --ablation_type=network --number_training_runs=3 --special_key="" &&\
     # python scripts/ablations/training_ablation.py --ablation_type=confidence_fn --number_training_runs=3 --special_key="" &&\
@@ -36,7 +40,9 @@ if __name__ == "__main__":
     # python scripts/ablations/training_ablation.py --ablation_type=loss_with_tmp --number_training_runs=3 --special_key="" &&\
     # python scripts/ablations/training_ablation.py --ablation_type=w_temp --number_training_runs=3 --special_key="" &&\
     # python scripts/ablations/training_ablation.py --ablation_type=lr --number_training_runs=3 --special_key=""
-
+    # python scripts/ablations/training_ablation.py --ablation_type=scene_adaptation --number_training_runs=10 --special_key="" --test_all_datasets
+    
+    
     args = parser.parse_args()
     print(args)
     exp = ExperimentParams()
@@ -46,6 +52,7 @@ if __name__ == "__main__":
     exp.logger.name = "skip"
     exp.ablation_data_module.val_equals_test = False
     exp.ablation_data_module.test_all_datasets = args.test_all_datasets
+    print("Test all datasets", args.test_all_datasets)
     exp.trainer.profiler = None
     exp.trainer.enable_checkpointing = False
     exp.cb_checkpoint.active = False
@@ -82,10 +89,17 @@ if __name__ == "__main__":
                 exp.trainer.progress_bar_refresh_rate = 0
                 exp.trainer.weights_summary = None
                 exp.trainer.enable_progress_bar = False
-                res = training_routine(exp, seed=run)
+                res, model = training_routine(exp, seed=run)
                 run_results[str(run)] = copy.deepcopy(res)
                 j += 1
                 print(f"Run number {j}: Scene {scene}, Run: {run}, Config: {p}")
+                if args.store_final_model:
+                    p_ = p.split("/")[-1][:-5]
+                    p_ = os.path.join(exp.general.model_path, f"model_{p_}_{scene}_{run}.pt")
+                    torch.save(model.state_dict(), p_)
+                    run_results[str(run)]["model"] = model.state_dict()
+                    run_results[str(run)]["model_path"] = p_
+                
             model_results[p] = copy.deepcopy(run_results)
         results_epoch[scene] = copy.deepcopy(model_results)
 
