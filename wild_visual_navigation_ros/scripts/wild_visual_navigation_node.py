@@ -249,7 +249,7 @@ class WvnRosInterface:
         self.log_time = rospy.get_param("~log_time")
         self.log_memory = rospy.get_param("~log_memory")
         self.log_confidence = rospy.get_param("~log_confidence")
-        self.verbose = rospy.get_param("~verbose", False)
+        self.verbose = rospy.get_param("~verbose")
 
         # Select mode: # debug, online, extract_labels
         self.use_debug_for_desired = rospy.get_param("~use_debug_for_desired")
