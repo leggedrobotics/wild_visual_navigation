@@ -38,13 +38,14 @@ class ExperimentParams(Serializable):
     @dataclass
     class LossParams:
         anomaly_balanced: bool = True
-        w_trav: float = 0.4
+        w_trav: float = 0.03
         w_trav_start: Optional[float] = None
         w_trav_increase: Optional[float] = None  # 0.0004
-        w_reco: float = 1.1
-        w_temp: float = 0.0  # 0.4
+        w_reco: float = 0.5
+        w_temp: float = 0.75  # 0.75
         method: str = "latest_measurment"
         confidence_std_factor: float = 0.5
+        trav_cross_entropy: bool = False
 
     loss: LossParams = LossParams()
 
@@ -75,10 +76,10 @@ class ExperimentParams(Serializable):
         env: str = "forest"
         feature_key: str = "slic100_dino224_16"
         test_equals_val: bool = False
-        val_equals_test: bool = True
+        val_equals_test: bool = False
         test_all_datasets: bool = False
         training_data_percentage: int = 100
-        training_in_memory: bool = True
+        training_in_memory: bool = False
 
     ablation_data_module: AblationDataModuleParams = AblationDataModuleParams()
 
@@ -132,7 +133,7 @@ class ExperimentParams(Serializable):
 
     @dataclass
     class VisuParams:
-        train: int = 0
+        train: int = 5
         val: int = 0
         test: int = 0
         log_test_video: bool = False
@@ -154,3 +155,8 @@ class ExperimentParams(Serializable):
         if not self.general.log_to_disk:
             assert self.trainer.profiler != "advanced", "Should not be advanced if not logging to disk"
             assert self.cb_checkpoint.active == False, "Should be False if not logging to disk"
+
+        if self.loss.trav_cross_entropy:
+            self.model.simple_mlp_cfg.hidden_sizes[-1] = 2
+            self.model.double_mlp_cfg.hidden_sizes[-1] = 2
+            self.model.simple_gcn_cfg.hidden_sizes[-1] = 2

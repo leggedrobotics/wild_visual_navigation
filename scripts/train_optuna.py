@@ -17,19 +17,19 @@ def objective(trial, experiment: ExperimentParams):
     exp = copy.deepcopy(experiment)
 
     # exp.optimizer.lr = trial.suggest_float("lr", 0.0001, 0.01, log=True)
-    exp.loss.w_trav = trial.suggest_float("w_trav", 0.0, 2.0)
-    exp.loss.w_temp = trial.suggest_float("w_temp", 0.0, 2.0)
-    exp.loss.w_reco = trial.suggest_float("w_reco", 0.0, 2.0)
-    # exp.loss.anomaly_balanced = trial.suggest_categorical("anomaly_balanced", [True, False])
+    exp.loss.w_trav = trial.suggest_float("w_trav", 0.0, 1.0)
+    exp.loss.w_temp = trial.suggest_float("w_temp", 0.0, 1.0)
+    exp.loss.w_reco = trial.suggest_float("w_reco", 0.0, 1.0)
+    exp.loss.anomaly_balanced = trial.suggest_categorical("anomaly_balanced", [True])
 
     # if not trial.suggest_categorical("use_temporal_consistency", [True, False]):
     # exp.loss.w_temp = 0.0
     # exp.trainer.max_epochs = trial.suggest_int("max_epochs", 1, 10)
 
-    res, _, _, _ = training_routine(exp)
+    res, _ = training_routine(exp)
 
     torch.cuda.empty_cache()
-    return res["test_auroc_gt"]
+    return list(res.values())[0]["test_auroc_gt_image"]
 
 
 if __name__ == "__main__":
@@ -39,7 +39,6 @@ if __name__ == "__main__":
     parser.add_argument("--exp", type=str, default="nan", help="Overwrite params")
 
     parser.add_argument("--name", type=str, default="sweep_loss_function", help="Name of sweep")
-    parser.add_argument("--log_lightning_run", type=bool, default=False, help="Log Lightning Run")
     parser.add_argument("--n_trials", type=int, default=100, help="Number Trials")
 
     args = parser.parse_args()
@@ -59,8 +58,22 @@ if __name__ == "__main__":
         log_plot_slice=True,
         log_plot_contour=True,
     )
-    if not args.log_lightning_run:
-        args.experiment.logger.name = "skip"
+
+    args.experiment.logger.name = "skip"
+    args.experiment.trainer.enable_checkpointing = False
+    args.experiment.cb_checkpoint.active = False
+    args.experiment.visu.train = 0
+    args.experiment.visu.val = 0
+    args.experiment.visu.test = 0
+    args.experiment.trainer.check_val_every_n_epoch = 100000
+    args.experiment.general.store_model_every_n_steps = None
+    args.experiment.ablation_data_module.training_in_memory = True
+    args.experiment.trainer.max_steps = 10000
+    args.experiment.trainer.max_epochs = None
+    args.experiment.general.log_to_disk = False
+    args.experiment.trainer.progress_bar_refresh_rate = 0
+    args.experiment.trainer.weights_summary = None
+    args.experiment.trainer.enable_progress_bar = False
 
     binded_objective = lambda trial: objective(trial=trial, experiment=args.experiment)
     study = optuna.create_study(direction=optuna.study.StudyDirection.MAXIMIZE)
