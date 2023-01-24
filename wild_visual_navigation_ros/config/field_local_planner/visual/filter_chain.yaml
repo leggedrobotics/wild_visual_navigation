@@ -59,6 +59,22 @@ grid_map_filters:
       output_layer: geometric_traversability
       # expression: (0.5 * (1.0 - (slope / 0.6)) + 0.5 * height_traversability) .* (1.0 - unknown_space)
       expression: (0.5 * (1.0 - (slope / 0.6)) + 0.5 * height_traversability)
+
+  - name: footprint_mask
+    type: gridMapFiltersDrs/FootprintMaskFilter
+    params:
+      output_layer: footprint_mask
+      footprint_frame: base
+      type: rectangle
+      length: 1.0
+      width: 0.5
+      clearance: 0.1
+  
+  - name: visual_traversability_footprint_fix
+    type: gridMapFilters/MathExpressionFilter
+    params:
+      output_layer: visual_traversability
+      expression: (1.0 - footprint_mask) .* visual_traversability + footprint_mask
   
   # Compute 2D Signed Distance Field
   - name: sdf
