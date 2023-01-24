@@ -203,11 +203,10 @@ class TraversabilityEstimator:
         self._model = self._model.to(device)
         if self._optical_flow_estimator_type != "none":
             self._optical_flow_estimator = self._optical_flow_estimator.to(device)
-        
+
         if self._scale_traversability:
             # Use 500 bins for constant memory usuage
             self._auxilary_training_roc.to(device)
-            
 
     @accumulate_time
     def update_features(self, node: MissionNode):
@@ -644,7 +643,9 @@ class TraversabilityEstimator:
         """
 
         if self._optical_flow_estimator_type != "none":
-            raise ValueError("Currently not supported the auxilary graph implementation is not needed and the features and edge index of previous node should be added to the mission graph directly.")
+            raise ValueError(
+                "Currently not supported the auxilary graph implementation is not needed and the features and edge index of previous node should be added to the mission graph directly."
+            )
             # Sample a batch of nodes and their previous node, for temporal consistency
             mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
             ls = [
@@ -690,7 +691,7 @@ class TraversabilityEstimator:
 
                 log_step = (self._step % 20) == 0
                 self._loss, loss_aux = self._traversability_loss(graph, res, step=self._step, log_step=log_step)
-                
+
                 # Keep track of ROC during training for rescaling the loss when publishing
                 if self._scale_traversability:
                     # This mask should contain all the segments corrosponding to trees.
@@ -701,7 +702,7 @@ class TraversabilityEstimator:
                     # Elements are valid if they are either an anomaly or we have walked on them to fit the ROC
                     mask_valid = mask_anomaly | mask_proprioceptive
                     self._auxilary_training_roc(res[mask_valid, 0], graph.y[mask_valid].type(torch.long))
-                
+
                 # Backprop
                 self._optimizer.zero_grad()
                 self._loss.backward()

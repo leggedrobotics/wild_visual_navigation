@@ -5,6 +5,7 @@ import yaml
 import time
 import pickle
 import copy
+import argparse
 from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.learning.utils import load_yaml, load_env
 from wild_visual_navigation.cfg import ExperimentParams
@@ -12,36 +13,41 @@ from wild_visual_navigation.learning.general import training_routine
 
 if __name__ == "__main__":
     """Test how much time and data it takes for a model to convergee on a scene.
-    Settings:
-        - No log files are created by the model.
-        - The validation dataloaders are abused as test dataloaders.
-        - After every training epoch the test routine is called.
-        - The results are accumulated and returned by the training routine.
-        - Calling the testing is therefore not necessary.
-        - This procedure is repeated over all scenes and percentage of data used from the training dataset.
+    During training we store checkpoints of the models.
+    After training we run for all model checkpoints the test routine.
     """
     exp = ExperimentParams()
     env = load_env()
-    # #Experiment 1: Time adaptation
-    # number_training_runs = 1
-    # data_start_percentage = 10
-    # data_stop_percentage = 100
-    # data_percentage_increment = 10
-    # scenes = ["forest", "hilly", "grassland"]
-    # exp.general.store_model_every_n_steps = 100
-    # exp.trainer.max_steps = 10000
-    # output_key = "time_adaptation"
 
-    # Experiment 2: Learning curves
-    number_training_runs = 2
-    data_start_percentage = 100
-    data_stop_percentage = 100
-    data_percentage_increment = 10
-    scenes = ["forest", "hilly", "grassland"]
-    exp.general.store_model_every_n_steps = 100
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output_key", type=str, default="learning_curve", help="Name of the run.")
+    parser.add_argument("--number_training_runs", type=int, default=1, help="Number of run per config.")
+    parser.add_argument("--data_start_percentage", type=int, default=100)
+    parser.add_argument("--data_stop_percentage", type=int, default=100)
+    parser.add_argument("--data_percentage_increment", type=int, default=10)
+    parser.add_argument("--test_all_datasets", dest="test_all_datasets", action="store_true", help="")
+    parser.set_defaults(test_all_datasets=False)
+    parser.add_argument("--scenes", default="forest,hilly,grassland", type=str)
+    parser.add_argument("--store_model_every_n_steps", type=int, default=100)
+
+    # python scripts/ablations/stepwise_ablation.py --output_key time_adaptation --number_training_runs 1 --data_start_percentage 10 --data_stop_percentage 100 --data_percentage_increment 10 --scenes forest,hilly,grassland --store_model_every_n_steps 100
+
+    # python scripts/ablations/stepwise_ablation.py --output_key learning_curve --number_training_runs 10 --data_start_percentage 100 --data_stop_percentage 100 --data_percentage_increment 10 --scenes forest --store_model_every_n_steps 100
+
+    args = parser.parse_args()
+
+    # Change Experiment Params
+    output_key = args.output_key
+    number_training_runs = args.number_training_runs
+    data_start_percentage = args.data_start_percentage
+    data_stop_percentage = args.data_stop_percentage
+    data_percentage_increment = args.data_percentage_increment
+    scenes = args.scenes.split(",")
+    exp.test_all_datasets = args.test_all_datasets
+    exp.general.store_model_every_n_steps = args.store_model_every_n_steps
+
+    # Ensure deafult configuration
     exp.trainer.max_steps = 10000
-    output_key = "learning_curve"
-
     exp.ablation_data_module.training_in_memory = True
     exp.trainer.check_val_every_n_epoch = 1000000
     exp.general.log_to_disk = False
@@ -51,11 +57,10 @@ if __name__ == "__main__":
     exp.trainer.profiler = None
     exp.trainer.enable_checkpointing = False
     exp.cb_checkpoint.active = False
-
-    exp.verify_params()
     exp.visu.train = 0
     exp.visu.val = 0
     exp.visu.test = 0
+    exp.verify_params()
     ws = os.environ["ENV_WORKSTATION_NAME"]
     exp.general.model_path = os.path.join(env["base"], f"ablations/{output_key}_{ws}")
 

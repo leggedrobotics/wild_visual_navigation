@@ -140,88 +140,91 @@ def get_ablation_module(
     val_equals_test: bool,
     training_in_memory: bool,
     training_data_percentage: int,
+    test_all_datasets: bool,
+    get_train_val_dataset: bool = True,
+    get_test_dataset: bool = True,
     **kwargs,
 ) -> LightningDataset:
+    def get_test_dataset(perugia_root, env, feature_key, test_all_datasets, training_data_percentage):
+        if test_all_datasets:
+            scenes = ["forest", "grassland", "hilly"]
+        else:
+            scenes = [env]
+        return [
+            GraphTravAblationDataset(
+                perugia_root=perugia_root,
+                mode="test",
+                feature_key=feature_key,
+                env=scene,
+                training_data_percentage=training_data_percentage,
+            )
+            for scene in scenes
+        ]
 
-    if training_in_memory:
-        train_dataset = GraphTravAblationDatasetInMemory(
+    # GET TRAIN VAL DATASET
+    if get_train_val_dataset:
+        if training_in_memory:
+            dataset_func = GraphTravAblationDatasetInMemory
+        else:
+            dataset_func = GraphTravAblationDataset
+
+        train_dataset = dataset_func(
             perugia_root=perugia_root,
             mode="train",
             feature_key=feature_key,
             env=env,
             training_data_percentage=training_data_percentage,
         )
-    else:
-        train_dataset = GraphTravAblationDataset(
-            perugia_root=perugia_root,
-            mode="train",
-            feature_key=feature_key,
-            env=env,
-            training_data_percentage=training_data_percentage,
+
+        if not val_equals_test:
+            val_dataset = [
+                GraphTravAblationDataset(
+                    perugia_root=perugia_root,
+                    mode="val",
+                    feature_key=feature_key,
+                    env=env,
+                    training_data_percentage=training_data_percentage,
+                )
+            ]
+        else:
+            val_dataset = get_test_dataset(perugia_root, env, feature_key, test_all_datasets, training_data_percentage)
+
+        train_loader = DataLoader(
+            dataset=train_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=False
         )
-    val_dataset = [
-        GraphTravAblationDataset(
-            perugia_root=perugia_root,
-            mode="val",
-            feature_key=feature_key,
-            env=env,
-            training_data_percentage=training_data_percentage,
-        )
-    ]
+        val_loader = [
+            DataLoader(dataset=v, batch_size=batch_size, num_workers=num_workers, pin_memory=False) for v in val_dataset
+        ]
 
-    if test_equals_val:
-        test_dataset = [
-            GraphTravAblationDataset(
-                perugia_root=perugia_root,
-                mode="val",
-                feature_key=feature_key,
-                env=env,
-                training_data_percentage=training_data_percentage,
-            )
+    else:
+        train_loader = None
+        val_loader = None
+
+    # GET TEST DATASET
+    if get_test_dataset:
+        if test_equals_val:
+            test_dataset = [
+                GraphTravAblationDataset(
+                    perugia_root=perugia_root,
+                    mode="val",
+                    feature_key=feature_key,
+                    env=env,
+                    training_data_percentage=training_data_percentage,
+                )
+            ]
+        else:
+            test_dataset = get_test_dataset(perugia_root, env, feature_key, test_all_datasets, training_data_percentage)
+        test_loader = [
+            DataLoader(dataset=t, batch_size=batch_size, num_workers=num_workers, pin_memory=False)
+            for t in test_dataset
         ]
     else:
-        test_dataset = [
-            GraphTravAblationDataset(
-                perugia_root=perugia_root,
-                mode="test",
-                feature_key=feature_key,
-                env=env,
-                training_data_percentage=training_data_percentage,
-            )
-        ]
-
-    if kwargs.get("test_all_datasets"):
-        test_dataset = [
-            GraphTravAblationDataset(
-                perugia_root=perugia_root,
-                mode="test",
-                feature_key=feature_key,
-                env="forest",
-                training_data_percentage=training_data_percentage,
-            ),
-            GraphTravAblationDataset(
-                perugia_root=perugia_root,
-                mode="test",
-                feature_key=feature_key,
-                env="grassland",
-                training_data_percentage=training_data_percentage,
-            ),
-            GraphTravAblationDataset(
-                perugia_root=perugia_root,
-                mode="test",
-                feature_key=feature_key,
-                env="hilly",
-                training_data_percentage=training_data_percentage,
-            ),
-        ]
-
-    if val_equals_test:
-        val_dataset = test_dataset
+        test_loader = None
 
     return (
-        DataLoader(dataset=train_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=False),
-        [DataLoader(dataset=v, batch_size=batch_size, num_workers=num_workers, pin_memory=False) for v in val_dataset],
-        [DataLoader(dataset=t, batch_size=batch_size, num_workers=num_workers, pin_memory=False) for t in test_dataset],
+        train_loader,
+        val_loader,
+        test_loader,
     )
 
 
