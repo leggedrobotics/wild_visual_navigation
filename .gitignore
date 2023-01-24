@@ -13,6 +13,7 @@ notebooks/**
 
 # Pip editable repos
 src/
+cfg/exp/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
