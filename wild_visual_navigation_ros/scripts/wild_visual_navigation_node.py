@@ -67,6 +67,8 @@ class WvnRosInterface:
             image_distance_thr=self.image_graph_dist_thr,
             proprio_distance_thr=self.proprio_graph_dist_thr,
             optical_flow_estimator_type=self.optical_flow_estimator_type,
+            min_samples_for_training=self.min_samples_for_training,
+            vis_node_index=self.vis_node_index,
             mode=self.mode,
             extraction_store_folder=self.extraction_store_folder,
             patch_size=self.dino_patch_size,
@@ -228,6 +230,8 @@ class WvnRosInterface:
         self.confidence_std_factor = rospy.get_param("~confidence_std_factor")
         self.scale_traversability = rospy.get_param("~scale_traversability")
         self.scale_traversability_max_fpr = rospy.get_param("~scale_traversability_max_fpr")
+        self.min_samples_for_training = rospy.get_param("~min_samples_for_training")
+        self.vis_node_index = rospy.get_param("~debug_supervision_node_index_from_last")
 
         # Supervision Generator
         self.robot_max_velocity = rospy.get_param("~robot_max_velocity")
@@ -254,7 +258,7 @@ class WvnRosInterface:
         self.verbose = rospy.get_param("~verbose")
 
         # Select mode: # debug, online, extract_labels
-        self.use_debug_for_desired = rospy.get_param("~use_debug_for_desired")
+        self.use_debug_for_desired = rospy.get_param("~use_debug_for_desired") # Note: Unused parameter
         self.mode = WVNMode.from_string(rospy.get_param("~mode", "debug"))
         self.extraction_store_folder = rospy.get_param("~extraction_store_folder")
 
@@ -281,7 +285,7 @@ class WvnRosInterface:
         # Visualization
         self.colormap = rospy.get_param("~colormap")
 
-        # Initialize traversability esimator parameters
+        # Initialize traversability estimator parameters
         self.params = ExperimentParams()
         if exp_file != "nan":
             exp_override = load_yaml(os.path.join(WVN_ROOT_DIR, "cfg/exp", exp_file))

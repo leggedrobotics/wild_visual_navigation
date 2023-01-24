@@ -4,7 +4,7 @@ local_planner: field_local_planner::RmpPlugin
 # Base settings
 requires_sensing: true # it should be true for all the local planners
 control_rate: 10 # in Hz, rate at which the control command is computed
-base_inverted: true # to flip the orientation of the robot 180 deg
+base_inverted: false # to flip the orientation of the robot 180 deg
 differential_mode: false # If the robot moves with a differential model
 
 # Robot size
