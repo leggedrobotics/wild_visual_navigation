@@ -91,7 +91,7 @@ class ExperimentParams(Serializable):
         @dataclass
         class SimpleMlpCfgParams:
             input_size: int = 90
-            hidden_sizes: List[int] = field(default_factory=lambda: [256, 128, 1])
+            hidden_sizes: List[int] = field(default_factory=lambda: [256, 32, 1])
             reconstruction: bool = True
 
         simple_mlp_cfg: SimpleMlpCfgParams = SimpleMlpCfgParams()

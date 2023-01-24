@@ -6,6 +6,8 @@
   <arg name="base_inverted"  default="true"/>
   <arg name="traversability" default="visual"/> <!-- visual or geometric -->
 
+  <arg name="output_twist_topic"      default="/local_guidance_path_follower/twist"/>
+
   <arg name="elevation_map_topic"           default="/elevation_mapping/semantic_map_raw"/>
   <arg name="elevation_map_filtered_topic"  default="/elevation_mapping/elevation_map_filtered"/>
   <arg name="elevation_map_wifi_topic"      default="/elevation_mapping/elevation_map_wifi"/>
@@ -47,8 +49,11 @@
     <arg name="goal_topic"         value="/initialpose"/>
     <arg name="joy_twist_topic"    value="/cmd_vel"/>
     <arg name="output_twist_type"  value="twist_stamped"/>
-    <arg name="output_twist_topic" value="/local_guidance_path_follower/twist"/>
+    <arg name="output_twist_topic" value="$(arg output_twist_topic)"/>
     <!-- <arg name="output_twist_topic" value="/motion_reference/command_twist"/> -->
   </include>
+
+  <!-- Set dynamic reconfigure parameter for obstacle gain -->
+  <node pkg="dynamic_reconfigure" type="dynparam" name="field_local_planner_sdf_gain" args="set /field_local_planner/rmp sdf_obstacle_gain 1.0" />
 
 </launch>
