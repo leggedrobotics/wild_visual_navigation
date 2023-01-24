@@ -356,12 +356,12 @@ class LearningVisualizer:
         **kwargs,
     ):
         cmap = cm.get_cmap("RdYlBu", 256)
-        cmap = np.concatenate([cmap(np.linspace(0, 0.3, 128)), cmap(np.linspace(0.7, 1.0, 127))])
+        cmap = np.concatenate([cmap(np.linspace(0, 0.3, 128)), cmap(np.linspace(0.7, 1.0, 128))])
         cmap = torch.from_numpy(cmap).to(seg)[:, :3]
 
         img = self.plot_image(img, not_log=True)
         seg_img = self.plot_segmentation(
-            (seg * 255).type(torch.long), max_seg=256, colormap=cmap, store=False, not_log=True
+            (seg * 255).type(torch.long).clip(0, 255), max_seg=256, colormap=cmap, store=False, not_log=True
         )
 
         H, W = img.shape[:2]
