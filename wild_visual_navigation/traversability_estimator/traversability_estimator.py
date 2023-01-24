@@ -63,6 +63,7 @@ class TraversabilityEstimator:
         if self._scale_traversability:
             # Use 500 bins for constant memory usuage
             self._auxilary_training_roc = ROC(task="binary", thresholds=500)
+            self._auxilary_training_roc.to(self._device)
 
         # Local graphs
         self._proprio_graph = DistanceWindowGraph(max_distance=max_distance, edge_distance=proprio_distance_thr)
@@ -202,6 +203,11 @@ class TraversabilityEstimator:
         self._model = self._model.to(device)
         if self._optical_flow_estimator_type != "none":
             self._optical_flow_estimator = self._optical_flow_estimator.to(device)
+        
+        if self._scale_traversability:
+            # Use 500 bins for constant memory usuage
+            self._auxilary_training_roc.to(device)
+            
 
     @accumulate_time
     def update_features(self, node: MissionNode):
