@@ -70,6 +70,7 @@ class WvnRosInterface:
             mode=self.mode,
             extraction_store_folder=self.extraction_store_folder,
             patch_size=self.dino_patch_size,
+            scale_traversability=self.scale_traversability
         )
 
         # Initialize traversability generator to process velocity commands
@@ -225,6 +226,8 @@ class WvnRosInterface:
         self.feature_type = rospy.get_param("~feature_type")
         self.dino_patch_size = rospy.get_param("~dino_patch_size")
         self.confidence_std_factor = rospy.get_param("~confidence_std_factor")
+        self.scale_traversability = rospy.get_param("~scale_traversability")
+        self.scale_traversability_max_fpr = rospy.get_param("~scale_traversability_max_fpr")
 
         # Supervision Generator
         self.robot_max_velocity = rospy.get_param("~robot_max_velocity")
@@ -678,7 +681,28 @@ class WvnRosInterface:
             fs = mission_node.feature_segments.reshape(-1)
             out_trav = out_trav.reshape(-1)
             out_conf = out_conf.reshape(-1)
-            out_trav = mission_node.prediction[fs, 0]
+            traversability = mission_node.prediction[:, 0]
+            
+            # Optionally rescale the traversability output before publishing
+            if self.scale_traversability:
+                # Compute ROC Threshold
+                try:
+                    fpr, tpr, thresholds = self.traversability_estimator._auxilary_training_roc.compute()
+                    index = torch.where(fpr > self.scale_traversability_max_fpr)[0][0]
+                    threshold = thresholds[index]
+
+                    # Apply pisewise linear scaling 0->0; threshold->0.5; 1->1
+                    traversability = traversability.clone()
+                    m = traversability < threshold
+                    traversability[m] *= (0.5 / threshold)
+                    traversability[~m] -= threshold
+                    traversability[~m] *= 0.5 / (1 - threshold)
+                    traversability[~m] += 0.5
+                    traversability.clip(0, 1)
+                except:
+                    print("Failed to scale output image. Most likely due to ROC computation failed")
+                    
+            out_trav = traversability[fs]
             out_conf = mission_node.confidence[fs]
             out_trav = out_trav.reshape(mission_node.feature_segments.shape)
             out_conf = out_conf.reshape(mission_node.feature_segments.shape)

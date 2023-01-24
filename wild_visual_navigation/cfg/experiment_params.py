@@ -79,7 +79,7 @@ class ExperimentParams(Serializable):
         val_equals_test: bool = False
         test_all_datasets: bool = False
         training_data_percentage: int = 100
-        training_in_memory: bool = False
+        training_in_memory: bool = True
 
     ablation_data_module: AblationDataModuleParams = AblationDataModuleParams()
 
