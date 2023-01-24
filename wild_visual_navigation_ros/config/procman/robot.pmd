@@ -7,8 +7,20 @@ group "0.npc" {
         exec = "rosrun wild_visual_navigation_anymal anymal_msg_converter_node.py";
         host = "npc-digiforest";
     }
-    cmd "0.2.field_local_planner" {
-        exec = "roslaunch wild_visual_navigation field_local_planner.launch";
+    cmd "0.2.local_planner_visual" {
+        exec = "roslaunch wild_visual_navigation_ros field_local_planner.launch traversability:=visual";
+        host = "npc-digiforest";
+    }
+    cmd "0.2.local_planner_visual_inverted" {
+        exec = "roslaunch wild_visual_navigation_ros field_local_planner.launch traversability:=visual base_inverted:=true";
+        host = "npc-digiforest";
+    }
+    cmd "0.2.local_planner_geometric" {
+        exec = "roslaunch wild_visual_navigation_ros field_local_planner.launch traversability:=geometric";
+        host = "npc-digiforest";
+    }
+    cmd "0.2.local_planner_geometric_inverted" {
+        exec = "roslaunch wild_visual_navigation_ros field_local_planner.launch traversability:=geometric base_inverted:=true";
         host = "npc-digiforest";
     }
 }
@@ -18,6 +30,7 @@ group "1.jetson" {
         exec = "roslaunch wild_visual_navigation_ros robot.launch";
         host = "apc-digiforest";
     }
+    
     cmd "kill_wvn" {
         exec = "rosnode kill /wild_visual_navigation_node";
         host = "localhost";
@@ -50,7 +63,27 @@ group "3.recording" {
     }
 }
 
+group "4.monitoring" {
+    cmd "lpc_disk" {
+        exec = "rostopic echo /disk_monitor_lpc/status/disks[1]";
+        host = "localhost";
+    }
+    cmd "npc_disk" {
+        exec = "rostopic echo /disk_monitor_npc/status/disks[1]";
+        host = "localhost";
+    }
+    cmd "learning" {
+        exec = "roslaunch wild_visual_navigation_ros rqt_multiplot.launch";
+        host = "localhost";
+    }
+}
 
+group "5.configuration" {
+    cmd "5.1.dynamic_reconfigure" {
+        exec = "rosrun rqt_reconfigure rqt_reconfigure";
+        host = "localhost";
+    }
+}
 
 group "x.learning_utils" {
     cmd "x.1.pause_training" {

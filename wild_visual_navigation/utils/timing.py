@@ -48,9 +48,10 @@ class Timer:
 def accumulate_time(method):
     @wraps(method)
     def timed(*args, **kw):
-        if hasattr(args[0], "slt_not_time"):
-            if args[0].slt_not_time:
-                return method(*args, **kw)
+        if not hasattr(args[0], "slt_enabled"):
+            return method(*args, **kw)
+        elif not args[0].slt_enabled:
+            return method(*args, **kw)
 
         start = torch.cuda.Event(enable_timing=True)
         end = torch.cuda.Event(enable_timing=True)
@@ -84,24 +85,28 @@ def accumulate_time(method):
 class SystemLevelContextTimer:
     def __init__(self, parent, name="") -> None:
         self.parent = parent
-        if hasattr(self.parent, "slt_not_time"):
-            if self.parent.slt_not_time:
-                return
+        if not hasattr(self.parent, "slt_enabled"):
+            return
+        elif not self.parent.slt_enabled:
+            return
 
         self.name = name
         self.start = torch.cuda.Event(enable_timing=True)
         self.end = torch.cuda.Event(enable_timing=True)
 
     def __enter__(self):
-        if hasattr(self.parent, "slt_not_time"):
-            if self.parent.slt_not_time:
-                return
+        if not hasattr(self.parent, "slt_enabled"):
+            return
+        elif not self.parent.slt_enabled:
+            return
+
         self.tic()
 
     def __exit__(self, exc_type, exc_value, exc_tb):
-        if hasattr(self.parent, "slt_not_time"):
-            if self.parent.slt_not_time:
-                return
+        if not hasattr(self.parent, "slt_enabled"):
+            return
+        elif not self.parent.slt_enabled:
+            return
 
         st = self.toc()
 
@@ -131,11 +136,12 @@ class SystemLevelContextTimer:
 
 
 class SystemLevelTimer:
-    def __init__(self, objects, names, step_reference, time_reference) -> None:
+    def __init__(self, objects, names, enabled=True) -> None:
         self.objects = objects
         self.names = names
-        self.step_reference = step_reference
-        self.time_reference = time_reference
+
+        for o in self.objects:
+            o.slt_enabled = enabled
 
     def __str__(self):
         s = ""

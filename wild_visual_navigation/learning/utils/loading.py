@@ -35,6 +35,8 @@ def load_yaml(path: str) -> dict:
     """
     with open(path) as file:
         res = yaml.load(file, Loader=yaml.FullLoader)
+    if res is None:
+        res = {}
     return res
 
 

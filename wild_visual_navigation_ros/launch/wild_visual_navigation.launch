@@ -1,13 +1,16 @@
 <launch>
   <!-- Arguments -->
-  <arg name="params_file"       default="$(find wild_visual_navigation_ros)/config/parameters/default.yaml"/>
-  <arg name="name"              default="wild_visual_navigation_node"/>
+  <arg name="inputs_file"         default="$(find wild_visual_navigation_ros)/config/wild_visual_navigation/inputs/none.yaml"/>
+  <arg name="params_file"         default="$(find wild_visual_navigation_ros)/config/wild_visual_navigation/default.yaml"/>
+  <arg name="name"                default="wild_visual_navigation_node"/>
+  <arg name="desired_twist_topic" default="/motion_reference/command_twist"/>
 
   <!-- Load parameters -->
   <rosparam command="load" file="$(arg params_file)" ns="$(arg name)"/>
+  <rosparam command="load" file="$(arg inputs_file)" ns="$(arg name)"/>
 
   <!-- Launch node -->
   <node name="$(arg name)" pkg="wild_visual_navigation_ros" type="wild_visual_navigation_node.py" output="screen">
-    <param name="desired_twist_topic" value="/motion_reference/command_twist"/>
+    <param name="desired_twist_topic" value="$(arg desired_twist_topic)"/>
   </node>
 </launch>
