@@ -90,7 +90,7 @@ class WvnRosInterface:
         )
         # Initialize camera handler for subscription/publishing
         self.camera_handler = {}
-
+        self.system_events = {}
         # Setup ros
         self.setup_ros(setup_fully=self.mode != WVNMode.EXTRACT_LABELS)
 
@@ -131,6 +131,10 @@ class WvnRosInterface:
             self.learning_thread_stop_event = Event()
             self.learning_thread = Thread(target=self.learning_thread_loop, name="learning")
             self.learning_thread.start()
+
+            self.logging_thread_stop_event = Event()
+            self.logging_thread = Thread(target=self.logging_thread_loop, name="logging")
+            self.logging_thread.start()
         print("[WVN] System ready")
 
     def shutdown_callback(self, *args, **kwargs):
@@ -138,6 +142,7 @@ class WvnRosInterface:
         rospy.logwarn("Shutdown callback called")
         if self.mode != WVNMode.EXTRACT_LABELS:
             self.learning_thread_stop_event.set()
+            self.logging_thread_stop_event.set()
 
         print("Storing learned checkpoint...", end="")
         self.traversability_estimator.save_checkpoint(self.params.general.model_path, "last_checkpoint.pt")
@@ -156,6 +161,9 @@ class WvnRosInterface:
         if self.mode != WVNMode.EXTRACT_LABELS:
             self.learning_thread_stop_event.set()
             self.learning_thread.join()
+
+            self.logging_thread_stop_event.set()
+            self.logging_thread.join()
         print("done")
 
         rospy.signal_shutdown(f"Wild Visual Navigation killed {args}")
@@ -171,6 +179,7 @@ class WvnRosInterface:
 
         # Learning loop
         while True:
+            self.system_events["learning_thread_loop"] = {"time": rospy.get_time(), "value": "running"}
             self.learning_thread_stop_event.wait(timeout=0.01)
             if self.learning_thread_stop_event.is_set():
                 rospy.logwarn("Stopped learning thread")
@@ -199,6 +208,31 @@ class WvnRosInterface:
 
             rate.sleep()
 
+        self.system_events["learning_thread_loop"] = {"time": rospy.get_time(), "value": "finished"}
+        self.learning_thread_stop_event.clear()
+
+    def logging_thread_loop(self):
+        rate = rospy.Rate(self.logging_thread_rate)
+        # Learning loop
+        while True:
+            self.learning_thread_stop_event.wait(timeout=0.01)
+            if self.learning_thread_stop_event.is_set():
+                rospy.logwarn("Stopped logging thread")
+                break
+
+            current_time = rospy.get_time()
+            tmp = self.system_events.copy()
+            rospy.loginfo("System Events:")
+            for k, v in tmp.items():
+                value = v["value"]
+                msg = (
+                    (k + ": ").ljust(35, " ")
+                    + (str(round(current_time - v["time"], 4)) + "s ").ljust(10, " ")
+                    + f" {value}"
+                )
+                rospy.loginfo(msg)
+                rate.sleep()
+            rospy.loginfo("--------------")
         self.learning_thread_stop_event.clear()
 
     @accumulate_time
@@ -245,6 +279,7 @@ class WvnRosInterface:
         self.image_callback_rate = rospy.get_param("~image_callback_rate")  # hertz
         self.proprio_callback_rate = rospy.get_param("~proprio_callback_rate")  # hertz
         self.learning_thread_rate = rospy.get_param("~learning_thread_rate")  # hertz
+        self.logging_thread_rate = rospy.get_param("~logging_thread_rate")  # hertz
 
         # Data storage
         self.mission_name = rospy.get_param("~mission_name")
@@ -489,25 +524,17 @@ class WvnRosInterface:
 
         if stamp is None:
             stamp = rospy.Time(0)
-        # Wait for required tfs - Only done if we are not extracting labels
-        # if self.mode != WVNMode.EXTRACT_LABELS:
-        #     try:
-        #         self.tf_listener.waitForTransform(parent_frame, child_frame, stamp, rospy.Duration(0.01))
-        #     except Exception as e:
-        #         print("Error in query tf: ", e)
-        #         return (None, None)
 
         try:
             res = self.tf_buffer.lookup_transform(parent_frame, child_frame, stamp, timeout=rospy.Duration(0.03))
             trans = (res.transform.translation.x, res.transform.translation.y, res.transform.translation.z)
             rot = np.array(
-                [res.transform.rotation.x, res.transform.rotation.y, res.transform.rotation.x, res.transform.rotation.w]
+                [res.transform.rotation.x, res.transform.rotation.y, res.transform.rotation.z, res.transform.rotation.w]
             )
             rot /= np.linalg.norm(rot)
             return (trans, tuple(rot))
         except Exception as e:
             print("Error in query tf: ", e)
-            # (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException): avoid all errors
             rospy.logwarn(f"Couldn't get between {parent_frame} and {child_frame}")
             return (None, None)
 
@@ -520,9 +547,14 @@ class WvnRosInterface:
             state_msg (wild_visual_navigation_msgs/RobotState): Robot state message
             desired_twist_msg (geometry_msgs/TwistStamped): Desired twist message
         """
+        self.system_events["robot_state_callback_received"] = {"time": rospy.get_time(), "value": "message received"}
         try:
             ts = state_msg.header.stamp.to_sec()
             if abs(ts - self.last_proprio_ts) < 1.0 / self.proprio_callback_rate:
+                self.system_events["robot_state_callback_cancled"] = {
+                    "time": rospy.get_time(),
+                    "value": "cancled due to rate",
+                }
                 return
             self.last_propio_ts = ts
 
@@ -531,12 +563,20 @@ class WvnRosInterface:
                 self.query_tf(self.fixed_frame, self.base_frame, state_msg.header.stamp), device=self.device
             )
             if not suc:
+                self.system_events["robot_state_callback_cancled"] = {
+                    "time": rospy.get_time(),
+                    "value": "cancled due to pose_base_in_world",
+                }
                 return
 
             suc, pose_footprint_in_base = rc.ros_tf_to_torch(
                 self.query_tf(self.base_frame, self.footprint_frame, state_msg.header.stamp), device=self.device
             )
             if not suc:
+                self.system_events["robot_state_callback_cancled"] = {
+                    "time": rospy.get_time(),
+                    "value": "cancled due to pose_footprint_in_base",
+                }
                 return
 
             # The footprint requires a correction: we use the same orientation as the base
@@ -577,9 +617,19 @@ class WvnRosInterface:
             if self.print_proprio_callback_time:
                 print(self.timer)
 
+            self.system_events["robot_state_callback_state"] = {
+                "time": rospy.get_time(),
+                "value": "executed successfully",
+            }
+
         except Exception as e:
             traceback.print_exc()
             print("error state callback", e)
+            self.system_events["robot_state_callback_state"] = {
+                "time": rospy.get_time(),
+                "value": f"failed to execute {e}",
+            }
+
             raise Exception("Error in robot state callback")
 
     @accumulate_memory
@@ -591,6 +641,7 @@ class WvnRosInterface:
             image_msg (sensor_msgs/Image): Incoming image
             info_msg (sensor_msgs/CameraInfo): Camera info message associated to the image
         """
+        self.system_events["image_callback_received"] = {"time": rospy.get_time(), "value": "message received"}
         if self.verbose:
             print(f"\nImage callback: {camera_options['name']}... ", end="")
         try:
@@ -611,11 +662,19 @@ class WvnRosInterface:
                 self.query_tf(self.fixed_frame, self.base_frame, image_msg.header.stamp), device=self.device
             )
             if not suc:
+                self.system_events["image_callback_cancled"] = {
+                    "time": rospy.get_time(),
+                    "value": "cancled due to pose_base_in_world",
+                }
                 return
             suc, pose_cam_in_base = rc.ros_tf_to_torch(
                 self.query_tf(self.base_frame, image_msg.header.frame_id, image_msg.header.stamp), device=self.device
             )
             if not suc:
+                self.system_events["image_callback_cancled"] = {
+                    "time": rospy.get_time(),
+                    "value": "cancled due to pose_cam_in_base",
+                }
                 return
 
             # Prepare image projector
@@ -666,9 +725,12 @@ class WvnRosInterface:
             if self.print_image_callback_time:
                 print(self.timer)
 
+            self.system_events["image_callback_state"] = {"time": rospy.get_time(), "value": "executed successfully"}
+
         except Exception as e:
             traceback.print_exc()
             print("error image callback", e)
+            self.system_events["image_callback_state"] = {"time": rospy.get_time(), "value": f"failed to execute {e}"}
             raise Exception("Error in image callback")
 
     @accumulate_memory
@@ -852,6 +914,7 @@ class WvnRosInterface:
 
         # Publish latest traversability
         self.pub_instant_traversability.publish(self.supervision_generator.traversability)
+        self.system_events["visualize_proprioception"] = {"time": rospy.get_time(), "value": f"executed successfully"}
 
     @accumulate_memory
     @accumulate_time
