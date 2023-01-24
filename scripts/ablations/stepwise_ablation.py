@@ -6,6 +6,7 @@ import time
 import pickle
 import copy
 import argparse
+import shutil
 from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.learning.utils import load_yaml, load_env
 from wild_visual_navigation.cfg import ExperimentParams
@@ -27,7 +28,9 @@ if __name__ == "__main__":
     parser.add_argument("--data_percentage_increment", type=int, default=10)
     parser.add_argument("--test_all_datasets", dest="test_all_datasets", action="store_true", help="")
     parser.set_defaults(test_all_datasets=False)
-    parser.add_argument("--scenes", default="forest,hilly,grassland", type=str)
+    parser.add_argument(
+        "--scenes", default="forest", type=str, help="List of scenes seperated by comma without spaces."
+    )
     parser.add_argument("--store_model_every_n_steps", type=int, default=100)
 
     # python scripts/ablations/stepwise_ablation.py --output_key time_adaptation --number_training_runs 1 --data_start_percentage 10 --data_stop_percentage 100 --data_percentage_increment 10 --scenes forest,hilly,grassland --store_model_every_n_steps 100
@@ -69,6 +72,8 @@ if __name__ == "__main__":
 
     # Currently the model weights are stored every n steps.
     # This allows to reload the model and test it on the test dataloader.
+
+    shutil.rmtree(exp.general.model_path)
 
     Path(exp.general.model_path).mkdir(parents=True, exist_ok=True)
     percent = range(data_start_percentage, data_stop_percentage + data_percentage_increment, data_percentage_increment)

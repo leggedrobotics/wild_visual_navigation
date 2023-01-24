@@ -111,7 +111,7 @@ def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
 
     if exp["ablation_data_module"]["val_equals_test"]:
         return model.accumulated_val_results, model
-    
+
     test_envs = []
     for j, dl in enumerate(test_dl):
         model.nr_test_run = j

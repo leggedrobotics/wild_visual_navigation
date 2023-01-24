@@ -694,6 +694,7 @@ class WvnRosInterface:
                     fpr, tpr, thresholds = self.traversability_estimator._auxilary_training_roc.compute()
                     index = torch.where(fpr > self.scale_traversability_max_fpr)[0][0]
                     threshold = thresholds[index]
+                    self.traversability_estimator.scale_traversability_threshold = threshold
 
                     # Apply pisewise linear scaling 0->0; threshold->0.5; 1->1
                     traversability = traversability.clone()

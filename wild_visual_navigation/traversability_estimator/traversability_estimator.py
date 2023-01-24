@@ -59,6 +59,7 @@ class TraversabilityEstimator:
         self._vis_node_index = vis_node_index
         self._scale_traversability = scale_traversability
         self._params = params
+        self._scale_traversability_threshold = 0
 
         if self._scale_traversability:
             # Use 500 bins for constant memory usuage
@@ -174,6 +175,14 @@ class TraversabilityEstimator:
         #     self._pause_training = False
         #     self._pause_mission_graph = False
         #     self._pause_proprio_graph = False
+
+    @property
+    def scale_traversability_threshold(self):
+        return self._scale_traversability_threshold
+
+    @property.setter
+    def scale_traversability_threshold(self, scale_traversability_threshold):
+        self._scale_traversability_threshold = scale_traversability_threshold
 
     @property
     def loss(self):
@@ -682,6 +691,7 @@ class TraversabilityEstimator:
         if self._pause_training:
             return {}
 
+        return_dict = {}
         if self._mission_graph.get_num_valid_nodes() > self._min_samples_for_training:
             # Prepare new batch
             graph = self.make_batch(self._exp_cfg["ablation_data_module"]["batch_size"])
@@ -703,7 +713,7 @@ class TraversabilityEstimator:
                     # Elements are valid if they are either an anomaly or we have walked on them to fit the ROC
                     mask_valid = mask_anomaly | mask_proprioceptive
                     self._auxilary_training_roc(res[mask_valid, 0], graph.y[mask_valid].type(torch.long))
-
+                    return_dict["scale_traversability_threshold"] = self._scale_traversability_threshold
                 # Backprop
                 self._optimizer.zero_grad()
                 self._loss.backward()
@@ -721,11 +731,10 @@ class TraversabilityEstimator:
             self._step += 1
 
             # Return loss
-            return {
-                "loss_total": self._loss.item(),
-                "loss_trav": loss_aux["loss_trav"].item(),
-                "loss_reco": loss_aux["loss_reco"].item(),
-            }
+            return_dict["loss_total"] = self._loss.item()
+            return_dict["loss_trav"] = loss_aux["loss_trav"].item()
+            return_dict["loss_reco"] = loss_aux["loss_reco"].item()
+            return return_dict
         return {}
 
     @accumulate_time
