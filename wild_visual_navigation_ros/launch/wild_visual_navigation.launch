@@ -3,6 +3,7 @@
   <arg name="inputs_file"         default="$(find wild_visual_navigation_ros)/config/wild_visual_navigation/inputs/none.yaml"/>
   <arg name="params_file"         default="$(find wild_visual_navigation_ros)/config/wild_visual_navigation/default.yaml"/>
   <arg name="name"                default="wild_visual_navigation_node"/>
+  <arg name="overlay_images"                default="True"/>
   <arg name="desired_twist_topic" default="/motion_reference/command_twist"/>
 
   <!-- Load parameters -->
@@ -13,4 +14,6 @@
   <node name="$(arg name)" pkg="wild_visual_navigation_ros" type="wild_visual_navigation_node.py" output="screen">
     <param name="desired_twist_topic" value="$(arg desired_twist_topic)"/>
   </node>
+
+  <include if="$(arg overlay_images)" file="$(find wild_visual_navigation_ros)/launch/overlay_images.launch"/> 
 </launch>
