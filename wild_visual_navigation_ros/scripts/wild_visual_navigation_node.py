@@ -291,7 +291,7 @@ class WvnRosInterface:
         self.params.general.timestamp = self.mission_timestamp
         self.params.general.log_confidence = self.log_confidence
         self.params.loss.confidence_std_factor = self.confidence_std_factor
-        self.params.loss.w_trav = 0
+        self.params.loss.w_temp = 0
         self.step = -1
         self.step_time = rospy.get_time()
 
