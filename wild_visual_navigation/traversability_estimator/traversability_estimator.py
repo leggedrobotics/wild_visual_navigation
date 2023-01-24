@@ -180,7 +180,7 @@ class TraversabilityEstimator:
     def scale_traversability_threshold(self):
         return self._scale_traversability_threshold
 
-    @property.setter
+    @scale_traversability_threshold.setter
     def scale_traversability_threshold(self, scale_traversability_threshold):
         self._scale_traversability_threshold = scale_traversability_threshold
 
