@@ -69,18 +69,31 @@ grid_map_filters:
       length: 1.0
       width: 0.5
       clearance: 0.1
+
+  # Inpaint visual traversability
+  - name: inpaint_visual_traversability
+    type: gridMapFiltersDrs/DenoiseAndInpaintFilter
+    params:
+      input_layer: visual_traversability
+      output_layer: visual_traversability_inpainted
+      radius: 0.1 # in m
+      inpainting_type: telea # 'ns' or 'telea' allowed
+      pre_denoising: false # enables denoising before inpainting
+      denoising_radius: 0.5 # m
+      denoising_type: non_local # 'total_variation', 'non_local', 'gaussian', and 'median' supported
+      total_variation_lambda: 1.0
   
   - name: visual_traversability_footprint_fix
     type: gridMapFilters/MathExpressionFilter
     params:
-      output_layer: visual_traversability
-      expression: (1.0 - footprint_mask) .* visual_traversability + footprint_mask
+      output_layer: visual_traversability_inpainted
+      expression: (1.0 - footprint_mask) .* visual_traversability_inpainted + footprint_mask
   
   # Compute 2D Signed Distance Field
   - name: sdf
     type: gridMapFiltersDrs/SignedDistanceField2dFilter
     params:
-      input_layer: visual_traversability
+      input_layer: visual_traversability_inpainted
       output_layer: sdf
       normalize_gradients: true
       threshold: 0.1
@@ -88,7 +101,7 @@ grid_map_filters:
   - name: geodesic
     type: gridMapFiltersDrs/GeodesicDistanceField2dFilter
     params:
-      input_layer: visual_traversability
+      input_layer: visual_traversability_inpainted
       output_layer: geodesic
       normalize_gradients: true
       attractor_topic: /field_local_planner/current_goal
