@@ -135,11 +135,11 @@ rmp:
         steepness: 1.0
     sdf_obstacle:
       weight: 1.0 # 1.0
-      gain: 0.025
+      gain: 10.0
       color: [1.0, 0.0, 0.0] # red
       metric:
         type: projector_invlogistic
-        offset: 0.2
+        offset: 1.0
         steepness: 1.0
     regularization:
       weight: 0.0 # 1.0
