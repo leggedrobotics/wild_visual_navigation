@@ -27,7 +27,12 @@ class VisuNode:
 
 
 if __name__ == "__main__":
-    nr = rospy.myargv(argv=sys.argv)[-1].split(" ")[-1]
+    try:
+        nr = "_"+rospy.myargv(argv=sys.argv)[-1].split(" ")[-1]
+        nr 
+    except:
+        nr = ""
+        
     rospy.init_node(f"wild_visual_navigation_visu_{nr}")
     wvn = VisuNode()
     rospy.spin()
