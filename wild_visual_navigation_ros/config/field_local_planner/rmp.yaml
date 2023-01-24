@@ -15,7 +15,7 @@ robot_height: 0.5
 # Frames
 base_frame: base
 fixed_frame: odom
-valid_goal_frames: ["odom", "map"]
+valid_goal_frames: ["odom", "map", "base"]
 
 # Grid map conversion to cloud
 grid_map_to_cloud: false
