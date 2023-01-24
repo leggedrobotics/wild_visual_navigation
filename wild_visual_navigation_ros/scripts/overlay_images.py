@@ -1,4 +1,3 @@
-import cv2
 import message_filters
 import rospy
 from sensor_msgs.msg import Image, CameraInfo, CompressedImage
