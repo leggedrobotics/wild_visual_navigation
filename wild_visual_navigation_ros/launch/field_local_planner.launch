@@ -53,4 +53,7 @@
     <!-- <arg name="output_twist_topic" value="/motion_reference/command_twist"/> -->
   </include>
 
+  <!-- Set dynamic reconfigure parameter for obstacle gain -->
+  <node pkg="dynamic_reconfigure" type="dynparam" name="field_local_planner_sdf_gain" args="set /field_local_planner/rmp sdf_obstacle_gain 1.0" />
+
 </launch>
