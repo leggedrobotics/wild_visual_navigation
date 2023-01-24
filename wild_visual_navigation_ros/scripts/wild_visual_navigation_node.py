@@ -177,9 +177,9 @@ class WvnRosInterface:
                 break
 
             # Optimize model
-            with SystemLevelContextGpuMonitor(self, "training_step_time"):
-                with SystemLevelContextTimer(self, "training_step_time"):
-                    res = self.traversability_estimator.train()
+            # with SystemLevelContextGpuMonitor(self, "training_step_time"):
+            with SystemLevelContextTimer(self, "training_step_time"):
+                res = self.traversability_estimator.train()
 
             if self.step != self.traversability_estimator.step:
                 self.step_time = rospy.get_time()
@@ -501,7 +501,7 @@ class WvnRosInterface:
             res = self.tf_buffer.lookup_transform(parent_frame, child_frame, stamp, timeout=rospy.Duration(0.03))
             trans = (res.transform.translation.x, res.transform.translation.y, res.transform.translation.z)
             rot = np.array(
-                [res.transform.rotation.x, res.transform.rotation.y, res.transform.rotation.x, res.transform.rotation.w]
+                [res.transform.rotation.x, res.transform.rotation.y, res.transform.rotation.z, res.transform.rotation.w]
             )
             rot /= np.linalg.norm(rot)
             return (trans, tuple(rot))
