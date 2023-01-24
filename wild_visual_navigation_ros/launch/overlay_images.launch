@@ -1,0 +1,12 @@
+<launch>
+    <node name="wild_visual_navigation_visu_traversability" pkg="wild_visual_navigation_ros" type="overlay_images.py">
+        <param name="image_sub_topic"                      value="/wild_visual_navigation_node/front/image_input" /> 
+        <param name="value_sub_topic"                      value="/wild_visual_navigation_node/front/traversability" />
+        <param name="image_pub_topic"                      value="traversability_overlayed" />
+    </node>
+    <node name="wild_visual_navigation_visu_confidence" pkg="wild_visual_navigation_ros" type="overlay_images.py">
+        <param name="image_sub_topic"                      value="/wild_visual_navigation_node/front/image_input" /> 
+        <param name="value_sub_topic"                      value="/wild_visual_navigation_node/front/confidence" />
+        <param name="image_pub_topic"                      value="confidence_overlayed" />
+    </node>
+  </launch>
