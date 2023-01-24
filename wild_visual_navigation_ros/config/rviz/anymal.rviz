@@ -6,11 +6,15 @@ Panels:
       Expanded:
         - /TF1/Tree1
         - /Wild Visual Navigation1
-        - /Wild Visual Navigation1/Self Supervision (Debug)1
         - /Wild Visual Navigation1/Cameras1
-        - /Elevation Map1
-      Splitter Ratio: 0.6509186625480652
-    Tree Height: 279
+        - /Wild Visual Navigation1/Prediction1
+        - /Wild Visual Navigation1/Prediction1/Input Image1
+        - /Wild Visual Navigation1/Prediction1/Input Image1/Status1
+        - /Wild Visual Navigation1/Prediction1/Traversability Raw1
+        - /Image1
+        - /Image1/Status1
+      Splitter Ratio: 0.37296417355537415
+    Tree Height: 457
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -29,7 +33,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: AB Wide Angle Front
+    SyncSource: Input Image
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -333,6 +337,34 @@ Visualization Manager:
               Show Axes: false
               Show Trail: false
               Value: true
+            bpearl_front:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            bpearl_front_beam_origin:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            bpearl_front_protection_bars:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            bpearl_rear:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            bpearl_rear_beam_origin:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            bpearl_rear_protection_bars:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
             cam0_sensor_frame:
               Alpha: 1
               Show Axes: false
@@ -377,56 +409,10 @@ Visualization Manager:
               Alpha: 1
               Show Axes: false
               Show Trail: false
-            depth_camera_front_camera:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            depth_camera_front_camera_parent:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            depth_camera_left_camera:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            depth_camera_left_camera_parent:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            depth_camera_rear_camera:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            depth_camera_rear_camera_parent:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            depth_camera_right_camera:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            depth_camera_right_camera_parent:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
             docking_hatch_cover:
               Alpha: 1
               Show Axes: false
               Show Trail: false
-            face_front:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            face_rear:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
             front_handle:
               Alpha: 1
               Show Axes: false
@@ -475,24 +461,6 @@ Visualization Manager:
               Show Axes: false
               Show Trail: false
               Value: true
-            wide_angle_camera_front_camera:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            wide_angle_camera_front_camera_parent:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            wide_angle_camera_rear_camera:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            wide_angle_camera_rear_camera_parent:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
           Name: RobotModel
           Robot Description: anymal_description
           TF Prefix: ""
@@ -625,12 +593,12 @@ Visualization Manager:
               Transport Hint: raw
               Unreliable: false
               Value: true
-          Enabled: true
+          Enabled: false
           Name: Self Supervision (Debug)
         - Class: rviz/Group
           Displays:
             - Class: rviz/Image
-              Enabled: false
+              Enabled: true
               Image Topic: /alphasense_driver_ros/cam4/debayered
               Max Value: 1
               Median window: 5
@@ -640,7 +608,7 @@ Visualization Manager:
               Queue Size: 2
               Transport Hint: raw
               Unreliable: false
-              Value: false
+              Value: true
             - Class: rviz/Image
               Enabled: false
               Image Topic: /alphasense_driver_ros/cam3/debayered
@@ -666,7 +634,7 @@ Visualization Manager:
               Unreliable: false
               Value: false
             - Class: rviz/Image
-              Enabled: true
+              Enabled: false
               Image Topic: /wide_angle_camera_front/image_color
               Max Value: 1
               Median window: 5
@@ -676,7 +644,7 @@ Visualization Manager:
               Queue Size: 2
               Transport Hint: raw
               Unreliable: false
-              Value: true
+              Value: false
             - Class: rviz/Image
               Enabled: true
               Image Topic: ""
@@ -889,7 +857,7 @@ Visualization Manager:
               Use Fixed Frame: true
               Use rainbow: true
               Value: true
-          Enabled: false
+          Enabled: true
           Name: Depth Sensors
         - Class: rviz/Group
           Displays:
@@ -980,6 +948,8 @@ Visualization Manager:
               Color Transformer: IntensityLayer
               ColorMap: plasma
               Enabled: true
+              Grid Cell Decimation: 1
+              Grid Line Thickness: 0.10000000149011612
               Height Layer: elevation_inpainted
               Height Transformer: ""
               History Length: 1
@@ -1008,6 +978,8 @@ Visualization Manager:
           Color Transformer: IntensityLayer
           ColorMap: terrain
           Enabled: false
+          Grid Cell Decimation: 1
+          Grid Line Thickness: 0.10000000149011612
           Height Layer: elevation
           Height Transformer: ""
           History Length: 1
@@ -1018,7 +990,7 @@ Visualization Manager:
           Min Intensity: 0
           Name: Elevation
           Show Grid Lines: true
-          Topic: /elevation_mapping/elevation_map_raw
+          Topic: /elevation_mapping/elevation_map_wifi
           Unreliable: false
           Use ColorMap: true
           Value: false
@@ -1030,6 +1002,8 @@ Visualization Manager:
           Color Transformer: IntensityLayer
           ColorMap: terrain
           Enabled: false
+          Grid Cell Decimation: 1
+          Grid Line Thickness: 0.10000000149011612
           Height Layer: elevation_inpainted
           Height Transformer: ""
           History Length: 1
@@ -1048,32 +1022,12 @@ Visualization Manager:
           Autocompute Intensity Bounds: false
           Class: grid_map_rviz_plugin/GridMap
           Color: 200; 200; 200
-          Color Layer: visual_traversability
-          Color Transformer: IntensityLayer
-          ColorMap: coolwarm
-          Enabled: false
-          Height Layer: elevation
-          Height Transformer: GridMapLayer
-          History Length: 1
-          Invert ColorMap: true
-          Max Color: 255; 255; 255
-          Max Intensity: 1
-          Min Color: 0; 0; 0
-          Min Intensity: 0
-          Name: Visual Traversability
-          Show Grid Lines: true
-          Topic: /elevation_mapping/elevation_map_wifi
-          Unreliable: false
-          Use ColorMap: true
-          Value: false
-        - Alpha: 1
-          Autocompute Intensity Bounds: false
-          Class: grid_map_rviz_plugin/GridMap
-          Color: 200; 200; 200
           Color Layer: geodesic
           Color Transformer: IntensityLayer
           ColorMap: plasma
           Enabled: false
+          Grid Cell Decimation: 1
+          Grid Line Thickness: 0.10000000149011612
           Height Layer: elevation_inpainted
           Height Transformer: ""
           History Length: 1
@@ -1096,6 +1050,8 @@ Visualization Manager:
           Color Transformer: GridMapLayer
           ColorMap: turbo
           Enabled: false
+          Grid Cell Decimation: 1
+          Grid Line Thickness: 0.10000000149011612
           Height Layer: elevation
           Height Transformer: GridMapLayer
           History Length: 1
@@ -1118,6 +1074,8 @@ Visualization Manager:
           Color Transformer: ColorLayer
           ColorMap: terrain
           Enabled: false
+          Grid Cell Decimation: 1
+          Grid Line Thickness: 0.10000000149011612
           Height Layer: elevation
           Height Transformer: ""
           History Length: 1
@@ -1132,8 +1090,192 @@ Visualization Manager:
           Unreliable: false
           Use ColorMap: true
           Value: false
+        - Alpha: 1
+          Autocompute Intensity Bounds: false
+          Class: grid_map_rviz_plugin/GridMap
+          Color: 200; 200; 200
+          Color Layer: visual_traversability
+          Color Transformer: IntensityLayer
+          ColorMap: coolwarm
+          Enabled: false
+          Grid Cell Decimation: 1
+          Grid Line Thickness: 0.10000000149011612
+          Height Layer: elevation
+          Height Transformer: GridMapLayer
+          History Length: 1
+          Invert ColorMap: true
+          Max Color: 255; 255; 255
+          Max Intensity: 1
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: Visual Traversability
+          Show Grid Lines: true
+          Topic: /elevation_mapping/elevation_map_wifi
+          Unreliable: false
+          Use ColorMap: true
+          Value: false
+      Enabled: false
+      Name: Elevation Map WIFI
+    - Class: rviz/Group
+      Displays:
+        - Alpha: 1
+          Autocompute Intensity Bounds: true
+          Class: grid_map_rviz_plugin/GridMap
+          Color: 200; 200; 200
+          Color Layer: elevation
+          Color Transformer: IntensityLayer
+          ColorMap: terrain
+          Enabled: false
+          Grid Cell Decimation: 1
+          Grid Line Thickness: 0.10000000149011612
+          Height Layer: elevation
+          Height Transformer: ""
+          History Length: 1
+          Invert ColorMap: true
+          Max Color: 255; 255; 255
+          Max Intensity: 1
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: Elevation
+          Show Grid Lines: true
+          Topic: /elevation_mapping/elevation_map_raw
+          Unreliable: false
+          Use ColorMap: true
+          Value: false
+        - Alpha: 1
+          Autocompute Intensity Bounds: true
+          Class: grid_map_rviz_plugin/GridMap
+          Color: 200; 200; 200
+          Color Layer: elevation_inpainted
+          Color Transformer: IntensityLayer
+          ColorMap: terrain
+          Enabled: false
+          Grid Cell Decimation: 1
+          Grid Line Thickness: 0.10000000149011612
+          Height Layer: elevation_inpainted
+          Height Transformer: ""
+          History Length: 1
+          Invert ColorMap: true
+          Max Color: 255; 255; 255
+          Max Intensity: 1
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: Elevation (Inpainted)
+          Show Grid Lines: true
+          Topic: /elevation_mapping/elevation_map_wifi
+          Unreliable: false
+          Use ColorMap: true
+          Value: false
+        - Alpha: 1
+          Autocompute Intensity Bounds: false
+          Class: grid_map_rviz_plugin/GridMap
+          Color: 200; 200; 200
+          Color Layer: geodesic
+          Color Transformer: IntensityLayer
+          ColorMap: plasma
+          Enabled: false
+          Grid Cell Decimation: 1
+          Grid Line Thickness: 0.10000000149011612
+          Height Layer: elevation_inpainted
+          Height Transformer: ""
+          History Length: 1
+          Invert ColorMap: true
+          Max Color: 255; 255; 255
+          Max Intensity: 5
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: Local Planner (GDF)
+          Show Grid Lines: true
+          Topic: /elevation_mapping/elevation_map_wifi
+          Unreliable: false
+          Use ColorMap: true
+          Value: false
+        - Alpha: 1
+          Autocompute Intensity Bounds: false
+          Class: grid_map_rviz_plugin/GridMap
+          Color: 200; 200; 200
+          Color Layer: sdf
+          Color Transformer: GridMapLayer
+          ColorMap: turbo
+          Enabled: false
+          Grid Cell Decimation: 1
+          Grid Line Thickness: 0.10000000149011612
+          Height Layer: elevation
+          Height Transformer: GridMapLayer
+          History Length: 1
+          Invert ColorMap: true
+          Max Color: 255; 255; 255
+          Max Intensity: 2
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: Local Planner (SDF)
+          Show Grid Lines: true
+          Topic: /elevation_mapping/elevation_map_wifi
+          Unreliable: false
+          Use ColorMap: true
+          Value: false
+        - Alpha: 1
+          Autocompute Intensity Bounds: true
+          Class: grid_map_rviz_plugin/GridMap
+          Color: 200; 200; 200
+          Color Layer: rgb_image
+          Color Transformer: ColorLayer
+          ColorMap: terrain
+          Enabled: false
+          Grid Cell Decimation: 1
+          Grid Line Thickness: 0.10000000149011612
+          Height Layer: elevation
+          Height Transformer: ""
+          History Length: 1
+          Invert ColorMap: true
+          Max Color: 255; 255; 255
+          Max Intensity: 1
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: RGB
+          Show Grid Lines: true
+          Topic: /elevation_mapping/semantic_map_raw
+          Unreliable: false
+          Use ColorMap: true
+          Value: false
+        - Alpha: 1
+          Autocompute Intensity Bounds: false
+          Class: grid_map_rviz_plugin/GridMap
+          Color: 200; 200; 200
+          Color Layer: traversability
+          Color Transformer: IntensityLayer
+          ColorMap: coolwarm
+          Enabled: false
+          Grid Cell Decimation: 1
+          Grid Line Thickness: 0.10000000149011612
+          Height Layer: elevation
+          Height Transformer: GridMapLayer
+          History Length: 1
+          Invert ColorMap: true
+          Max Color: 255; 255; 255
+          Max Intensity: 1
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: Visual Traversability
+          Show Grid Lines: true
+          Topic: /elevation_mapping/semantic_map_raw
+          Unreliable: false
+          Use ColorMap: true
+          Value: false
+      Enabled: false
+      Name: Elevation Map RAW
+    - Class: rviz/Image
       Enabled: true
-      Name: Elevation Map
+      Image Topic: /wild_visual_navigation_visu/front/overlay
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: Image
+      Normalize Range: true
+      Queue Size: 2
+      Transport Hint: raw
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 255; 255; 255
@@ -1162,7 +1304,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 2.3197388648986816
+      Distance: 3.7612037658691406
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -1170,17 +1312,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -0.6702628135681152
-        Y: 0.4225667715072632
-        Z: -5.147309821040835e-06
+        X: 0.4075734615325928
+        Y: -0.3183407187461853
+        Z: -4.67047266283771e-06
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.9047958254814148
+      Pitch: 0.5797961950302124
       Target Frame: base
-      Yaw: 2.0653958320617676
+      Yaw: 5.698574066162109
     Saved: ~
 Window Geometry:
   AB Wide Angle Front:
@@ -1198,11 +1340,13 @@ Window Geometry:
   Height: 1016
   Hide Left Dock: false
   Hide Right Dock: true
+  Image:
+    collapsed: false
   Input Image:
     collapsed: false
   Placeholder:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd00000004000000000000017f00000154fc020000000efb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000005fb000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000014f00000154000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000c00430061006d00650072006100000002ea000000c80000000000000000fb00000036005300750070006500720076006900730069006f006e0020002d00200049006d0061006700650020004c006100620065006c006500640000000259000000520000000000000000fb00000024005300750070006500720076006900730069006f006e0020002d0020004d00610073006b000000027e000000b80000000000000000fb0000000a0049006d00610067006500000003a50000006e0000000000000000fb0000000a0049006d00610067006500000002eb000001280000000000000000fb000000140043006f006e0066006900640065006e0063006500000003b3000000c60000000000000000000000010000010f00000242fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007300000001b400000242000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b2000000000000000000000002000007380000010cfc010000000afb0000001c0049006d00610067006500200046006500610074007500720065007300000000bf000003690000000000000000fc0000000000000191000000c200fffffffa000000000200000003fb00000026004100420020005700690064006500200041006e0067006c0065002000460072006f006e00740100000000ffffffff0000001600fffffffb0000002400460072006f006e0074002000280063006f006d007000720065007300730065006400290000000000ffffffff0000000000000000fb0000001e00410053002000460072006f006e00740020002800630061006d00340029010000003d0000010c0000001600fffffffb000000160049006e00700075007400200049006d0061006700650100000197000000f80000008600fffffffb000000240054007200610076006500720073006100620069006c00690074007900200052006100770100000295000000f9000000b000fffffffb0000001c0043006f006e0066006900640065006e0063006500200052006100770100000394000000f8000000a200fffffffb000000160050006c0061006300650068006f006c0064006500720100000492000002a60000008500fffffffb000000160049006e00700075007400200049006d006100670065010000031e000001790000000000000000fb00000036005300750070006500720076006900730069006f006e0020002d00200049006d0061006700650020004c006100620065006c006500640100000659000001af0000000000000000fb00000024005300750070006500720076006900730069006f006e0020002d0020004d00610073006b010000080e000001aa0000000000000000fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000073800000132fc010000000dfb000000200052006500700072006f006a006500630074006500640020005000610074006801000000000000011b000000ab00fffffffb00000024005300750070006500720076006900730069006f006e0020005300690067006e0061006c01000001210000011b000000b000fffffffb0000001c0054007200610076006500720073006100620069006c00690074007901000002420000011d0000009100fffffffb000000160055006e006300650072007400610069006e0074007901000003650000011b0000008500fffffffb000000160050006c0061006300650068006f006c0064006500720100000486000002b20000008500fffffffb0000001c0054007200610076006500720073006100620069006c006900740079010000031f0000017d0000000000000000fb000000160055006e006300650072007400610069006e0074007901000004a2000002960000000000000000fb000000140043006f006e0066006900640065006e006300650000000000000003d40000000000000000fb0000001c0054007200610076006500720073006100620069006c0069007400790000000231000001f20000000000000000fb0000001c004100530020004c0065006600740020002800630061006d003300290000000000000007380000009700fffffffb0000001e004100530020005200690067006800740020002800630061006d0035002900000003f000000348000000a000fffffffb0000000800540069006d0065000000000000000780000004f300fffffffb0000000800540069006d00650100000000000004500000000000000000000005b30000015400000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000001c400000206fc020000000efb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000005fb000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000016e00000206000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000c00430061006d00650072006100000002ea000000c80000000000000000fb00000036005300750070006500720076006900730069006f006e0020002d00200049006d0061006700650020004c006100620065006c006500640000000259000000520000000000000000fb00000024005300750070006500720076006900730069006f006e0020002d0020004d00610073006b000000027e000000b80000000000000000fb0000000a0049006d00610067006500000003a50000006e0000000000000000fb0000000a0049006d00610067006500000002eb000001280000000000000000fb000000140043006f006e0066006900640065006e0063006500000003b3000000c60000000000000000000000010000010f00000242fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007300000001b400000242000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b2000000000000000000000002000007380000012bfc010000000bfb0000001c0049006d00610067006500200046006500610074007500720065007300000000bf000003690000000000000000fc0000000000000185000000c200fffffffa000000020200000003fb00000026004100420020005700690064006500200041006e0067006c0065002000460072006f006e00740100000000ffffffff0000001600fffffffb0000002400460072006f006e0074002000280063006f006d007000720065007300730065006400290000000000ffffffff0000000000000000fb0000001e00410053002000460072006f006e00740020002800630061006d00340029010000003d0000010c0000001600fffffffb000000160049006e00700075007400200049006d006100670065010000018b000001930000008600fffffffb0000000a0049006d00610067006501000003240000018a0000005e00fffffffb000000240054007200610076006500720073006100620069006c006900740079002000520061007701000004b400000155000000b000fffffffb0000001c0043006f006e0066006900640065006e006300650020005200610077010000060f00000129000000a200fffffffb000000160050006c0061006300650068006f006c0064006500720000000492000002a60000008500fffffffb000000160049006e00700075007400200049006d006100670065010000031e000001790000000000000000fb00000036005300750070006500720076006900730069006f006e0020002d00200049006d0061006700650020004c006100620065006c006500640100000659000001af0000000000000000fb00000024005300750070006500720076006900730069006f006e0020002d0020004d00610073006b010000080e000001aa0000000000000000fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000073800000061fc010000000dfb000000200052006500700072006f006a006500630074006500640020005000610074006800000000000000011b000000ab00fffffffb00000024005300750070006500720076006900730069006f006e0020005300690067006e0061006c00000001210000011b000000b000fffffffb0000001c0054007200610076006500720073006100620069006c00690074007900000002420000011d0000009100fffffffb000000160055006e006300650072007400610069006e0074007900000003650000011b0000008500fffffffb000000160050006c0061006300650068006f006c0064006500720100000000000007380000008500fffffffb0000001c0054007200610076006500720073006100620069006c006900740079010000031f0000017d0000000000000000fb000000160055006e006300650072007400610069006e0074007901000004a2000002960000000000000000fb000000140043006f006e0066006900640065006e006300650000000000000003d40000000000000000fb0000001c0054007200610076006500720073006100620069006c0069007400790000000231000001f20000000000000000fb0000001c004100530020004c0065006600740020002800630061006d003300290000000000000007380000009700fffffffb0000001e004100530020005200690067006800740020002800630061006d0035002900000003f000000348000000a000fffffffb0000000800540069006d0065000000000000000780000004f300fffffffb0000000800540069006d006501000000000000045000000000000000000000056e0000020600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Reprojected Path:
     collapsed: false
   Selection:
@@ -1222,5 +1366,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1848
-  X: 1992
+  X: 72
   Y: 27
