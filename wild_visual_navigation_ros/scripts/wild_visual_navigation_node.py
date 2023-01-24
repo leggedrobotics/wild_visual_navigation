@@ -36,6 +36,7 @@ from typing import Optional
 import traceback
 import signal
 import sys
+import tf2_ros
 
 if torch.cuda.is_available():
     torch.cuda.empty_cache()
@@ -308,16 +309,17 @@ class WvnRosInterface:
         """Main function to setup ROS-related stuff: publishers, subscribers and services"""
         if setup_fully:
             # Initialize TF listener
-            self.tf_listener = tf.TransformListener()
+            self.tf_buffer = tf2_ros.Buffer(cache_time=rospy.Duration(20.0))
+            self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
 
             # Robot state callback
             robot_state_sub = message_filters.Subscriber(self.robot_state_topic, RobotState)
-            cache1 = message_filters.Cache(robot_state_sub, 1)
+            cache1 = message_filters.Cache(robot_state_sub, 10)
             desired_twist_sub = message_filters.Subscriber(self.desired_twist_topic, TwistStamped)
-            cache2 = message_filters.Cache(desired_twist_sub, 1)
+            cache2 = message_filters.Cache(desired_twist_sub, 10)
 
             self.robot_state_sub = message_filters.ApproximateTimeSynchronizer(
-                [robot_state_sub, desired_twist_sub], queue_size=10, slop=0.1
+                [robot_state_sub, desired_twist_sub], queue_size=10, slop=0.5
             )
 
             print("Start waiting for RobotState topic being published!")
@@ -488,16 +490,21 @@ class WvnRosInterface:
         if stamp is None:
             stamp = rospy.Time(0)
         # Wait for required tfs - Only done if we are not extracting labels
-        if self.mode != WVNMode.EXTRACT_LABELS:
-            try:
-                self.tf_listener.waitForTransform(parent_frame, child_frame, stamp, rospy.Duration(1.0))
-            except Exception as e:
-                print("Error in query tf: ", e)
-                return (None, None)
+        # if self.mode != WVNMode.EXTRACT_LABELS:
+        #     try:
+        #         self.tf_listener.waitForTransform(parent_frame, child_frame, stamp, rospy.Duration(0.01))
+        #     except Exception as e:
+        #         print("Error in query tf: ", e)
+        #         return (None, None)
 
         try:
-            (trans, rot) = self.tf_listener.lookupTransform(parent_frame, child_frame, stamp)
-            return (trans, rot)
+            res = self.tf_buffer.lookup_transform(parent_frame, child_frame, stamp, timeout=rospy.Duration(0.03))
+            trans = (res.transform.translation.x, res.transform.translation.y, res.transform.translation.z)
+            rot = np.array(
+                [res.transform.rotation.x, res.transform.rotation.y, res.transform.rotation.x, res.transform.rotation.w]
+            )
+            rot /= np.linalg.norm(rot)
+            return (trans, tuple(rot))
         except Exception as e:
             print("Error in query tf: ", e)
             # (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException): avoid all errors
