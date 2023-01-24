@@ -28,6 +28,7 @@ __all__ = ["training_routine"]
 
 
 def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
+    experiment.verify_params()
     seed_everything(seed)
     exp = dataclasses.asdict(experiment)
     env = load_env()
@@ -76,14 +77,20 @@ def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
     gpus = 1 if torch.cuda.is_available() else None
     exp["trainer"]["gpus"] = gpus
 
-    train_dl, val_dl, test_dl = get_ablation_module(**exp["ablation_data_module"], perugia_root=env["perugia_root"])
+    train_dl, val_dl, test_dl = get_ablation_module(
+        **exp["ablation_data_module"],
+        perugia_root=env["perugia_root"],
+        get_train_val_dataset=not exp["general"]["skip_train"],
+        get_test_dataset=not exp["ablation_data_module"]["val_equals_test"],
+    )
 
     # Set correct input feature dimension
-    training_sample = train_dl.dataset[0]
-    try:
-        input_feature_dimension = training_sample[0].x.shape[1]
-    except:
-        input_feature_dimension = training_sample.x.shape[1]
+    if train_dl is not None:
+        sample = train_dl.dataset[0]
+    else:
+        sample = test_dl[0].dataset[0]
+
+    input_feature_dimension = sample.x.shape[1]
 
     exp["model"]["simple_mlp_cfg"]["input_size"] = input_feature_dimension
     exp["model"]["simple_gcn_cfg"]["input_size"] = input_feature_dimension
@@ -103,7 +110,7 @@ def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
         trainer.fit(model=model, train_dataloaders=train_dl, val_dataloaders=val_dl)
 
     if exp["ablation_data_module"]["val_equals_test"]:
-        return model.accumulated_val_results
+        return model.accumulated_val_results, model
 
     dtr_ls = []
     test_envs = []
@@ -112,7 +119,7 @@ def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
         res = trainer.test(model=model, dataloaders=dl)[0]
         test_envs.append(dl.dataset.env)
 
-    return {k: v for k, v in zip(test_envs, model.accumulated_test_results)}
+    return {k: v for k, v in zip(test_envs, model.accumulated_test_results)}, model
 
     # TODO fix neptune logging and optuna tuning
     #     if exp["general"]["log_to_disk"]:

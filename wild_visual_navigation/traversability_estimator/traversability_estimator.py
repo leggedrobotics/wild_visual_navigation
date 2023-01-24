@@ -28,6 +28,7 @@ import time
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
+from torchmetrics import ROC
 
 to_tensor = transforms.ToTensor()
 
@@ -36,6 +37,7 @@ class TraversabilityEstimator:
     def __init__(
         self,
         params: ExperimentParams,
+        scale_traversability: bool,
         device: str = "cuda",
         max_distance: float = 3,
         image_size: int = 448,
@@ -55,7 +57,13 @@ class TraversabilityEstimator:
         self._extraction_store_folder = extraction_store_folder
         self._min_samples_for_training = min_samples_for_training
         self._vis_node_index = vis_node_index
+        self._scale_traversability = scale_traversability
         self._params = params
+
+        if self._scale_traversability:
+            # Use 500 bins for constant memory usuage
+            self._auxilary_training_roc = ROC(task="binary", thresholds=500)
+            self._auxilary_training_roc.to(self._device)
 
         # Local graphs
         self._proprio_graph = DistanceWindowGraph(max_distance=max_distance, edge_distance=proprio_distance_thr)
@@ -103,8 +111,6 @@ class TraversabilityEstimator:
         self._model = get_model(self._exp_cfg["model"]).to(self._device)
         self._model.train()
 
-        self._optimizer = torch.optim.AdamW(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
-
         self._traversability_loss = TraversabilityLoss(
             **self._exp_cfg["loss"],
             model=self._model,
@@ -113,9 +119,9 @@ class TraversabilityEstimator:
         )
         self._traversability_loss.to(self._device)
 
-        # visualization data
-        self._step = 0
+        self._optimizer = torch.optim.Adam(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
         self._loss = torch.tensor([torch.inf])
+        self._step = 0
 
         torch.set_grad_enabled(True)
 
@@ -198,6 +204,10 @@ class TraversabilityEstimator:
         self._model = self._model.to(device)
         if self._optical_flow_estimator_type != "none":
             self._optical_flow_estimator = self._optical_flow_estimator.to(device)
+
+        if self._scale_traversability:
+            # Use 500 bins for constant memory usuage
+            self._auxilary_training_roc.to(device)
 
     @accumulate_time
     def update_features(self, node: MissionNode):
@@ -634,6 +644,9 @@ class TraversabilityEstimator:
         """
 
         if self._optical_flow_estimator_type != "none":
+            raise ValueError(
+                "Currently not supported the auxilary graph implementation is not needed and the features and edge index of previous node should be added to the mission graph directly."
+            )
             # Sample a batch of nodes and their previous node, for temporal consistency
             mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
             ls = [
@@ -651,11 +664,11 @@ class TraversabilityEstimator:
                     ls.append(mn.as_pyg_data(self._mission_graph.get_previous_node(mn)))
                     ls_aux.append(self._mission_graph.get_previous_node(mn).as_pyg_data(aux=True))
 
-            batch = [Batch.from_data_list(ls), Batch.from_data_list(ls_aux)]
+            batch = Batch.from_data_list(ls)
         else:
-            # JUst sample N random nodes
+            # Just sample N random nodes
             mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
-            batch = [Batch.from_data_list([x.as_pyg_data() for x in mission_nodes]), None]
+            batch = Batch.from_data_list([x.as_pyg_data() for x in mission_nodes])
 
         return batch
 
@@ -671,16 +684,25 @@ class TraversabilityEstimator:
 
         if self._mission_graph.get_num_valid_nodes() > self._min_samples_for_training:
             # Prepare new batch
-            graph, graph_aux = self.make_batch(self._exp_cfg["ablation_data_module"]["batch_size"])
+            graph = self.make_batch(self._exp_cfg["ablation_data_module"]["batch_size"])
 
             with self._learning_lock:
                 # Forward pass
                 res = self._model(graph)
 
                 log_step = (self._step % 20) == 0
-                self._loss, loss_aux = self._traversability_loss(
-                    graph, res, graph_aux, step=self._step, log_step=log_step
-                )
+                self._loss, loss_aux = self._traversability_loss(graph, res, step=self._step, log_step=log_step)
+
+                # Keep track of ROC during training for rescaling the loss when publishing
+                if self._scale_traversability:
+                    # This mask should contain all the segments corrosponding to trees.
+                    mask_anomaly = loss_aux["confidence"] < 0.5
+                    mask_proprioceptive = graph.y == 1
+                    # Remove the segments that are for sure not an anomalies given that we have walked on them.
+                    mask_anomaly[mask_proprioceptive] = False
+                    # Elements are valid if they are either an anomaly or we have walked on them to fit the ROC
+                    mask_valid = mask_anomaly | mask_proprioceptive
+                    self._auxilary_training_roc(res[mask_valid, 0], graph.y[mask_valid].type(torch.long))
 
                 # Backprop
                 self._optimizer.zero_grad()

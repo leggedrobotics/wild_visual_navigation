@@ -140,7 +140,7 @@ dataset_name
   day3
     date_time_mission_0_day_3
       features
-        slic_dino
+        slic100_dino224_16
           center
             time_stamp.pt
             ...

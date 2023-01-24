@@ -133,7 +133,11 @@ class SystemLevelContextGpuMonitor:
                 self.mem_start = gpu_memory_query(self.parent.slg_device, self.parent.slg_pid)
 
     def __exit__(self, exc_type, exc_value, exc_tb):
-        if hasattr(self.parent, "slg_enabled") and hasattr(self.parent, "slg_device") and hasattr(self.parent, "slg_pid"):
+        if (
+            hasattr(self.parent, "slg_enabled")
+            and hasattr(self.parent, "slg_device")
+            and hasattr(self.parent, "slg_pid")
+        ):
             if self.parent.slg_enabled:
                 mem_end = gpu_memory_query(self.parent.slg_device, self.parent.slg_pid)
                 mem_delta = mem_end - self.mem_start

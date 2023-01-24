@@ -72,6 +72,7 @@ class WvnRosInterface:
             mode=self.mode,
             extraction_store_folder=self.extraction_store_folder,
             patch_size=self.dino_patch_size,
+            scale_traversability=self.scale_traversability,
         )
 
         # Initialize traversability generator to process velocity commands
@@ -227,7 +228,8 @@ class WvnRosInterface:
         self.feature_type = rospy.get_param("~feature_type")
         self.dino_patch_size = rospy.get_param("~dino_patch_size")
         self.confidence_std_factor = rospy.get_param("~confidence_std_factor")
-        self.false_negative_weight = rospy.get_param("~false_negative_weight")
+        self.scale_traversability = rospy.get_param("~scale_traversability")
+        self.scale_traversability_max_fpr = rospy.get_param("~scale_traversability_max_fpr")
         self.min_samples_for_training = rospy.get_param("~min_samples_for_training")
         self.vis_node_index = rospy.get_param("~debug_supervision_node_index_from_last")
 
@@ -256,7 +258,7 @@ class WvnRosInterface:
         self.verbose = rospy.get_param("~verbose")
 
         # Select mode: # debug, online, extract_labels
-        self.use_debug_for_desired = rospy.get_param("~use_debug_for_desired") # Note: Unused parameter
+        self.use_debug_for_desired = rospy.get_param("~use_debug_for_desired")  # Note: Unused parameter
         self.mode = WVNMode.from_string(rospy.get_param("~mode", "debug"))
         self.extraction_store_folder = rospy.get_param("~extraction_store_folder")
 
@@ -293,9 +295,11 @@ class WvnRosInterface:
         self.params.general.timestamp = self.mission_timestamp
         self.params.general.log_confidence = self.log_confidence
         self.params.loss.confidence_std_factor = self.confidence_std_factor
-        self.params.loss.false_negative_weight = self.false_negative_weight
+        self.params.loss.w_temp = 0
         self.step = -1
         self.step_time = rospy.get_time()
+
+        assert self.optical_flow_estimator_type == "none", "Optical flow estimator not tested due to changes"
 
     def setup_rosbag_replay(self, tf_listener):
         self.tf_listener = tf_listener
@@ -681,7 +685,28 @@ class WvnRosInterface:
             fs = mission_node.feature_segments.reshape(-1)
             out_trav = out_trav.reshape(-1)
             out_conf = out_conf.reshape(-1)
-            out_trav = mission_node.prediction[fs, 0]
+            traversability = mission_node.prediction[:, 0]
+
+            # Optionally rescale the traversability output before publishing
+            if self.scale_traversability:
+                # Compute ROC Threshold
+                try:
+                    fpr, tpr, thresholds = self.traversability_estimator._auxilary_training_roc.compute()
+                    index = torch.where(fpr > self.scale_traversability_max_fpr)[0][0]
+                    threshold = thresholds[index]
+
+                    # Apply pisewise linear scaling 0->0; threshold->0.5; 1->1
+                    traversability = traversability.clone()
+                    m = traversability < threshold
+                    traversability[m] *= 0.5 / threshold
+                    traversability[~m] -= threshold
+                    traversability[~m] *= 0.5 / (1 - threshold)
+                    traversability[~m] += 0.5
+                    traversability.clip(0, 1)
+                except:
+                    print("Failed to scale output image. Most likely due to ROC computation failed")
+
+            out_trav = traversability[fs]
             out_conf = mission_node.confidence[fs]
             out_trav = out_trav.reshape(mission_node.feature_segments.shape)
             out_conf = out_conf.reshape(mission_node.feature_segments.shape)
