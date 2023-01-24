@@ -7,7 +7,7 @@ class ConfidenceGenerator(torch.nn.Module):
     def __init__(
         self,
         std_factor: float = 0.7,
-        use_kalman_filter: bool = True,
+        method: str = "running_mean",
         log_enabled: bool = False,
         log_folder: str = "/tmp",
     ):
@@ -30,7 +30,7 @@ class ConfidenceGenerator(torch.nn.Module):
         self.var = torch.nn.Parameter(var, requires_grad=False)
         self.std = torch.nn.Parameter(std, requires_grad=False)
 
-        if use_kalman_filter:
+        if method == "kalman_filter":
             kf_process_cov = 0.2
             kf_meas_cov = 1.0
             D = 1
@@ -43,7 +43,7 @@ class ConfidenceGenerator(torch.nn.Module):
             self._kalman_filter.init_meas_model(meas_model=torch.eye(D), meas_cov=torch.eye(D) * kf_meas_cov)
             self._update = self.update_kalman_filter
             self._reset = self.reset_kalman_filter
-        else:
+        elif method == "running_mean":
             running_n = torch.zeros(1, dtype=torch.float64)
             running_sum = torch.zeros(1, dtype=torch.float64)
             running_sum_of_squares = torch.zeros(1, dtype=torch.float64)
@@ -53,6 +53,22 @@ class ConfidenceGenerator(torch.nn.Module):
             self.running_sum_of_squares = torch.nn.Parameter(running_sum_of_squares, requires_grad=False)
             self._update = self.update_running_mean
             self._reset = self.reset_running_mean
+        elif method == "latest_measurment":
+            self._update = self.update_latest_measurment
+            self._reset = self.reset_latest_measurment
+        else:
+            raise ValueError("Unknown method")
+
+    def update_latest_measurment(self, x: torch.Tensor, x_positive: torch.Tensor):
+        # Then the confidence is computed as the distance to the center of the Gaussian given factor*sigma
+        self.mean[0] = x_positive.mean()
+        self.std[0] = x_positive.std()
+        return self.inference_without_update(x)
+
+    def reset_latest_measurment(self, x: torch.Tensor, x_positive: torch.Tensor):
+        self.mean[0] = 0
+        self.var[0] = 1
+        self.std[0] = 1
 
     def update_running_mean(self, x: torch.tensor, x_positive: torch.tensor):
         # We assume the positive samples' loss follows a Gaussian distribution
@@ -130,9 +146,9 @@ class ConfidenceGenerator(torch.nn.Module):
         self.running_sum_of_squares[0] = 0
 
     def reset_kalman_filter(self):
-        self.mean = torch.zeros(1, dtype=torch.float32)
-        self.var = torch.ones(1, dtype=torch.float32)
-        self.std = torch.ones(1, dtype=torch.float32)
+        self.mean[0] = 0
+        self.var[0] = 1
+        self.std[0] = 1
 
 
 if __name__ == "__main__":

@@ -1,3 +1,3 @@
 loss:
   anomaly_balanced: True
-  use_kalman_filter: False
+  w_temp: 0.75

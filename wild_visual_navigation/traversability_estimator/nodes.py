@@ -208,11 +208,16 @@ class MissionNode(BaseNode):
             )
 
     def is_valid(self):
-        return (
+
+        valid_members = (
             isinstance(self._features, torch.Tensor)
             and isinstance(self._supervision_signal, torch.Tensor)
             and isinstance(self._correspondence, torch.Tensor)
+            and isinstance(self._supervision_signal_valid, torch.Tensor)
         )
+        valid_signals = self._supervision_signal_valid.any() if valid_members else False
+
+        return valid_members and valid_signals
 
     @property
     def camera_name(self):

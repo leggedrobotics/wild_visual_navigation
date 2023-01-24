@@ -1,9 +1,9 @@
 <launch>
   <!-- Arguments -->
   <arg name="name"              default="wild_visual_navigation_node"/>
-  <arg name="params_file"       default="$(find wild_visual_navigation_ros)/config/parameters/default.yaml"/>
+  <arg name="params_file"       default="$(find wild_visual_navigation_ros)/config/wild_visual_navigation/default.yaml"/>
   <arg name="rviz_config"       default="anymal.rviz" />
-  <arg name="anymal_config"       default="/media/Data/Datasets/2022_Hoeng_High_Grass/cerberus.yaml" />
+  <arg name="anymal_config"     default="/media/Data/Datasets/2022_Hoeng_High_Grass/cerberus.yaml" />
 
   <arg name="anymal_converter"  default="True"/>
   <arg name="anymal_rsl_launch" default="True"/>
@@ -16,6 +16,7 @@
   <param name="/use_sim_time" type="bool" value="True" />
 
   <!-- Load parameters -->
+  <rosparam command="delete" param="$(arg name)" />
   <rosparam command="load" file="$(arg params_file)" ns="$(arg name)"/>
 
   <!-- Launch ANYmal message converter node -->
@@ -42,6 +43,7 @@
     <arg name="needs_rotation_cam3"       value="True" />
     <arg name="needs_rotation_cam4"       value="True" />
     <arg name="debayer_option"            value="bayer_gbrg8" />
+    <!-- <arg name="debayer_option"            value="auto" /> -->
     <arg name="output_frame3"             value="cam3_sensor_frame_helper"/>
     <arg name="output_frame4"             value="cam4_sensor_frame_helper"/>    
     <arg name="output_frame5"             value="cam5_sensor_frame_helper"/>
