@@ -43,6 +43,8 @@ dino_patch_size: 16 # DINO only
 confidence_std_factor: 0.5
 scale_traversability: True
 scale_traversability_max_fpr: 0.2
+min_samples_for_training: 5
+
 
 # Optical flow params
 optical_flow_estimator_type: "none"
@@ -69,6 +71,7 @@ log_time: true
 log_memory: true
 log_confidence: true
 verbose: true
+debug_supervision_node_index_from_last: 10
 
 use_debug_for_desired: true
 extraction_store_folder:  "nan"
