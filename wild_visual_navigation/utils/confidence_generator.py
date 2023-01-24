@@ -64,12 +64,12 @@ class ConfidenceGenerator(torch.nn.Module):
         self.mean[0] = x_positive.mean()
         self.std[0] = x_positive.std()
         return self.inference_without_update(x)
-    
+
     def reset_latest_measurment(self, x: torch.Tensor, x_positive: torch.Tensor):
         self.mean[0] = 0
         self.var[0] = 1
         self.std[0] = 1
-    
+
     def update_running_mean(self, x: torch.tensor, x_positive: torch.tensor):
         # We assume the positive samples' loss follows a Gaussian distribution
         # We estimate the parameters empirically

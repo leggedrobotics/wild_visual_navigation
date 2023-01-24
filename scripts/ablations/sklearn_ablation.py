@@ -2,7 +2,7 @@
 from wild_visual_navigation.learning.dataset import get_ablation_module
 from wild_visual_navigation.learning.utils import load_env
 from wild_visual_navigation import WVN_ROOT_DIR
-
+from wild_visual_navigation.cfg import ExperimentParams
 import torch
 from torchmetrics import Accuracy, AUROC
 
@@ -33,13 +33,17 @@ models = {
 results_epoch = {}
 
 for scene in ["forest", "hilly", "grassland"]:
+    exp = ExperimentParams()
     ablation_data_module = {
         "batch_size": 1,
         "num_workers": 0,
         "env": scene,
-        "feature_key": "slic_dino",
+        "feature_key": exp.ablation_data_module.feature_key,
         "test_equals_val": False,
+        "val_equals_test": False,
         "test_all_datasets": test_all_datasets,
+        "training_data_percentage": 100,
+        "training_in_memory": True,
     }
     train_dataset, val_dataset, test_datasets = get_ablation_module(
         **ablation_data_module, perugia_root=env["perugia_root"]
@@ -49,8 +53,8 @@ for scene in ["forest", "hilly", "grassland"]:
     features = []
     labels = []
     for j, d in enumerate(train_dataset):
-        features.append(d[0].x.cpu().numpy())
-        labels.append(d[0].y.cpu().numpy())
+        features.append(d.x.cpu().numpy())
+        labels.append(d.y.cpu().numpy())
 
     features = np.concatenate(features, axis=0)
     labels = np.concatenate(labels, axis=0)
@@ -64,9 +68,9 @@ for scene in ["forest", "hilly", "grassland"]:
         y_gt = []
         y_prop = []
         for j, d in enumerate(test_dataset):
-            features_test.append(d[0].x.cpu().numpy())
-            y_gt.append(d[0].y_gt.cpu().numpy())
-            y_prop.append(d[0].y.cpu().numpy())
+            features_test.append(d.x.cpu().numpy())
+            y_gt.append(d.y_gt.cpu().numpy())
+            y_prop.append(d.y.cpu().numpy())
 
         features_test = np.concatenate(features_test, axis=0)
         y_gt = np.concatenate(y_gt, axis=0)
@@ -107,7 +111,7 @@ for scene in ["forest", "hilly", "grassland"]:
 
     # Store epoch output to disk.
     p = os.path.join(
-        WVN_ROOT_DIR, f"scripts/ablations/classicial_learning_ablation/classicial_learning_ablation_test_results.pkl"
+        env["base"], "ablations/classicial_learning_ablation/classicial_learning_ablation_test_results.pkl"
     )
 
     Path(p).parent.mkdir(parents=True, exist_ok=True)
