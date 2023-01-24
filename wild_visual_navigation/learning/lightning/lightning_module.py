@@ -456,7 +456,8 @@ class LightningTrav(pl.LightningModule):
         )
 
         for k, v in loss_aux.items():
-            self.log(f"{self._mode}_{k}", v.item(), on_epoch=True, prog_bar=True, batch_size=BS)
+            if k.find("loss") != -1:
+                self.log(f"{self._mode}_{k}", v.item(), on_epoch=True, prog_bar=True, batch_size=BS)
         self.log(f"{self._mode}_loss", loss.item(), on_epoch=True, prog_bar=True, batch_size=BS)
 
         self.visu(graph, res, loss_aux["confidence"])
