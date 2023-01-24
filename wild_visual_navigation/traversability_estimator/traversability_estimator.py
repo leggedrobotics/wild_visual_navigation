@@ -45,6 +45,7 @@ class TraversabilityEstimator:
         feature_type: str = "dino",
         optical_flow_estimator_type: str = "none",
         min_samples_for_training: int = 10,
+        vis_node_index: int = 10,
         mode: bool = False,
         extraction_store_folder=None,
         **kwargs,
@@ -53,7 +54,7 @@ class TraversabilityEstimator:
         self._mode = mode
         self._extraction_store_folder = extraction_store_folder
         self._min_samples_for_training = min_samples_for_training
-        self._vis_node_index = min_samples_for_training
+        self._vis_node_index = vis_node_index
         self._params = params
 
         # Local graphs
