@@ -258,7 +258,7 @@ class WvnRosInterface:
         self.verbose = rospy.get_param("~verbose")
 
         # Select mode: # debug, online, extract_labels
-        self.use_debug_for_desired = rospy.get_param("~use_debug_for_desired") # Note: Unused parameter
+        self.use_debug_for_desired = rospy.get_param("~use_debug_for_desired")  # Note: Unused parameter
         self.mode = WVNMode.from_string(rospy.get_param("~mode", "debug"))
         self.extraction_store_folder = rospy.get_param("~extraction_store_folder")
 
