@@ -47,8 +47,8 @@ class TraversabilityEstimator:
         feature_type: str = "dino",
         optical_flow_estimator_type: str = "none",
         min_samples_for_training: int = 10,
-        mode: bool = False,
         vis_node_index: int = 10,
+        mode: bool = False,
         extraction_store_folder=None,
         **kwargs,
     ):
@@ -139,40 +139,41 @@ class TraversabilityEstimator:
         self._learning_lock = Lock()
 
     def reset(self):
-        with self._learning_lock:
-            self._pause_training = True
-            self._pause_mission_graph = True
-            self._pause_proprio_graph = True
-            time.sleep(2.0)
+        print("[WARNING] Resetting the traversability estimator is not fully tested")
+        # with self._learning_lock:
+        #     self._pause_training = True
+        #     self._pause_mission_graph = True
+        #     self._pause_proprio_graph = True
+        #     time.sleep(2.0)
 
-            self._proprio_graph.clear()
-            self._mission_graph.clear()
+        #     self._proprio_graph.clear()
+        #     self._mission_graph.clear()
 
-            # Reset all the learning stuff
-            self._step = 0
-            self._loss = torch.tensor([torch.inf])
+        #     # Reset all the learning stuff
+        #     self._step = 0
+        #     self._loss = torch.tensor([torch.inf])
 
-            # Re-create model
-            self._exp_cfg = dataclasses.asdict(self._params)
-            self._model = get_model(self._exp_cfg["model"]).to(self._device)
-            self._model.train()
+        #     # Re-create model
+        #     self._exp_cfg = dataclasses.asdict(self._params)
+        #     self._model = get_model(self._exp_cfg["model"]).to(self._device)
+        #     self._model.train()
 
-            # Re-create optimizer
-            self._optimizer = torch.optim.AdamW(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
+        #     # Re-create optimizer
+        #     self._optimizer = torch.optim.AdamW(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
 
-            # Re-create traversability loss
-            self._traversability_loss = TraversabilityLoss(
-                **self._exp_cfg["loss"],
-                model=self._model,
-                log_enabled=self._exp_cfg["general"]["log_confidence"],
-                log_folder=self._exp_cfg["general"]["model_path"],
-            )
-            self._traversability_loss.to(self._device)
+        #     # Re-create traversability loss
+        #     self._traversability_loss = TraversabilityLoss(
+        #         **self._exp_cfg["loss"],
+        #         model=self._model,
+        #         log_enabled=self._exp_cfg["general"]["log_confidence"],
+        #         log_folder=self._exp_cfg["general"]["model_path"],
+        #     )
+        #     self._traversability_loss.to(self._device)
 
-            # Resume training
-            self._pause_training = False
-            self._pause_mission_graph = False
-            self._pause_proprio_graph = False
+        #     # Resume training
+        #     self._pause_training = False
+        #     self._pause_mission_graph = False
+        #     self._pause_proprio_graph = False
 
     @property
     def loss(self):
@@ -199,7 +200,7 @@ class TraversabilityEstimator:
         """
         self._proprio_graph.change_device(device)
         self._mission_graph.change_device(device)
-        self._feature_extractor.change_deviceF(device)
+        self._feature_extractor.change_device(device)
         self._model = self._model.to(device)
         if self._optical_flow_estimator_type != "none":
             self._optical_flow_estimator = self._optical_flow_estimator.to(device)
