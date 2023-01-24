@@ -12,6 +12,7 @@ from wild_visual_navigation.learning.general import training_routine
 from wild_visual_navigation.utils import override_params
 import argparse
 import logging
+import shutil
 
 if __name__ == "__main__":
     """Test how much time and data it takes for a model to convergee on a scene.
@@ -85,7 +86,7 @@ if __name__ == "__main__":
     special_key = args.special_key
     ws = os.environ["ENV_WORKSTATION_NAME"]
     model_path = os.path.join(WVN_ROOT_DIR, f"results/ablations/{folder}_ablation_{ws}")
-
+    shutil.rmtree(model_path)
     Path(model_path).mkdir(parents=True, exist_ok=True)
 
     directory = Path(os.path.join(WVN_ROOT_DIR, f"cfg/exp/ablation/{folder}"))
