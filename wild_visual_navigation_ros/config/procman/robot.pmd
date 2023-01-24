@@ -8,7 +8,7 @@ group "0.npc" {
         host = "npc-digiforest";
     }
     cmd "0.2.local_planner_visual" {
-        exec = "roslaunch wild_visual_navigation_ros field_local_planner.launch traversability:=visual";
+        exec = "roslaunch wild_visual_navigation_ros field_local_planner.launch traversability:=visual base_inverted:=false";
         host = "npc-digiforest";
     }
     cmd "0.2.local_planner_visual_inverted" {
@@ -16,11 +16,15 @@ group "0.npc" {
         host = "npc-digiforest";
     }
     cmd "0.2.local_planner_geometric" {
-        exec = "roslaunch wild_visual_navigation_ros field_local_planner.launch traversability:=geometric";
+        exec = "roslaunch wild_visual_navigation_ros field_local_planner.launch traversability:=geometric base_inverted:=false";
         host = "npc-digiforest";
     }
     cmd "0.2.local_planner_geometric_inverted" {
         exec = "roslaunch wild_visual_navigation_ros field_local_planner.launch traversability:=geometric base_inverted:=true";
+        host = "npc-digiforest";
+    }
+    cmd "0.3.local_planner_debug_on_robot" {
+        exec = "roslaunch wild_visual_navigation_ros field_local_planner.launch traversability:=geometric base_inverted:=true output_twist_topic:=/dummy_twist";
         host = "npc-digiforest";
     }
 }
@@ -72,8 +76,12 @@ group "4.monitoring" {
         exec = "rostopic echo /disk_monitor_npc/status/disks[1]";
         host = "localhost";
     }
-    cmd "learning" {
-        exec = "roslaunch wild_visual_navigation_ros rqt_multiplot.launch";
+    cmd "rqt_learning" {
+        exec = "roslaunch wild_visual_navigation_ros rqt_learning.launch";
+        host = "localhost";
+    }
+    cmd "rqt_images" {
+        exec = "roslaunch wild_visual_navigation_ros rqt_images.launch";
         host = "localhost";
     }
 }
@@ -95,11 +103,11 @@ group "x.learning_utils" {
         host = "npc-digiforest";
     }
     cmd "x.3.save_checkpoint" {
-        exec = "rosservice call /wild_visual_navigation_node/save_checkpoint 'path: '/root/git/wild_visual_navigation/results/2023-01-19T11-00-52_test''";
+        exec = "rosservice call /wild_visual_navigation_node/save_checkpoint ''";
         host = "apc-digiforest";
     }
     cmd "x.4.load_checkpoint" {
-        exec = "rosservice call /wild_visual_navigation_node/load_checkpoint 'path: '/root/git/wild_visual_navigation/results/2023-01-19T11-00-52_test''";
+        exec = "rosservice call /wild_visual_navigation_node/load_checkpoint 'path: 'absolute_path_in_robot_filesystem'";
         host = "npc-digiforest";
     }
 }
