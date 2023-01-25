@@ -7,6 +7,7 @@ Panels:
         - /Global Options1
         - /TF1/Tree1
         - /Wild Visual Navigation1
+        - /Elevation Map WIFI1
         - /Elevation Map RAW1
       Splitter Ratio: 0.6102783679962158
     Tree Height: 546
@@ -888,7 +889,7 @@ Visualization Manager:
               Use Fixed Frame: true
               Use rainbow: true
               Value: true
-          Enabled: true
+          Enabled: false
           Name: Depth Sensors
         - Class: rviz/Group
           Displays:
@@ -930,7 +931,7 @@ Visualization Manager:
               Value: false
             - Class: rviz/Image
               Enabled: true
-              Image Topic: /wild_visual_navigation_visu_0/traversability_overlayed
+              Image Topic: /wild_visual_navigation_visu_traversability/traversability_overlayed
               Max Value: 1
               Median window: 5
               Min Value: 0
@@ -942,7 +943,7 @@ Visualization Manager:
               Value: true
             - Class: rviz/Image
               Enabled: true
-              Image Topic: /wild_visual_navigation_visu_1/confidence_overlayed
+              Image Topic: /wild_visual_navigation_visu_confidence/confidence_overlayed
               Max Value: 1
               Median window: 5
               Min Value: 0
@@ -1140,7 +1141,7 @@ Visualization Manager:
           Color Layer: visual_traversability
           Color Transformer: IntensityLayer
           ColorMap: coolwarm
-          Enabled: false
+          Enabled: true
           Height Layer: elevation
           Height Transformer: GridMapLayer
           History Length: 1
@@ -1154,8 +1155,30 @@ Visualization Manager:
           Topic: /elevation_mapping/elevation_map_wifi
           Unreliable: false
           Use ColorMap: true
-          Value: false
-      Enabled: false
+          Value: true
+        - Alpha: 1
+          Autocompute Intensity Bounds: true
+          Class: grid_map_rviz_plugin/GridMap
+          Color: 200; 200; 200
+          Color Layer: visual_traversability_inpainted
+          Color Transformer: GridMapLayer
+          ColorMap: coolwarm
+          Enabled: true
+          Height Layer: elevation_inpainted
+          Height Transformer: GridMapLayer
+          History Length: 1
+          Invert ColorMap: true
+          Max Color: 255; 255; 255
+          Max Intensity: 10
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: Visual Traversability Inpainted
+          Show Grid Lines: true
+          Topic: /elevation_mapping/elevation_map_wifi
+          Unreliable: false
+          Use ColorMap: true
+          Value: true
+      Enabled: true
       Name: Elevation Map WIFI
     - Class: rviz/Group
       Displays:
@@ -1166,7 +1189,7 @@ Visualization Manager:
           Color Layer: elevation
           Color Transformer: GridMapLayer
           ColorMap: terrain
-          Enabled: true
+          Enabled: false
           Height Layer: elevation
           Height Transformer: GridMapLayer
           History Length: 1
@@ -1180,7 +1203,7 @@ Visualization Manager:
           Topic: /elevation_mapping/semantic_map_raw
           Unreliable: false
           Use ColorMap: true
-          Value: true
+          Value: false
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Class: grid_map_rviz_plugin/GridMap
@@ -1291,28 +1314,6 @@ Visualization Manager:
           Unreliable: false
           Use ColorMap: true
           Value: false
-        - Alpha: 1
-          Autocompute Intensity Bounds: true
-          Class: grid_map_rviz_plugin/GridMap
-          Color: 200; 200; 200
-          Color Layer: visual_traversability_inpainted
-          Color Transformer: GridMapLayer
-          ColorMap: coolwarm
-          Enabled: true
-          Height Layer: elevation
-          Height Transformer: GridMapLayer
-          History Length: 1
-          Invert ColorMap: true
-          Max Color: 255; 255; 255
-          Max Intensity: 10
-          Min Color: 0; 0; 0
-          Min Intensity: 0
-          Name: Visual Traversability Inpainted
-          Show Grid Lines: true
-          Topic: /elevation_mapping/elevation_map_wifi
-          Unreliable: false
-          Use ColorMap: true
-          Value: true
       Enabled: true
       Name: Elevation Map RAW
   Enabled: true
@@ -1343,7 +1344,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 13.086227416992188
+      Distance: 21.314252853393555
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -1351,17 +1352,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -0.8264628648757935
-        Y: 0.7538079023361206
-        Z: -5.593326568603516
+        X: -0.04443800449371338
+        Y: 0.9112809896469116
+        Z: -5.593326091766357
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.8897973299026489
+      Pitch: 1.1397972106933594
       Target Frame: base
-      Yaw: 6.156731128692627
+      Yaw: 0.5435442328453064
     Saved: ~
 Window Geometry:
   AB Wide Angle Front:
