@@ -8,7 +8,7 @@ Panels:
         - /TF1/Tree1
         - /Wild Visual Navigation1
         - /Elevation Map RAW1
-      Splitter Ratio: 0.4732334017753601
+      Splitter Ratio: 0.6102783679962158
     Tree Height: 546
   - Class: rviz/Selection
     Name: Selection
@@ -332,34 +332,6 @@ Visualization Manager:
               Show Axes: false
               Show Trail: false
               Value: true
-            bpearl_front:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            bpearl_front_beam_origin:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            bpearl_front_protection_bars:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            bpearl_rear:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            bpearl_rear_beam_origin:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            bpearl_rear_protection_bars:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
             cam0_sensor_frame:
               Alpha: 1
               Show Axes: false
@@ -404,10 +376,56 @@ Visualization Manager:
               Alpha: 1
               Show Axes: false
               Show Trail: false
+            depth_camera_front_camera:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            depth_camera_front_camera_parent:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            depth_camera_left_camera:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            depth_camera_left_camera_parent:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            depth_camera_rear_camera:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            depth_camera_rear_camera_parent:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            depth_camera_right_camera:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            depth_camera_right_camera_parent:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
             docking_hatch_cover:
               Alpha: 1
               Show Axes: false
               Show Trail: false
+            face_front:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            face_rear:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
             front_handle:
               Alpha: 1
               Show Axes: false
@@ -456,6 +474,24 @@ Visualization Manager:
               Show Axes: false
               Show Trail: false
               Value: true
+            wide_angle_camera_front_camera:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            wide_angle_camera_front_camera_parent:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            wide_angle_camera_rear_camera:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            wide_angle_camera_rear_camera_parent:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
           Name: RobotModel
           Robot Description: anymal_description
           TF Prefix: ""
@@ -967,8 +1003,6 @@ Visualization Manager:
               Color Transformer: IntensityLayer
               ColorMap: plasma
               Enabled: true
-              Grid Cell Decimation: 1
-              Grid Line Thickness: 0.10000000149011612
               Height Layer: elevation_inpainted
               Height Transformer: ""
               History Length: 1
@@ -997,8 +1031,6 @@ Visualization Manager:
           Color Transformer: IntensityLayer
           ColorMap: terrain
           Enabled: false
-          Grid Cell Decimation: 1
-          Grid Line Thickness: 0.10000000149011612
           Height Layer: elevation
           Height Transformer: ""
           History Length: 1
@@ -1021,8 +1053,6 @@ Visualization Manager:
           Color Transformer: IntensityLayer
           ColorMap: terrain
           Enabled: false
-          Grid Cell Decimation: 1
-          Grid Line Thickness: 0.10000000149011612
           Height Layer: elevation_inpainted
           Height Transformer: ""
           History Length: 1
@@ -1045,8 +1075,6 @@ Visualization Manager:
           Color Transformer: IntensityLayer
           ColorMap: plasma
           Enabled: false
-          Grid Cell Decimation: 1
-          Grid Line Thickness: 0.10000000149011612
           Height Layer: elevation_inpainted
           Height Transformer: ""
           History Length: 1
@@ -1069,8 +1097,6 @@ Visualization Manager:
           Color Transformer: GridMapLayer
           ColorMap: turbo
           Enabled: false
-          Grid Cell Decimation: 1
-          Grid Line Thickness: 0.10000000149011612
           Height Layer: elevation
           Height Transformer: GridMapLayer
           History Length: 1
@@ -1093,8 +1119,6 @@ Visualization Manager:
           Color Transformer: ColorLayer
           ColorMap: terrain
           Enabled: false
-          Grid Cell Decimation: 1
-          Grid Line Thickness: 0.10000000149011612
           Height Layer: elevation
           Height Transformer: ""
           History Length: 1
@@ -1117,8 +1141,6 @@ Visualization Manager:
           Color Transformer: IntensityLayer
           ColorMap: coolwarm
           Enabled: false
-          Grid Cell Decimation: 1
-          Grid Line Thickness: 0.10000000149011612
           Height Layer: elevation
           Height Transformer: GridMapLayer
           History Length: 1
@@ -1137,27 +1159,25 @@ Visualization Manager:
       Name: Elevation Map WIFI
     - Class: rviz/Group
       Displays:
-        - Alpha: 0
+        - Alpha: 1
           Autocompute Intensity Bounds: true
           Class: grid_map_rviz_plugin/GridMap
           Color: 200; 200; 200
           Color Layer: elevation
-          Color Transformer: IntensityLayer
+          Color Transformer: GridMapLayer
           ColorMap: terrain
           Enabled: true
-          Grid Cell Decimation: 1
-          Grid Line Thickness: 0.10000000149011612
           Height Layer: elevation
-          Height Transformer: ""
+          Height Transformer: GridMapLayer
           History Length: 1
-          Invert ColorMap: true
+          Invert ColorMap: false
           Max Color: 255; 255; 255
-          Max Intensity: 1
+          Max Intensity: 10
           Min Color: 0; 0; 0
           Min Intensity: 0
           Name: Elevation
           Show Grid Lines: true
-          Topic: /elevation_mapping/elevation_map_raw
+          Topic: /elevation_mapping/semantic_map_raw
           Unreliable: false
           Use ColorMap: true
           Value: true
@@ -1169,8 +1189,6 @@ Visualization Manager:
           Color Transformer: IntensityLayer
           ColorMap: terrain
           Enabled: false
-          Grid Cell Decimation: 1
-          Grid Line Thickness: 0.10000000149011612
           Height Layer: elevation_inpainted
           Height Transformer: ""
           History Length: 1
@@ -1193,8 +1211,6 @@ Visualization Manager:
           Color Transformer: IntensityLayer
           ColorMap: plasma
           Enabled: false
-          Grid Cell Decimation: 1
-          Grid Line Thickness: 0.10000000149011612
           Height Layer: elevation_inpainted
           Height Transformer: ""
           History Length: 1
@@ -1216,9 +1232,7 @@ Visualization Manager:
           Color Layer: sdf
           Color Transformer: IntensityLayer
           ColorMap: turbo
-          Enabled: true
-          Grid Cell Decimation: 1
-          Grid Line Thickness: 0.10000000149011612
+          Enabled: false
           Height Layer: elevation
           Height Transformer: Layer
           History Length: 1
@@ -1232,7 +1246,7 @@ Visualization Manager:
           Topic: /elevation_mapping/elevation_map_wifi
           Unreliable: false
           Use ColorMap: true
-          Value: true
+          Value: false
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Class: grid_map_rviz_plugin/GridMap
@@ -1241,8 +1255,6 @@ Visualization Manager:
           Color Transformer: ColorLayer
           ColorMap: terrain
           Enabled: false
-          Grid Cell Decimation: 1
-          Grid Line Thickness: 0.10000000149011612
           Height Layer: elevation
           Height Transformer: ""
           History Length: 1
@@ -1257,27 +1269,47 @@ Visualization Manager:
           Unreliable: false
           Use ColorMap: true
           Value: false
-        - Alpha: 0
-          Autocompute Intensity Bounds: false
+        - Alpha: 1
+          Autocompute Intensity Bounds: true
           Class: grid_map_rviz_plugin/GridMap
           Color: 200; 200; 200
           Color Layer: visual_traversability
-          Color Transformer: IntensityLayer
+          Color Transformer: GridMapLayer
           ColorMap: coolwarm
-          Enabled: true
-          Grid Cell Decimation: 1
-          Grid Line Thickness: 0.10000000149011612
+          Enabled: false
           Height Layer: elevation
-          Height Transformer: Layer
+          Height Transformer: GridMapLayer
           History Length: 1
           Invert ColorMap: true
           Max Color: 255; 255; 255
-          Max Intensity: 1
+          Max Intensity: 10
           Min Color: 0; 0; 0
           Min Intensity: 0
-          Name: Visual Traversability
+          Name: Visual Traversability Raw
           Show Grid Lines: true
           Topic: /elevation_mapping/semantic_map_raw
+          Unreliable: false
+          Use ColorMap: true
+          Value: false
+        - Alpha: 1
+          Autocompute Intensity Bounds: true
+          Class: grid_map_rviz_plugin/GridMap
+          Color: 200; 200; 200
+          Color Layer: visual_traversability_inpainted
+          Color Transformer: GridMapLayer
+          ColorMap: coolwarm
+          Enabled: true
+          Height Layer: elevation
+          Height Transformer: GridMapLayer
+          History Length: 1
+          Invert ColorMap: true
+          Max Color: 255; 255; 255
+          Max Intensity: 10
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: Visual Traversability Inpainted
+          Show Grid Lines: true
+          Topic: /elevation_mapping/elevation_map_wifi
           Unreliable: false
           Use ColorMap: true
           Value: true
@@ -1375,5 +1407,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1848
-  X: 72
+  X: 1992
   Y: 27
