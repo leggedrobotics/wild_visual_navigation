@@ -735,7 +735,7 @@ class TraversabilityEstimator:
             return_dict["loss_trav"] = loss_aux["loss_trav"].item()
             return_dict["loss_reco"] = loss_aux["loss_reco"].item()
             return return_dict
-        return {}
+        return {"loss_total": -1}
 
     @accumulate_time
     def plot_mission_node_prediction(self, node: MissionNode):
