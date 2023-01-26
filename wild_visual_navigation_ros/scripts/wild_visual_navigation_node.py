@@ -759,20 +759,22 @@ class WvnRosInterface:
             # Optionally rescale the traversability output before publishing
             if self.scale_traversability:
                 # Compute ROC Threshold
-                if self.traversability_estimator._auxilary_training_roc._update_count != 0:
-                    fpr, tpr, thresholds = self.traversability_estimator._auxilary_training_roc.compute()
+                if self.traversability_estimator._auxiliary_training_roc._update_count != 0:
+                    fpr, tpr, thresholds = self.traversability_estimator._auxiliary_training_roc.compute()
                     index = torch.where(fpr > self.scale_traversability_max_fpr)[0][0]
                     threshold = thresholds[index]
                     self.traversability_estimator.scale_traversability_threshold = threshold
 
-                    # Apply pisewise linear scaling 0->0; threshold->0.5; 1->1
+                    # Apply piecewise linear scaling 0->0; threshold->0.5; 1->1
                     traversability = traversability.clone()
                     m = traversability < threshold
+                    # Scale untraversable
                     traversability[m] *= 0.5 / threshold
+                    # Scale traversable
                     traversability[~m] -= threshold
                     traversability[~m] *= 0.5 / (1 - threshold)
                     traversability[~m] += 0.5
-                    traversability.clip(0, 1)
+                    traversability = traversability.clip(0, 1)
 
             out_trav = traversability[fs]
             out_conf = mission_node.confidence[fs]
