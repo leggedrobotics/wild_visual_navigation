@@ -27,6 +27,10 @@ group "0.npc" {
         exec = "roslaunch wild_visual_navigation_ros field_local_planner.launch traversability:=geometric base_inverted:=true output_twist_topic:=/dummy_twist";
         host = "npc-digiforest";
     }
+    cmd "0.4.moving_carrot" {
+        exec = "rostopic pub /initialpose geometry_msgs/PoseWithCovarianceStamped '{header: {frame_id: 'base'}, pose: { pose: { position: {x: 2.0, y: -1.0, z: 0.0} } } }' -r 10";
+        host = "localhost";
+    }
 }
 
 group "1.jetson" {
