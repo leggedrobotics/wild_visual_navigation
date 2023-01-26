@@ -78,9 +78,9 @@ grid_map_filters:
       output_layer: visual_traversability_inpainted
       radius: 0.1 # in m
       inpainting_type: telea # 'ns' or 'telea' allowed
-      pre_denoising: false # enables denoising before inpainting
-      denoising_radius: 0.5 # m
-      denoising_type: non_local # 'total_variation', 'non_local', 'gaussian', and 'median' supported
+      pre_denoising: true # enables denoising before inpainting
+      denoising_radius: 0.12 # m
+      denoising_type: median # 'total_variation', 'non_local', 'gaussian', and 'median' supported
       total_variation_lambda: 1.0
   
   - name: visual_traversability_footprint_fix
