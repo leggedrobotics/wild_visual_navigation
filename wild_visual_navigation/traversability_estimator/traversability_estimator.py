@@ -63,8 +63,8 @@ class TraversabilityEstimator:
 
         if self._scale_traversability:
             # Use 500 bins for constant memory usuage
-            self._auxilary_training_roc = ROC(task="binary", thresholds=5000)
-            self._auxilary_training_roc.to(self._device)
+            self._auxiliary_training_roc = ROC(task="binary", thresholds=5000)
+            self._auxiliary_training_roc.to(self._device)
 
         # Local graphs
         self._proprio_graph = DistanceWindowGraph(max_distance=max_distance, edge_distance=proprio_distance_thr)
@@ -216,7 +216,7 @@ class TraversabilityEstimator:
 
         if self._scale_traversability:
             # Use 500 bins for constant memory usuage
-            self._auxilary_training_roc.to(device)
+            self._auxiliary_training_roc.to(device)
 
     @accumulate_time
     def update_features(self, node: MissionNode):
@@ -712,7 +712,7 @@ class TraversabilityEstimator:
                     mask_anomaly[mask_proprioceptive] = False
                     # Elements are valid if they are either an anomaly or we have walked on them to fit the ROC
                     mask_valid = mask_anomaly | mask_proprioceptive
-                    self._auxilary_training_roc(res[mask_valid, 0], graph.y[mask_valid].type(torch.long))
+                    self._auxiliary_training_roc(res[mask_valid, 0], graph.y[mask_valid].type(torch.long))
                     return_dict["scale_traversability_threshold"] = self._scale_traversability_threshold
                 # Backprop
                 self._optimizer.zero_grad()

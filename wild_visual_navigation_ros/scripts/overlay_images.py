@@ -33,6 +33,6 @@ if __name__ == "__main__":
         rospy.init_node(f"wild_visual_navigation_visu{nr}")
     except:
         rospy.init_node("wild_visual_navigation_visu")
-    
+
     wvn = ImageOverlayNode()
     rospy.spin()
