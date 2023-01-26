@@ -6,7 +6,7 @@ from wild_visual_navigation.visu import LearningVisualizer
 import sys
 
 
-class VisuNode:
+class ImageOverlayNode:
     def __init__(self):
         self.image_sub_topic = rospy.get_param("~image_sub_topic")
         self.value_sub_topic = rospy.get_param("~value_sub_topic")
@@ -27,11 +27,12 @@ class VisuNode:
 
 
 if __name__ == "__main__":
+    print("Stated ImageOverlayNode")
     try:
         nr = "_" + rospy.myargv(argv=sys.argv)[-1].split(" ")[-1]
         rospy.init_node(f"wild_visual_navigation_visu{nr}")
     except:
         rospy.init_node("wild_visual_navigation_visu")
-
-    wvn = VisuNode()
+    
+    wvn = ImageOverlayNode()
     rospy.spin()

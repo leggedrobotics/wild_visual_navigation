@@ -63,7 +63,7 @@ class TraversabilityEstimator:
 
         if self._scale_traversability:
             # Use 500 bins for constant memory usuage
-            self._auxilary_training_roc = ROC(task="binary", thresholds=500)
+            self._auxilary_training_roc = ROC(task="binary", thresholds=5000)
             self._auxilary_training_roc.to(self._device)
 
         # Local graphs
