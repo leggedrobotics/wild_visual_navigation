@@ -26,7 +26,7 @@ class SmartCarrotNode:
                 self.offset[x, y] = math.sqrt((x - 100) ** 2 + (y - 100) ** 2)
 
         self.offset /= self.offset.max()
-        self.offset *= 0.3
+        self.offset *= 0.5
         self.debug = False
 
     def callback(self, msg):
@@ -40,6 +40,16 @@ class SmartCarrotNode:
             n_rows = layout_info.dim[1].size
             sdf = np.reshape(np.array(data_list), (n_rows, n_cols))
             sdf = sdf[::-1, ::-1].transpose().astype(np.float32)
+
+        target_layer = "elevation"
+        if target_layer in msg.layers:
+            # extract grid_map layer as numpy array
+            data_list = msg.data[msg.layers.index(target_layer)].data
+            layout_info = msg.data[msg.layers.index(target_layer)].layout
+            n_cols = layout_info.dim[0].size
+            n_rows = layout_info.dim[1].size
+            elevation = np.reshape(np.array(data_list), (n_rows, n_cols))
+            elevation = elevation[::-1, ::-1].transpose().astype(np.float32)
 
         try:
             res = self.tf_buffer.lookup_transform(
@@ -71,7 +81,15 @@ class SmartCarrotNode:
         binary_mask = cv2.circle(binary_mask, (center_x, center_y), 0, 255, 100)
         m = binary_mask == 0
         sdf += self.offset
+        m2 = np.isnan(elevation)
+
+        kernel = np.ones((3, 3), np.uint8)
+        m2 = cv2.dilate(np.uint8(m2)*255, kernel, iterations=1) == 255
         sdf[m] = sdf.min()
+        sdf[m2] = sdf.min()
+        
+        if sdf.min() == sdf.max():
+            return
 
         x, y = np.where(sdf == sdf.max())
         x = x[0]
@@ -91,8 +109,8 @@ class SmartCarrotNode:
         goal.pose.pose.position.z = res.transform.translation.z + 0.3
         goal.pose.pose.orientation = res.transform.rotation
         self.pub_goal.publish(goal)
-
         if self.debug:
+            target_layer = "sdf"
             msg.data[msg.layers.index(target_layer)].data = sdf[::-1, ::-1].transpose().ravel()
             self.pub.publish(msg)
 
