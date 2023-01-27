@@ -24,7 +24,7 @@ class LightningTrav(pl.LightningModule):
         self._mode = "train"
         self._log = log
 
-        self._auxilary_training_roc = ROC(task="binary")
+        self._auxiliary_training_roc = ROC(task="binary")
         self._validation_roc_gt_image = ROC(task="binary")
         self._validation_auroc_gt_image = AUROC(task="binary")
         self._validation_roc_proprioceptive_image = ROC(task="binary")
@@ -95,7 +95,7 @@ class LightningTrav(pl.LightningModule):
         mask_anomaly[mask_proprioceptive] = False
         # Elements are valid if they are either an anomaly or we have walked on them to fit the ROC
         mask_valid = mask_anomaly | mask_proprioceptive
-        self._auxilary_training_roc(res[mask_valid, 0], graph.y[mask_valid].type(torch.long))
+        self._auxiliary_training_roc(res[mask_valid, 0], graph.y[mask_valid].type(torch.long))
 
         return loss
 
@@ -206,7 +206,7 @@ class LightningTrav(pl.LightningModule):
 
                     # Compute the threshold for traversability scaling
                     print("Computing threshold")
-                    fpr, tpr, thresholds = self._auxilary_training_roc.compute()
+                    fpr, tpr, thresholds = self._auxiliary_training_roc.compute()
                     index = torch.where(fpr > 0.2)[0][0]
                     threshold = thresholds[index]
 

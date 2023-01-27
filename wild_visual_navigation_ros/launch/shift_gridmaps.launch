@@ -1,0 +1,23 @@
+<launch>
+    <node name="wild_visual_navigation_shift_record1" pkg="wild_visual_navigation_ros" type="shift_gridmap.py">
+        <param name="gridmap_sub_topic"                      value="/ele_trash/elevation_map_wifi" /> 
+        <param name="gridmap_pub_topic"                      value="recorded_wifi_shifted" />
+        <param name="offset_factor_x"                      value="1.2" />
+        <param name="offset_factor_y"                      value="0" />
+    </node>
+
+    <node name="wild_visual_navigation_shift_record2" pkg="wild_visual_navigation_ros" type="shift_gridmap.py"  output="screen">
+        <param name="gridmap_sub_topic"                      value="/ele_trash/elevation_map_wifi" /> 
+        <param name="gridmap_pub_topic"                      value="recorded_wifi_shifted" />
+        <param name="offset_factor_x"                      value="1.2" />
+        <param name="offset_factor_y"                      value="1.2" />
+    </node>
+
+    <node name="wild_visual_navigation_shift_current" pkg="wild_visual_navigation_ros" type="shift_gridmap.py">
+        <param name="gridmap_sub_topic"                      value="/elevation_mapping/elevation_map_wifi" /> 
+        <param name="gridmap_pub_topic"                      value="current_wifi_shifted" />
+        <param name="offset_factor_x"                      value="0" />
+        <param name="offset_factor_y"                      value="1.2" />
+    </node>
+
+  </launch>

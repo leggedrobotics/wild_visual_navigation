@@ -1,0 +1,6 @@
+<launch>
+  <arg name="config_file"       default="$(find wild_visual_navigation_ros)/config/rqt/input_traversability_images.perspective" />
+
+  <!-- Multiplot -->
+    <node name="wild_visual_navigation_debug_images" pkg="rqt_gui" type="rqt_gui" args="--perspective-file $(arg config_file)"/>
+</launch>
