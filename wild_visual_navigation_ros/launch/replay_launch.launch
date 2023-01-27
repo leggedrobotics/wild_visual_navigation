@@ -1,21 +1,25 @@
 <launch>
   <!-- Arguments -->
   <arg name="name"              default="wild_visual_navigation_node"/>
-  <arg name="params_file"       default="$(find wild_visual_navigation_ros)/config/parameters/default.yaml"/>
+  <arg name="params_file"       default="$(find wild_visual_navigation_ros)/config/wild_visual_navigation/default.yaml"/>
   <arg name="rviz_config"       default="anymal.rviz" />
-  <arg name="anymal_config"       default="/media/Data/Datasets/2022_Hoeng_High_Grass/cerberus.yaml" />
+  <arg name="anymal_config"     default="/media/Data/Datasets/2022_Hoeng_High_Grass/cerberus.yaml" />
 
   <arg name="anymal_converter"  default="True"/>
   <arg name="anymal_rsl_launch" default="True"/>
-  <arg name="debayer"           default="True"/>
+  <arg name="debayer"           default="False"/>
   <arg name="rviz"              default="True"/>
   <arg name="elevation_mapping" default="True"/>
   <arg name="local_planner"     default="True"/>
+  <arg name="uncompress_alphasense_cam3"     default="False"/>
+  <arg name="uncompress_alphasense_cam4"     default="True"/>
+  <arg name="uncompress_alphasense_cam5"     default="False"/>
 
   <!-- Set sim time to true -->
   <param name="/use_sim_time" type="bool" value="True" />
 
   <!-- Load parameters -->
+  <rosparam command="delete" param="$(arg name)" />
   <rosparam command="load" file="$(arg params_file)" ns="$(arg name)"/>
 
   <!-- Launch ANYmal message converter node -->
@@ -42,6 +46,7 @@
     <arg name="needs_rotation_cam3"       value="True" />
     <arg name="needs_rotation_cam4"       value="True" />
     <arg name="debayer_option"            value="bayer_gbrg8" />
+    <!-- <arg name="debayer_option"            value="auto" /> -->
     <arg name="output_frame3"             value="cam3_sensor_frame_helper"/>
     <arg name="output_frame4"             value="cam4_sensor_frame_helper"/>    
     <arg name="output_frame5"             value="cam5_sensor_frame_helper"/>
@@ -56,4 +61,15 @@
   <!-- Use RViz-->
   <node if="$(arg rviz)" name="wild_visual_navigation_rviz" pkg="rviz" type="rviz" args="-d $(find wild_visual_navigation_ros)/config/rviz/$(arg rviz_config)"/>
 
+
+  <node if="$(arg uncompress_alphasense_cam3)" name="uncompress_cam3" pkg="image_transport" type="republish">
+    <param name="in_transport" value="compressed"/>
+    <param name="in" value="/alphasense_driver_ros/cam3/debayered"/>
+    <param name="out_transport" value="raw"/>
+    <param name="out" value="/alphasense_driver_ros/cam3/debayered"/>
+  </node>
+
+  <node if="$(arg uncompress_alphasense_cam3)" name="uncompress_cam3" pkg="image_transport" type="republish" args="compressed in:=/alphasense_driver_ros/cam3/debayered raw out:=/alphasense_driver_ros/cam3/debayered" />
+  <node if="$(arg uncompress_alphasense_cam4)" name="uncompress_cam4" pkg="image_transport" type="republish" args="compressed in:=/alphasense_driver_ros/cam4/debayered raw out:=/alphasense_driver_ros/cam4/debayered" />
+  <node if="$(arg uncompress_alphasense_cam5)" name="uncompress_cam5" pkg="image_transport" type="republish" args="compressed in:=/alphasense_driver_ros/cam5/debayered raw out:=/alphasense_driver_ros/cam5/debayered" />
 </launch>

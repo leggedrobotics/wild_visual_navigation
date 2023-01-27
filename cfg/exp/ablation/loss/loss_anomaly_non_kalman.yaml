@@ -1,3 +1,0 @@
-loss:
-  anomaly_balanced: True
-  use_kalman_filter: False

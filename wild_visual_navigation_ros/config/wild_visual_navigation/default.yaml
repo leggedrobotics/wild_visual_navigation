@@ -21,7 +21,6 @@ camera_topics:
 # Relevant frames
 fixed_frame: odom
 base_frame: base
-camera_frame: cam4_sensor_frame_helper
 footprint_frame: footprint
 
 # Robot size
@@ -41,8 +40,11 @@ network_input_image_width: 224 # 448
 segmentation_type: "slic"
 feature_type: "dino"
 dino_patch_size: 16 # DINO only
-false_negative_weight: 1.0
-confidence_std_factor: 2.0
+confidence_std_factor: 1.0
+scale_traversability: True
+scale_traversability_max_fpr: 0.15
+min_samples_for_training: 5
+
 
 # Optical flow params
 optical_flow_estimator_type: "none"
@@ -57,18 +59,20 @@ mission_timestamp: True
 image_callback_rate: 3 # hertz
 proprio_callback_rate: 4 # hertz
 learning_thread_rate: 10 # hertz
+logging_thread_rate: 2 # hertz
 
 # Runtime options
 device: "cuda"
 mode: "online" # check out comments in the class WVNMode
 colormap: "RdYlBu"
 
-
-print_image_callback_time: true
+print_image_callback_time: false
 print_proprio_callback_time: false
 log_time: true
 log_memory: true
 log_confidence: true
+verbose: false
+debug_supervision_node_index_from_last: 10
 
 use_debug_for_desired: true
 extraction_store_folder:  "nan"

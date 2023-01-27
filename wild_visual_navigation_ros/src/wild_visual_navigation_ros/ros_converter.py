@@ -1,10 +1,10 @@
+import cv2
 from geometry_msgs.msg import Pose
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Image, CompressedImage
 from cv_bridge import CvBridge
 
 from liegroups.torch import SO3, SE3
-import cv2
 import numpy as np
 import torch
 import torchvision.transforms as transforms
