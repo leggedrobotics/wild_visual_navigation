@@ -67,15 +67,15 @@ class SmartCarrotNode:
 
         binary_mask = np.zeros((sdf.shape[0], sdf.shape[1]), dtype=np.uint8)
 
-        distance = 30 # sdf.shape[0] / 5
+        distance = 30  # sdf.shape[0] / 5
         center_x = int(sdf.shape[0] / 2 + math.sin(yaw) * distance)
         center_y = int(sdf.shape[1] / 2 + math.cos(yaw) * distance)
         binary_mask = cv2.circle(binary_mask, (center_x, center_y), 0, 255, 30)
-        distance = 55 #sdf.shape[0] / 3
+        distance = 55  # sdf.shape[0] / 3
         center_x = int(sdf.shape[0] / 2 + math.sin(yaw) * distance)
         center_y = int(sdf.shape[1] / 2 + math.cos(yaw) * distance)
         binary_mask = cv2.circle(binary_mask, (center_x, center_y), 0, 255, 40)
-        distance = 90 #sdf.shape[0] / 2
+        distance = 90  # sdf.shape[0] / 2
         center_x = int(sdf.shape[0] / 2 + math.sin(yaw) * distance)
         center_y = int(sdf.shape[1] / 2 + math.cos(yaw) * distance)
         binary_mask = cv2.circle(binary_mask, (center_x, center_y), 0, 255, 50)
@@ -84,10 +84,10 @@ class SmartCarrotNode:
         m2 = np.isnan(elevation)
 
         kernel = np.ones((3, 3), np.uint8)
-        m2 = cv2.dilate(np.uint8(m2)*255, kernel, iterations=1) == 255
+        m2 = cv2.dilate(np.uint8(m2) * 255, kernel, iterations=1) == 255
         sdf[m] = sdf.min()
         sdf[m2] = sdf.min()
-        
+
         if sdf.min() == sdf.max():
             return
 
