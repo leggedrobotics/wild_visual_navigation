@@ -7,8 +7,8 @@ from simple_parsing.helpers import Serializable
 class ExperimentParams(Serializable):
     @dataclass
     class GeneralParams:
-        name: str = "simple_gcn/debug"
-        timestamp: bool = False
+        name: str = "debug/debug"
+        timestamp: bool = True
         tag_list: List[str] = field(default_factory=lambda: ["debug"])
         skip_train: bool = False
         store_model_every_n_steps: Optional[int] = None
@@ -30,26 +30,22 @@ class ExperimentParams(Serializable):
 
     @dataclass
     class OptimizerParams:
-        @dataclass
-        class AdamwCfgParams:
-            momentum: float = 0.9
-            weight_decay: float = 4.0e-05
-
-        name: str = "ADAMW"
+        name: str = "ADAM"
         lr: float = 0.001
-        adamw_cfg: AdamwCfgParams = AdamwCfgParams()
 
     optimizer: OptimizerParams = OptimizerParams()
 
     @dataclass
     class LossParams:
         anomaly_balanced: bool = True
-        w_trav: float = 0.4
-        w_reco: float = 1.1
-        w_temp: float = 0.4
-        use_kalman_filter: bool = True
-        false_negative_weight: float = 1.0
-        confidence_std_factor: float = 2.0
+        w_trav: float = 0.03
+        w_trav_start: Optional[float] = None
+        w_trav_increase: Optional[float] = None  # 0.0004
+        w_reco: float = 0.5
+        w_temp: float = 0.75  # 0.75
+        method: str = "latest_measurment"
+        confidence_std_factor: float = 0.5
+        trav_cross_entropy: bool = False
 
     loss: LossParams = LossParams()
 
@@ -61,12 +57,15 @@ class ExperimentParams(Serializable):
         limit_train_batches: float = 1.0
         limit_val_batches: float = 1.0
         limit_test_batches: float = 1.0
-        max_epochs: Optional[int] = 10
+        max_epochs: Optional[int] = None
         profiler: bool = False
         num_sanity_val_steps: int = 0
-        check_val_every_n_epoch: int = 10
+        check_val_every_n_epoch: int = 1
         enable_checkpointing: bool = True
-        max_steps: int = -1
+        max_steps: int = 10000
+        enable_progress_bar: bool = True
+        weights_summary: Optional[str] = "top"
+        progress_bar_refresh_rate: Optional[int] = None
 
     trainer: TrainerParams = TrainerParams()
 
@@ -74,33 +73,41 @@ class ExperimentParams(Serializable):
     class AblationDataModuleParams:
         batch_size: int = 8
         num_workers: int = 0
-        env: str = "forest"
-        feature_key: str = "slic100_dino112_8"
+        env: str = "hilly"
+        feature_key: str = "slic100_dino224_16"
         test_equals_val: bool = False
         val_equals_test: bool = False
         test_all_datasets: bool = False
         training_data_percentage: int = 100
+        training_in_memory: bool = True
 
     ablation_data_module: AblationDataModuleParams = AblationDataModuleParams()
 
     @dataclass
     class ModelParams:
-        name: str = "SimpleGCN"
+        name: str = "SimpleMLP"
         load_ckpt: Optional[str] = None
 
         @dataclass
         class SimpleMlpCfgParams:
             input_size: int = 90
-            hidden_sizes: List[int] = field(default_factory=lambda: [64, 32, 1])
+            hidden_sizes: List[int] = field(default_factory=lambda: [256, 32, 1])
             reconstruction: bool = True
 
         simple_mlp_cfg: SimpleMlpCfgParams = SimpleMlpCfgParams()
 
         @dataclass
+        class DoubleMlpCfgParams:
+            input_size: int = 90
+            hidden_sizes: List[int] = field(default_factory=lambda: [64, 32, 1])
+
+        double_mlp_cfg: DoubleMlpCfgParams = DoubleMlpCfgParams()
+
+        @dataclass
         class SimpleGcnCfgParams:
             input_size: int = 90
             reconstruction: bool = True
-            hidden_sizes: List[int] = field(default_factory=lambda: [64, 32, 1])
+            hidden_sizes: List[int] = field(default_factory=lambda: [256, 128, 1])
 
         simple_gcn_cfg: SimpleGcnCfgParams = SimpleGcnCfgParams()
 
@@ -126,13 +133,13 @@ class ExperimentParams(Serializable):
 
     @dataclass
     class VisuParams:
-        train: int = 2
-        val: int = 2
-        test: int = 2
+        train: int = 5
+        val: int = 5
+        test: int = 0
         log_test_video: bool = False
         log_val_video: bool = False
         log_train_video: bool = False
-        log_every_n_epochs: int = 10
+        log_every_n_epochs: int = 5
 
         @dataclass
         class LearningVisuParams:
@@ -148,3 +155,8 @@ class ExperimentParams(Serializable):
         if not self.general.log_to_disk:
             assert self.trainer.profiler != "advanced", "Should not be advanced if not logging to disk"
             assert self.cb_checkpoint.active == False, "Should be False if not logging to disk"
+
+        if self.loss.trav_cross_entropy:
+            self.model.simple_mlp_cfg.hidden_sizes[-1] = 2
+            self.model.double_mlp_cfg.hidden_sizes[-1] = 2
+            self.model.simple_gcn_cfg.hidden_sizes[-1] = 2

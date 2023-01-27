@@ -30,8 +30,11 @@ inpainting:
 # Apply smoothing for inpainted layer
 
 # Apply smoothing.
-generic_smooth_filter:                                
-  enable: True
-  fill_nan: False
-  is_height_layer: False
-  layer_name: "visual_traversability_smooth"
+# smooth_filter_visual_traversability:
+#   name: smooth_filter
+#   enable: True
+#   fill_nan: False
+#   is_height_layer: False
+#   layer_name: "visual_traversability_smooth"
+#   extra_params:
+#     input_layer_name: "visual_traversability"
