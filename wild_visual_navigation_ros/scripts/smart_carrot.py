@@ -27,7 +27,7 @@ class SmartCarrotNode:
 
         self.offset /= self.offset.max()
         self.offset *= 0.5
-        self.debug = False
+        self.debug = True
 
     def callback(self, msg):
         st = time.time()
@@ -67,18 +67,18 @@ class SmartCarrotNode:
 
         binary_mask = np.zeros((sdf.shape[0], sdf.shape[1]), dtype=np.uint8)
 
-        distance = sdf.shape[0] / 5
+        distance = 30 # sdf.shape[0] / 5
         center_x = int(sdf.shape[0] / 2 + math.sin(yaw) * distance)
         center_y = int(sdf.shape[1] / 2 + math.cos(yaw) * distance)
         binary_mask = cv2.circle(binary_mask, (center_x, center_y), 0, 255, 30)
-        distance = sdf.shape[0] / 3
+        distance = 55 #sdf.shape[0] / 3
+        center_x = int(sdf.shape[0] / 2 + math.sin(yaw) * distance)
+        center_y = int(sdf.shape[1] / 2 + math.cos(yaw) * distance)
+        binary_mask = cv2.circle(binary_mask, (center_x, center_y), 0, 255, 40)
+        distance = 90 #sdf.shape[0] / 2
         center_x = int(sdf.shape[0] / 2 + math.sin(yaw) * distance)
         center_y = int(sdf.shape[1] / 2 + math.cos(yaw) * distance)
         binary_mask = cv2.circle(binary_mask, (center_x, center_y), 0, 255, 50)
-        distance = sdf.shape[0] / 2
-        center_x = int(sdf.shape[0] / 2 + math.sin(yaw) * distance)
-        center_y = int(sdf.shape[1] / 2 + math.cos(yaw) * distance)
-        binary_mask = cv2.circle(binary_mask, (center_x, center_y), 0, 255, 100)
         m = binary_mask == 0
         sdf += self.offset
         m2 = np.isnan(elevation)
