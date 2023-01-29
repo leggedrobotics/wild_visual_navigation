@@ -77,14 +77,14 @@ class LightningTrav(pl.LightningModule):
         BS = graph.ptr.numel() - 1
 
         res = self._model(graph)
-        loss, loss_aux = self._traversability_loss(graph, res)
+        loss, loss_aux, res_updated = self._traversability_loss(graph, res)
 
         for k, v in loss_aux.items():
             if k.find("loss") != -1:
                 self.log(f"{self._mode}_{k}", v.item(), on_epoch=True, prog_bar=True, batch_size=BS)
         self.log(f"{self._mode}_loss", loss.item(), on_epoch=True, prog_bar=True, batch_size=BS)
 
-        self.visu(graph, res, loss_aux["confidence"])
+        self.visu(graph, res_updated, loss_aux["confidence"])
 
         # This mask should contain all the segments corrosponding to trees.
         mask_anomaly = loss_aux["confidence"] < 0.5
@@ -93,7 +93,7 @@ class LightningTrav(pl.LightningModule):
         mask_anomaly[mask_proprioceptive] = False
         # Elements are valid if they are either an anomaly or we have walked on them to fit the ROC
         mask_valid = mask_anomaly | mask_proprioceptive
-        self._auxiliary_training_roc(res[mask_valid, 0], graph.y[mask_valid].type(torch.long))
+        self._auxiliary_training_roc(res_updated[mask_valid, 0], graph.y[mask_valid].type(torch.long))
 
         return loss
 
@@ -358,10 +358,10 @@ class LightningTrav(pl.LightningModule):
 
         res = self._model(graph)
 
-        loss, loss_aux = self._traversability_loss(graph, res)
+        loss, loss_aux, res_updated = self._traversability_loss(graph, res)
 
-        self._validation_roc_proprioceptive(preds=res[:, 0], target=graph.y.type(torch.long))
-        self._validation_auroc_proprioceptive(res[:, 0], graph.y.type(torch.long))
+        self._validation_roc_proprioceptive(preds=res_updated[:, 0], target=graph.y.type(torch.long))
+        self._validation_auroc_proprioceptive(res_updated[:, 0], graph.y.type(torch.long))
         self.log(
             "validation_auroc_proprioceptive",
             self._validation_auroc_proprioceptive,
@@ -377,7 +377,7 @@ class LightningTrav(pl.LightningModule):
                 self._validation_roc_proprioceptive_image,
                 self._validation_auroc_proprioceptive_image,
                 graph,
-                res,
+                res_updated,
                 loss_aux["confidence"],
             )
 
@@ -387,7 +387,7 @@ class LightningTrav(pl.LightningModule):
 
         self.log(f"{self._mode}_loss", loss.item(), on_epoch=True, prog_bar=True, batch_size=BS)
 
-        self.visu(graph, res, loss_aux["confidence"])
+        self.visu(graph, res_updated, loss_aux["confidence"])
         return loss
 
     def validation_epoch_end(self, outputs: EPOCH_OUTPUT):
@@ -440,7 +440,7 @@ class LightningTrav(pl.LightningModule):
 
         res = self._model(graph)
 
-        loss, loss_aux = self._traversability_loss(graph, res)
+        loss, loss_aux, res_updated = self._traversability_loss(graph, res, update_buffer=True)
 
         # project graph predictions and label onto the image
         self.log_metrics(
@@ -449,7 +449,7 @@ class LightningTrav(pl.LightningModule):
             self._test_roc_proprioceptive_image,
             self._test_auroc_proprioceptive_image,
             graph,
-            res,
+            res_updated,
             loss_aux["confidence"],
         )
 
@@ -458,12 +458,17 @@ class LightningTrav(pl.LightningModule):
                 self.log(f"{self._mode}_{k}", v.item(), on_epoch=True, prog_bar=True, batch_size=BS)
         self.log(f"{self._mode}_loss", loss.item(), on_epoch=True, prog_bar=True, batch_size=BS)
 
-        self.visu(graph, res, loss_aux["confidence"])
+        self.visu(graph, res_updated, loss_aux["confidence"])
 
         return loss
 
     def test_epoch_end(self, outputs: any, plot=False):
         ################ NEW VERSION ################
+
+        optimal_aurocs = self._traversability_loss.compute_anomaly_detection_threshold()
+        for k, v in optimal_aurocs.items():
+            self.log("optimal_anomaly_" + k, v, on_epoch=True)
+
         # label is the gt label
         test_roc_gt_image = self._test_roc_gt_image.compute()
         test_roc_gt_image = [a.cpu().numpy() for a in test_roc_gt_image]

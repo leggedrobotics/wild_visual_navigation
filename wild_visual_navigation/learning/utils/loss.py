@@ -4,6 +4,7 @@ import torch
 from typing import Optional
 from wild_visual_navigation.utils import ConfidenceGenerator
 from torch import nn
+from torchmetrics import ROC, AUROC
 
 
 class TraversabilityLoss(nn.Module):
@@ -41,9 +42,71 @@ class TraversabilityLoss(nn.Module):
             log_folder=log_folder,
         )
 
+        self._anomaly_detection_only = self._w_trav == 0
+        if self._anomaly_detection_only:
+            self._anomaly_balanced = False
+            self._anomaly_threshold = None
+            # Determine optimal thershould for anomaly detection
+            # Store all the reconsturction loss per segments
+            # Compute the AUC over the full dataset
+            # For each Threshold compute the AUROC and select the one with the highest value
+            self._prediction_buffer = []
+            self._target_prop_buffer = []
+            self._target_gt_buffer = []
+            print("Warning: Loss function will override the network traversability prediciton!")
+
+            # self._roc.reset()
+            # self._roc = ROC(task="binary")
+
     def reset(self):
         if self._anomaly_balanced:
             self._confidence_generator.reset()
+
+        if self._anomaly_detection_only:
+            self._prediction_buffer = []
+            self._target_prop_buffer = []
+            self._target_gt_buffer = []
+
+    def compute_anomaly_detection_threshold(self):
+        if self._anomaly_detection_only:
+            # Normalize prediction to 0-1
+            pred = torch.cat(self._prediction_buffer, dim=0)
+            max_val = pred.max()
+            pred = pred / max_val
+            # Low loss = traversable; High loss = not traversable
+            pred = 1 - pred
+
+            target_gt = torch.cat(self._target_gt_buffer, dim=0)
+            target_prop = torch.cat(self._target_prop_buffer, dim=0)
+
+            roc = ROC(task="binary", thresholds=5000)
+            roc.to(pred.device)
+            nr = 100
+            for k in range(int(pred.shape[0] / nr) + 1):
+                ma = (k + 1) * nr
+                if ma > pred.shape[0]:
+                    ma = pred.shape[0]
+                roc.update(pred[k * nr : ma], target_gt[k * nr : ma].type(torch.long))
+
+            fpr, tpr, thresholds = roc.compute()
+            aurocs = torch.zeros_like(thresholds)
+            for j, t in enumerate(thresholds.tolist()):
+                auroc = AUROC(task="binary")
+                auroc.to(pred.device)
+                auroc.update((pred > t).type(torch.float32), target_gt.type(torch.long))
+                aurocs[j] = auroc.compute()
+
+            max_idx = torch.where(aurocs == aurocs.max())[0][0]
+
+            auroc_prop = AUROC(task="binary")
+            auroc_prop.to(pred.device)
+            auroc_prop.update((pred > thresholds[max_idx]).type(torch.float32), target_prop.type(torch.long))
+
+            self._anomaly_threshold = (1 - thresholds[max_idx]) * max_val
+            self.reset()
+            return {"auroc_gt": aurocs.max().item(), "auroc_prop": auroc_prop.compute().item()}
+        else:
+            return {}
 
     def forward(
         self,
@@ -52,6 +115,7 @@ class TraversabilityLoss(nn.Module):
         update_generator: bool = True,
         step: int = 0,
         log_step: bool = False,
+        update_buffer: bool = False,
     ):
         # Compute reconstruction loss
         nr_channel_reco = graph.x.shape[1]
@@ -64,6 +128,11 @@ class TraversabilityLoss(nn.Module):
                 )
             else:
                 confidence = self._confidence_generator.inference_without_update(x=loss_reco)
+
+        if self._anomaly_detection_only and update_buffer:
+            self._prediction_buffer.append(loss_reco.clone().detach())
+            self._target_gt_buffer.append(graph.y_gt.clone().detach())
+            self._target_prop_buffer.append(graph.y.clone().detach())
 
         label = graph.y[:]
         if self._trav_cross_entropy:
@@ -121,10 +190,20 @@ class TraversabilityLoss(nn.Module):
         loss_reco_mean = loss_reco[graph.y_valid].mean()
         # Compute total loss
         loss = self._w_trav * loss_trav_confidence + self._w_reco * loss_reco_mean + self._w_temp * loss_temp
-        return loss, {
-            "loss_reco": loss_reco_mean,
-            "loss_trav": loss_trav_raw.mean(),
-            "loss_temp": loss_temp.mean(),
-            "loss_trav_confidence": loss_trav_confidence,
-            "confidence": confidence,
-        }
+
+        res_updated = res.clone().detach()
+        if self._anomaly_detection_only:
+            if self._anomaly_threshold is not None:
+                res_updated[:, 0] = (loss_reco < self._anomaly_threshold).type(torch.float32)
+
+        return (
+            loss,
+            {
+                "loss_reco": loss_reco_mean,
+                "loss_trav": loss_trav_raw.mean(),
+                "loss_temp": loss_temp.mean(),
+                "loss_trav_confidence": loss_trav_confidence,
+                "confidence": confidence,
+            },
+            res_updated,
+        )

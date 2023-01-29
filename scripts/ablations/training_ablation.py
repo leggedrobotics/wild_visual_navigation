@@ -36,6 +36,9 @@ if __name__ == "__main__":
         "--store_final_model", dest="store_final_model", action="store_true", help="store_final_model on all datasets."
     )
     parser.set_defaults(test_all_datasets=False)
+    parser.add_argument(
+        "--scenes", default="forest,hilly,grassland", type=str, help="List of scenes seperated by comma without spaces."
+    )
 
     parser.add_argument("--special_key", type=str, default="", help="Test on all datasets.")
     # python scripts/ablations/training_ablation.py --ablation_type=network --number_training_runs=3 --special_key="" &&\
@@ -86,7 +89,7 @@ if __name__ == "__main__":
     special_key = args.special_key
     ws = os.environ["ENV_WORKSTATION_NAME"]
     model_path = os.path.join(WVN_ROOT_DIR, f"results/ablations/{folder}_ablation_{ws}")
-    shutil.rmtree(model_path)
+    shutil.rmtree(model_path, ignore_errors=True)
     Path(model_path).mkdir(parents=True, exist_ok=True)
 
     directory = Path(os.path.join(WVN_ROOT_DIR, f"cfg/exp/ablation/{folder}"))
@@ -94,18 +97,22 @@ if __name__ == "__main__":
     # Train model and get test results for every epoch.
     results_epoch = {}
     j = 0
-    for scene in ["forest", "hilly", "grassland"]:
+    scenes = args.scenes.split(",")
+    print(f"The configuration files in folder {folder} will be evaluated on {scenes}")
+    for scene in scenes:
+        print(f"Scene: {scene}")
         model_results = {}
 
         for p in cfg_paths:
             run_results = {}
             for run in range(number_training_runs):
                 p = str(p)
+                print(f"Run number {j}: Scene {scene}, Run: {run}, Config: {p}")
                 exp = get_exp(args, model_path, p, scene)
                 res, model = training_routine(exp, seed=run)
                 run_results[str(run)] = copy.deepcopy(res)
                 j += 1
-                print(f"Run number {j}: Scene {scene}, Run: {run}, Config: {p}")
+
                 if args.store_final_model:
                     p_ = p.split("/")[-1][:-5]
                     p_ = os.path.join(exp.general.model_path, f"model_{p_}_{scene}_{run}.pt")

@@ -114,8 +114,18 @@ def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
 
     test_envs = []
     for j, dl in enumerate(test_dl):
+        if exp["loss"]["w_trav"] == 0:
+            model._traversability_loss._anomaly_threshold = None
+
         model.nr_test_run = j
         res = trainer.test(model=model, dataloaders=dl)[0]
+
+        if exp["loss"]["w_trav"] == 0:
+            # if we only perform anomaly detection
+            # the first run is used to determine the threshold
+            # in the second run the TraversabilityLoss writes the anomaly predictions based on the determined threshold as the traversability prediction score.
+            res = trainer.test(model=model, dataloaders=dl)[0]
+
         test_envs.append(dl.dataset.env)
 
     return {k: v for k, v in zip(test_envs, model.accumulated_test_results)}, model

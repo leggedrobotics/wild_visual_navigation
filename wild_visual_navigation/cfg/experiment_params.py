@@ -40,7 +40,7 @@ class ExperimentParams(Serializable):
         anomaly_balanced: bool = True
         w_trav: float = 0.03
         w_reco: float = 0.5
-        w_temp: float = 0.75  # 0.75
+        w_temp: float = 0.0  # 0.75
         method: str = "latest_measurment"
         confidence_std_factor: float = 0.5
         trav_cross_entropy: bool = False
@@ -71,7 +71,7 @@ class ExperimentParams(Serializable):
     class AblationDataModuleParams:
         batch_size: int = 8
         num_workers: int = 0
-        env: str = "hilly"
+        env: str = "forest"
         feature_key: str = "slic100_dino224_16"
         test_equals_val: bool = False
         val_equals_test: bool = False
