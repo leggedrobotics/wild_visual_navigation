@@ -73,7 +73,7 @@ if __name__ == "__main__":
     # Currently the model weights are stored every n steps.
     # This allows to reload the model and test it on the test dataloader.
 
-    shutil.rmtree(exp.general.model_path)
+    shutil.rmtree(exp.general.model_path, ignore_errors=True)
 
     Path(exp.general.model_path).mkdir(parents=True, exist_ok=True)
     percent = range(data_start_percentage, data_stop_percentage + data_percentage_increment, data_percentage_increment)
