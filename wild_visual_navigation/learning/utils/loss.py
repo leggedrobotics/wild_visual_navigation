@@ -41,11 +41,6 @@ class TraversabilityLoss(nn.Module):
             log_folder=log_folder,
         )
 
-    def schedule_w_trav(self):
-        if not self._w_trav_increase is None:
-            self._w_trav += self._w_trav_increase
-            self._w_trav = min(self._w_trav_start, self._w_trav)
-
     def reset(self):
         if self._anomaly_balanced:
             self._confidence_generator.reset()
