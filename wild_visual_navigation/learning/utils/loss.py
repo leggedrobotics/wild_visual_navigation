@@ -19,19 +19,10 @@ class TraversabilityLoss(nn.Module):
         trav_cross_entropy=False,
         log_enabled: bool = False,
         log_folder: str = "/tmp",
-        w_trav_start: Optional[float] = None,
-        w_trav_increase: Optional[float] = None,
     ):
         # TODO remove trav_cross_entropy default param when running in online mode
         super(TraversabilityLoss, self).__init__()
-        if w_trav_start is None:
-            self._w_trav_start = w_trav
-            self._w_trav = w_trav
-        else:
-            assert w_trav_start <= w_trav
-            self._w_trav = w_trav_start
-            self._w_trav_start = w_trav
-        self._w_trav_increase = w_trav_increase
+        self._w_trav = w_trav
 
         self._w_reco = w_reco
         self._w_temp = w_temp

@@ -64,8 +64,6 @@ class LightningTrav(pl.LightningModule):
 
     def training_step(self, batch: any, batch_idx: int) -> torch.Tensor:
         graph = batch
-        if self.global_step > 200:
-            self._traversability_loss.schedule_w_trav()
 
         nr = self._exp["general"]["store_model_every_n_steps"]
         if type(nr) == int:

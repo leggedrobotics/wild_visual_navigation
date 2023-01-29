@@ -39,8 +39,6 @@ class ExperimentParams(Serializable):
     class LossParams:
         anomaly_balanced: bool = True
         w_trav: float = 0.03
-        w_trav_start: Optional[float] = None
-        w_trav_increase: Optional[float] = None  # 0.0004
         w_reco: float = 0.5
         w_temp: float = 0.75  # 0.75
         method: str = "latest_measurment"
