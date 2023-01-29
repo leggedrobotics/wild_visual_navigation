@@ -32,16 +32,18 @@ class SmartCarrotNode:
         if self.distance_force_factor > 0:
             self.filter_chain_funcs.append(self.apply_distance_force)
             self.distance_force = None
-            
+
         if self.center_force_factor > 0:
             self.filter_chain_funcs.append(self.apply_center_force)
+
             def distance_to_line(array, x_cor, y_cor, yaw, start_x, start_y):
                 return np.abs(np.cos(yaw) * (x_cor - start_x) - np.sin(yaw) * (y_cor - start_y))
+
             self.vdistance_to_line = np.vectorize(distance_to_line)
 
         # Initialize ROS publishers
         self.pub = rospy.Publisher(f"~{self.debug_pub_topic}", GridMap, queue_size=5)
-        self.pub_goal = rospy.Publisher(self.goal_pub_topic, PoseWithCovarianceStamped, queue_size=5)        
+        self.pub_goal = rospy.Publisher(self.goal_pub_topic, PoseWithCovarianceStamped, queue_size=5)
 
         # Initialize TF listener
         self.tf_buffer = tf2_ros.Buffer(cache_time=rospy.Duration(10.0))
@@ -124,7 +126,6 @@ class SmartCarrotNode:
         mask_pattern = self.get_pattern_mask(H, W, yaw)
         mask_elevation = self.get_elevation_mask(layers["elevation"])
 
-
         for filter_func in self.filter_chain_funcs:
             layers["sdf"] = filter_func(yaw, layers["sdf"])
 
@@ -134,7 +135,6 @@ class SmartCarrotNode:
         if layers["sdf"].min() == layers["sdf"].max():
             rospy.logwarn(f"No valid elevation within the SDF of the defined pattern {e}")
             return
-
 
         # Get index of the maximum gridmax cell index within the SDF
         x, y = np.where(layers["sdf"] == layers["sdf"].max())
