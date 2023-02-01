@@ -4,7 +4,7 @@
   <arg name="debug"          default="false"/>
   <arg name="real_carrot"    default="true"/>
   <arg name="base_inverted"  default="true"/>
-  <arg name="traversability" default="visual"/> <!-- visual or geometric -->
+  <arg name="traversability" default="comparison"/> <!-- visual or geometric -->
 
   <arg name="output_twist_topic"      default="/local_guidance_path_follower/twist"/>
 

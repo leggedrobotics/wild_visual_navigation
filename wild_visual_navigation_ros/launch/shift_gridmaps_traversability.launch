@@ -1,0 +1,47 @@
+<launch>
+    <arg name="offset" default="1.05"/>
+
+    <node name="wild_visual_navigation_shift_visual_traversability" pkg="wild_visual_navigation_ros" type="shift_gridmap.py">
+        <param name="gridmap_sub_topic"                    value="/elevation_mapping/elevation_map_wifi" /> 
+        <param name="gridmap_pub_topic"                    value="/elevation_mapping/elevation_map_visual_traversability" />
+        <param name="offset_factor_x"                      value="0" />
+        <param name="offset_factor_y"                      value="0" />
+    </node>
+    
+    <node name="wild_visual_navigation_shift_visual_sdf" pkg="wild_visual_navigation_ros" type="shift_gridmap.py">
+        <param name="gridmap_sub_topic"                    value="/elevation_mapping/elevation_map_wifi" /> 
+        <param name="gridmap_pub_topic"                    value="/elevation_mapping/elevation_map_visual_sdf" />
+        <param name="offset_factor_x"                      value="$(eval arg('offset'))" />
+        <param name="offset_factor_y"                      value="0" />
+    </node>
+
+    <node name="wild_visual_navigation_shift_geometric_learned_traversability" pkg="wild_visual_navigation_ros" type="shift_gridmap.py">
+        <param name="gridmap_sub_topic"                    value="/elevation_mapping/elevation_map_wifi" /> 
+        <param name="gridmap_pub_topic"                    value="/elevation_mapping/elevation_map_geometric_learned_traversability" />
+        <param name="offset_factor_x"                      value="0" />
+        <param name="offset_factor_y"                      value="$(eval arg('offset'))" />
+    </node>
+    
+    <node name="wild_visual_navigation_shift_geometric_learned_sdf" pkg="wild_visual_navigation_ros" type="shift_gridmap.py">
+        <param name="gridmap_sub_topic"                    value="/elevation_mapping/elevation_map_wifi" /> 
+        <param name="gridmap_pub_topic"                    value="/elevation_mapping/elevation_map_geometric_learned_sdf" />
+        <param name="offset_factor_x"                      value="$(eval arg('offset'))" />
+        <param name="offset_factor_y"                      value="$(eval arg('offset'))" />
+    </node>
+
+    <node name="wild_visual_navigation_shift_geometric_traversability" pkg="wild_visual_navigation_ros" type="shift_gridmap.py">
+        <param name="gridmap_sub_topic"                    value="/elevation_mapping/elevation_map_wifi" /> 
+        <param name="gridmap_pub_topic"                    value="/elevation_mapping/elevation_map_geometric_traversability" />
+        <param name="offset_factor_x"                      value="0" />
+        <param name="offset_factor_y"                      value="$(eval 2*arg('offset'))" />
+    </node>
+    
+    <node name="wild_visual_navigation_shift_geometric_sdf" pkg="wild_visual_navigation_ros" type="shift_gridmap.py">
+        <param name="gridmap_sub_topic"                    value="/elevation_mapping/elevation_map_wifi" /> 
+        <param name="gridmap_pub_topic"                    value="/elevation_mapping/elevation_map_geometric_sdf" />
+        <param name="offset_factor_x"                      value="$(eval arg('offset'))" />
+        <param name="offset_factor_y"                      value="$(eval 2*arg('offset'))" />
+    </node>
+
+
+  </launch>
