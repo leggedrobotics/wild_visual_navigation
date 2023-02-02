@@ -12,7 +12,8 @@ patch_sklearn()
 
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
-
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neural_network import MLPClassifier
 import numpy as np
 import copy
 import os
@@ -21,14 +22,21 @@ from pathlib import Path
 
 env = load_env()
 number_training_runs = 10
-test_all_datasets = True
+test_all_datasets = False
 
 models = {
-    "KNN_1": KNeighborsClassifier(n_neighbors=1, weights="uniform"),
-    "KNN_3": KNeighborsClassifier(n_neighbors=3, weights="uniform"),
-    "SVM_poly": SVC(kernel="poly", degree=2),
-    "SVM_rbf": SVC(kernel="rbf"),
+    # "KNN1": KNeighborsClassifier(n_neighbors=1, weights="uniform"),
+    # "KNN3": KNeighborsClassifier(n_neighbors=3, weights="uniform"),
+    # "SVMpoly": SVC(kernel="poly", degree=2, probability=True),
+    # "SVMrbf": SVC(kernel="rbf", probability=True),
+    "RandomForest50": RandomForestClassifier(),
+    # "MLP": MLPClassifier(hidden_layer_sizes=(256,32), alpha=0, batch_size=800, learning_rate_init=0.001, max_iter=10000),
+    # "MLP64": MLPClassifier(hidden_layer_sizes=(256,32), alpha=0, batch_size=64, learning_rate_init=0.001, max_iter=10000),
+    # "MLP64_Slow": MLPClassifier(hidden_layer_sizes=(256,32), alpha=0, batch_size=64, learning_rate_init=0.0001, max_iter=10000)
+    "RandomForest500": RandomForestClassifier(),
 }
+
+# n_estimators=100, *, criterion='gini', max_depth=None, min_samples_split=2, min_samples_leaf=1, min_weight_fraction_leaf=0.0, max_featu
 
 results_epoch = {}
 
@@ -85,35 +93,73 @@ for scene in ["forest", "hilly", "grassland"]:
         run_results = {}
         for run in range(number_training_runs):
 
+            test_auroc_gt_image = AUROC("binary")
+            test_auroc_prop_image = AUROC("binary")
+            test_acc_gt_image = Accuracy("binary")
+            test_acc_prop_image = Accuracy("binary")
+
             test_auroc_gt = AUROC("binary")
             test_auroc_prop = AUROC("binary")
-
             v.fit(features, labels)
 
             test_reslts = {}
-            for features_test, y_gt, y_prop, test_scene in zip(features_tests, y_gts, y_props, test_scenes):
-                y_pred = v.predict(features_test)
-                test_auroc_gt.update(torch.from_numpy(y_pred).type(torch.long), torch.from_numpy(y_gt).type(torch.long))
-                test_auroc_prop.update(torch.from_numpy(y_pred), torch.from_numpy(y_prop).type(torch.long))
+
+            test_reslts_img = {}
+            for test_dataset in test_datasets:
+                for j, (d, test_scene) in enumerate(zip(test_dataset, test_scenes)):
+                    y_pred = torch.from_numpy(v.predict_proba(d.x.cpu().numpy())[:, 1])
+                    BS, H, W = d.label.shape
+                    # project graph predictions and label onto the image
+                    buffer_pred = d.label.clone().type(torch.float32).flatten()
+                    buffer_prop = d.label.clone().type(torch.float32).flatten()
+                    seg_pixel_index = (d.seg).flatten()
+
+                    buffer_pred = y_pred[seg_pixel_index].reshape(BS, H, W)
+                    buffer_prop = d.y[seg_pixel_index].reshape(BS, H, W)
+
+                    test_auroc_gt_image(preds=buffer_pred, target=d.label.type(torch.long))
+                    test_auroc_prop_image(preds=buffer_pred, target=buffer_prop.type(torch.long).cpu())
+
+                    test_acc_gt_image(preds=buffer_pred, target=d.label.type(torch.long))
+                    test_acc_prop_image(preds=buffer_pred, target=buffer_prop.type(torch.long).cpu())
 
                 res = {
-                    "test_auroc_gt_image": test_auroc_gt.compute().item(),
-                    "test_auroc_proprioceptive_image": test_auroc_prop.compute().item(),
+                    "test_auroc_gt_image": test_auroc_gt_image.compute().item(),
+                    "test_auroc_proprioceptive_image": test_auroc_prop_image.compute().item(),
+                    "test_acc_gt_image": test_acc_gt_image.compute().item(),
+                    "test_acc_proprioceptive_image": test_acc_prop_image.compute().item(),
                 }
+                test_reslts_img[test_scene] = res
                 print(
-                    f"{model_name}:  {scene} -test {test_scene} ---- AUROC_GT {test_auroc_gt.compute():.3f} , AUROC_PROP {test_auroc_prop.compute():.3f}"
+                    f"{model_name}:  {scene} -test {test_scene} ---- AUROC_GT_Image {test_auroc_gt_image.compute():.3f} , AUROC_SELF_Image {test_auroc_prop_image.compute():.3f}"
                 )
-                test_reslts[test_scene] = res
 
+            for features_test, y_gt, y_prop, test_scene in zip(features_tests, y_gts, y_props, test_scenes):
+                y_pred = v.predict_proba(features_test)
+                test_auroc_gt.update(torch.from_numpy(y_pred[:, 1]), torch.from_numpy(y_gt).type(torch.long))
+                test_auroc_prop.update(torch.from_numpy(y_pred[:, 1]), torch.from_numpy(y_prop).type(torch.long))
+
+                res = {
+                    "test_auroc_gt": test_auroc_gt.compute().item(),
+                    "test_auroc_proprioceptive": test_auroc_prop.compute().item(),
+                }
+                res.update(test_reslts_img[test_scene])
+
+                print(
+                    f"{model_name}:  {scene} -test {test_scene} ---- AUROC_GT {test_auroc_gt.compute():.3f} , AUROC_SELF {test_auroc_prop.compute():.3f}"
+                )
+
+                test_reslts[test_scene] = res
             run_results[str(run)] = copy.deepcopy(test_reslts)
         model_results[model_name] = copy.deepcopy(run_results)
     results_epoch[scene] = copy.deepcopy(model_results)
 
+    ws = os.environ["ENV_WORKSTATION_NAME"]
     # Store epoch output to disk.
     p = os.path.join(
-        env["base"], "ablations/classicial_learning_ablation/classicial_learning_ablation_test_results.pkl"
+        env["base"], f"ablations/classicial_learning_ablation_{ws}/classicial_learning_ablation_test_results.pkl"
     )
-
+    print(results_epoch)
     Path(p).parent.mkdir(parents=True, exist_ok=True)
 
     try:

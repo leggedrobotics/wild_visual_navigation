@@ -4,7 +4,7 @@ import torch
 from typing import Optional
 from wild_visual_navigation.utils import ConfidenceGenerator
 from torch import nn
-from torchmetrics import ROC, AUROC
+from torchmetrics import ROC, AUROC, Accuracy
 
 
 class TraversabilityLoss(nn.Module):
@@ -42,71 +42,9 @@ class TraversabilityLoss(nn.Module):
             log_folder=log_folder,
         )
 
-        self._anomaly_detection_only = self._w_trav == 0
-        if self._anomaly_detection_only:
-            self._anomaly_balanced = False
-            self._anomaly_threshold = None
-            # Determine optimal thershould for anomaly detection
-            # Store all the reconsturction loss per segments
-            # Compute the AUC over the full dataset
-            # For each Threshold compute the AUROC and select the one with the highest value
-            self._prediction_buffer = []
-            self._target_prop_buffer = []
-            self._target_gt_buffer = []
-            print("Warning: Loss function will override the network traversability prediciton!")
-
-            # self._roc.reset()
-            # self._roc = ROC(task="binary")
-
     def reset(self):
         if self._anomaly_balanced:
             self._confidence_generator.reset()
-
-        if self._anomaly_detection_only:
-            self._prediction_buffer = []
-            self._target_prop_buffer = []
-            self._target_gt_buffer = []
-
-    def compute_anomaly_detection_threshold(self):
-        if self._anomaly_detection_only:
-            # Normalize prediction to 0-1
-            pred = torch.cat(self._prediction_buffer, dim=0)
-            max_val = pred.max()
-            pred = pred / max_val
-            # Low loss = traversable; High loss = not traversable
-            pred = 1 - pred
-
-            target_gt = torch.cat(self._target_gt_buffer, dim=0)
-            target_prop = torch.cat(self._target_prop_buffer, dim=0)
-
-            roc = ROC(task="binary", thresholds=5000)
-            roc.to(pred.device)
-            nr = 100
-            for k in range(int(pred.shape[0] / nr) + 1):
-                ma = (k + 1) * nr
-                if ma > pred.shape[0]:
-                    ma = pred.shape[0]
-                roc.update(pred[k * nr : ma], target_gt[k * nr : ma].type(torch.long))
-
-            fpr, tpr, thresholds = roc.compute()
-            aurocs = torch.zeros_like(thresholds)
-            for j, t in enumerate(thresholds.tolist()):
-                auroc = AUROC(task="binary")
-                auroc.to(pred.device)
-                auroc.update((pred > t).type(torch.float32), target_gt.type(torch.long))
-                aurocs[j] = auroc.compute()
-
-            max_idx = torch.where(aurocs == aurocs.max())[0][0]
-
-            auroc_prop = AUROC(task="binary")
-            auroc_prop.to(pred.device)
-            auroc_prop.update((pred > thresholds[max_idx]).type(torch.float32), target_prop.type(torch.long))
-
-            self._anomaly_threshold = (1 - thresholds[max_idx]) * max_val
-            self.reset()
-            return {"auroc_gt": aurocs.max().item(), "auroc_prop": auroc_prop.compute().item()}
-        else:
-            return {}
 
     def forward(
         self,
@@ -156,46 +94,13 @@ class TraversabilityLoss(nn.Module):
         else:
             loss_trav_confidence = loss_trav_raw.mean()
 
-        # Compute temoporal loss
-        if self._w_temp > 0:
-            with torch.no_grad():
-                # Create graph for previous image
-                ptr = [torch.tensor(0, device=graph.x.device)]
-                graph.edge_index_previous
-                for b in graph.x_previous_count:
-                    ptr.append(ptr[-1] + b)
-                    graph.edge_index_previous[ptr[-2] : ptr[-1]] += ptr[-2]
-                ptr = torch.stack(ptr)
-                graph_aux = Data(x=graph.x_previous, edge_index=graph.edge_index_previous, ptr=ptr)
-
-                # Inference the previous image
-                aux_res = self._model(graph_aux)
-
-                # This part is tricky:
-                # 1. Correspondences across each graph is stored as a list where [:,0] points to the previous graph segment
-                #    and [:,1] to the respective current graph segment.
-                # 2. We use the graph_ptrs to correctly increment the indexes such that we can do a graph operation to
-                #    to compute the MSE.
-                current_indexes = []
-                previous_indexes = []
-                for j, (ptr, aux_ptr) in enumerate(zip(graph.ptr[:-1], graph_aux.ptr[:-1])):
-                    current_indexes.append(graph[j].correspondence[:, 1] + ptr)
-                    previous_indexes.append(graph[j].correspondence[:, 0] + aux_ptr)
-                previous_indexes = torch.cat(previous_indexes)
-                current_indexes = torch.cat(current_indexes)
-            loss_temp = F.mse_loss(res[current_indexes, 0], aux_res[previous_indexes, 0])
-        else:
-            loss_temp = torch.zeros_like(loss_trav_confidence)
+        loss_temp = torch.zeros_like(loss_trav_confidence)
 
         loss_reco_mean = loss_reco[graph.y_valid].mean()
         # Compute total loss
         loss = self._w_trav * loss_trav_confidence + self._w_reco * loss_reco_mean + self._w_temp * loss_temp
 
-        res_updated = res.clone().detach()
-        if self._anomaly_detection_only:
-            if self._anomaly_threshold is not None:
-                res_updated[:, 0] = (loss_reco < self._anomaly_threshold).type(torch.float32)
-
+        res_updated = res
         return (
             loss,
             {
