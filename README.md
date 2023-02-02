@@ -237,4 +237,7 @@ pytest
 ```
 Pytest is not checked on push.
 
+### Helper
+rsync -r --stats --delete --force --exclude '*.neptune*' --exclude '*results*'  --exclude '*.git*' --exclude '__pycache__' --exclude '*.pyc' --exclude 'wild_visual_navigation.egg-info*' --exclude 'src*'  --exclude '.vscode/*' --exclude 'build*' $HOME/git/wild_visual_navigation/ jonfrey@ws:/home/jonfrey/git/wild_visual_navigation
+
 ## Credits
