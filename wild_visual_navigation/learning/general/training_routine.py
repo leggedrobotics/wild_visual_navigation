@@ -119,44 +119,6 @@ def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
 
         model.nr_test_run = j
         res = trainer.test(model=model, dataloaders=dl)[0]
-
-        if exp["loss"]["w_trav"] == 0:
-            # if we only perform anomaly detection
-            # the first run is used to determine the threshold
-            # in the second run the TraversabilityLoss writes the anomaly predictions based on the determined threshold as the traversability prediction score.
-            res = trainer.test(model=model, dataloaders=dl)[0]
-
         test_envs.append(dl.dataset.env)
 
     return {k: v for k, v in zip(test_envs, model.accumulated_test_results)}, model
-
-    # TODO fix neptune logging and optuna tuning
-    #     if exp["general"]["log_to_disk"]:
-    #         with open(os.path.join(model_path, f"{j}_detailed_test_results.pkl"), "rb") as handle:
-    #             dtr_ls.append(pickle.load(handle))
-
-    #         try:
-    #             logger.experiment["detailed_test_results"].upload_files(
-    #                 os.path.join(model_path, f"{j}_detailed_test_results.pkl")
-    #             )
-    #             # logger.experiment["model_folder"].track_files(model_path)
-    #         except:
-    #             pass
-
-    # if exp["general"]["log_to_disk"]:
-    #     with open(os.path.join(exp["general"]["model_path"], f"detailed_test_results.pkl"), "wb") as handle:
-    #         pickle.dump(dtr_ls, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    #     try:
-    #         logger.experiment["model_checkpoint"].upload_files(os.path.join(model_path, "last.ckpt"))
-    #     except:
-    #         pass
-
-    # res["detailed_test_results"] = dtr_ls
-
-    # try:
-    #     short_id = logger.experiment._short_id
-    #     project_name = logger._project_name
-    # except Exception as e:
-    #     project_name = "not_defined"
-    #     short_id = 0
-    # return res, model_path, short_id, project_name
