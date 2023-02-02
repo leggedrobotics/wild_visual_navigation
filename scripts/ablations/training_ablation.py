@@ -16,7 +16,7 @@ import shutil
 
 from dataclasses import asdict
 import copy
-    
+
 if __name__ == "__main__":
     """Test how much time and data it takes for a model to convergee on a scene.
     Settings:
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     parser.add_argument("--special_key", type=str, default="", help="Test on all datasets.")
     # python scripts/ablations/training_ablation.py --ablation_type=network --number_training_runs=3 --special_key="" &&\
     # python scripts/ablations/training_ablation.py --ablation_type=confidence_fn --number_training_runs=3 --special_key="" &&\
-    # python scripts/ablations/training_ablation.py --ablation_type=feature --number_training_runs=3 --special_key="" &&\
+    # python scripts/ablations/training_ablation.py --ablation_type=feature --number_training_runs=10 --special_key="" &&\
     # python scripts/ablations/training_ablation.py --ablation_type=loss --number_training_runs=1 --special_key="" &&\
     # python scripts/ablations/training_ablation.py --ablation_type=loss_with_tmp --number_training_runs=3 --special_key="" &&\
     # python scripts/ablations/training_ablation.py --ablation_type=w_temp --number_training_runs=3 --special_key="" &&\
@@ -60,11 +60,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     exp = ExperimentParams()
     stored_params = asdict(exp)
-    
+
     def get_exp(args, model_path, p, scene, stored_params):
         exp = ExperimentParams()
-        override_params(exp, copy.deepcopy( stored_params ))
-        
+        override_params(exp, copy.deepcopy(stored_params))
+
         exp.general.log_to_disk = False
         exp.trainer.max_steps = 10000
         exp.trainer.max_epochs = None
