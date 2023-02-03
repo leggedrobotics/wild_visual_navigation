@@ -1,0 +1,39 @@
+<launch>
+  <!-- Arguments -->
+  <arg name="path" default=""/>
+  <arg name="elevation_mapping" default="True"/>
+  <arg name="local_planner"     default="True"/>
+  <arg name="wvn"               default="True"/>
+
+  <!-- Launch ANYmal message converter node -->
+  <node name="wild_visual_navigation_replay" pkg="rosbag" type="play" args="--pause --clock --bags=$(arg path)/*.bag" output="screen">
+    <!-- Elevation mapping -->
+    <remap unless="$(arg elevation_mapping)" from="/elevation_mapping/elevation_map_raw" to="/recorded/elevation_mapping/elevation_map_raw"/>
+    <remap unless="$(arg elevation_mapping)" from="/elevation_mapping/semantic_map_raw" to="/recorded/elevation_mapping/semantic_map_raw"/>
+
+    <!-- Local planner -->
+    <remap unless="$(arg local_planner)" from="/elevation_mapping/elevation_map_wifi" to="/recorded/elevation_mapping/elevation_map_wifi"/>
+    <remap unless="$(arg local_planner)" from="/elevation_mapping/elevation_map_filtered" to="/recorded/elevation_mapping/elevation_map_filtered"/>
+
+    <remap unless="$(arg local_planner)" from="/field_local_planner/action_server/cancel" to="/recorded/field_local_planner/action_server/cancel"/>
+    <remap unless="$(arg local_planner)" from="/field_local_planner/action_server/feedback" to="/recorded/field_local_planner/action_server/feedback"/>
+    <remap unless="$(arg local_planner)" from="/field_local_planner/action_server/goal" to="/recorded/field_local_planner/action_server/goal"/>
+    <remap unless="$(arg local_planner)" from="/field_local_planner/action_server/result" to="/recorded/field_local_planner/action_server/result"/>
+    <remap unless="$(arg local_planner)" from="/field_local_planner/action_server/status" to="/recorded/field_local_planner/action_server/status"/>
+    <remap unless="$(arg local_planner)" from="/field_local_planner/current_base" to="/recorded/field_local_planner/current_base"/>
+    <remap unless="$(arg local_planner)" from="/field_local_planner/current_goal" to="/recorded/elevation_mapping/elevation_map_wifi"/>
+    <remap unless="$(arg local_planner)" from="/field_local_planner/parameter_descriptions" to="/recorded/field_local_planner/parameter_descriptions"/>
+    <remap unless="$(arg local_planner)" from="/field_local_planner/parameter_updates" to="/recorded/field_local_planner/parameter_updates"/>
+    <remap unless="$(arg local_planner)" from="/field_local_planner/path" to="/recorded/field_local_planner/path"/>
+    <remap unless="$(arg local_planner)" from="/field_local_planner/real_carrot" to="/recorded/field_local_planner/real_carrot"/>
+    <remap unless="$(arg local_planner)" from="/field_local_planner/real_carrot_array" to="/recorded/field_local_planner/real_carrot_array"/>
+    <remap unless="$(arg local_planner)" from="/field_local_planner/rmp/control_points" to="/recorded/field_local_planner/rmp/control_points"/>
+    <remap unless="$(arg local_planner)" from="/field_local_planner/rmp/parameter_descriptions" to="/recorded/field_local_planner/rmp/parameter_descriptions"/>
+    <remap unless="$(arg local_planner)" from="/field_local_planner/rmp/parameter_updates" to="/recorded/field_local_planner/rmp/parameter_updates"/>
+    <remap unless="$(arg local_planner)" from="/field_local_planner/status" to="/field_local_planner/status"/>
+
+    <remap unless="$(arg local_planner)" from="/local_guidance_path_follower/twist" to="/recorded/local_guidance_path_follower/twist"/>
+
+    <!-- Wild visual navigation -->
+  </node>
+</launch>

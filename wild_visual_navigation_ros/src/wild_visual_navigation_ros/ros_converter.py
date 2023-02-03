@@ -3,6 +3,7 @@ from geometry_msgs.msg import Pose
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Image, CompressedImage
 from cv_bridge import CvBridge
+import rospy
 
 from liegroups.torch import SO3, SE3
 import numpy as np
@@ -118,7 +119,7 @@ def ros_image_to_torch(ros_img, desired_encoding="rgb8", device="cpu"):
     return TO_TENSOR(np_image).to(device)
 
 
-def torch_to_ros_image(torch_img, desired_encoding="rgb8"):
+def torch_to_ros_image(torch_img, desired_encoding="rgb8", stamp=None):
     """
 
     Args:
@@ -131,10 +132,11 @@ def torch_to_ros_image(torch_img, desired_encoding="rgb8"):
 
     np_img = np.array(TO_PIL_IMAGE(torch_img.cpu()))
     ros_img = CV_BRIDGE.cv2_to_imgmsg(np_img, encoding=desired_encoding)
+    ros_img.header.stamp = rospy.get_rostime() if stamp is None else stamp
     return ros_img
 
 
-def numpy_to_ros_image(np_img, desired_encoding="rgb8"):
+def numpy_to_ros_image(np_img, desired_encoding="rgb8", stamp=None):
     """
 
     Args:
@@ -144,8 +146,9 @@ def numpy_to_ros_image(np_img, desired_encoding="rgb8"):
     Returns:
         _type_: _description_
     """
-    ros_image = CV_BRIDGE.cv2_to_imgmsg(np_img, encoding=desired_encoding)
-    return ros_image
+    ros_img = CV_BRIDGE.cv2_to_imgmsg(np_img, encoding=desired_encoding)
+    ros_img.header.stamp = rospy.get_rostime() if stamp is None else stamp
+    return ros_img
 
 
 def torch_to_ros_pose(torch_pose):

@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+
+<launch>
+  <!-- Which paths should be calculated-->
+  <arg name="fixed_frame"                   default="map_new"/> <!-- point_cloud_odom -->
+  <arg name="base_frame"                    default="base"/>
+
+  <node name="wild_visual_navigation_trajectory_server" pkg="hector_trajectory_server" type="hector_trajectory_server" output="screen">
+    <remap from="/trajectory"             to="/wild_visual_navigation_node/robot_trajectory"/>
+    <param name="target_frame_name"       type="string" value="$(arg fixed_frame)" />
+    <param name="source_frame_name"       type="string" value="$(arg base_frame)" />
+    <param name="trajectory_update_rate"  type="double" value="10" />
+    <param name="trajectory_publish_rate" type="double" value="2" />
+  </node>
+
+</launch>
