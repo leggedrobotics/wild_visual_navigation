@@ -27,14 +27,14 @@ class MetricLogger(torch.nn.Module):
 
         # IMAGE SPACE
         # ROC
-        self.roc_gt_image = torch.nn.ModuleDict({m: ROC(task="binary") for m in modes})
-        self.roc_self_image = torch.nn.ModuleDict({m: ROC(task="binary") for m in modes})
+        self.roc_gt_image = torch.nn.ModuleDict({m: ROC(task="binary", thresholds=5000) for m in modes})
+        self.roc_self_image = torch.nn.ModuleDict({m: ROC(task="binary", thresholds=5000) for m in modes})
         # AUROC
-        self.auroc_gt_image = torch.nn.ModuleDict({m: AUROC(task="binary") for m in modes})
-        self.auroc_self_image = torch.nn.ModuleDict({m: AUROC(task="binary") for m in modes})
+        self.auroc_gt_image = torch.nn.ModuleDict({m: AUROC(task="binary", thresholds=5000) for m in modes})
+        self.auroc_self_image = torch.nn.ModuleDict({m: AUROC(task="binary", thresholds=5000) for m in modes})
         # AUROC ANOMALY
-        self.auroc_anomaly_gt_image = torch.nn.ModuleDict({m: AUROC(task="binary") for m in modes})
-        self.auroc_anomaly_self_image = torch.nn.ModuleDict({m: AUROC(task="binary") for m in modes})
+        self.auroc_anomaly_gt_image = torch.nn.ModuleDict({m: AUROC(task="binary", thresholds=5000) for m in modes})
+        self.auroc_anomaly_self_image = torch.nn.ModuleDict({m: AUROC(task="binary", thresholds=5000) for m in modes})
         # ACC
         self.acc_gt_image = torch.nn.ModuleDict({m: Accuracy(task="binary") for m in modes})
         self.acc_self_image = torch.nn.ModuleDict({m: Accuracy(task="binary") for m in modes})
@@ -66,7 +66,7 @@ class MetricLogger(torch.nn.Module):
             batch_size=graph.label.shape[0],
         )
 
-    def log_image(self, graph, res, mode):
+    def log_image(self, graph, res, mode, threshold=0.5):
         mode = mode + "_metric"
         # project graph predictions and label onto the image
         bp = graph.label.clone().type(torch.float32).flatten()
@@ -98,8 +98,8 @@ class MetricLogger(torch.nn.Module):
         )
 
         # GT
-        self.acc_gt_image[mode](preds=bp, target=graph.label.type(torch.long))
-        self.acc_self_image[mode](preds=bp, target=bpro.type(torch.long))
+        self.acc_gt_image[mode](preds=bp > threshold, target=graph.label.type(torch.long))
+        self.acc_self_image[mode](preds=bp > threshold, target=bpro.type(torch.long))
 
         self.log_handel(f"{mode}_acc_gt_image", self.acc_gt_image[mode], on_epoch=True, on_step=False, batch_size=BS)
         self.log_handel(
@@ -138,8 +138,8 @@ class MetricLogger(torch.nn.Module):
             batch_size=BS,
         )
 
-        self.acc_anomaly_gt_image[mode](preds=bp, target=graph.label.type(torch.long))
-        self.acc_anomaly_self_image[mode](preds=bp, target=bpro.type(torch.long))
+        self.acc_anomaly_gt_image[mode](preds=buffer_conf, target=graph.label.type(torch.long))
+        self.acc_anomaly_self_image[mode](preds=buffer_conf, target=bpro.type(torch.long))
         self.log_handel(
             f"{mode}_acc_anomaly_gt_image", self.acc_anomaly_gt_image[mode], on_epoch=True, on_step=False, batch_size=BS
         )
@@ -214,7 +214,7 @@ class LightningTrav(pl.LightningModule):
         self._log = log
 
         self._metric_logger = MetricLogger(self.log)
-        self._auxiliary_training_roc = ROC(task="binary")
+        self._auxiliary_training_roc = ROC(task="binary", thresholds=5000)
 
         # The Accumulated results are used to store the results of the validation dataloader for every validation epoch. Allows after training to have summary avaiable.
         self.accumulated_val_results = []
@@ -225,6 +225,8 @@ class LightningTrav(pl.LightningModule):
         self._val_step = 0
 
         self._traversability_loss = TraversabilityLoss(**self._exp["loss"], model=self._model)
+        threshold = torch.tensor([0.5], dtype=torch.float32, requires_grad=False)
+        self.register_buffer("threshold", threshold)
 
     def forward(self, data: torch.tensor):
         return self._model(data)
@@ -234,7 +236,7 @@ class LightningTrav(pl.LightningModule):
         self._mode = "train"
         self._visu_count[self._mode] = 0
         self._visualizer.epoch = self.current_epoch
-        self._auxiliary_training_roc.reset()
+        # self._auxiliary_training_roc.reset()
 
     def training_step(self, batch: any, batch_idx: int) -> torch.Tensor:
         graph = batch
@@ -246,6 +248,7 @@ class LightningTrav(pl.LightningModule):
                     self._exp["general"]["model_path"],
                     self._exp["general"]["store_model_every_n_steps_key"] + f"_{self.global_step}.pt",
                 )
+                self.update_threshold()
                 torch.save(self.state_dict(), path)
 
         BS = graph.ptr.numel() - 1
@@ -309,11 +312,23 @@ class LightningTrav(pl.LightningModule):
 
         self._metric_logger.reset("val")
 
-    # TESTING
+    def update_threshold(self):
+        # TESTING
+        if self._exp["general"]["use_threshold"]:
+            try:
+                fpr, tpr, thresholds = self._auxiliary_training_roc.compute()
+                index = torch.where(fpr > 0.15)[0][0]
+                self.threshold[0] = thresholds[index]
+            except:
+                pass
+        else:
+            self.threshold[0] = 0.5
+
     def on_test_epoch_start(self):
         self._mode = "test"
         self._visu_count[self._mode] = 0
         self._metric_logger.reset("test")
+        self.update_threshold()
 
     def test_step(self, batch: any, batch_idx: int, dataloader_id: int = 0) -> torch.Tensor:
         graph = batch
@@ -322,7 +337,7 @@ class LightningTrav(pl.LightningModule):
         loss, loss_aux, res_updated = self._traversability_loss(graph, res, update_buffer=True)
 
         if hasattr(graph, "label"):
-            self._metric_logger.log_image(graph, res_updated, self._mode)
+            self._metric_logger.log_image(graph, res_updated, self._mode, threshold=self.threshold.item())
             self._metric_logger.log_confidence(graph, res_updated, loss_aux["confidence"], self._mode)
 
         for k, v in loss_aux.items():
@@ -335,6 +350,13 @@ class LightningTrav(pl.LightningModule):
     def test_epoch_end(self, outputs: any, plot=False):
         ################ NEW VERSION ################
         res = self._metric_logger.get_epoch_results("test")
+        dic2 = {
+            "trainer_logged_metric" + k: v.item()
+            for k, v in self.trainer.logged_metrics.items()
+            if k.find("step") == -1
+        }
+        res.update(dic2)
+
         self.accumulated_test_results.append(res)
         self._metric_logger.reset("test")
         return {}

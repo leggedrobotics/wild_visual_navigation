@@ -27,6 +27,15 @@ inpainting:
   layer_name: "inpaint"
   extra_params:
     method: "telea"                           # telea or ns
+
+# Apply inpainting using opencv
+elevation_semantic:
+  enable: True
+  fill_nan: False
+  is_height_layer: True
+  layer_name: "elevation_with_semantic"
+  extra_params:
+    method: "telea"                           # telea or ns
 # Apply smoothing for inpainted layer
 
 # Apply smoothing.
