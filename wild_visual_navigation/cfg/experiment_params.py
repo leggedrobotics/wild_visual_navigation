@@ -16,6 +16,7 @@ class ExperimentParams(Serializable):
         log_to_disk: bool = True
         model_path: Optional[str] = None
         log_confidence: bool = True
+        use_threshold: bool = True
 
     general: GeneralParams = GeneralParams()
 

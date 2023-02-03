@@ -21,14 +21,14 @@ import pickle
 from pathlib import Path
 
 env = load_env()
-number_training_runs = 10
+number_training_runs = 5
 test_all_datasets = False
 
 models = {
     # "KNN1": KNeighborsClassifier(n_neighbors=1, weights="uniform"),
     # "KNN3": KNeighborsClassifier(n_neighbors=3, weights="uniform"),
-    # "SVMpoly": SVC(kernel="poly", degree=2, probability=True),
-    # "SVMrbf": SVC(kernel="rbf", probability=True),
+    "SVMpoly": SVC(kernel="poly", degree=2, probability=True),
+    "SVMrbf": SVC(kernel="rbf", probability=True),
     "RandomForest50": RandomForestClassifier(),
     # "MLP": MLPClassifier(hidden_layer_sizes=(256,32), alpha=0, batch_size=800, learning_rate_init=0.001, max_iter=10000),
     # "MLP64": MLPClassifier(hidden_layer_sizes=(256,32), alpha=0, batch_size=64, learning_rate_init=0.001, max_iter=10000),
@@ -125,9 +125,9 @@ for scene in ["forest", "hilly", "grassland"]:
 
                 res = {
                     "test_auroc_gt_image": test_auroc_gt_image.compute().item(),
-                    "test_auroc_proprioceptive_image": test_auroc_prop_image.compute().item(),
+                    "test_auroc_self_image": test_auroc_prop_image.compute().item(),
                     "test_acc_gt_image": test_acc_gt_image.compute().item(),
-                    "test_acc_proprioceptive_image": test_acc_prop_image.compute().item(),
+                    "test_acc_self_image": test_acc_prop_image.compute().item(),
                 }
                 test_reslts_img[test_scene] = res
                 print(
@@ -140,8 +140,8 @@ for scene in ["forest", "hilly", "grassland"]:
                 test_auroc_prop.update(torch.from_numpy(y_pred[:, 1]), torch.from_numpy(y_prop).type(torch.long))
 
                 res = {
-                    "test_auroc_gt": test_auroc_gt.compute().item(),
-                    "test_auroc_proprioceptive": test_auroc_prop.compute().item(),
+                    "test_auroc_gt_seg": test_auroc_gt.compute().item(),
+                    "test_auroc_self_seg": test_auroc_prop.compute().item(),
                 }
                 res.update(test_reslts_img[test_scene])
 

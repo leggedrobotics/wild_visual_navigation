@@ -67,11 +67,6 @@ class TraversabilityLoss(nn.Module):
             else:
                 confidence = self._confidence_generator.inference_without_update(x=loss_reco)
 
-        if self._anomaly_detection_only and update_buffer:
-            self._prediction_buffer.append(loss_reco.clone().detach())
-            self._target_gt_buffer.append(graph.y_gt.clone().detach())
-            self._target_prop_buffer.append(graph.y.clone().detach())
-
         label = graph.y[:]
         if self._trav_cross_entropy:
             label = label.type(torch.long)
