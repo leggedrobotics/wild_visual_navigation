@@ -115,7 +115,6 @@ if __name__ == "__main__":
                 p = str(p)
                 print(f"Run number {j}: Scene {scene}, Run: {run}, Config: {p}")
                 exp = get_exp(args, model_path, p, scene, stored_params)
-                print(exp.loss)
                 res, model = training_routine(exp, seed=run)
                 run_results[str(run)] = copy.deepcopy(res)
                 j += 1

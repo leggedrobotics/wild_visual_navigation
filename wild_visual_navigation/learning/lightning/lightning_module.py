@@ -14,27 +14,29 @@ import pickle
 
 
 class MetricLogger(torch.nn.Module):
-    def __init__(self, log_handel):
+    def __init__(self, log_handel, log_roc_image):
         super().__init__()
 
         torch.nn.ModuleList(modules=None)
+        self.log_roc_image = log_roc_image
         modes = ["train_metric", "test_metric", "val_metric"]
         # SEGMENT SPACE
-        self.roc_gt_seg = torch.nn.ModuleDict({m: ROC(task="binary") for m in modes})
-        self.roc_self_seg = torch.nn.ModuleDict({m: ROC(task="binary") for m in modes})
+        self.roc_gt_seg = torch.nn.ModuleDict({m: ROC(task="binary", thresholds=5000) for m in modes})
+        self.roc_self_seg = torch.nn.ModuleDict({m: ROC(task="binary", thresholds=5000) for m in modes})
         self.auroc_gt_seg = torch.nn.ModuleDict({m: AUROC(task="binary") for m in modes})
         self.auroc_self_seg = torch.nn.ModuleDict({m: AUROC(task="binary") for m in modes})
 
         # IMAGE SPACE
-        # ROC
-        self.roc_gt_image = torch.nn.ModuleDict({m: ROC(task="binary", thresholds=5000) for m in modes})
-        self.roc_self_image = torch.nn.ModuleDict({m: ROC(task="binary", thresholds=5000) for m in modes})
+        if self.log_roc_image:
+            # ROC
+            self.roc_gt_image = torch.nn.ModuleDict({m: ROC(task="binary", thresholds=5000) for m in modes})
+            self.roc_self_image = torch.nn.ModuleDict({m: ROC(task="binary", thresholds=5000) for m in modes})
         # AUROC
-        self.auroc_gt_image = torch.nn.ModuleDict({m: AUROC(task="binary", thresholds=5000) for m in modes})
-        self.auroc_self_image = torch.nn.ModuleDict({m: AUROC(task="binary", thresholds=5000) for m in modes})
+        self.auroc_gt_image = torch.nn.ModuleDict({m: AUROC(task="binary") for m in modes})
+        self.auroc_self_image = torch.nn.ModuleDict({m: AUROC(task="binary") for m in modes})
         # AUROC ANOMALY
-        self.auroc_anomaly_gt_image = torch.nn.ModuleDict({m: AUROC(task="binary", thresholds=5000) for m in modes})
-        self.auroc_anomaly_self_image = torch.nn.ModuleDict({m: AUROC(task="binary", thresholds=5000) for m in modes})
+        self.auroc_anomaly_gt_image = torch.nn.ModuleDict({m: AUROC(task="binary") for m in modes})
+        self.auroc_anomaly_self_image = torch.nn.ModuleDict({m: AUROC(task="binary") for m in modes})
         # ACC
         self.acc_gt_image = torch.nn.ModuleDict({m: Accuracy(task="binary") for m in modes})
         self.acc_self_image = torch.nn.ModuleDict({m: Accuracy(task="binary") for m in modes})
@@ -43,6 +45,7 @@ class MetricLogger(torch.nn.Module):
         self.acc_anomaly_self_image = torch.nn.ModuleDict({m: Accuracy(task="binary") for m in modes})
         self.log_handel = log_handel
 
+    @torch.no_grad()
     def log_segment(self, graph, res, mode):
         mode = mode + "_metric"
         # ROC
@@ -66,6 +69,7 @@ class MetricLogger(torch.nn.Module):
             batch_size=graph.label.shape[0],
         )
 
+    @torch.no_grad()
     def log_image(self, graph, res, mode, threshold=0.5):
         mode = mode + "_metric"
         # project graph predictions and label onto the image
@@ -82,9 +86,10 @@ class MetricLogger(torch.nn.Module):
         bp = res[seg_pixel_index, 0].reshape(BS, H, W)
         bpro = graph.y[seg_pixel_index].reshape(BS, H, W)
 
-        # ROC
-        self.roc_gt_image[mode](preds=bp, target=graph.label.type(torch.long))
-        self.roc_self_image[mode](preds=bp, target=bpro.type(torch.long))
+        if self.log_roc_image:
+            # ROC
+            self.roc_gt_image[mode](preds=bp, target=graph.label.type(torch.long))
+            self.roc_self_image[mode](preds=bp, target=bpro.type(torch.long))
 
         # AUROC
         self.auroc_gt_image[mode](preds=bp, target=graph.label.type(torch.long))
@@ -106,6 +111,7 @@ class MetricLogger(torch.nn.Module):
             f"{mode}_acc_self_image", self.acc_self_image[mode], on_epoch=True, on_step=False, batch_size=BS
         )
 
+    @torch.no_grad()
     def log_confidence(self, graph, res, confidence, mode):
         mode = mode + "_metric"
         BS, H, W = graph.label.shape
@@ -155,11 +161,17 @@ class MetricLogger(torch.nn.Module):
         mo = mode
         mode = mode + "_metric"
         # label is the gt label
-        roc_gt_image = [a.cpu().numpy() for a in self.roc_gt_image[mode].compute()]
+        if self.log_roc_image:
+            roc_gt_image = [a.cpu().numpy() for a in self.roc_gt_image[mode].compute()]
+        else:
+            roc_gt_image = [None,None,None]
         auroc_gt_image = self.auroc_gt_image[mode].compute().item()
 
         # generate proprioceptive label
-        roc_self_image = [a.cpu().numpy() for a in self.roc_self_image[mode].compute()]
+        if self.log_roc_image:
+            roc_self_image = [a.cpu().numpy() for a in self.roc_self_image[mode].compute()]
+        else:
+            roc_self_image = [None,None,None]
         auroc_self_image = self.auroc_self_image[mode].compute().item()
 
         res = {
@@ -178,6 +190,7 @@ class MetricLogger(torch.nn.Module):
 
     def reset(self, mode):
         mode = mode + "_metric"
+        
         self.roc_gt_seg[mode].reset()
         self.roc_self_seg[mode].reset()
         self.auroc_gt_seg[mode].reset()
@@ -185,8 +198,9 @@ class MetricLogger(torch.nn.Module):
 
         # IMAGE SPACE
         # ROC
-        self.roc_gt_image[mode].reset()
-        self.roc_self_image[mode].reset()
+        if self.log_roc_image:
+            self.roc_gt_image[mode].reset()
+            self.roc_self_image[mode].reset()
         # AUROC
         self.auroc_gt_image[mode].reset()
         self.auroc_self_image[mode].reset()
@@ -213,7 +227,8 @@ class LightningTrav(pl.LightningModule):
         self._mode = "train"
         self._log = log
 
-        self._metric_logger = MetricLogger(self.log)
+        self._metric_logger = MetricLogger(self.log, False)
+        self._metric_logger.to(self.device)
         self._auxiliary_training_roc = ROC(task="binary", thresholds=5000)
 
         # The Accumulated results are used to store the results of the validation dataloader for every validation epoch. Allows after training to have summary avaiable.

@@ -5,15 +5,15 @@
   <arg name="rviz_config"       default="anymal.rviz" />
   <arg name="anymal_config"     default="/media/Data/Datasets/2022_Hoeng_High_Grass/cerberus.yaml" />
 
-  <arg name="anymal_converter"  default="True"/>
-  <arg name="anymal_rsl_launch" default="True"/>
+  <arg name="anymal_converter"  default="False"/>
+  <arg name="anymal_rsl_launch" default="False"/>
   <arg name="debayer"           default="False"/>
-  <arg name="rviz"              default="True"/>
-  <arg name="elevation_mapping" default="True"/>
-  <arg name="local_planner"     default="True"/>
-  <arg name="uncompress_alphasense_cam3"     default="False"/>
+  <arg name="rviz"              default="False"/>
+  <arg name="elevation_mapping" default="False"/>
+  <arg name="local_planner"     default="False"/>
+  <arg name="uncompress_alphasense_cam3"     default="True"/>
   <arg name="uncompress_alphasense_cam4"     default="True"/>
-  <arg name="uncompress_alphasense_cam5"     default="False"/>
+  <arg name="uncompress_alphasense_cam5"     default="True"/>
 
   <!-- Set sim time to true -->
   <param name="/use_sim_time" type="bool" value="True" />
@@ -61,13 +61,13 @@
   <!-- Use RViz-->
   <node if="$(arg rviz)" name="wild_visual_navigation_rviz" pkg="rviz" type="rviz" args="-d $(find wild_visual_navigation_ros)/config/rviz/$(arg rviz_config)"/>
 
-
+<!-- 
   <node if="$(arg uncompress_alphasense_cam3)" name="uncompress_cam3" pkg="image_transport" type="republish">
     <param name="in_transport" value="compressed"/>
     <param name="in" value="/alphasense_driver_ros/cam3/debayered"/>
     <param name="out_transport" value="raw"/>
     <param name="out" value="/alphasense_driver_ros/cam3/debayered"/>
-  </node>
+  </node> -->
 
   <node if="$(arg uncompress_alphasense_cam3)" name="uncompress_cam3" pkg="image_transport" type="republish" args="compressed in:=/alphasense_driver_ros/cam3/debayered raw out:=/alphasense_driver_ros/cam3/debayered" />
   <node if="$(arg uncompress_alphasense_cam4)" name="uncompress_cam4" pkg="image_transport" type="republish" args="compressed in:=/alphasense_driver_ros/cam4/debayered raw out:=/alphasense_driver_ros/cam4/debayered" />
