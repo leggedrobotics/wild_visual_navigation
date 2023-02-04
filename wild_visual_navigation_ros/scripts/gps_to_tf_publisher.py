@@ -19,12 +19,27 @@ def callback(point_stamped, nr):
 
 root = "/media/Data/Datasets/2022_Perugia/day3/mission_data"
 bags = {
-    "1": "2022-05-12T09-45-07_mission_0_day_3",
+    "3": "2022-05-12T09-45-07_mission_0_day_3",
     "2": "2022-05-12T09-57-13_mission_0_day_3",
-    "3": "2022-05-12T10-18-16_mission_0_day_3",
+    "1": "2022-05-12T10-18-16_mission_0_day_3",
     "4": "2022-05-12T10-34-03_mission_0_day_3",
     "5": "2022-05-12T10-45-20_mission_0_day_3",
 }
+
+
+bags = {
+    "1": "2022-05-12T17-36-33_mission_0_day_3",
+    "2": "2022-05-12T15-36-30_mission_0_day_3",
+    "3": "2022-05-12T15-52-37_mission_0_day_3",
+    "4": "2022-05-12T18-21-23_mission_0_day_3",
+}
+
+bags = {
+    "1": "2022-05-12T11-56-13_mission_0_day_3",
+    "2": "2022-05-12T11-44-56_mission_0_day_3",
+    "3": "2022-05-12T12-08-09_mission_0_day_3",
+}
+
 
 # Launch rosmaster
 # roscore_process = subprocess.Popen(["roscore"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)

@@ -22,21 +22,23 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--output_key", type=str, default="learning_curve", help="Name of the run.")
-    parser.add_argument("--number_training_runs", type=int, default=1, help="Number of run per config.")
+    parser.add_argument("--number_training_runs", type=int, default=5, help="Number of run per config.")
     parser.add_argument("--data_start_percentage", type=int, default=100)
     parser.add_argument("--data_stop_percentage", type=int, default=100)
     parser.add_argument("--data_percentage_increment", type=int, default=10)
     parser.add_argument("--test_all_datasets", dest="test_all_datasets", action="store_true", help="")
     parser.set_defaults(test_all_datasets=False)
     parser.add_argument(
-        "--scenes", default="forest", type=str, help="List of scenes seperated by comma without spaces."
+        "--scenes", default="forest,hilly,grassland", type=str, help="List of scenes seperated by comma without spaces."
     )
     parser.add_argument("--store_model_every_n_steps", type=int, default=100)
 
-    # python scripts/ablations/stepwise_ablation.py --output_key time_adaptation --number_training_runs 1 --data_start_percentage 10 --data_stop_percentage 100 --data_percentage_increment 10 --scenes forest,hilly,grassland --store_model_every_n_steps 100
+    # python scripts/ablations/stepwise_ablation.py --output_key time_adaptation --number_training_runs 5 --data_start_percentage 100 --data_stop_percentage 105 --data_percentage_increment 10 --scenes forest,hilly,grassland --store_model_every_n_steps 100
 
     # python scripts/ablations/stepwise_ablation.py --output_key learning_curve --number_training_runs 5 --data_start_percentage 100 --data_stop_percentage 100 --data_percentage_increment 10 --scenes forest --store_model_every_n_steps 100
 
+    # python scripts/ablations/stepwise_ablation.py --output_key time_adaptation --number_training_runs 5 --data_start_percentage 100 --data_stop_percentage 105 --data_percentage_increment 10 --scenes forest,hilly,grassland --store_model_every_n_steps 100 && python scripts/ablations/stepwise_ablation.py --output_key learning_curve_forest --number_training_runs 5 --data_start_percentage 10 --data_stop_percentage 100 --data_percentage_increment 10 --scenes forest --store_model_every_n_steps 100 && python scripts/ablations/stepwise_ablation.py --output_key learning_curve_grassland --number_training_runs 5 --data_start_percentage 10 --data_stop_percentage 100 --data_percentage_increment 10 --scenes grassland --store_model_every_n_steps 100 && python scripts/ablations/stepwise_ablation.py --output_key learning_curve_hilly --number_training_runs 5 --data_start_percentage 10 --data_stop_percentage 100 --data_percentage_increment 10 --scenes hilly --store_model_every_n_steps 100
+    
     args = parser.parse_args()
 
     # Change Experiment Params
@@ -115,8 +117,14 @@ if __name__ == "__main__":
     results_step = []
 
     p_inter = os.path.join(exp.general.model_path, f"{output_key}_steps.pkl")
-
+    total_paths = [str(s) for s in Path(exp.general.model_path).rglob("*.pt")]
+    print("total_paths", len(total_paths))
+    import time
+    st = time.time()
     for j, p in enumerate(Path(exp.general.model_path).rglob("*.pt")):
+        
+        print("XXXXXXXXXXXXXXXXXXXXX PROGRESS ", j, " of ", len(total_paths), " in ", time.time() - st, " seconds.")
+        
         _, _, _, scene, percentage, run, steps = str(p).split("/")[-1].split("_")
         percentage, run, steps = int(percentage), int(run), int(steps.split(".")[0])
         exp.ablation_data_module.env = scene
