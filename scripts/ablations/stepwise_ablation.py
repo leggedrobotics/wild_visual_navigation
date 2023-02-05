@@ -35,10 +35,8 @@ if __name__ == "__main__":
     parser.add_argument("--max_steps", type=int, default=1000)
 
     # python scripts/ablations/stepwise_ablation.py --output_key time_adaptation --number_training_runs 5 --data_start_percentage 100 --data_stop_percentage 100 --data_percentage_increment 10 --scenes forest,hilly,grassland --store_model_every_n_steps 100
-
-    # python scripts/ablations/stepwise_ablation.py --output_key learning_curve --number_training_runs 5 --data_start_percentage 100 --data_stop_percentage 100 --data_percentage_increment 10 --scenes forest --store_model_every_n_steps 100
-
-    # python scripts/ablations/stepwise_ablation.py --output_key time_adaptation --number_training_runs 5 --data_start_percentage 100 --data_stop_percentage 105 --data_percentage_increment 10 --scenes forest,hilly,grassland --store_model_every_n_steps 100 && python scripts/ablations/stepwise_ablation.py --output_key learning_curve_forest --number_training_runs 5 --data_start_percentage 10 --data_stop_percentage 100 --data_percentage_increment 10 --scenes forest --store_model_every_n_steps 100 && python scripts/ablations/stepwise_ablation.py --output_key learning_curve_grassland --number_training_runs 5 --data_start_percentage 10 --data_stop_percentage 100 --data_percentage_increment 10 --scenes grassland --store_model_every_n_steps 100 && python scripts/ablations/stepwise_ablation.py --output_key learning_curve_hilly --number_training_runs 5 --data_start_percentage 10 --data_stop_percentage 100 --data_percentage_increment 10 --scenes hilly --store_model_every_n_steps 100
+    
+    # python scripts/ablations/stepwise_ablation.py --output_key data_percentage --number_training_runs 1 --data_start_percentage 10 --data_stop_percentage 100 --data_percentage_increment 10 --scenes forest --store_model_every_n_steps 50 --max_steps 1000
     
     args = parser.parse_args()
 
