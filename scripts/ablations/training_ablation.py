@@ -34,16 +34,15 @@ if __name__ == "__main__":
     parser.add_argument(
         "--test_all_datasets", dest="test_all_datasets", action="store_true", help="Test on all datasets."
     )
-    parser.set_defaults(test_all_datasets=False)
     parser.add_argument(
         "--store_final_model", dest="store_final_model", action="store_true", help="store_final_model on all datasets."
     )
-    parser.set_defaults(test_all_datasets=False)
     parser.add_argument(
         "--scenes", default="forest,hilly,grassland", type=str, help="List of scenes seperated by comma without spaces."
     )
-
     parser.add_argument("--special_key", type=str, default="", help="Test on all datasets.")
+    parser.set_defaults(test_all_datasets=False)
+    parser.set_defaults(store_final_model=False)
     # python scripts/ablations/training_ablation.py --ablation_type=network --number_training_runs=3 --special_key="" &&\
     # python scripts/ablations/training_ablation.py --ablation_type=confidence_fn --number_training_runs=3 --special_key="" &&\
     # python scripts/ablations/training_ablation.py --ablation_type=feature --number_training_runs=10 --special_key="" &&\
@@ -66,7 +65,7 @@ if __name__ == "__main__":
         override_params(exp, copy.deepcopy(stored_params))
 
         exp.general.log_to_disk = False
-        exp.trainer.max_steps = 10000
+        exp.trainer.max_steps = 1000
         exp.trainer.max_epochs = None
         exp.logger.name = "skip"
         exp.ablation_data_module.val_equals_test = False

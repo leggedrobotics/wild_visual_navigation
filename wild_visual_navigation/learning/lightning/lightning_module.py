@@ -229,7 +229,7 @@ class LightningTrav(pl.LightningModule):
 
         self._metric_logger = MetricLogger(self.log, False)
         self._metric_logger.to(self.device)
-        self._auxiliary_training_roc = ROC(task="binary", thresholds=5000)
+        self._auxiliary_training_roc = ROC(task="binary")
 
         # The Accumulated results are used to store the results of the validation dataloader for every validation epoch. Allows after training to have summary avaiable.
         self.accumulated_val_results = []
@@ -255,7 +255,7 @@ class LightningTrav(pl.LightningModule):
 
     def training_step(self, batch: any, batch_idx: int) -> torch.Tensor:
         graph = batch
-
+        self._mode = "train"
         nr = self._exp["general"]["store_model_every_n_steps"]
         if type(nr) == int:
             if self.global_step % nr == 0:
@@ -302,13 +302,15 @@ class LightningTrav(pl.LightningModule):
         self._val_step = 0
 
     def validation_step(self, batch: any, batch_idx: int, dataloader_id: int = 0) -> torch.Tensor:
+        self._mode = "val"
         graph = batch
         BS = graph.ptr.numel() - 1
         res = self._model(graph)
         loss, loss_aux, res_updated = self._traversability_loss(graph, res)
 
         if hasattr(graph, "label"):
-            self._metric_logger.log_image(graph, res_updated, self._mode)
+            self.update_threshold()
+            self._metric_logger.log_image(graph, res_updated, self._mode, threshold=self.threshold[0].item())
             self._metric_logger.log_confidence(graph, res_updated, loss_aux["confidence"], self._mode)
 
         for k, v in loss_aux.items():
@@ -346,12 +348,14 @@ class LightningTrav(pl.LightningModule):
         self.update_threshold()
 
     def test_step(self, batch: any, batch_idx: int, dataloader_id: int = 0) -> torch.Tensor:
+        self._mode = "test"
         graph = batch
         BS = graph.ptr.numel() - 1
         res = self._model(graph)
-        loss, loss_aux, res_updated = self._traversability_loss(graph, res, update_buffer=True)
+        loss, loss_aux, res_updated = self._traversability_loss(graph, res)
 
         if hasattr(graph, "label"):
+            self.update_threshold()
             self._metric_logger.log_image(graph, res_updated, self._mode, threshold=self.threshold.item())
             self._metric_logger.log_confidence(graph, res_updated, loss_aux["confidence"], self._mode)
 
@@ -385,18 +389,18 @@ class LightningTrav(pl.LightningModule):
     def visu(self, graph: Data, res: torch.tensor, confidence: torch.tensor):
         try:
             self.log(
-                "confidence_mean",
+                f"{self._mode}_reconstruction_loss_mean_fit_per_batch",
                 self._traversability_loss._confidence_generator.mean.item(),
                 on_step=True,
                 on_epoch=True,
-                batch_size=1,
+                batch_size=graph.ptr.shape[0]-1,
             )
             self.log(
-                "confidence_std",
+                f"{self._mode}_reconstruction_loss_std_fit_per_batch",
                 self._traversability_loss._confidence_generator.std.item(),
                 on_step=True,
                 on_epoch=True,
-                batch_size=1,
+                batch_size=graph.ptr.shape[0]-1,
             )
         except:
             pass
