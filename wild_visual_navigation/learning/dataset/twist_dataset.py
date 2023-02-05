@@ -20,6 +20,7 @@ class TwistDataset(Dataset):
         seq_size: int = 8,
         velocities: list = ["vx", "vy", "vz", "wx", "wy", "wz"],
         ts_matching_thr: str = "10 ms",
+        smoothing_window  = None
     ):
         """Generates a twist dataset
         The iterator returns a batch of size `seq_size` with sequential measurements
@@ -92,6 +93,13 @@ class TwistDataset(Dataset):
         timestamp = merged_df[["ts_x"]]
         current_df = merged_df[current_velocities]
         desired_df = merged_df[desired_velocities]
+
+        # Apply filtering if desired
+        if smoothing_window is not None:
+            current_df = current_df.rolling(smoothing_window).mean()
+            current_df = current_df.dropna()
+            desired_df = desired_df.rolling(smoothing_window).mean()
+            desired_df = desired_df.dropna()
 
         # Make indices depending on the mode (train or eval)
         if mode == "train":
