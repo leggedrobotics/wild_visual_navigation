@@ -1,0 +1,7 @@
+ablation_data_module:
+  feature_key: slic100_resnet18
+general:
+  use_threshold: False
+loss:
+  anomaly_balanced: False
+  w_reco: 0.0

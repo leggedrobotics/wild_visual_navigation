@@ -1,0 +1,7 @@
+loss:
+  anomaly_balanced: False
+  w_temp: 0
+  w_reco: 0.5
+  w_trav: 0.0
+general:
+  use_threshold: False

@@ -1,0 +1,5 @@
+loss:
+  anomaly_balanced: False
+  w_reco: 0.0
+general:
+  use_threshold: False

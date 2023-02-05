@@ -25,15 +25,9 @@ number_training_runs = 5
 test_all_datasets = False
 
 models = {
-    "KNN1": KNeighborsClassifier(n_neighbors=1, weights="uniform"),
-    "KNN3": KNeighborsClassifier(n_neighbors=3, weights="uniform"),
     # "SVMpoly": SVC(kernel="poly", degree=2, probability=True),
     # "SVMrbf": SVC(kernel="rbf", probability=True),
     # "RandomForest50": RandomForestClassifier(),
-    # "MLP": MLPClassifier(hidden_layer_sizes=(256,32), alpha=0, batch_size=800, learning_rate_init=0.001, max_iter=10000),
-    # "MLP64": MLPClassifier(hidden_layer_sizes=(256,32), alpha=0, batch_size=64, learning_rate_init=0.001, max_iter=10000),
-    # "MLP64_Slow": MLPClassifier(hidden_layer_sizes=(256,32), alpha=0, batch_size=64, learning_rate_init=0.0001, max_iter=10000)
-    # "RandomForest500": RandomForestClassifier(),
 }
 
 # n_estimators=100, *, criterion='gini', max_depth=None, min_samples_split=2, min_samples_leaf=1, min_weight_fraction_leaf=0.0, max_featu
