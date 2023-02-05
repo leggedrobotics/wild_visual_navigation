@@ -52,8 +52,7 @@ class TraversabilityLoss(nn.Module):
         res: torch.Tensor,
         update_generator: bool = True,
         step: int = 0,
-        log_step: bool = False,
-        update_buffer: bool = False,
+        log_step: bool = False
     ):
         # Compute reconstruction loss
         nr_channel_reco = graph.x.shape[1]
@@ -76,22 +75,25 @@ class TraversabilityLoss(nn.Module):
         else:
             loss_trav_raw = self._trav_loss_func(res[:, :-nr_channel_reco].squeeze(), label, reduction="none")
 
-        loss_trav_raw_labeled = loss_trav_raw[graph.y_valid]
-        loss_trav_raw_not_labeled = loss_trav_raw[~graph.y_valid]
+        ele =  graph.y_valid.shape[0] # 400 #
+        selector = torch.zeros_like( graph.y_valid)
+        selector[:ele] = 1
+        loss_trav_raw_labeled = loss_trav_raw[graph.y_valid * selector]
+        loss_trav_raw_not_labeled = loss_trav_raw[~graph.y_valid * selector]
 
         # Scale the loss
-        loss_trav_raw_not_labeled_weighted = loss_trav_raw_not_labeled * (1 - confidence)[~graph.y_valid]
+        loss_trav_raw_not_labeled_weighted = loss_trav_raw_not_labeled * (1 - confidence)[~graph.y_valid * selector]
 
         if self._anomaly_balanced:
             loss_trav_confidence = (loss_trav_raw_not_labeled_weighted.sum() + loss_trav_raw_labeled.sum()) / (
                 graph.y.shape[0]
             )
         else:
-            loss_trav_confidence = loss_trav_raw.mean()
+            loss_trav_confidence = loss_trav_raw[selector].mean()
 
         loss_temp = torch.zeros_like(loss_trav_confidence)
 
-        loss_reco_mean = loss_reco[graph.y_valid].mean()
+        loss_reco_mean = loss_reco[graph.y_valid * selector].mean()
         # Compute total loss
         loss = self._w_trav * loss_trav_confidence + self._w_reco * loss_reco_mean + self._w_temp * loss_temp
 

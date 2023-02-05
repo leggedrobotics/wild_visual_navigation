@@ -32,8 +32,9 @@ if __name__ == "__main__":
         "--scenes", default="forest,hilly,grassland", type=str, help="List of scenes seperated by comma without spaces."
     )
     parser.add_argument("--store_model_every_n_steps", type=int, default=100)
+    parser.add_argument("--max_steps", type=int, default=1000)
 
-    # python scripts/ablations/stepwise_ablation.py --output_key time_adaptation --number_training_runs 5 --data_start_percentage 100 --data_stop_percentage 105 --data_percentage_increment 10 --scenes forest,hilly,grassland --store_model_every_n_steps 100
+    # python scripts/ablations/stepwise_ablation.py --output_key time_adaptation --number_training_runs 5 --data_start_percentage 100 --data_stop_percentage 100 --data_percentage_increment 10 --scenes forest,hilly,grassland --store_model_every_n_steps 100
 
     # python scripts/ablations/stepwise_ablation.py --output_key learning_curve --number_training_runs 5 --data_start_percentage 100 --data_stop_percentage 100 --data_percentage_increment 10 --scenes forest --store_model_every_n_steps 100
 
@@ -52,7 +53,7 @@ if __name__ == "__main__":
     exp.general.store_model_every_n_steps = args.store_model_every_n_steps
 
     # Ensure deafult configuration
-    exp.trainer.max_steps = 10000
+    exp.trainer.max_steps = args.max_steps
     exp.ablation_data_module.training_in_memory = True
     exp.trainer.check_val_every_n_epoch = 1000000
     exp.general.log_to_disk = False
@@ -122,10 +123,10 @@ if __name__ == "__main__":
     import time
     st = time.time()
     for j, p in enumerate(Path(exp.general.model_path).rglob("*.pt")):
-        
         print("XXXXXXXXXXXXXXXXXXXXX PROGRESS ", j, " of ", len(total_paths), " in ", time.time() - st, " seconds.")
+        res = str(p).split("/")[-1].split("_")
+        scene, percentage, run, steps = res[-4], res[-3], res[-2], res[-1]
         
-        _, _, _, scene, percentage, run, steps = str(p).split("/")[-1].split("_")
         percentage, run, steps = int(percentage), int(run), int(steps.split(".")[0])
         exp.ablation_data_module.env = scene
         exp.model.load_ckpt = str(p)

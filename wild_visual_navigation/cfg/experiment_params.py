@@ -61,7 +61,7 @@ class ExperimentParams(Serializable):
         num_sanity_val_steps: int = 0
         check_val_every_n_epoch: int = 1
         enable_checkpointing: bool = True
-        max_steps: int = 10000
+        max_steps: int = 1000
         enable_progress_bar: bool = True
         weights_summary: Optional[str] = "top"
         progress_bar_refresh_rate: Optional[int] = None
