@@ -20,7 +20,7 @@ class TwistDataset(Dataset):
         seq_size: int = 8,
         velocities: list = ["vx", "vy", "vz", "wx", "wy", "wz"],
         ts_matching_thr: str = "10 ms",
-        smoothing_window  = None
+        smoothing_window=None,
     ):
         """Generates a twist dataset
         The iterator returns a batch of size `seq_size` with sequential measurements

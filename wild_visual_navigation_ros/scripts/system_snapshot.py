@@ -80,15 +80,15 @@ class SystemSnapshot:
 
         # Check against all the snapshots
         if self.snapshots:
-          for i in self.snapshots:
-              v = self.snapshots[i]
-              # Compute distance
-              d = (pos[0] - v["position"][0]) ** 2 + (pos[1] - v["position"][1]) ** 2
-              d += 0.0 if self.ignore_z else (pos[2] - v["position"][2]) ** 2
-              d = math.sqrt(d)
-              if d < self.distance_thr:
-                  self.store_snapshot(i)
-        
+            for i in self.snapshots:
+                v = self.snapshots[i]
+                # Compute distance
+                d = (pos[0] - v["position"][0]) ** 2 + (pos[1] - v["position"][1]) ** 2
+                d += 0.0 if self.ignore_z else (pos[2] - v["position"][2]) ** 2
+                d = math.sqrt(d)
+                if d < self.distance_thr:
+                    self.store_snapshot(i)
+
         self.marker_publisher.publish(self.snapshot_markers)
 
     def store_snapshot(self, idx):
