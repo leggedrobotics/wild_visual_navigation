@@ -21,9 +21,7 @@ for l in ls:
     mission = np.unique(np.array([s.split("/")[-3] for s in pa]))
     arr = np.array([float(s.split("/")[-1][:-3].replace("_", ".")) for s in pa])
     delta_t = 0
-    print(l)
     for m in mission:
         mask = np.array([s.split("/")[-3] for s in pa]) == m
-
         delta_t += arr[mask][-1] - arr[mask][0]
         print(delta_t)

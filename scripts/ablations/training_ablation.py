@@ -43,18 +43,6 @@ if __name__ == "__main__":
     parser.add_argument("--special_key", type=str, default="", help="Test on all datasets.")
     parser.set_defaults(test_all_datasets=False)
     parser.set_defaults(store_final_model=False)
-    # python scripts/ablations/training_ablation.py --ablation_type=network --number_training_runs=3 --special_key="" &&\
-    # python scripts/ablations/training_ablation.py --ablation_type=confidence_fn --number_training_runs=3 --special_key="" &&\
-    # python scripts/ablations/training_ablation.py --ablation_type=feature --number_training_runs=10 --special_key="" &&\
-    # python scripts/ablations/training_ablation.py --ablation_type=loss --number_training_runs=1 --special_key="" &&\
-    # python scripts/ablations/training_ablation.py --ablation_type=loss_with_tmp --number_training_runs=3 --special_key="" &&\
-    # python scripts/ablations/training_ablation.py --ablation_type=w_temp --number_training_runs=3 --special_key="" &&\
-    # python scripts/ablations/training_ablation.py --ablation_type=lr --number_training_runs=3 --special_key=""
-    # python scripts/ablations/training_ablation.py --ablation_type=scene_adaptation --number_training_runs=10 --special_key="" --test_all_datasets
-
-    # python scripts/ablations/training_ablation.py --ablation_type=loss --number_training_runs=1 --special_key="" && python scripts/ablations/training_ablation.py --ablation_type=loss_with_tmp --number_training_runs=3 --special_key=""  && python scripts/ablations/training_ablation.py --ablation_type=cross_entropy --number_training_runs=3 --special_key=""
-
-    # python scripts/ablations/training_ablation.py --ablation_type=scene_adaptation --number_training_runs=1 --special_key="" --test_all_datasets && python scripts/ablations/training_ablation.py --ablation_type=network --number_training_runs=1 --special_key=""
 
     args = parser.parse_args()
     exp = ExperimentParams()

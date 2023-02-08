@@ -43,7 +43,7 @@ class ExperimentParams(Serializable):
         w_reco: float = 0.5
         w_temp: float = 0.0  # 0.75
         method: str = "latest_measurment"
-        confidence_std_factor: float = 0.5
+        confidence_std_factor: float = 2.0
         trav_cross_entropy: bool = False
 
     loss: LossParams = LossParams()
