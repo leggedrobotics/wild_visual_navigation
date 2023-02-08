@@ -25,13 +25,10 @@ number_training_runs = 5
 test_all_datasets = False
 
 models = {
-    # "SVMpoly": SVC(kernel="poly", degree=2, probability=True),
-    # "SVMrbf": SVC(kernel="rbf", probability=True),
-    # "RandomForest50": RandomForestClassifier(),
+    "SVMpoly": SVC(kernel="poly", degree=2, probability=True),
+    "SVMrbf": SVC(kernel="rbf", probability=True),
+    "RandomForest50": RandomForestClassifier(),
 }
-
-# n_estimators=100, *, criterion='gini', max_depth=None, min_samples_split=2, min_samples_leaf=1, min_weight_fraction_leaf=0.0, max_featu
-
 results_epoch = {}
 
 for scene in ["forest", "hilly", "grassland"]:

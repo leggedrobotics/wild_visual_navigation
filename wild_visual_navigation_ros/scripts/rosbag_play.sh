@@ -42,4 +42,4 @@ done
 
 echo args
 rosparam set use_sim_time true
-rosbag play --clock /media/Data/Datasets/2023_Oxford_Testing/2023_01_27_Oxford_Park/mission_data/2023-01-27-11-07-25/*.bag  $args
+rosbag play --clock $args

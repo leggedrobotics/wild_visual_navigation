@@ -26,7 +26,6 @@ bags = {
     "5": "2022-05-12T10-45-20_mission_0_day_3",
 }
 
-
 bags = {
     "1": "2022-05-12T17-36-33_mission_0_day_3",
     "2": "2022-05-12T15-36-30_mission_0_day_3",
@@ -39,7 +38,6 @@ bags = {
     "2": "2022-05-12T11-44-56_mission_0_day_3",
     "3": "2022-05-12T12-08-09_mission_0_day_3",
 }
-
 
 # Launch rosmaster
 # roscore_process = subprocess.Popen(["roscore"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)

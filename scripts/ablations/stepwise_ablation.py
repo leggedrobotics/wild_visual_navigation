@@ -35,9 +35,9 @@ if __name__ == "__main__":
     parser.add_argument("--max_steps", type=int, default=1000)
 
     # python scripts/ablations/stepwise_ablation.py --output_key time_adaptation --number_training_runs 5 --data_start_percentage 100 --data_stop_percentage 100 --data_percentage_increment 10 --scenes forest,hilly,grassland --store_model_every_n_steps 100
-    
+
     # python scripts/ablations/stepwise_ablation.py --output_key data_percentage --number_training_runs 1 --data_start_percentage 10 --data_stop_percentage 100 --data_percentage_increment 10 --scenes forest --store_model_every_n_steps 50 --max_steps 1000
-    
+
     args = parser.parse_args()
 
     # Change Experiment Params
@@ -119,12 +119,13 @@ if __name__ == "__main__":
     total_paths = [str(s) for s in Path(exp.general.model_path).rglob("*.pt")]
     print("total_paths", len(total_paths))
     import time
+
     st = time.time()
     for j, p in enumerate(Path(exp.general.model_path).rglob("*.pt")):
         print("XXXXXXXXXXXXXXXXXXXXX PROGRESS ", j, " of ", len(total_paths), " in ", time.time() - st, " seconds.")
         res = str(p).split("/")[-1].split("_")
         scene, percentage, run, steps = res[-4], res[-3], res[-2], res[-1]
-        
+
         percentage, run, steps = int(percentage), int(run), int(steps.split(".")[0])
         exp.ablation_data_module.env = scene
         exp.model.load_ckpt = str(p)

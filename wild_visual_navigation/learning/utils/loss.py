@@ -47,12 +47,7 @@ class TraversabilityLoss(nn.Module):
             self._confidence_generator.reset()
 
     def forward(
-        self,
-        graph: Data,
-        res: torch.Tensor,
-        update_generator: bool = True,
-        step: int = 0,
-        log_step: bool = False
+        self, graph: Data, res: torch.Tensor, update_generator: bool = True, step: int = 0, log_step: bool = False
     ):
         # Compute reconstruction loss
         nr_channel_reco = graph.x.shape[1]
@@ -75,8 +70,8 @@ class TraversabilityLoss(nn.Module):
         else:
             loss_trav_raw = self._trav_loss_func(res[:, :-nr_channel_reco].squeeze(), label, reduction="none")
 
-        ele =  graph.y_valid.shape[0] # 400 #
-        selector = torch.zeros_like( graph.y_valid)
+        ele = graph.y_valid.shape[0]  # 400 #
+        selector = torch.zeros_like(graph.y_valid)
         selector[:ele] = 1
         loss_trav_raw_labeled = loss_trav_raw[graph.y_valid * selector]
         loss_trav_raw_not_labeled = loss_trav_raw[~graph.y_valid * selector]
