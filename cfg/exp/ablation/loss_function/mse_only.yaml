@@ -1,5 +1,6 @@
 loss:
   anomaly_balanced: False
   w_reco: 0.0
+  confidence_std_factor: 0.5
 general:
   use_threshold: False

@@ -3,5 +3,7 @@ loss:
   w_temp: 0
   w_reco: 0.5
   w_trav: 0.0
+  confidence_std_factor: 0.5
+
 general:
   use_threshold: False
