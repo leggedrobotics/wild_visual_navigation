@@ -36,6 +36,7 @@ class DinoInterface:
             self.cfg.pretrained_weights = self.download_pretrained_model(self.cfg)
 
         # Initialize DINO
+        torch.manual_seed(42)
         self.model = DinoFeaturizer(self.dim, self.cfg)
 
         # Send to device
