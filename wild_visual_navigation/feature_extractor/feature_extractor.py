@@ -64,16 +64,17 @@ class FeatureExtractor:
         # Compute segments, their centers, and edges connecting them (graph structure)
         # with Timer("feature_extractor - compute_segments"):
         # edges, seg, center = self.compute_segments(img, **kwargs)
-        edges, seg, center = self.compute_segments(img, **kwargs)
+        seg = self.compute_segments(img, **kwargs)
 
         # Compute features
         # with Timer("feature_extractor - compute_features"):
-        dense_feat = self.compute_features(img, seg, center, **kwargs)
+        dense_feat = self.compute_features(img, seg=None, center=None, **kwargs)
 
         # Sparsify features to match the centers if required
         feat = self.sparsify_features(dense_feat, seg)
 
-        return edges, feat, seg, center
+        # return edges, feat, seg, center
+        return feat, seg
 
     @property
     def feature_type(self):
