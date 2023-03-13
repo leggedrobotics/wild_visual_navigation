@@ -2,7 +2,7 @@ import torch
 
 from ..model.rnvp import LinearRNVP
 from ..model.mlp import BinaryClassification
-from feature_extractor import FeatureExtractor
+from wild_visual_navigation.feature_extractor.feature_extractor import FeatureExtractor
 
 
 class Timer:
