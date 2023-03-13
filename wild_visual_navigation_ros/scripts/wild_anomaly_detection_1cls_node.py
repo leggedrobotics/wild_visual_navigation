@@ -18,8 +18,6 @@ import message_filters
 from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
 
-from kornia.geometry.camera.pinhole import PinholeCamera
-
 from wild_visual_navigation.learning.utils.load_models import load_model_1cls, create_extractor, Timer
 from wild_visual_navigation import WVN_ROOT_DIR
 
@@ -68,6 +66,7 @@ class AnomalyInference(object):
         if self.only_img:
             self.image_sub = rospy.Subscriber(self.img_input_topic, Image, self.process, queue_size=1,
                                               buff_size=2 ** 24)
+            self.info_sub = rospy.Subscriber(self.info_input_topic, CameraInfo, self.info_cb, queue_size=1)
         else:
             self.image_sub = message_filters.Subscriber(self.img_input_topic, Image, queue_size=1, buff_size=2 ** 24)
             self.info_sub = message_filters.Subscriber(self.info_input_topic, CameraInfo, queue_size=1)
@@ -88,37 +87,8 @@ class AnomalyInference(object):
         rospy.loginfo("Shutdown anomaly inference node")
         return
 
-    def ros_cam_info_to_tensors(self, cam_info_msg):
-        K = torch.eye(4, dtype=torch.float32).to(DEVICE)
-        K[:3, :3] = torch.FloatTensor(cam_info_msg.K).reshape(3, 3)
-        K = K.unsqueeze(0)
-        H = cam_info_msg.height
-        W = cam_info_msg.width
-        return K, H, W
-
-    def update_intrinsics(self, K: torch.tensor, h: int, w: int, new_h: int = None, new_w: int = None):
-        E = torch.eye(4).expand(K.shape).to(DEVICE)
-
-        # Compute scale
-        sy = new_h / h
-
-        # Compute scaled parameters
-        sh = new_h
-        sw = new_w
-
-        # Adjust camera matrix
-        sK = K.clone()
-        sK[:, 0, 0] = K[:, 1, 1] * sy
-        sK[:, 0, 2] = K[:, 1, 2] * sy
-        sK[:, 1, 1] = K[:, 1, 1] * sy
-        sK[:, 1, 2] = K[:, 1, 2] * sy
-
-        # Initialize camera with scaled parameters
-        sh = torch.IntTensor([sh]).to(DEVICE)
-        sw = torch.IntTensor([sw]).to(DEVICE)
-        self.camera = PinholeCamera(sK, E, sh, sw)
-
-        return self.camera.intrinsics.clone()[:3, :3]
+    def info_cb(self, msg):
+        self.new_info_msg = msg
 
     def convert_ros_msg_to_cv2(self, ros_data, image_encoding='bgr8'):
         self.height = ros_data.height
@@ -149,7 +119,7 @@ class AnomalyInference(object):
 
         return img
 
-    def process(self, img_msg, info_msg=None):
+    def process(self, img_msg):
         last_image_time = rospy.Time.now().to_sec()
 
         # Convert ROS msg to tensor
@@ -204,33 +174,21 @@ class AnomalyInference(object):
         if self.rescale_orig:
             bin_img = bin_img.unsqueeze(0)
             bin_img = torchvision.transforms.Resize((self.height, self.width),
-                                                    torchvision.transforms.InterpolationMode.BILINEAR)(bin_img)
+                                                    torchvision.transforms.InterpolationMode.NEAREST)(bin_img)
 
         # Publish images
         if bin_img is not None:
             out_img = torch.where(bin_img.squeeze() >= self.threshold, 0.0, 1.0)
             out_img = self._cv_bridge.cv2_to_imgmsg(out_img.cpu().numpy(), encoding="passthrough")
+
             # Set correct header
             out_img.header = img_msg.header
             self.image_pub_bin.publish(out_img)
 
-        # Publish camera info
-        if info_msg is not None:
-            # Only compute new info msg once
-            if self.new_info_msg is None:
-                # Change camera info with new image sizes
-                K, H, W = self.ros_cam_info_to_tensors(info_msg)
-
-                scaled_camera_matrix = self.update_intrinsics(K=K, h=H, w=W, new_h=self.img_size, new_w=self.img_size)
-
-                info_msg.height = self.img_size
-                info_msg.width = self.img_size
-                info_msg.K = scaled_camera_matrix[0, :3, :3].cpu().numpy().flatten().tolist()
-                info_msg.P = scaled_camera_matrix[0, :3, :4].cpu().numpy().flatten().tolist()
-
-                self.new_info_msg = info_msg
-
-            self.info_pub.publish(self.new_info_msg)
+            if self.new_info_msg is not None:
+                # Update the info_msg header time stamp
+                self.new_info_msg.header.stamp = out_img.header.stamp
+                self.info_pub.publish(self.new_info_msg)
 
         if self.debug:
             self.count += 1
