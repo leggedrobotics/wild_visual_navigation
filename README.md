@@ -1,20 +1,16 @@
-<img align="left" width="80" height="80" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
+<img align="left" width="60" height="60" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
+<h1 style="text-align: center;">Fast Traversability Estimation for Wild Visual Navigation</h1>
 
-# Self-Supervised Visual Navigation in the Wild
 
 <p align="center">
-  <a href="#overview">Overview</a> •
   <a href="#citation">Citation</a> •
   <a href="#setup">Setup</a> •
   <a href="#experiments">Experiments</a> •
-  <a href="#contribution">Contribution</a> •
+  <a href="#contributing">Contributing</a> •
   <a href="#credits">Credits</a>
+  
+  ![Formatting](https://github.com/leggedrobotics/wild_visual_navigation/actions/workflows/formatting.yml/badge.svg)
 </p>
- 
-![Formatting](https://github.com/leggedrobotics/wild_visual_navigation/actions/workflows/formatting.yml/badge.svg)
----
-
-## Overview
 
 ![Overview](./assets/drawings/header.jpg)
 
@@ -243,3 +239,5 @@ Introduction to [pytest](https://github.com/pluralsight/intro-to-pytest).
 pytest
 ```
 Pytest is not checked on push.
+
+# Credits
