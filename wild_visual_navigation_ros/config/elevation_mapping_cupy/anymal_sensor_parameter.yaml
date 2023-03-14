@@ -1,26 +1,42 @@
 #### Subscribers ########
 subscribers:
-  alphasense_front_rgb:
-    fusion: ['image_color']
-    topic_name_camera: /alphasense_driver_ros/cam4/debayered
-    topic_name_camera_info: /alphasense_driver_ros/cam4/camera_info
-    channels: ["rgb_image"]
-    data_type: image
+  # RGB cameras
+  # alphasense_front_rgb:
+  #   fusion: ['image_color']
+  #   topic_name_camera: /alphasense_driver_ros/cam4/debayered
+  #   topic_name_camera_info: /alphasense_driver_ros/cam4/camera_info
+  #   channels: ["rgb_image"]
+  #   data_type: image
   
-  alphasense_left_rgb:
-    fusion: ['image_color']
-    topic_name_camera: /alphasense_driver_ros/cam3/debayered
-    topic_name_camera_info: /alphasense_driver_ros/cam3/camera_info
-    channels: ["rgb_image"]
-    data_type: image
+  # alphasense_left_rgb:
+  #   fusion: ['image_color']
+  #   topic_name_camera: /alphasense_driver_ros/cam3/debayered
+  #   topic_name_camera_info: /alphasense_driver_ros/cam3/camera_info
+  #   channels: ["rgb_image"]
+  #   data_type: image
 
-  alphasense_right_rgb:
-    fusion: ['image_color']
-    topic_name_camera: /alphasense_driver_ros/cam5/debayered
-    topic_name_camera_info: /alphasense_driver_ros/cam5/camera_info
-    channels: ["rgb_image"]
-    data_type: image
+  # alphasense_right_rgb:
+  #   fusion: ['image_color']
+  #   topic_name_camera: /alphasense_driver_ros/cam5/debayered
+  #   topic_name_camera_info: /alphasense_driver_ros/cam5/camera_info
+  #   channels: ["rgb_image"]
+  #   data_type: image
 
+  # wide_angle_camera_rear:
+  #   fusion: ['image_color']
+  #   topic_name_camera: /wide_angle_camera_rear/image_color_rect/compressed
+  #   topic_name_camera_info: /wide_angle_camera_rear/camera_info
+  #   channels: ["rgb_image"]
+  #   data_type: image
+
+  # wide_angle_camera_front:
+  #   fusion: ['image_color']
+  #   topic_name_camera: /wide_angle_camera_front/image_color_rect/compressed
+  #   topic_name_camera_info: /wide_angle_camera_front/camera_info
+  #   channels: ["rgb_image"]
+  #   data_type: image
+
+  # Traversability
   wvn_front_traversability:
     fusion: ['image_exponential']
     topic_name_camera: '/wild_visual_navigation_node/front/traversability'
@@ -42,6 +58,7 @@ subscribers:
   #   channels: ["visual_traversability"]
   #   data_type: image
   
+  # Confidence
   # wvn_front_confidence:
   #   fusion: ['image_exponential']
   #   topic_name_camera: '/wild_visual_navigation_node/front/confidence'
@@ -63,6 +80,7 @@ subscribers:
   #   channels: ["visual_confidence"]
   #   data_type: image
 
+  # Depth cameras
   front_bpearl:
     channels: []
     fusion: []
@@ -103,4 +121,17 @@ subscribers:
     channels: []
     fusion: []
     topic_name: /point_cloud_filter/lidar/point_cloud_filtered
+    data_type: pointcloud
+
+  # Cameras for D
+  front_depth_d:
+    channels: []
+    fusion: []
+    topic_name: /depth_camera_front_upper/point_cloud_self_filtered
+    data_type: pointcloud
+
+  rear_depth_d:
+    channels: []
+    fusion: []
+    topic_name: /depth_camera_rear_upper/point_cloud_self_filtered
     data_type: pointcloud
