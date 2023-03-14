@@ -16,7 +16,7 @@ for option in "$@"; do
     /wild_visual_navigation_node/robot_state:=/recorded_wvn/wild_visual_navigation_node/robot_state \
     /wild_visual_navigation_node/system_state:=/recorded_wvn/wild_visual_navigation_node/system_state \
     /wild_visual_navigation_visu_confidence/confidence_overlayed:=/recorded_wvn/wild_visual_navigation_visu_confidence/confidence_overlayed \
-    /wild_visual_navigation_visu_traversability/traversability_overlayed:=/recorded_wvn/wild_visual_navigation_visu_traversability/traversability_overlayed "
+    /wild_visual_navigation_visu_traversability/traversability_overlayed:=/recorded_wvn/wild_visual_navigation_visu_traversability/traversability_overlayed"
   elif [ "$option" == "--flp" ]; then
     args="$args /field_local_planner/action_server/status:=/recorded_flp/field_local_planner/action_server/status \
     /field_local_planner/current_base:=/recorded_flp/field_local_planner/current_base \
@@ -31,8 +31,9 @@ for option in "$@"; do
     /field_local_planner/status:=/recorded_flp/field_local_planner/status \
     /elevation_mapping/elevation_map_wifi:=/recorded_flp/elevation_mapping/elevation_map_wifi"
   elif [ "$option" == "--tf" ]; then
-    args="$args /tf:=/recorded_flp/tf \
-    /tf_static:=/recorded_flp/tf_static"
+    args="$args /tf:=/recorded_flp/tf" 
+    
+    # /tf_static:=/recorded_flp/tf_static"
 
     echo "rosrun anymal_rsl_launch replay.py c /media/Data/Datasets/2023_Oxford_Testing/2023_01_27_Oxford_Park/mission_data/2023-01-27-11-00-22/2023-01-27-11-00-22_anymal-coyote-lpc_mission.yaml"
   else
