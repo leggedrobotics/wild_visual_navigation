@@ -1,6 +1,4 @@
-<img align="left" width="60" height="60" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 <h1 style="text-align: center;">Fast Traversability Estimation for Wild Visual Navigation</h1>
-
 
 <p align="center">
   <a href="#citation">Citation</a> •
@@ -14,7 +12,11 @@
 
 ![Overview](./assets/drawings/header.jpg)
 
+<img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
+
 ## Citation
+
+
 ```
 @INPROCEEDINGS{FreyMattamala23, 
     AUTHOR    = {Jonas Frey and Matias Mattamala and Nived Chebrolu and Cesar Cadena and Maurice Fallon and Marco Hutter}, 
@@ -27,6 +29,7 @@
 } 
 
 ```
+<img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
 ## Setup
 
@@ -72,6 +75,7 @@ perugia_root: /media/Data/Datasets/2022_Perugia
   export ENV_WORKSTATION_NAME=your_workstation_name
   ```  
 
+<img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
 ## Experiments
 ### Robot Usage [Online]
@@ -219,6 +223,8 @@ and for visualization:
 python3 scripts/ablation/time_adaptation_visu.py
 ```
 
+<img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
+
 ## Contributing
 
 ### Code formatting
@@ -240,4 +246,6 @@ pytest
 ```
 Pytest is not checked on push.
 
-# Credits
+<img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
+
+## Credits
