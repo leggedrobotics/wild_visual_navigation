@@ -22,7 +22,6 @@ from wild_visual_navigation.learning.utils.load_models import load_model_1cls, c
 from wild_visual_navigation import WVN_ROOT_DIR
 
 # WAD_ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-WAD_ROOT_DIR = WVN_ROOT_DIR
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -50,9 +49,9 @@ class AnomalyInference(object):
         self.info_input_topic = rospy.get_param("~info_input_topic", default=None)
         self.slic_num_components = rospy.get_param("~slic_num_components", default=2000)
         self.info_output_topic = rospy.get_param("~info_output_topic", default="/wide_angle_camera_front/camera_info")
-        self.bin_img_output_topic = rospy.get_param("~bin_img_output_topic", default="/anonomaly_inference/bin_img")
-        self.vis_img_output_topic = rospy.get_param("~vis_img_output_topic", default="/anonomaly_inference/vis_img")
-        self.weights_path = os.path.join(WAD_ROOT_DIR, "assets", "weights", "1cls", rospy.get_param("~weights", default=""))
+        self.bin_img_output_topic = rospy.get_param("~bin_img_output_topic", default="/anomaly_inference/bin_img")
+        self.vis_img_output_topic = rospy.get_param("~vis_img_output_topic", default="/anomaly_inference/vis_img")
+        self.weights_path = os.path.join(WVN_ROOT_DIR, "assets", "weights", "1cls", rospy.get_param("~weights", default=""))
         self._cv_bridge = CvBridge()
 
         self.new_info_msg = None
