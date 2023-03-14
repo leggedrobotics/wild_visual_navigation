@@ -16,7 +16,6 @@
 
 ## Citation
 
-
 ```
 @INPROCEEDINGS{FreyMattamala23, 
     AUTHOR    = {Jonas Frey and Matias Mattamala and Nived Chebrolu and Cesar Cadena and Maurice Fallon and Marco Hutter}, 
@@ -27,8 +26,9 @@
     MONTH     = {June}, 
     DOI       = {TBD} 
 } 
-
 ```
+Checkout out also our other works.
+
 <img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
 ## Setup
@@ -222,6 +222,7 @@ and for visualization:
 ```
 python3 scripts/ablation/time_adaptation_visu.py
 ```
+done.
 
 <img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
