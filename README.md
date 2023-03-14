@@ -14,16 +14,23 @@
 ![Formatting](https://github.com/leggedrobotics/wild_visual_navigation/actions/workflows/formatting.yml/badge.svg)
 ---
 
-## Useful links (internal)
-
-- [Main tasks (Kanban)](https://github.com/leggedrobotics/wild_visual_navigation/projects/1)
-- [Literature review](https://docs.google.com/spreadsheets/d/1rJPC4jVz_Hw7U6YQauh1B3Xpart7-9tC884P5ONtkaU/edit?usp=sharing)
-
 ## Overview
 
-![Overview](./assets/drawings/overview.svg)
+![Overview](./assets/drawings/header.jpg)
 
 ## Citation
+```
+@INPROCEEDINGS{FreyMattamala23, 
+    AUTHOR    = {Jonas Frey and Matias Mattamala and Nived Chebrolu and Cesar Cadena and Maurice Fallon and Marco Hutter}, 
+    TITLE     = {{Fast Traversability Estimation for Wild Visual Navigation}}, 
+    BOOKTITLE = {Proceedings of Robotics: Science and Systems}, 
+    YEAR      = {2023}, 
+    ADDRESS   = {Daegu, Republic of Korea}, 
+    MONTH     = {June}, 
+    DOI       = {TBD} 
+} 
+
+```
 
 ## Setup
 
@@ -236,8 +243,3 @@ Introduction to [pytest](https://github.com/pluralsight/intro-to-pytest).
 pytest
 ```
 Pytest is not checked on push.
-
-### Helper
-rsync -r --stats --delete --force --exclude '*.neptune*' --exclude '*results*'  --exclude '*.git*' --exclude '__pycache__' --exclude '*.pyc' --exclude 'wild_visual_navigation.egg-info*' --exclude 'src*'  --exclude '.vscode/*' --exclude 'build*' $HOME/git/wild_visual_navigation/ jonfrey@ws:/home/jonfrey/git/wild_visual_navigation
-
-## Credits
