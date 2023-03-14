@@ -8,7 +8,7 @@ from wild_visual_navigation.learning.model.rnvp import LinearRNVP
 
 # Training params
 BATCH_SIZE = 500
-EPOCHS = 1
+EPOCHS = 10
 NUM_WORKERS = 0
 LEARNING_RATE = 1e-4
 WEIGHT_DECAY = 1e-5
@@ -19,7 +19,7 @@ FLOW_N = 10  # Number of affine coupling layers
 RNVP_TOPOLOGY = 200  # Size of the hidden layers in each coupling layer
 
 # Dataset paths
-POS_DATASET_PATH = f"/home/rschmid/RosBags/all_train/features/pos_feat/pos_feat.pt"
+POS_DATASET_PATH = f"/home/rschmid/RosBags/all_train/features/pos_feat/pos_feat.pt"  # Path to the positive features
 
 MODEL_NAME = f"all_train_bs={BATCH_SIZE}_eps={EPOCHS}_nf={FLOW_N}_top={RNVP_TOPOLOGY}"
 
