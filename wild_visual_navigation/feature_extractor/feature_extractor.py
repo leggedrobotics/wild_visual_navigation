@@ -228,7 +228,7 @@ class FeatureExtractor:
     def compute_stego(self, img: torch.tensor, seg: torch.tensor, center: torch.tensor, **kwargs):
         return self.extractor.features
 
-    def sparsify_features(self, dense_features: torch.tensor, seg: torch.tensor):
+    def sparsify_features(self, dense_features: torch.tensor, seg: torch.tensor, cumsum_trick=False):
         if self._feature_type not in ["histogram"] and self._segmentation_type not in ["none"]:
             # Get median features for each cluster
 
@@ -281,13 +281,33 @@ class FeatureExtractor:
                 return torch.stack(sparse_features, dim=1).T
 
             else:
-                # Single scale feature extraction
-                sparse_features = []
-                for i in range(seg.max() + 1):
-                    m = seg == i
-                    x, y = torch.where(m)
-                    feat = dense_features[0, :, x, y].mean(dim=1)
-                    sparse_features.append(feat)
-                return torch.stack(sparse_features, dim=1).T
+                if cumsum_trick:
+                    # Cumsum is slightly slower for 100 segments
+                    # Trick: sort the featuers according to the segments and then use cumsum for summing
+                    dense_features = dense_features[0].permute(1, 2, 0).reshape(-1, dense_features.shape[1])
+                    seg = seg.reshape(-1)
+                    sorts = seg.argsort()
+                    dense_features_sort, seg_sort = dense_features[sorts], seg[sorts]
+                    x = dense_features_sort
+                    # The cumsum operation is the only one that takes times
+                    x = x.cumsum(0)
+                    kept = torch.ones(x.shape[0], device=x.device, dtype=torch.bool)
+                    elements_sumed = torch.arange(x.shape[0], device=x.device, dtype=torch.int)
+                    kept[:-1] = seg_sort[1:] != seg_sort[:-1]
+                    x = x[kept]
+                    x = torch.cat((x[:1], x[1:] - x[:-1]))
+
+                    elements_sumed = elements_sumed[kept]
+                    elements_sumed[1:] = elements_sumed[1:] - elements_sumed[:-1]
+                    x /= elements_sumed[:, None]
+                    return x
+                else:
+                    sparse_features = []
+                    for i in range(seg.max() + 1):
+                        m = seg == i
+                        x, y = torch.where(m)
+                        feat = dense_features[0, :, x, y].mean(dim=1)
+                        sparse_features.append(feat)
+                    return torch.stack(sparse_features, dim=1).T
         else:
             return dense_features

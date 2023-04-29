@@ -82,7 +82,7 @@ class ConfidenceGenerator(torch.nn.Module):
         self.std[0] = torch.sqrt(self.var)
 
         # Then the confidence is computed as the distance to the center of the Gaussian given factor*sigma
-        confidence = torch.exp(-(((x - self.mean) / (2 * self.std * self.std_factor)) ** 2))
+        confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
         confidence[x < self.mean] = 1.0
 
         return confidence.type(torch.float32)
@@ -98,7 +98,7 @@ class ConfidenceGenerator(torch.nn.Module):
         self.std[0] = torch.sqrt(self.var)[0, 0]
 
         # Then the confidence is computed as the distance to the center of the Gaussian given factor*sigma
-        confidence = torch.exp(-(((x - self.mean) / (2 * self.std * self.std_factor)) ** 2))
+        confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
         confidence[x < self.mean] = 1.0
 
         return confidence.type(torch.float32)
@@ -131,7 +131,7 @@ class ConfidenceGenerator(torch.nn.Module):
         if x.device != self.mean.device:
             return torch.zeros_like(x)
 
-        confidence = torch.exp(-(((x - self.mean) / (2 * self.std * self.std_factor)) ** 2))
+        confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
         return confidence.type(torch.float32)
 
     def forward(self, x: torch.tensor):

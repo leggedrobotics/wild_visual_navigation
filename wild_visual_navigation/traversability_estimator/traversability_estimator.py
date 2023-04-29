@@ -160,7 +160,7 @@ class TraversabilityEstimator:
         #     self._model.train()
 
         #     # Re-create optimizer
-        #     self._optimizer = torch.optim.AdamW(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
+        #     self._optimizer = torch.optim.Adam(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
 
         #     # Re-create traversability loss
         #     self._traversability_loss = TraversabilityLoss(

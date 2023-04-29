@@ -80,19 +80,7 @@ subscribers:
   #   channels: ["visual_confidence"]
   #   data_type: image
 
-  # Depth cameras
-  front_bpearl:
-    channels: []
-    fusion: []
-    topic_name: /robot_self_filter/bpearl_front/point_cloud
-    data_type: pointcloud
 
-  rear_bpearl:
-    channels: []
-    fusion: []
-    topic_name: /robot_self_filter/bpearl_rear/point_cloud
-    data_type: pointcloud
-  
   front_depth:
     channels: []
     fusion: []
@@ -117,21 +105,37 @@ subscribers:
     topic_name: /depth_camera_right/point_cloud_self_filtered
     data_type: pointcloud
   
-  velodyne:
+
+  # velodyne:
+  #   channels: []
+  #   fusion: []
+  #   topic_name: /point_cloud_filter/lidar/point_cloud_filtered
+  #   data_type: pointcloud
+
+
+  # Cerberus
+  front_bpearl:
     channels: []
     fusion: []
-    topic_name: /point_cloud_filter/lidar/point_cloud_filtered
+    topic_name: /robot_self_filter/bpearl_front/point_cloud
     data_type: pointcloud
+
+  rear_bpearl:
+    channels: []
+    fusion: []
+    topic_name: /robot_self_filter/bpearl_rear/point_cloud
+    data_type: pointcloud
+  
 
   # Cameras for D
-  front_depth_d:
-    channels: []
-    fusion: []
-    topic_name: /depth_camera_front_upper/point_cloud_self_filtered
-    data_type: pointcloud
+  # front_depth_d:
+  #   channels: []
+  #   fusion: []
+  #   topic_name: /depth_camera_front_upper/point_cloud_self_filtered
+  #   data_type: pointcloud
 
-  rear_depth_d:
-    channels: []
-    fusion: []
-    topic_name: /depth_camera_rear_upper/point_cloud_self_filtered
-    data_type: pointcloud
+  # rear_depth_d:
+  #   channels: []
+  #   fusion: []
+  #   topic_name: /depth_camera_rear_upper/point_cloud_self_filtered
+  #   data_type: pointcloud

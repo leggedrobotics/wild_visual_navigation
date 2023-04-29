@@ -1,6 +1,6 @@
 #### Basic parameters ########
-resolution: 0.1                              # resolution in m.
-map_length: 25                                  # map's size in m.
+resolution: 0.04                              # resolution in m.
+map_length: 8                           # map's size in m.
 sensor_noise_factor: 0.05                       # point's noise is sensor_noise_factor*z^2 (z is distance from sensor).
 mahalanobis_thresh: 2.0                         # points outside this distance is outlier.
 outlier_variance: 0.01                          # if point is outlier, add this value to the cell.
@@ -19,7 +19,7 @@ orientation_noise_thresh: 0.01                  # if the orientation change is b
 position_lowpass_alpha: 0.2                     # lowpass filter alpha used for detecting movements.
 orientation_lowpass_alpha: 0.2                  # lowpass filter alpha used for detecting movements.
 min_valid_distance: 0.5                         # points with shorter distance will be filtered out.
-max_height_range: 2.0                           # points higher than this value from sensor will be filtered out to disable ceiling.
+max_height_range: 1.0                           # points higher than this value from sensor will be filtered out to disable ceiling.
 ramped_height_range_a: 0.3                      # if z > max(d - ramped_height_range_b, 0) * ramped_height_range_a + ramped_height_range_c, reject.
 ramped_height_range_b: 1.0                      # if z > max(d - ramped_height_range_b, 0) * ramped_height_range_a + ramped_height_range_c, reject.
 ramped_height_range_c: 0.2                      # if z > max(d - ramped_height_range_b, 0) * ramped_height_range_a + ramped_height_range_c, reject.
@@ -40,9 +40,9 @@ max_unsafe_n: 10                                # if the number of cells under s
 overlap_clear_range_xy: 4.0                     # xy range [m] for clearing overlapped area. this defines the valid area for overlap clearance. (used for multi floor setting)
 overlap_clear_range_z: 2.0                      # z range [m] for clearing overlapped area. cells outside this range will be cleared. (used for multi floor setting)
 
-map_frame: 'map'                               # The map frame where the odometry source uses.
+map_frame: 'odom'                               # The map frame where the odometry source uses.
 base_frame: 'base'                              # The robot's base frame. This frame will be a center of the map.
-corrected_map_frame: 'map_new_corrected'
+corrected_map_frame: 'odom_corrected'
 
 #### Feature toggles ########
 enable_edge_sharpen: true
@@ -75,7 +75,7 @@ publishers:
     fps: 5.0
 
   semantic_map_raw:
-    layers: ['elevation', 'traversability', 'visual_traversability', 'elevation_with_semantic', 'visual_traversability_filtered', 'rgb_image']
+    layers: ['elevation', 'traversability', 'visual_traversability', 'elevation_with_semantic']
     basic_layers: ['elevation', 'traversability']
     fps: 5.0
   # elevation_map_recordable:
