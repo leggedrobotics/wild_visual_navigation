@@ -21,20 +21,13 @@ subscribers:
   #   channels: ["rgb_image"]
   #   data_type: image
 
-#  wvn_front_traversability:
-#    fusion: ['image_exponential']
-#    topic_name_camera: '/wild_visual_navigation_node/front/traversability'
-#    topic_name_camera_info: '/wild_visual_navigation_node/front/camera_info'
-#    channels: ["visual_traversability"]
-#    data_type: image
-
   wvn_front_traversability:
     fusion: ['image_exponential']
-    topic_name_camera: '/wild_anomaly_detection/bin_img'
-    topic_name_camera_info: '/wild_anomaly_detection/camera_info'
+    topic_name_camera: '/wild_visual_navigation_node/front/traversability'
+    topic_name_camera_info: '/wild_visual_navigation_node/front/camera_info'
     channels: ["visual_traversability"]
     data_type: image
-
+  
   # wvn_left_traversability:
   #   fusion: ['image_exponential']
   #   topic_name_camera: '/wild_visual_navigation_node/left/traversability'
@@ -82,16 +75,10 @@ subscribers:
     topic_name: /robot_self_filter/bpearl_rear/point_cloud
     data_type: pointcloud
   
-#  front_depth:
-#    channels: []
-#    fusion: []
-#    topic_name: /depth_camera_front/point_cloud_self_filtered
-#    data_type: pointcloud
-
   front_depth:
     channels: []
     fusion: []
-    topic_name: /depth_camera_front_upper/point_cloud_self_filtered
+    topic_name: /depth_camera_front/point_cloud_self_filtered
     data_type: pointcloud
 
   rear_depth:
