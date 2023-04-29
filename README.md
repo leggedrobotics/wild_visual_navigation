@@ -1,29 +1,35 @@
-<img align="left" width="80" height="80" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
-
-# Self-Supervised Visual Navigation in the Wild
+<h1 style="text-align: center;">Fast Traversability Estimation for Wild Visual Navigation</h1>
 
 <p align="center">
-  <a href="#overview">Overview</a> •
   <a href="#citation">Citation</a> •
   <a href="#setup">Setup</a> •
   <a href="#experiments">Experiments</a> •
-  <a href="#contribution">Contribution</a> •
+  <a href="#contributing">Contributing</a> •
   <a href="#credits">Credits</a>
+  
+  ![Formatting](https://github.com/leggedrobotics/wild_visual_navigation/actions/workflows/formatting.yml/badge.svg)
 </p>
- 
-![Formatting](https://github.com/leggedrobotics/wild_visual_navigation/actions/workflows/formatting.yml/badge.svg)
----
 
-## Useful links (internal)
+![Overview](./assets/drawings/header.jpg)
 
-- [Main tasks (Kanban)](https://github.com/leggedrobotics/wild_visual_navigation/projects/1)
-- [Literature review](https://docs.google.com/spreadsheets/d/1rJPC4jVz_Hw7U6YQauh1B3Xpart7-9tC884P5ONtkaU/edit?usp=sharing)
-
-## Overview
-
-![Overview](./assets/drawings/overview.svg)
+<img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
 ## Citation
+
+```
+@INPROCEEDINGS{FreyMattamala23, 
+    AUTHOR    = {Jonas Frey and Matias Mattamala and Nived Chebrolu and Cesar Cadena and Maurice Fallon and Marco Hutter}, 
+    TITLE     = {{Fast Traversability Estimation for Wild Visual Navigation}}, 
+    BOOKTITLE = {Proceedings of Robotics: Science and Systems}, 
+    YEAR      = {2023}, 
+    ADDRESS   = {Daegu, Republic of Korea}, 
+    MONTH     = {June}, 
+    DOI       = {TBD} 
+} 
+```
+Checkout out also our other works.
+
+<img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
 ## Setup
 
@@ -69,6 +75,7 @@ perugia_root: /media/Data/Datasets/2022_Perugia
   export ENV_WORKSTATION_NAME=your_workstation_name
   ```  
 
+<img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
 ## Experiments
 ### Robot Usage [Online]
@@ -215,6 +222,9 @@ and for visualization:
 ```
 python3 scripts/ablation/time_adaptation_visu.py
 ```
+done.
+
+<img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
 ## Contributing
 
@@ -236,5 +246,7 @@ Introduction to [pytest](https://github.com/pluralsight/intro-to-pytest).
 pytest
 ```
 Pytest is not checked on push.
+
+<img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
 ## Credits

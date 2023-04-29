@@ -68,7 +68,7 @@ if __name__ == "__main__":
     args.experiment.trainer.check_val_every_n_epoch = 100000
     args.experiment.general.store_model_every_n_steps = None
     args.experiment.ablation_data_module.training_in_memory = True
-    args.experiment.trainer.max_steps = 10000
+    args.experiment.trainer.max_steps = 1000
     args.experiment.trainer.max_epochs = None
     args.experiment.general.log_to_disk = False
     args.experiment.trainer.progress_bar_refresh_rate = 0

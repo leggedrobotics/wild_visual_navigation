@@ -22,12 +22,32 @@ smooth_filter:
 # Apply inpainting using opencv
 inpainting:
   enable: True
-  fill_nan: False
+  fill_nan: True
   is_height_layer: True
   layer_name: "inpaint"
   extra_params:
     method: "telea"                           # telea or ns
+
+# Apply inpainting using opencv
+elevation_semantic:
+  enable: True
+  fill_nan: False
+  is_height_layer: True
+  layer_name: "elevation_with_semantic"
+  extra_params:
+    method: "telea"                           # telea or ns
 # Apply smoothing for inpainted layer
+
+# Apply inpainting using opencv
+visual_traversability_filtered:
+  enable: True
+  fill_nan: False
+  is_height_layer: False
+  layer_name: "visual_traversability_filtered"
+  extra_params:
+    method: "telea"                           # telea or ns
+# Apply smoothing for inpainted layer
+
 
 # Apply smoothing.
 # smooth_filter_visual_traversability:
