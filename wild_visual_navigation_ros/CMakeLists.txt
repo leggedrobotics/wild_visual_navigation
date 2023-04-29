@@ -18,4 +18,5 @@ catkin_install_python(PROGRAMS  scripts/wild_visual_navigation_node.py
                                 scripts/overlay_images.py
                                 scripts/shift_gridmap.py
                                 scripts/smart_carrot.py
+                                scripts/rosbag_play.sh
                       DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

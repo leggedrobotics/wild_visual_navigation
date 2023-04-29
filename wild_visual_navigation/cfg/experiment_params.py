@@ -16,6 +16,7 @@ class ExperimentParams(Serializable):
         log_to_disk: bool = True
         model_path: Optional[str] = None
         log_confidence: bool = True
+        use_threshold: bool = True
 
     general: GeneralParams = GeneralParams()
 
@@ -39,12 +40,10 @@ class ExperimentParams(Serializable):
     class LossParams:
         anomaly_balanced: bool = True
         w_trav: float = 0.03
-        w_trav_start: Optional[float] = None
-        w_trav_increase: Optional[float] = None  # 0.0004
         w_reco: float = 0.5
-        w_temp: float = 0.75  # 0.75
+        w_temp: float = 0.0  # 0.75
         method: str = "latest_measurment"
-        confidence_std_factor: float = 0.5
+        confidence_std_factor: float = 2.0
         trav_cross_entropy: bool = False
 
     loss: LossParams = LossParams()
@@ -62,7 +61,7 @@ class ExperimentParams(Serializable):
         num_sanity_val_steps: int = 0
         check_val_every_n_epoch: int = 1
         enable_checkpointing: bool = True
-        max_steps: int = 10000
+        max_steps: int = 1000
         enable_progress_bar: bool = True
         weights_summary: Optional[str] = "top"
         progress_bar_refresh_rate: Optional[int] = None
@@ -73,7 +72,7 @@ class ExperimentParams(Serializable):
     class AblationDataModuleParams:
         batch_size: int = 8
         num_workers: int = 0
-        env: str = "hilly"
+        env: str = "forest"
         feature_key: str = "slic100_dino224_16"
         test_equals_val: bool = False
         val_equals_test: bool = False
@@ -133,8 +132,8 @@ class ExperimentParams(Serializable):
 
     @dataclass
     class VisuParams:
-        train: int = 5
-        val: int = 5
+        train: int = 0
+        val: int = 0
         test: int = 0
         log_test_video: bool = False
         log_val_video: bool = False

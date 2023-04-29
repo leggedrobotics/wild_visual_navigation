@@ -22,20 +22,21 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--output_key", type=str, default="learning_curve", help="Name of the run.")
-    parser.add_argument("--number_training_runs", type=int, default=1, help="Number of run per config.")
+    parser.add_argument("--number_training_runs", type=int, default=5, help="Number of run per config.")
     parser.add_argument("--data_start_percentage", type=int, default=100)
     parser.add_argument("--data_stop_percentage", type=int, default=100)
     parser.add_argument("--data_percentage_increment", type=int, default=10)
     parser.add_argument("--test_all_datasets", dest="test_all_datasets", action="store_true", help="")
     parser.set_defaults(test_all_datasets=False)
     parser.add_argument(
-        "--scenes", default="forest", type=str, help="List of scenes seperated by comma without spaces."
+        "--scenes", default="forest,hilly,grassland", type=str, help="List of scenes seperated by comma without spaces."
     )
     parser.add_argument("--store_model_every_n_steps", type=int, default=100)
+    parser.add_argument("--max_steps", type=int, default=1000)
 
-    # python scripts/ablations/stepwise_ablation.py --output_key time_adaptation --number_training_runs 1 --data_start_percentage 10 --data_stop_percentage 100 --data_percentage_increment 10 --scenes forest,hilly,grassland --store_model_every_n_steps 100
+    # python scripts/ablations/stepwise_ablation.py --output_key time_adaptation --number_training_runs 5 --data_start_percentage 100 --data_stop_percentage 100 --data_percentage_increment 10 --scenes forest,hilly,grassland --store_model_every_n_steps 100
 
-    # python scripts/ablations/stepwise_ablation.py --output_key learning_curve --number_training_runs 10 --data_start_percentage 100 --data_stop_percentage 100 --data_percentage_increment 10 --scenes forest --store_model_every_n_steps 100
+    # python scripts/ablations/stepwise_ablation.py --output_key data_percentage --number_training_runs 1 --data_start_percentage 10 --data_stop_percentage 100 --data_percentage_increment 10 --scenes forest --store_model_every_n_steps 50 --max_steps 1000
 
     args = parser.parse_args()
 
@@ -50,7 +51,7 @@ if __name__ == "__main__":
     exp.general.store_model_every_n_steps = args.store_model_every_n_steps
 
     # Ensure deafult configuration
-    exp.trainer.max_steps = 10000
+    exp.trainer.max_steps = args.max_steps
     exp.ablation_data_module.training_in_memory = True
     exp.trainer.check_val_every_n_epoch = 1000000
     exp.general.log_to_disk = False
@@ -72,39 +73,42 @@ if __name__ == "__main__":
 
     # Currently the model weights are stored every n steps.
     # This allows to reload the model and test it on the test dataloader.
+    train_and_delete = True
+    if train_and_delete:
+        shutil.rmtree(exp.general.model_path, ignore_errors=True)
 
-    shutil.rmtree(exp.general.model_path)
+        Path(exp.general.model_path).mkdir(parents=True, exist_ok=True)
+        percent = range(
+            data_start_percentage, data_stop_percentage + data_percentage_increment, data_percentage_increment
+        )
 
-    Path(exp.general.model_path).mkdir(parents=True, exist_ok=True)
-    percent = range(data_start_percentage, data_stop_percentage + data_percentage_increment, data_percentage_increment)
+        with open(os.path.join(exp.general.model_path, "experiment_params.pkl"), "wb") as handle:
+            pickle.dump(exp, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    with open(os.path.join(exp.general.model_path, "experiment_params.pkl"), "wb") as handle:
-        pickle.dump(exp, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        # Train model in various configurations and the validation results per epoch are returned in results_epoch.
+        results_epoch = {}
+        for scene in scenes:
+            exp.ablation_data_module.env = scene
+            percentage_results = {}
+            for percentage in percent:
+                exp.ablation_data_module.training_data_percentage = percentage
+                run_results = {}
+                for run in range(number_training_runs):
+                    exp.general.store_model_every_n_steps_key = f"ablation_{output_key}_{scene}_{percentage}_{run}"
+                    res, _ = training_routine(exp, seed=run)
+                    run_results[f"run_{run}"] = copy.deepcopy(res)
+                    torch.cuda.empty_cache()
+                percentage_results[f"percentage_{percentage}"] = copy.deepcopy(run_results)
+            results_epoch[scene] = copy.deepcopy(percentage_results)
 
-    # Train model in various configurations and the validation results per epoch are returned in results_epoch.
-    results_epoch = {}
-    for scene in scenes:
-        exp.ablation_data_module.env = scene
-        percentage_results = {}
-        for percentage in percent:
-            exp.ablation_data_module.training_data_percentage = percentage
-            run_results = {}
-            for run in range(number_training_runs):
-                exp.general.store_model_every_n_steps_key = f"ablation_{output_key}_{scene}_{percentage}_{run}"
-                res, _ = training_routine(exp, seed=run)
-                run_results[f"run_{run}"] = copy.deepcopy(res)
-                torch.cuda.empty_cache()
-            percentage_results[f"percentage_{percentage}"] = copy.deepcopy(run_results)
-        results_epoch[scene] = copy.deepcopy(percentage_results)
-
-    # Store epoch output to disk.
-    p = os.path.join(exp.general.model_path, f"{output_key}_epochs.pkl")
-    try:
-        os.remove(p)
-    except OSError as error:
-        pass
-    with open(p, "wb") as handle:
-        pickle.dump(results_epoch, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        # Store epoch output to disk.
+        p = os.path.join(exp.general.model_path, f"{output_key}_epochs.pkl")
+        try:
+            os.remove(p)
+        except OSError as error:
+            pass
+        with open(p, "wb") as handle:
+            pickle.dump(results_epoch, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     # Test all stored models on the test dataloader and store the results.
     exp.general.skip_train = True
@@ -112,9 +116,16 @@ if __name__ == "__main__":
     results_step = []
 
     p_inter = os.path.join(exp.general.model_path, f"{output_key}_steps.pkl")
+    total_paths = [str(s) for s in Path(exp.general.model_path).rglob("*.pt")]
+    print("total_paths", len(total_paths))
+    import time
 
+    st = time.time()
     for j, p in enumerate(Path(exp.general.model_path).rglob("*.pt")):
-        _, _, _, scene, percentage, run, steps = str(p).split("/")[-1].split("_")
+        print("XXXXXXXXXXXXXXXXXXXXX PROGRESS ", j, " of ", len(total_paths), " in ", time.time() - st, " seconds.")
+        res = str(p).split("/")[-1].split("_")
+        scene, percentage, run, steps = res[-4], res[-3], res[-2], res[-1]
+
         percentage, run, steps = int(percentage), int(run), int(steps.split(".")[0])
         exp.ablation_data_module.env = scene
         exp.model.load_ckpt = str(p)

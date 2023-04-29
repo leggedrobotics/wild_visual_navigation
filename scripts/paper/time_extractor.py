@@ -8,8 +8,8 @@ from wild_visual_navigation import WVN_ROOT_DIR
 if __name__ == "__main__":
 
     folder = "time_extractor"
-    warm_up_runs = 100
-    hot_runs = 100
+    warm_up_runs = 10
+    hot_runs = 10
     special_key = ""
 
     # Setup folder
@@ -25,40 +25,15 @@ if __name__ == "__main__":
 
     # Create a dictionary of feature extractors.
     fes = {}
-    fes["slic100_dino448_8"] = FeatureExtractor(
-        device, "slic", "dino", 448, model_type="vit_small", patch_size=8, slic_num_components=100
-    )
-    fes["slic100_dino448_16"] = FeatureExtractor(
-        device, "slic", "dino", 448, model_type="vit_small", patch_size=16, slic_num_components=100
-    )
-    fes["slic100_dino224_8"] = FeatureExtractor(
-        device, "slic", "dino", 224, model_type="vit_small", patch_size=8, slic_num_components=100
-    )
     fes["slic100_dino224_16"] = FeatureExtractor(
         device, "slic", "dino", 224, model_type="vit_small", patch_size=16, slic_num_components=100
     )
-    fes["slic100_dino112_8"] = FeatureExtractor(
-        device, "slic", "dino", 112, model_type="vit_small", patch_size=8, slic_num_components=100
-    )
-    fes["slic100_dino112_16"] = FeatureExtractor(
-        device, "slic", "dino", 112, model_type="vit_small", patch_size=16, slic_num_components=100
-    )
     fes["slic100_sift"] = FeatureExtractor(device, "slic", "sift", slic_num_components=100)
-
-    fes["slic100_efficientnet_b0"] = FeatureExtractor(
-        device, "slic", "torchvision", (256, 224), model_type="efficientnet_b0", slic_num_components=100
-    )
     fes["slic100_efficientnet_b4"] = FeatureExtractor(
         device, "slic", "torchvision", (384, 380), model_type="efficientnet_b4", slic_num_components=100
     )
-    fes["slic100_efficientnet_b7"] = FeatureExtractor(
-        device, "slic", "torchvision", (633, 600), model_type="efficientnet_b7", slic_num_components=100
-    )
     fes["slic100_resnet50"] = FeatureExtractor(
         device, "slic", "torchvision", 448, model_type="resnet50", slic_num_components=100
-    )
-    fes["slic100_resnet18"] = FeatureExtractor(
-        device, "slic", "torchvision", 448, model_type="resnet18", slic_num_components=100
     )
     fes["slic100_resnet50_dino"] = FeatureExtractor(
         device, "slic", "torchvision", 448, model_type="resnet50_dino", slic_num_components=100
@@ -100,6 +75,7 @@ if __name__ == "__main__":
             model = fe.extractor.model
             model.train()
             params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+
         except:
             try:
                 model = fe._extractor

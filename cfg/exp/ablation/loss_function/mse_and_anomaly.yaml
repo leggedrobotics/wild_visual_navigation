@@ -1,0 +1,4 @@
+general:
+  use_threshold: False
+loss:
+  confidence_std_factor: 0.5

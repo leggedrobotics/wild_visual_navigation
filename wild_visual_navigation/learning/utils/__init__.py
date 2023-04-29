@@ -4,3 +4,4 @@ from .loading import load_env, load_yaml, file_path
 from .create_experiment_folder import create_experiment_folder
 from .get_confidence import get_confidence
 from .loss import TraversabilityLoss
+from .metric_logger import MetricLogger

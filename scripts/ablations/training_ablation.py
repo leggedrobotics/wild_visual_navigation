@@ -14,6 +14,9 @@ import argparse
 import logging
 import shutil
 
+from dataclasses import asdict
+import copy
+
 if __name__ == "__main__":
     """Test how much time and data it takes for a model to convergee on a scene.
     Settings:
@@ -31,33 +34,26 @@ if __name__ == "__main__":
     parser.add_argument(
         "--test_all_datasets", dest="test_all_datasets", action="store_true", help="Test on all datasets."
     )
-    parser.set_defaults(test_all_datasets=False)
     parser.add_argument(
         "--store_final_model", dest="store_final_model", action="store_true", help="store_final_model on all datasets."
     )
-    parser.set_defaults(test_all_datasets=False)
-
+    parser.add_argument(
+        "--scenes", default="forest,hilly,grassland", type=str, help="List of scenes seperated by comma without spaces."
+    )
     parser.add_argument("--special_key", type=str, default="", help="Test on all datasets.")
-    # python scripts/ablations/training_ablation.py --ablation_type=network --number_training_runs=3 --special_key="" &&\
-    # python scripts/ablations/training_ablation.py --ablation_type=confidence_fn --number_training_runs=3 --special_key="" &&\
-    # python scripts/ablations/training_ablation.py --ablation_type=feature --number_training_runs=3 --special_key="" &&\
-    # python scripts/ablations/training_ablation.py --ablation_type=loss --number_training_runs=1 --special_key="" &&\
-    # python scripts/ablations/training_ablation.py --ablation_type=loss_with_tmp --number_training_runs=3 --special_key="" &&\
-    # python scripts/ablations/training_ablation.py --ablation_type=w_temp --number_training_runs=3 --special_key="" &&\
-    # python scripts/ablations/training_ablation.py --ablation_type=lr --number_training_runs=3 --special_key=""
-    # python scripts/ablations/training_ablation.py --ablation_type=scene_adaptation --number_training_runs=10 --special_key="" --test_all_datasets
-
-    # python scripts/ablations/training_ablation.py --ablation_type=loss --number_training_runs=1 --special_key="" && python scripts/ablations/training_ablation.py --ablation_type=loss_with_tmp --number_training_runs=3 --special_key=""  && python scripts/ablations/training_ablation.py --ablation_type=cross_entropy --number_training_runs=3 --special_key=""
-
-    # python scripts/ablations/training_ablation.py --ablation_type=scene_adaptation --number_training_runs=1 --special_key="" --test_all_datasets && python scripts/ablations/training_ablation.py --ablation_type=network --number_training_runs=1 --special_key=""
+    parser.set_defaults(test_all_datasets=False)
+    parser.set_defaults(store_final_model=False)
 
     args = parser.parse_args()
-    print(args)
+    exp = ExperimentParams()
+    stored_params = asdict(exp)
 
-    def get_exp(args, model_path, p, scene):
+    def get_exp(args, model_path, p, scene, stored_params):
         exp = ExperimentParams()
+        override_params(exp, copy.deepcopy(stored_params))
+
         exp.general.log_to_disk = False
-        exp.trainer.max_steps = 10000
+        exp.trainer.max_steps = 1000
         exp.trainer.max_epochs = None
         exp.logger.name = "skip"
         exp.ablation_data_module.val_equals_test = False
@@ -86,7 +82,7 @@ if __name__ == "__main__":
     special_key = args.special_key
     ws = os.environ["ENV_WORKSTATION_NAME"]
     model_path = os.path.join(WVN_ROOT_DIR, f"results/ablations/{folder}_ablation_{ws}")
-    shutil.rmtree(model_path)
+    shutil.rmtree(model_path, ignore_errors=True)
     Path(model_path).mkdir(parents=True, exist_ok=True)
 
     directory = Path(os.path.join(WVN_ROOT_DIR, f"cfg/exp/ablation/{folder}"))
@@ -94,18 +90,22 @@ if __name__ == "__main__":
     # Train model and get test results for every epoch.
     results_epoch = {}
     j = 0
-    for scene in ["forest", "hilly", "grassland"]:
+    scenes = args.scenes.split(",")
+    print(f"The configuration files in folder {folder} will be evaluated on {scenes}")
+    for scene in scenes:
+        print(f"Scene: {scene}")
         model_results = {}
 
         for p in cfg_paths:
             run_results = {}
             for run in range(number_training_runs):
                 p = str(p)
-                exp = get_exp(args, model_path, p, scene)
+                print(f"Run number {j}: Scene {scene}, Run: {run}, Config: {p}")
+                exp = get_exp(args, model_path, p, scene, stored_params)
                 res, model = training_routine(exp, seed=run)
                 run_results[str(run)] = copy.deepcopy(res)
                 j += 1
-                print(f"Run number {j}: Scene {scene}, Run: {run}, Config: {p}")
+
                 if args.store_final_model:
                     p_ = p.split("/")[-1][:-5]
                     p_ = os.path.join(exp.general.model_path, f"model_{p_}_{scene}_{run}.pt")
