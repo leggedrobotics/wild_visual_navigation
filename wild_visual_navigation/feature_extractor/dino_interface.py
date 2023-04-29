@@ -17,13 +17,15 @@ class DinoInterface:
         model_type: str = "vit_small",
         patch_size: int = 8,
     ):
-        self.dim = 90
+        # self.dim = 90
+        self.dim = 384
         self.cfg = DictConfig(
             {
                 "dino_patch_size": patch_size,
                 "dino_feat_type": "feat",
                 "model_type": model_type,
-                "projection_type": "nonlinear",
+                # "projection_type": "nonlinear",
+                "projection_type": None,
                 "pretrained_weights": None,
                 "dropout": True,
             }
@@ -34,6 +36,7 @@ class DinoInterface:
             self.cfg.pretrained_weights = self.download_pretrained_model(self.cfg)
 
         # Initialize DINO
+        torch.manual_seed(42)
         self.model = DinoFeaturizer(self.dim, self.cfg)
 
         # Send to device
