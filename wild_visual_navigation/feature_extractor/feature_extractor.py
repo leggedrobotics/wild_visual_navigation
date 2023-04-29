@@ -63,18 +63,16 @@ class FeatureExtractor:
     def extract(self, img, **kwargs):
         # Compute segments, their centers, and edges connecting them (graph structure)
         # with Timer("feature_extractor - compute_segments"):
-        # edges, seg, center = self.compute_segments(img, **kwargs)
-        seg = self.compute_segments(img, **kwargs)
+        edges, seg, center = self.compute_segments(img, **kwargs)
 
         # Compute features
         # with Timer("feature_extractor - compute_features"):
-        dense_feat = self.compute_features(img, seg=None, center=None, **kwargs)
+        dense_feat = self.compute_features(img, seg, center, **kwargs)
 
         # Sparsify features to match the centers if required
         feat = self.sparsify_features(dense_feat, seg)
 
-        # return edges, feat, seg, center
-        return feat, seg
+        return edges, feat, seg, center
 
     @property
     def feature_type(self):
@@ -112,15 +110,14 @@ class FeatureExtractor:
         else:
             raise f"segmentation_type [{self._segmentation_type}] not supported"
 
-        # # Compute edges and centers
-        # if self._segmentation_type != "none" and self._segmentation_type is not None:
-        #     # Extract adjacency_list based on segments
-        #     edges = self.segment_extractor.adjacency_list(seg[None, None])
-        #     # Extract centers
-        #     centers = self.segment_extractor.centers(seg[None, None])
+        # Compute edges and centers
+        if self._segmentation_type != "none" and self._segmentation_type is not None:
+            # Extract adjacency_list based on segments
+            edges = self.segment_extractor.adjacency_list(seg[None, None])
+            # Extract centers
+            centers = self.segment_extractor.centers(seg[None, None])
 
-        # return edges.T, seg, centers
-        return seg
+        return edges.T, seg, centers
 
     def segment_pixelwise(self, img, **kwargs):
         # Generate pixel-wise segmentation
@@ -285,19 +282,11 @@ class FeatureExtractor:
 
             else:
                 # Single scale feature extraction
-                # sparse_features = []
-                # for i in range(seg.max() + 1):
-                #     m = seg == i
-                #     x, y = torch.where(m)
-                #     feat = dense_features[0, :, x, y].mean(dim=1)
-                #     sparse_features.append(feat)
-                # return torch.stack(sparse_features, dim=1).T
-
-                # Single scale feature extraction
                 sparse_features = []
-                for i in torch.unique(seg):
-                    idx = torch.nonzero(seg == i)
-                    feat = torch.mean(dense_features[0, :, idx[:, 0], idx[:, 1]], dim=1)
+                for i in range(seg.max() + 1):
+                    m = seg == i
+                    x, y = torch.where(m)
+                    feat = dense_features[0, :, x, y].mean(dim=1)
                     sparse_features.append(feat)
                 return torch.stack(sparse_features, dim=1).T
         else:
