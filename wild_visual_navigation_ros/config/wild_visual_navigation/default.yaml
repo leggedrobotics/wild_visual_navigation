@@ -37,7 +37,7 @@ image_graph_dist_thr: 0.2 # meters
 proprio_graph_dist_thr: 0.1 # meters
 network_input_image_height: 224 # 448
 network_input_image_width: 224 # 448
-segmentation_type: "slic"
+segmentation_type: "random"
 feature_type: "dino"
 dino_patch_size: 16 # DINO only
 confidence_std_factor: 1.0

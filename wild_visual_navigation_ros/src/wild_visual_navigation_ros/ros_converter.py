@@ -8,7 +8,7 @@ from liegroups.torch import SO3, SE3
 import numpy as np
 import torch
 import torchvision.transforms as transforms
-
+from pytictac import Timer
 CV_BRIDGE = CvBridge()
 TO_TENSOR = transforms.ToTensor()
 TO_PIL_IMAGE = transforms.ToPILImage()
@@ -114,7 +114,6 @@ def ros_image_to_torch(ros_img, desired_encoding="rgb8", device="cpu"):
         np_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
         if "bgr" in ros_img.format:
             np_image = cv2.cvtColor(np_image, cv2.COLOR_BGR2RGB)
-    
     return TO_TENSOR(np_image).to(device)
 
 
