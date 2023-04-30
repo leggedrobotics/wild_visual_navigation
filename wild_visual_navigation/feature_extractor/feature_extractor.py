@@ -60,6 +60,9 @@ class FeatureExtractor:
                 num_components=kwargs.get("slic_num_components", 100), compactness=kwargs.get("slic_compactness", 10)
             )
 
+        elif self.segmentation_type == "random":
+            pass
+
     def extract(self, img, **kwargs):
         # Compute segments, their centers, and edges connecting them (graph structure)
         # with Timer("feature_extractor - compute_segments"):
@@ -72,6 +75,8 @@ class FeatureExtractor:
         # Sparsify features to match the centers if required
         feat = self.sparsify_features(dense_feat, seg)
 
+        if kwargs.get("return_dense_features", False):
+            return edges, feat, seg, center, dense_feat
         return edges, feat, seg, center
 
     @property
@@ -107,6 +112,10 @@ class FeatureExtractor:
 
         elif self._segmentation_type == "stego":
             seg = self.segment_stego(img, **kwargs)
+
+        elif self._segmentation_type == "random":
+            seg = self.segment_random(img, **kwargs)
+
         else:
             raise f"segmentation_type [{self._segmentation_type}] not supported"
 
@@ -163,6 +172,16 @@ class FeatureExtractor:
         img_np = kornia.utils.tensor_to_image(img)
         seg = self.slic.iterate(np.uint8(np.ascontiguousarray(img_np) * 255))
         return torch.from_numpy(seg).to(self._device).type(torch.long)
+
+    def segment_random(self, img, **kwargs):
+        # Randomly select
+        H, W = img.shape[2:]
+        nr = kwargs.get("n_random_pixels", 100)
+        seg = torch.full((H * W,), -1, dtype=torch.long, device=self._device)
+        indices = torch.randperm(H * W, device=self._device)[:nr]
+        seg[indices] = torch.arange(0, nr, device=self._device)
+        seg = seg.reshape(H, W)
+        return seg
 
     def segment_stego(self, img, **kwargs):
         # Prepare input image
