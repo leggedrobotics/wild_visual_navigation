@@ -4,7 +4,10 @@ from wild_visual_navigation.supervision_generator import SupervisionGenerator
 from wild_visual_navigation.traversability_estimator import TraversabilityEstimator
 from wild_visual_navigation.traversability_estimator import MissionNode, ProprioceptionNode
 import wild_visual_navigation_ros.ros_converter as rc
-from wild_visual_navigation.utils import accumulate_time
+from wild_visual_navigation.utils import WVNMode
+from wild_visual_navigation.cfg import ExperimentParams
+from wild_visual_navigation.utils import override_params
+from wild_visual_navigation.learning.utils import load_yaml, load_env, create_experiment_folder
 from wild_visual_navigation_msgs.msg import RobotState, SystemState
 from wild_visual_navigation_msgs.srv import (
     LoadCheckpoint,
@@ -13,12 +16,9 @@ from wild_visual_navigation_msgs.srv import (
     SaveCheckpointResponse,
 )
 from std_srvs.srv import SetBool, Trigger, TriggerResponse
-from wild_visual_navigation.utils import SystemLevelTimer, SystemLevelContextTimer
-from wild_visual_navigation.utils import SystemLevelGpuMonitor, SystemLevelContextGpuMonitor, accumulate_memory
-from wild_visual_navigation.utils import WVNMode
-from wild_visual_navigation.cfg import ExperimentParams
-from wild_visual_navigation.utils import override_params
-from wild_visual_navigation.learning.utils import load_yaml, load_env, create_experiment_folder
+from pytictac import ClassTimer, ClassContextTimer, accumulate_time
+
+
 from geometry_msgs.msg import PoseStamped, Point, TwistStamped
 from nav_msgs.msg import Path
 from sensor_msgs.msg import Image, CameraInfo, CompressedImage
@@ -95,7 +95,7 @@ class WvnRosInterface:
         self.setup_ros(setup_fully=self.mode != WVNMode.EXTRACT_LABELS)
 
         # Setup Timer if needed
-        self.timer = SystemLevelTimer(
+        self.timer = ClassTimer(
             objects=[
                 self,
                 self.traversability_estimator,
@@ -104,20 +104,6 @@ class WvnRosInterface:
             ],
             names=["WVN", "TraversabilityEstimator", "Visualizer", "SupervisionGenerator"],
             enabled=(self.print_image_callback_time or self.print_proprio_callback_time or self.log_time),
-        )
-
-        self.gpu_monitor = SystemLevelGpuMonitor(
-            objects=[
-                self,
-                self.traversability_estimator,
-                self.traversability_estimator._visualizer,
-                self.supervision_generator,
-            ],
-            names=["WVN", "TraversabilityEstimator", "Visualizer", "SupervisionGenerator"],
-            enabled=self.log_memory,
-            device=self.device,
-            store_samples=True,
-            skip_n_samples=1,
         )
         # Register shotdown callbacks
         rospy.on_shutdown(self.shutdown_callback)
@@ -152,10 +138,6 @@ class WvnRosInterface:
             print("Storing timer data...", end="")
             self.timer.store(folder=self.params.general.model_path)
             print("done")
-        if self.log_memory:
-            print("Storing memory data...", end="")
-            self.gpu_monitor.store(folder=self.params.general.model_path)
-            print("done")
 
         print("Joining learning thread...", end="")
         if self.mode != WVNMode.EXTRACT_LABELS:
@@ -187,7 +169,7 @@ class WvnRosInterface:
 
             # Optimize model
             # with SystemLevelContextGpuMonitor(self, "training_step_time"):
-            with SystemLevelContextTimer(self, "training_step_time"):
+            with ClassContextTimer(self, "training_step_time"):
                 res = self.traversability_estimator.train()
 
             if self.step != self.traversability_estimator.step:
@@ -289,7 +271,6 @@ class WvnRosInterface:
         self.print_image_callback_time = rospy.get_param("~print_image_callback_time")
         self.print_proprio_callback_time = rospy.get_param("~print_proprio_callback_time")
         self.log_time = rospy.get_param("~log_time")
-        self.log_memory = rospy.get_param("~log_memory")
         self.log_confidence = rospy.get_param("~log_confidence")
         self.verbose = rospy.get_param("~verbose")
 
@@ -465,10 +446,6 @@ class WvnRosInterface:
             print("Storing timer data...", end="")
             self.timer.store(folder=self.params.general.model_path)
             print("done")
-        if self.log_memory:
-            print("Storing memory data...", end="")
-            self.gpu_monitor.store(folder=self.params.general.model_path)
-            print("done")
 
         # Create new mission folder
         create_experiment_folder(self.params, load_env())
@@ -538,7 +515,6 @@ class WvnRosInterface:
             rospy.logwarn(f"Couldn't get between {parent_frame} and {child_frame}")
             return (None, None)
 
-    @accumulate_memory
     @accumulate_time
     def robot_state_callback(self, state_msg, desired_twist_msg: TwistStamped):
         """Main callback to process proprioceptive info (robot state)
@@ -632,7 +608,6 @@ class WvnRosInterface:
 
             raise Exception("Error in robot state callback")
 
-    @accumulate_memory
     @accumulate_time
     def image_callback(self, image_msg: Image, info_msg: CameraInfo, camera_options: dict):
         """Main callback to process incoming images
@@ -703,10 +678,9 @@ class WvnRosInterface:
             # Add node to graph
             added_new_node = self.traversability_estimator.add_mission_node(mission_node)
 
-            with SystemLevelContextGpuMonitor(self, "update_prediction"):
-                with SystemLevelContextTimer(self, "update_prediction"):
-                    # Update prediction
-                    self.traversability_estimator.update_prediction(mission_node)
+            with ClassContextTimer(self, "update_prediction"):
+                # Update prediction
+                self.traversability_estimator.update_prediction(mission_node)
 
             if self.mode == WVNMode.ONLINE or self.mode == WVNMode.DEBUG:
                 self.publish_predictions(mission_node, image_msg, info_msg, image_projector.scaled_camera_matrix)
@@ -733,7 +707,6 @@ class WvnRosInterface:
             self.system_events["image_callback_state"] = {"time": rospy.get_time(), "value": f"failed to execute {e}"}
             raise Exception("Error in image callback")
 
-    @accumulate_memory
     @accumulate_time
     def publish_predictions(
         self, mission_node: MissionNode, image_msg: Image, info_msg: CameraInfo, scaled_camera_matrix: torch.Tensor
@@ -813,7 +786,6 @@ class WvnRosInterface:
             info_msg.P = scaled_camera_matrix[0, :3, :4].cpu().numpy().flatten().tolist()
             self.camera_handler[cam]["info_pub"].publish(info_msg)
 
-    @accumulate_memory
     @accumulate_time
     def visualize_proprioception(self):
         """Publishes all the visualizations related to proprioceptive info,
@@ -918,7 +890,6 @@ class WvnRosInterface:
         self.pub_instant_traversability.publish(self.supervision_generator.traversability)
         self.system_events["visualize_proprioception"] = {"time": rospy.get_time(), "value": f"executed successfully"}
 
-    @accumulate_memory
     @accumulate_time
     def visualize_mission(self):
         """Publishes all the visualizations related to the mission graph"""
@@ -939,7 +910,6 @@ class WvnRosInterface:
 
         self.pub_mission_graph.publish(mission_graph_msg)
 
-    @accumulate_memory
     @accumulate_time
     def visualize_debug(self):
         """Publishes all the debugging, slow visualizations"""

@@ -121,7 +121,7 @@ class TorchVisionInterface(nn.Module):
 def run_torch_vision_model_interfacer():
     """Performance inference using stego and stores result as an image."""
 
-    from wild_visual_navigation.utils import Timer
+    from pytictac import Timer
     from wild_visual_navigation.visu import get_img_from_fig
     import matplotlib.pyplot as plt
     from stego.src import remove_axes

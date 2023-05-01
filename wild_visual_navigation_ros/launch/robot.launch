@@ -12,5 +12,4 @@
     <arg name="camera" value="$(arg camera)"/>
     <arg name="stack"  value="$(arg stack)"/>
   </include>
-
 </launch>

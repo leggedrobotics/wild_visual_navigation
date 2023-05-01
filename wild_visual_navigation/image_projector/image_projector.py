@@ -1,5 +1,5 @@
 from wild_visual_navigation import WVN_ROOT_DIR
-from wild_visual_navigation.utils import Timer
+from pytictac import Timer
 import os
 from os.path import join
 import torch
@@ -197,7 +197,7 @@ def run_image_projector():
     """Projects 3D points to example images and returns an image with the projection"""
 
     from wild_visual_navigation.visu import get_img_from_fig
-    from wild_visual_navigation.utils import Timer
+    from pytictac import Timer
     from wild_visual_navigation.utils import make_plane, make_box, make_dense_plane, make_polygon_from_points
     from PIL import Image
     import matplotlib.pyplot as plt
