@@ -272,12 +272,6 @@ class WvnFeatureExtractor:
 
 if __name__ == "__main__":
     node_name = "wvn_feature_extractor_node"
-    # os.system(
-    #     f"rosparam load {WVN_ROOT_DIR}/wild_visual_navigation_ros/config/wild_visual_navigation/default.yaml {node_name}"
-    # )
-    # os.system(
-    #     f"rosparam load {WVN_ROOT_DIR}/wild_visual_navigation_ros/config/wild_visual_navigation/inputs/alphasense_resize.yaml {node_name}"
-    # )
     rospy.init_node(node_name)
     wvn = WvnFeatureExtractor()
     rospy.spin()
