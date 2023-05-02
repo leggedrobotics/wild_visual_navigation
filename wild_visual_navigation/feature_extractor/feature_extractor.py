@@ -4,7 +4,7 @@ from wild_visual_navigation.feature_extractor import (
     SegmentExtractor,
     TorchVisionInterface,
 )
-from wild_visual_navigation.utils import Timer
+from pytictac import Timer
 import skimage
 import torch
 import numpy as np
@@ -50,6 +50,8 @@ class FeatureExtractor:
             )
         elif self._feature_type == "histogram":
             self._feature_dim = 90
+        elif self._feature_type == "none":
+            pass
         else:
             raise f"Extractor[{self._feature_type}] not supported!"
 
@@ -60,17 +62,40 @@ class FeatureExtractor:
                 num_components=kwargs.get("slic_num_components", 100), compactness=kwargs.get("slic_compactness", 10)
             )
 
+        elif self.segmentation_type == "random":
+            pass
+
     def extract(self, img, **kwargs):
+        if kwargs.get("fast_random", False):
+            dense_feat = self.compute_features(img, None, None, **kwargs)
+
+            H, W = img.shape[2:]
+            nr = kwargs.get("n_random_pixels", 100)
+            seg = torch.full((H * W,), -1, dtype=torch.long, device=self._device)
+            indices = torch.randperm(H * W, device=self._device)[:nr]
+            seg[indices] = torch.arange(0, nr, device=self._device)
+            seg = seg.reshape(H, W)
+            feat = dense_feat[0].reshape(dense_feat.shape[1], H * W)[:, indices].T
+
+            if kwargs.get("return_dense_features", False):
+                return None, feat, seg, None, dense_feat
+
+            return None, feat, seg, None
+
         # Compute segments, their centers, and edges connecting them (graph structure)
-        # with Timer("feature_extractor - compute_segments"):
-        edges, seg, center = self.compute_segments(img, **kwargs)
+        with Timer("feature_extractor - compute_segments"):
+            edges, seg, center = self.compute_segments(img, **kwargs)
 
         # Compute features
-        # with Timer("feature_extractor - compute_features"):
-        dense_feat = self.compute_features(img, seg, center, **kwargs)
+        with Timer("feature_extractor - compute_features"):
+            dense_feat = self.compute_features(img, seg, center, **kwargs)
 
-        # Sparsify features to match the centers if required
-        feat = self.sparsify_features(dense_feat, seg)
+        with Timer("feature_extractor - compute_features"):
+            # Sparsify features to match the centers if required
+            feat = self.sparsify_features(dense_feat, seg)
+
+        if kwargs.get("return_dense_features", False):
+            return edges, feat, seg, center, dense_feat
 
         return edges, feat, seg, center
 
@@ -107,6 +132,10 @@ class FeatureExtractor:
 
         elif self._segmentation_type == "stego":
             seg = self.segment_stego(img, **kwargs)
+
+        elif self._segmentation_type == "random":
+            seg = self.segment_random(img, **kwargs)
+
         else:
             raise f"segmentation_type [{self._segmentation_type}] not supported"
 
@@ -164,6 +193,16 @@ class FeatureExtractor:
         seg = self.slic.iterate(np.uint8(np.ascontiguousarray(img_np) * 255))
         return torch.from_numpy(seg).to(self._device).type(torch.long)
 
+    def segment_random(self, img, **kwargs):
+        # Randomly select
+        H, W = img.shape[2:]
+        nr = kwargs.get("n_random_pixels", 100)
+        seg = torch.full((H * W,), -1, dtype=torch.long, device=self._device)
+        indices = torch.randperm(H * W, device=self._device)[:nr]
+        seg[indices] = torch.arange(0, nr, device=self._device)
+        seg = seg.reshape(H, W)
+        return seg
+
     def segment_stego(self, img, **kwargs):
         # Prepare input image
         img_internal = img.clone()
@@ -191,7 +230,8 @@ class FeatureExtractor:
 
         elif self._feature_type == "torchvision":
             feat = self.compute_torchvision(img, seg, center, **kwargs)
-
+        elif self._feature_type == "none":
+            feat = None
         else:
             raise f"segmentation_type [{self._segmentation_type}] not supported"
 

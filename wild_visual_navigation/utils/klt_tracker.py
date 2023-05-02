@@ -1,6 +1,6 @@
 import torch
 import kornia
-from wild_visual_navigation.utils import Timer
+from pytictac import Timer
 
 
 def interp2_torch_batch(v, xq, yq):

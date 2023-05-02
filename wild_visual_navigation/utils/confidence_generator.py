@@ -150,6 +150,9 @@ class ConfidenceGenerator(torch.nn.Module):
         self.var[0] = 1
         self.std[0] = 1
 
+    def get_dict(self):
+        return {"mean": self.mean, "var": self.var, "std": self.std}
+
 
 if __name__ == "__main__":
     cg = ConfidenceGenerator()

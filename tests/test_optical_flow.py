@@ -6,7 +6,7 @@ from wild_visual_navigation.visu import LearningVisualizer
 import numpy as np
 import PIL
 import os
-from wild_visual_navigation.utils import Timer
+from pytictac import Timer
 
 if __name__ == "__main__":
     import os

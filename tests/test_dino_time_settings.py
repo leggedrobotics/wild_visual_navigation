@@ -1,5 +1,5 @@
 from wild_visual_navigation import WVN_ROOT_DIR
-from wild_visual_navigation.utils import Timer
+from pytictac import Timer
 from wild_visual_navigation.feature_extractor import DinoInterface, DinoTrtInterface, TrtModel
 from collections import namedtuple, OrderedDict
 from torchvision import transforms as T
@@ -35,7 +35,7 @@ def capture_output():
 def run_dino_interfacer():
     """Performance inference using stego and stores result as an image."""
 
-    from wild_visual_navigation.utils import Timer
+    from pytictac import Timer
     from wild_visual_navigation.visu import get_img_from_fig
     import matplotlib.pyplot as plt
     from stego.src import remove_axes

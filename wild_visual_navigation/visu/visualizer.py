@@ -19,7 +19,7 @@ from wild_visual_navigation.learning.utils import get_confidence
 from wild_visual_navigation.visu import get_img_from_fig
 from wild_visual_navigation.visu import paper_colors_rgb_u8, paper_colors_rgba_u8
 from wild_visual_navigation.visu import paper_colors_rgb_f, paper_colors_rgba_f
-from wild_visual_navigation.utils import Timer, accumulate_time
+from pytictac import Timer, accumulate_time
 
 __all__ = ["LearningVisualizer"]
 

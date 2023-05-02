@@ -6,6 +6,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   message_runtime
   std_msgs
+  sensor_msgs
 )
 
 add_message_files(
@@ -13,6 +14,7 @@ add_message_files(
   CustomState.msg
   RobotState.msg
   SystemState.msg
+  ImageFeatures.msg
 )
 
 add_service_files(
@@ -25,6 +27,7 @@ generate_messages(
   DEPENDENCIES
   geometry_msgs
   std_msgs
+  sensor_msgs
 )
 
 catkin_package(
@@ -32,4 +35,5 @@ catkin_package(
                  message_generation
                  message_runtime
                  std_msgs
+                 sensor_msgs
 )

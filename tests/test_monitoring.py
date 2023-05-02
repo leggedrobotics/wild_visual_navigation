@@ -1,4 +1,5 @@
-from wild_visual_navigation.utils import SystemLevelGpuMonitor, SystemLevelTimer, accumulate_memory, accumulate_time
+from wild_visual_navigation.utils import SystemLevelGpuMonitor, accumulate_memory
+from pytictac import SystemLevelTimer, accumulate_time
 import time
 import torch
 

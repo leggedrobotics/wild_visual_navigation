@@ -44,19 +44,19 @@ subscribers:
     channels: ["visual_traversability"]
     data_type: image
   
-  # wvn_left_traversability:
-  #   fusion: ['image_exponential']
-  #   topic_name_camera: '/wild_visual_navigation_node/left/traversability'
-  #   topic_name_camera_info: '/wild_visual_navigation_node/left/camera_info'
-  #   channels: ["visual_traversability"]
-  #   data_type: image
+  wvn_left_traversability:
+    fusion: ['image_exponential']
+    topic_name_camera: '/wild_visual_navigation_node/left/traversability'
+    topic_name_camera_info: '/wild_visual_navigation_node/left/camera_info'
+    channels: ["visual_traversability"]
+    data_type: image
   
-  # wvn_right_traversability:
-  #   fusion: ['image_exponential']
-  #   topic_name_camera: '/wild_visual_navigation_node/right/traversability'
-  #   topic_name_camera_info: '/wild_visual_navigation_node/right/camera_info'
-  #   channels: ["visual_traversability"]
-  #   data_type: image
+  wvn_right_traversability:
+    fusion: ['image_exponential']
+    topic_name_camera: '/wild_visual_navigation_node/right/traversability'
+    topic_name_camera_info: '/wild_visual_navigation_node/right/camera_info'
+    channels: ["visual_traversability"]
+    data_type: image
   
   # Confidence
   # wvn_front_confidence:

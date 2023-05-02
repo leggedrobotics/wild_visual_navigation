@@ -1,5 +1,5 @@
 from wild_visual_navigation import WVN_ROOT_DIR
-from wild_visual_navigation.utils import Timer
+from pytictac import Timer
 from wild_visual_navigation.feature_extractor import DinoInterface, DinoTrtInterface, TrtModel
 from collections import namedtuple, OrderedDict
 from torchvision import transforms as T
