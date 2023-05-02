@@ -33,7 +33,14 @@ group "0.npc" {
     }
 }
 
-group "1.jetson" {
+group "1.xavier" {
+    cmd "elevation_mapping" {
+        exec = "roslaunch wild_visual_navigation_ros elevation_mapping_cupy.launch";
+        host = "anymal_coyote_xavier";
+    }
+}
+
+group "2.orin" {
     cmd "wild_visual_navigation" {
         exec = "roslaunch wild_visual_navigation_ros robot.launch";
         host = "anymal_coyote_orin";
@@ -45,33 +52,33 @@ group "1.jetson" {
     }
 }
 
-group "2.visualization" {
+group "3.visualization" {
     cmd "rviz" {
         exec = "roslaunch wild_visual_navigation_ros view.launch";
         host = "localhost";
     }
 }
 
-group "3.recording" {
-    cmd "3.1.rosbag_record" {
+group "4.recording" {
+    cmd "4.1.rosbag_record" {
         exec = "rosservice call /rosbag_record_robot_coordinator/record_bag {}";
         host = "localhost";
     }
-    cmd "3.2.rosbag_stop" {
+    cmd "4.2.rosbag_stop" {
         exec = "rosservice call /rosbag_record_robot_coordinator/stop_bag {}";
         host = "localhost";
     }
-    cmd "3.3.fetch_bags" {
+    cmd "4.3.fetch_bags" {
         exec = "/home/ori/git/anymal_rsl/anymal_rsl/anymal_rsl_utils/anymal_rsl_recording/anymal_rsl_recording/bin/copy_mission_data_from_robot.sh digiforest coyote /home/ori/logs";
         host = "localhost";
     }
-    cmd "3.4.delete_bags" {
+    cmd "4.4.delete_bags" {
         exec = "/home/ori/git/anymal_rsl/anymal_rsl/anymal_rsl_utils/anymal_rsl_recording/anymal_rsl_recording/bin/remove_mission_data_from_robot.sh digiforest coyote";
         host = "localhost";
     }
 }
 
-group "4.monitoring" {
+group "5.monitoring" {
     cmd "lpc_disk" {
         exec = "rostopic echo /disk_monitor_lpc/status/disks[1]";
         host = "localhost";
@@ -90,9 +97,24 @@ group "4.monitoring" {
     }
 }
 
-group "5.configuration" {
-    cmd "5.1.dynamic_reconfigure" {
+group "6.configuration" {
+    cmd "6.1.dynamic_reconfigure" {
         exec = "rosrun rqt_reconfigure rqt_reconfigure";
+        host = "localhost";
+    }
+}
+
+group "7.white_balance" {
+    cmd "7.1.white_balance_front_reset" {
+        exec = "rosservice call /alphasense_raw_image_pipeline_front/reset_white_balance";
+        host = "localhost";
+    }
+    cmd "7.2.white_balance_left_reset" {
+        exec = "rosservice call /alphasense_raw_image_pipeline_left/reset_white_balance";
+        host = "localhost";
+    }
+    cmd "7.3.white_balance_right_reset" {
+        exec = "rosservice call /alphasense_raw_image_pipeline_right/reset_white_balance";
         host = "localhost";
     }
 }
