@@ -15,6 +15,8 @@ catkin_package(
 
 catkin_python_setup()
 catkin_install_python(PROGRAMS  scripts/wild_visual_navigation_node.py
+                                scripts/wvn_feature_extractor_node.py
+                                scripts/wvn_learning_node.py
                                 scripts/overlay_images.py
                                 scripts/shift_gridmap.py
                                 scripts/smart_carrot.py

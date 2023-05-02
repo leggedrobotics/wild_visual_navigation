@@ -1,6 +1,6 @@
 <launch>
   <!-- Arguments -->
-  <arg name="elevation_mapping" default="True"/>
+  <arg name="elevation_mapping" default="False"/>
   <arg name="camera"            default="alphasense_resize"/> <!-- alphasense, wide_angle_front, realsense_front, realsense_rear -->
   <arg name="stack"             default="anybotics"/> <!-- rsl or anybotics -->
 

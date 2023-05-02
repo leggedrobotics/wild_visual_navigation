@@ -36,7 +36,7 @@ group "0.npc" {
 group "1.jetson" {
     cmd "wild_visual_navigation" {
         exec = "roslaunch wild_visual_navigation_ros robot.launch";
-        host = "apc-digiforest";
+        host = "anymal_coyote_orin";
     }
     
     cmd "kill_wvn" {
@@ -108,7 +108,7 @@ group "x.learning_utils" {
     }
     cmd "x.3.save_checkpoint" {
         exec = "rosservice call /wild_visual_navigation_node/save_checkpoint ''";
-        host = "apc-digiforest";
+        host = "anymal_coyote_orin";
     }
     cmd "x.4.load_checkpoint" {
         exec = "rosservice call /wild_visual_navigation_node/load_checkpoint 'path: 'absolute_path_in_robot_filesystem'";
