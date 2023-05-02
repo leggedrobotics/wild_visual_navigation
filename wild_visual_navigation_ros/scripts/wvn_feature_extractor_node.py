@@ -164,10 +164,9 @@ class WvnFeatureExtractor:
 
         # Update model from file if possible
         self.load_model()
-        with Timer("convert"):
-            # Convert image message to torch image
-            torch_image = rc.ros_image_to_torch(image_msg, device=self.device)
-            torch_image = self.camera_topics[cam]["image_projector"].resize_image(torch_image)
+        # Convert image message to torch image
+        torch_image = rc.ros_image_to_torch(image_msg, device=self.device)
+        torch_image = self.camera_topics[cam]["image_projector"].resize_image(torch_image)
         C, H, W = torch_image.shape
 
         _, feat, seg, center, dense_feat = self.feature_extractor.extract(
