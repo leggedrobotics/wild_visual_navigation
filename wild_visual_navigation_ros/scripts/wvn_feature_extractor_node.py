@@ -96,6 +96,22 @@ class WvnFeatureExtractor:
             self.camera_topics[cam]["H"] = H
             self.camera_topics[cam]["W"] = W
 
+            image_projector = ImageProjector(
+                K=self.camera_topics[cam]["K"],
+                h=self.camera_topics[cam]["H"],
+                w=self.camera_topics[cam]["W"],
+                new_h=self.network_input_image_height,
+                new_w=self.network_input_image_width,
+            )
+            msg = self.camera_topics[cam]["camera_info"]
+            msg.width = self.network_input_image_width
+            msg.height = self.network_input_image_height
+            msg.K = image_projector.scaled_camera_matrix[0, :3, :3].cpu().numpy().flatten().tolist()
+            msg.P = image_projector.scaled_camera_matrix[0, :3, :4].cpu().numpy().flatten().tolist()
+
+            self.camera_topics[cam]["camera_info_msg_out"] = msg
+            self.camera_topics[cam]["image_projector"] = image_projector
+
             # Set subscribers
             base_topic = self.camera_topics[cam]["image_topic"].replace("/compressed", "")
             is_compressed = self.camera_topics[cam]["image_topic"] != base_topic
@@ -148,17 +164,10 @@ class WvnFeatureExtractor:
 
         # Update model from file if possible
         self.load_model()
-
-        # Convert image message to torch image
-        torch_image = rc.ros_image_to_torch(image_msg, device=self.device)
-        image_projector = ImageProjector(
-            K=self.camera_topics[cam]["K"],
-            h=self.camera_topics[cam]["H"],
-            w=self.camera_topics[cam]["W"],
-            new_h=self.network_input_image_height,
-            new_w=self.network_input_image_width,
-        )
-        torch_image = image_projector.resize_image(torch_image)
+        with Timer("convert"):
+            # Convert image message to torch image
+            torch_image = rc.ros_image_to_torch(image_msg, device=self.device)
+            torch_image = self.camera_topics[cam]["image_projector"].resize_image(torch_image)
         C, H, W = torch_image.shape
 
         _, feat, seg, center, dense_feat = self.feature_extractor.extract(
@@ -193,11 +202,9 @@ class WvnFeatureExtractor:
         msg.height = out_trav.shape[1]
         self.camera_handler[cam]["trav_pub"].publish(msg)
 
-        # info_msg.width = out_trav.shape[0]
-        # info_msg.height = out_trav.shape[1]
-        # info_msg.K = image_projector.scaled_camera_matrix[0, :3, :3].cpu().numpy().flatten().tolist()
-        # info_msg.P = image_projector.scaled_camera_matrix[0, :3, :4].cpu().numpy().flatten().tolist()
-        # self.camera_handler[cam]["info_pub"].publish(info_msg)
+        msg = self.camera_topics[cam]["camera_info_msg_out"]
+        msg.header = image_msg.header
+        self.camera_handler[cam]["info_pub"].publish(msg)
 
         # Publish image
         if self.camera_topics[cam]["publish_input_image"]:
@@ -266,12 +273,12 @@ class WvnFeatureExtractor:
 
 if __name__ == "__main__":
     node_name = "wvn_feature_extractor_node"
-    os.system(
-        f"rosparam load {WVN_ROOT_DIR}/wild_visual_navigation_ros/config/wild_visual_navigation/default.yaml {node_name}"
-    )
-    os.system(
-        f"rosparam load {WVN_ROOT_DIR}/wild_visual_navigation_ros/config/wild_visual_navigation/inputs/alphasense_compressed.yaml {node_name}"
-    )
+    # os.system(
+    #     f"rosparam load {WVN_ROOT_DIR}/wild_visual_navigation_ros/config/wild_visual_navigation/default.yaml {node_name}"
+    # )
+    # os.system(
+    #     f"rosparam load {WVN_ROOT_DIR}/wild_visual_navigation_ros/config/wild_visual_navigation/inputs/alphasense_resize.yaml {node_name}"
+    # )
     rospy.init_node(node_name)
     wvn = WvnFeatureExtractor()
     rospy.spin()

@@ -3,21 +3,6 @@ robot_state_topic: "/wild_visual_navigation_node/robot_state"
 desired_twist_topic: "/motion_reference/command_twist"
 # desired_twist_topic: "/log/state/desiredRobotTwist"
 
-camera_topics:
-  front:
-    image_topic: "/alphasense_driver_ros/cam4/debayered"
-    info_topic: "/alphasense_driver_ros/cam4/camera_info"
-    use_for_training: true
-  # left:
-  #   image_topic: "/alphasense_driver_ros/cam3/debayered"
-  #   info_topic: "/alphasense_driver_ros/cam3/camera_info"
-  #   use_for_training: false
-  # right:
-  #   image_topic: "/alphasense_driver_ros/cam5/debayered"
-  #   info_topic: "/alphasense_driver_ros/cam5/camera_info"
-  #   use_for_training: false
-
-
 # Relevant frames
 fixed_frame: odom
 base_frame: base
@@ -56,7 +41,7 @@ mission_name: "test"
 mission_timestamp: True
 
 # Threads
-image_callback_rate: 3 # hertz
+image_callback_rate: 10 # hertz
 proprio_callback_rate: 4 # hertz
 learning_thread_rate: 10 # hertz
 logging_thread_rate: 2 # hertz
