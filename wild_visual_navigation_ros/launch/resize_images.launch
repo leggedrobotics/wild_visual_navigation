@@ -9,14 +9,9 @@
 
   <arg name="hdr_cam"     default="True"/>
   <node if="$(arg hdr_cam)" name="hdr_cam_driver" pkg="usb_cam" type="usb_cam_node">
-      <rosparam command="load" file="$(find wild_visual_navigation_ros)/config/hdr_cam/hdr_cam_config.yml"/>
-  </node>  
-  <node if="$(arg hdr_cam)" pkg="image_rotate" type="image_rotate" name="hdr_cam_rotate">
-      <remap from="image" to="/hdr_cam/raw/image" />
-      <remap from="rotated/image" to="/hdr_cam/rotated/image" />
+      <rosparam command="load" file="$(find wild_visual_navigation_ros)/config/hdr_cam/hdr_cam_config.yaml"/>
   </node>
-  <node if="$(arg hdr_cam)" name="dynparam_rotate" pkg="dynamic_reconfigure" type="dynparam" args="set /image_proc_nodelet_cam3 target_z 180"/>
-
+  <node if="$(arg hdr_cam)" pkg="wild_visual_navigation_ros" type="rotate_image.py" name="hdr_cam_rotate" output="screen"/>
 
 
   <node if="$(arg uncompress_alphasense_cam3)" name="uncompress_cam3" pkg="image_transport" type="republish" args="compressed in:=/alphasense_driver_ros/cam3/debayered raw out:=/alphasense_driver_ros/cam3/debayered" />
