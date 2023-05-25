@@ -377,6 +377,9 @@ class WvnLearning:
                 self.camera_handler[cam]["info_sub"] = info_sub
                 self.camera_handler[cam]["sync"] = sync
 
+                if self.mode == WVNMode.DEBUG:
+                    self.setup_debug(cam)
+
         # 3D outputs
         self.pub_debug_proprio_graph = rospy.Publisher(
             "/wild_visual_navigation_node/proprioceptive_graph", Path, queue_size=10
@@ -810,9 +813,66 @@ class WvnLearning:
 
         self.pub_mission_graph.publish(mission_graph_msg)
 
+    def setup_debug(self, cam):
+        # Debugging publishers
+        last_image_labeled_pub = rospy.Publisher(
+            f"/wild_visual_navigation_node/{cam}/debug/last_node_image_labeled", Image, queue_size=10
+        )
+        last_image_mask_pub = rospy.Publisher(
+            f"/wild_visual_navigation_node/{cam}/debug/last_node_image_mask", Image, queue_size=10
+        )
+        last_image_trav_pub = rospy.Publisher(
+            f"/wild_visual_navigation_node/{cam}/debug/last_image_traversability", Image, queue_size=10
+        )
+        last_image_conf_pub = rospy.Publisher(
+            f"/wild_visual_navigation_node/{cam}/debug/last_image_confidence", Image, queue_size=10
+        )
+        self.camera_handler[cam]["debug"] = {}
+        self.camera_handler[cam]["debug"]["image_labeled"] = last_image_labeled_pub
+        self.camera_handler[cam]["debug"]["image_mask"] = last_image_mask_pub
+        self.camera_handler[cam]["debug"]["image_trav"] = last_image_trav_pub
+        self.camera_handler[cam]["debug"]["image_conf"] = last_image_conf_pub
+
+    @accumulate_time
+    def visualize_debug(self):
+        """Publishes all the debugging, slow visualizations"""
+
+        # Get visualization node
+        vis_node = self.traversability_estimator.get_mission_node_for_visualization()
+
+        # Publish predictions
+        if vis_node is not None:
+            cam = vis_node.camera_name
+            (
+                np_prediction_image,
+                np_uncertainty_image,
+            ) = self.traversability_estimator.plot_mission_node_prediction(vis_node)
+
+            # self.pub_image_input.publish(rc.torch_to_ros_image(vis_node.image))
+            self.camera_handler[cam]["debug"]["image_trav"].publish(rc.numpy_to_ros_image(np_prediction_image))
+            self.camera_handler[cam]["debug"]["image_conf"].publish(rc.numpy_to_ros_image(np_uncertainty_image))
+
+        # Publish reprojections of last node in graph
+        if vis_node is not None:
+            cam = vis_node.camera_name
+
+            np_labeled_image, np_mask_image = self.traversability_estimator.plot_mission_node_training(vis_node)
+
+            if np_labeled_image is None or np_mask_image is None:
+                return
+            self.camera_handler[cam]["debug"]["image_labeled"].publish(rc.numpy_to_ros_image(np_labeled_image))
+            self.camera_handler[cam]["debug"]["image_mask"].publish(rc.numpy_to_ros_image(np_mask_image))
+
 
 if __name__ == "__main__":
     node_name = "wvn_learning_node"
+    os.system(
+        f"rosparam load /home/jonfrey/git/wild_visual_navigation/wild_visual_navigation_ros/config/wild_visual_navigation/default.yaml {node_name}"
+    )
+    os.system(
+        f"rosparam load /home/jonfrey/git/wild_visual_navigation/wild_visual_navigation_ros/config/wild_visual_navigation/inputs/alphasense_resize.yaml {node_name}"
+    )
+
     rospy.init_node(node_name)
     wvn = WvnLearning()
     rospy.spin()

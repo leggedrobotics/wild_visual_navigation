@@ -36,6 +36,13 @@ for option in "$@"; do
     # /tf_static:=/recorded_flp/tf_static"
 
     echo "rosrun anymal_rsl_launch replay.py c /media/Data/Datasets/2023_Oxford_Testing/2023_01_27_Oxford_Park/mission_data/2023-01-27-11-00-22/2023-01-27-11-00-22_anymal-coyote-lpc_mission.yaml"
+
+  elif [ "$option" == "--compslam" ]; then
+    args="$args /compslam_lio/odometry:=/recorded_comslam/compslam_lio/odometry \
+    /msf_compslam_lio_body_imu/msf_core/odometry:=/recorded_comslam/msf_compslam_lio_body_imu/msf_core/odometry \
+    /loam/map:=/recorded_comslam/loam/map \
+    /loam/odometry:=/recorded_comslam/loam/odometry"
+
   else
     args="$args $option"
   fi

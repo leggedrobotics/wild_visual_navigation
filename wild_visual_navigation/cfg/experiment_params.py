@@ -41,8 +41,8 @@ class ExperimentParams(Serializable):
         anomaly_balanced: bool = True
         w_trav: float = 0.03
         w_reco: float = 0.5
-        w_temp: float = 0.0  # 0.75
-        method: str = "latest_measurment"
+        w_temp: float = 0.0
+        method: str = "running_mean"
         confidence_std_factor: float = 1.0
         trav_cross_entropy: bool = False
 

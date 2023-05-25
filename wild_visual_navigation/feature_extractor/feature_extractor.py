@@ -58,6 +58,7 @@ class FeatureExtractor:
         if self.segmentation_type == "slic":
             from fast_slic import Slic
 
+            self.slic_num_components = kwargs.get("slic_num_components", 100)
             self.slic = Slic(
                 num_components=kwargs.get("slic_num_components", 100), compactness=kwargs.get("slic_compactness", 10)
             )
@@ -191,7 +192,16 @@ class FeatureExtractor:
         # Get slic clusters
         img_np = kornia.utils.tensor_to_image(img)
         seg = self.slic.iterate(np.uint8(np.ascontiguousarray(img_np) * 255))
-        return torch.from_numpy(seg).to(self._device).type(torch.long)
+        seg = torch.from_numpy(seg).to(self._device).type(torch.long)
+
+        if self.slic_num_components > kwargs.get("n_segments", 100):
+            unique = torch.unique(seg)
+            unique = torch.randperm(unique)[: min(kwargs.get("n_segments", 100), unique.shape[0])]
+            H, W = seg.shape
+            seg = seg.reshape(-1)
+            seg[unique] = -1
+            seg.reshape(H, W)
+        return seg
 
     def segment_random(self, img, **kwargs):
         # Randomly select

@@ -34,10 +34,10 @@ class WvnFeatureExtractor:
             feature_type=self.feature_type,
             input_size=self.network_input_image_height,
         )
-        self.setup_ros()
-
         self.model = get_model(self.exp_cfg["model"]).to(self.device)
         self.model.eval()
+
+        self.setup_ros()
 
         self.confidence_generator = ConfidenceGenerator(
             method=self.exp_cfg["loss"]["method"], std_factor=self.exp_cfg["loss"]["confidence_std_factor"]
@@ -272,6 +272,12 @@ class WvnFeatureExtractor:
 
 if __name__ == "__main__":
     node_name = "wvn_feature_extractor_node"
+    os.system(
+        f"rosparam load /home/jonfrey/git/wild_visual_navigation/wild_visual_navigation_ros/config/wild_visual_navigation/default.yaml {node_name}"
+    )
+    os.system(
+        f"rosparam load /home/jonfrey/git/wild_visual_navigation/wild_visual_navigation_ros/config/wild_visual_navigation/inputs/alphasense_resize.yaml {node_name}"
+    )
     rospy.init_node(node_name)
     wvn = WvnFeatureExtractor()
     rospy.spin()

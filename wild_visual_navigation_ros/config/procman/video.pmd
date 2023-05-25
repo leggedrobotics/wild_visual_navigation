@@ -1,0 +1,47 @@
+
+group "1. Generic" {
+
+    cmd "1a.Rviz" {
+        exec = "rviz -d /home/jonfrey/git/wild_visual_navigation/wild_visual_navigation_ros/config/rviz/anymal_video_perugia.rviz";
+        host = "localhost";
+    }
+    cmd "1b.ANYmal Converter" {
+        exec = "rosrun wild_visual_navigation_anymal anymal_msg_converter_node.py";
+        host = "localhost";
+    }
+    cmd "1c.Replay Bag" {
+        exec = "rosbag_play -r 0.5 -l --clock --tf --compslam --sem --flp --wvn /media/Data/Datasets/2022_Perugia/day3/mission_data/2022-05-12T11-56-13_mission_0_day_3/jetson_images_0.bag /media/Data/Datasets/2022_Perugia/day3/mission_data/2022-05-12T11-56-13_mission_0_day_3/jetson_images_1.bag /media/Data/Datasets/2022_Perugia/day3/mission_data/2022-05-12T11-56-13_mission_0_day_3/jetson_images_2.bag /media/Data/Datasets/2022_Perugia/day3/mission_data/2022-05-12T11-56-13_mission_0_day_3/lpc_locomotion_0.bag /media/Data/Datasets/2022_Perugia/day3/mission_data/2022-05-12T11-56-13_mission_0_day_3/lpc_locomotion_1.bag /media/Data/Datasets/2022_Perugia/day3/mission_data/2022-05-12T11-56-13_mission_0_day_3/lpc_locomotion_2.bag /media/Data/Datasets/2022_Perugia/day3/mission_data/2022-05-12T11-56-13_mission_0_day_3/lpc_robot_state_0.bag /media/Data/Datasets/2022_Perugia/day3/mission_data/2022-05-12T11-56-13_mission_0_day_3/lpc_robot_state_1.bag /media/Data/Datasets/2022_Perugia/day3/mission_data/2022-05-12T11-56-13_mission_0_day_3/lpc_robot_state_2.bag /media/Data/Datasets/2022_Perugia/day3/mission_data/2022-05-12T11-56-13_mission_0_day_3/npc_velodyne_0.bag /media/Data/Datasets/2022_Perugia/day3/mission_data/2022-05-12T11-56-13_mission_0_day_3/npc_velodyne_1.bag /media/Data/Datasets/2022_Perugia/day3/mission_data/2022-05-12T11-56-13_mission_0_day_3/npc_velodyne_2.bag /media/Data/Datasets/2022_Perugia/day3/mission_data/2022-05-12T11-56-13_mission_0_day_3/lpc_pointclouds_0.bag /media/Data/Datasets/2022_Perugia/day3/mission_data/2022-05-12T11-56-13_mission_0_day_3/lpc_pointclouds_1.bag /media/Data/Datasets/2022_Perugia/day3/mission_data/2022-05-12T11-56-13_mission_0_day_3/lpc_pointclouds_2.bag";
+        host = "localhost";
+    }
+    cmd "1d.Replay ANYmal Stack (Is this needed)" {
+        exec = "rosrun anymal_rsl_launch replay.py c /media/jonfrey/Data2/2022_Hoeng_High_Grass/cerberus.yaml";
+        host = "localhost";
+    }
+    cmd "1e.Images Overlay & Resize" {
+        exec = "roslaunch wild_visual_navigation_ros wild_visual_navigation.launch launch_nodes:=False";
+        host = "localhost";
+    }
+    cmd "1f.Image Encoding" {
+        exec = "python3 /home/jonfrey/git/wild_visual_navigation/wild_visual_navigation_ros/scripts/change_image_encoding.py";
+        host = "localhost";
+    }
+    cmd "1g.Image Debayer" {
+        exec = "roslaunch raw_image_pipeline_ros raw_image_pipieline_alphasense.launch";
+        host = "localhost";
+    }
+    cmd "1h.Rerun GraphCompslam" {
+        exec = "rosparam set use_sim_time true; roslaunch anymal_estimator_graph dual_graph_no_urdf_replay.launch";
+        host = "localhost";
+    }
+}
+
+group "2. Application" {
+    cmd "2a.Elevation Mapping" {
+        exec = "roslaunch wild_visual_navigation_ros elevation_mapping_cupy.launch";
+        host = "localhost";
+    }
+    cmd "2b.Field Local Planner" {
+        exec = "rosrun wild_visual_navigation_ros field_local_planner.launch";
+        host = "localhost";
+    }
+}
