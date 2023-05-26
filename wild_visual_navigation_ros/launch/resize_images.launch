@@ -36,7 +36,7 @@
     <param name="scale_height" value="0.2074077" />
     <param name="scale_height" value="0.2074077" />
   </node>
-    <node if="$(arg resize_alphasense_cam4)" pkg="nodelet" type="nodelet" name="image_proc_nodelet_cam4" args="load image_proc/resize standalone_nodelet">
+    <node if="$(arg resize_alphasense_cam4)" pkg="nodelet" type="nodelet" name="image_proc_nodelet_cam4" args="load image_proc/resize standalone_nodelet" output="screen">
     <remap from="camera_info" to="/alphasense_driver_ros/cam4/color_rect/camera_info" />
     <remap from="~camera_info" to="/alphasense_driver_ros/cam4/color_rect_resize/camera_info" />
     <remap from="image" to="/alphasense_driver_ros/cam4/color_rect/image" />

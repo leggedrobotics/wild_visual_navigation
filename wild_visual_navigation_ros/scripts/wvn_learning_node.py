@@ -487,7 +487,7 @@ class WvnLearning:
             stamp = rospy.Time(0)
 
         try:
-            res = self.tf_buffer.lookup_transform(parent_frame, child_frame, stamp, timeout=rospy.Duration(0.03))
+            res = self.tf_buffer.lookup_transform(parent_frame, child_frame, stamp, timeout=rospy.Duration(0.08))
             trans = (res.transform.translation.x, res.transform.translation.y, res.transform.translation.z)
             rot = np.array(
                 [res.transform.rotation.x, res.transform.rotation.y, res.transform.rotation.z, res.transform.rotation.w]
@@ -533,6 +533,7 @@ class WvnLearning:
             suc, pose_footprint_in_base = rc.ros_tf_to_torch(
                 self.query_tf(self.base_frame, self.footprint_frame, state_msg.header.stamp), device=self.device
             )
+            pose_footprint_in_base[2, 3] -= 0.6
             if not suc:
                 self.system_events["robot_state_callback_cancled"] = {
                     "time": rospy.get_time(),
@@ -866,11 +867,12 @@ class WvnLearning:
 
 if __name__ == "__main__":
     node_name = "wvn_learning_node"
+    os.system(f"rosparam delete {node_name}*")
     os.system(
         f"rosparam load /home/jonfrey/git/wild_visual_navigation/wild_visual_navigation_ros/config/wild_visual_navigation/default.yaml {node_name}"
     )
     os.system(
-        f"rosparam load /home/jonfrey/git/wild_visual_navigation/wild_visual_navigation_ros/config/wild_visual_navigation/inputs/alphasense_resize.yaml {node_name}"
+        f"rosparam load /home/jonfrey/git/wild_visual_navigation/wild_visual_navigation_ros/config/wild_visual_navigation/inputs/alphasense_single.yaml {node_name}"
     )
 
     rospy.init_node(node_name)

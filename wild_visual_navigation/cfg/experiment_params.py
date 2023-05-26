@@ -42,7 +42,7 @@ class ExperimentParams(Serializable):
         w_trav: float = 0.03
         w_reco: float = 0.5
         w_temp: float = 0.0
-        method: str = "running_mean"
+        method: str = "latest_measurment"
         confidence_std_factor: float = 1.0
         trav_cross_entropy: bool = False
 

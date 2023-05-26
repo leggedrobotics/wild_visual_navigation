@@ -34,11 +34,10 @@ class WvnFeatureExtractor:
             feature_type=self.feature_type,
             input_size=self.network_input_image_height,
         )
+        print("Segmentation type: ", self.segmentation_type)
         self.model = get_model(self.exp_cfg["model"]).to(self.device)
         self.model.eval()
-
-        self.setup_ros()
-
+        
         self.confidence_generator = ConfidenceGenerator(
             method=self.exp_cfg["loss"]["method"], std_factor=self.exp_cfg["loss"]["confidence_std_factor"]
         )
@@ -46,6 +45,8 @@ class WvnFeatureExtractor:
         self.traversability_thershold = 0.5
 
         self.i = 0
+        
+        self.setup_ros()
 
     def read_params(self):
         """Reads all the parameters from the parameter server"""
@@ -61,6 +62,7 @@ class WvnFeatureExtractor:
         self.segmentation_type = rospy.get_param("~segmentation_type")
         self.feature_type = rospy.get_param("~feature_type")
         self.dino_patch_size = rospy.get_param("~dino_patch_size")
+        self.publish_dense = rospy.get_param("~publish_dense")
 
         self.confidence_std_factor = rospy.get_param("~confidence_std_factor")
         self.scale_traversability = rospy.get_param("~scale_traversability")
@@ -88,7 +90,12 @@ class WvnFeatureExtractor:
             self.camera_topics[cam]["name"] = cam
 
             # Camera info
-            camera_info_msg = rospy.wait_for_message(self.camera_topics[cam]["info_topic"], CameraInfo, timeout=15)
+            print("Get camera info from topic: ", self.camera_topics[cam]["info_topic"])
+            try:
+                camera_info_msg = rospy.wait_for_message(self.camera_topics[cam]["info_topic"], CameraInfo, timeout=5)
+            except rospy.ROSException:
+                rospy.logerr("Camera info topic not found: {}".format(self.camera_topics[cam]["info_topic"]))
+            
             self.camera_topics[cam]["camera_info"] = camera_info_msg
 
             K, H, W = rc.ros_cam_info_to_tensors(camera_info_msg, device=self.device)
@@ -122,11 +129,11 @@ class WvnFeatureExtractor:
                     CompressedImage,
                     self.image_callback,
                     callback_args=cam,
-                    queue_size=1,
+                    queue_size=5,
                 )
             else:
                 image_sub = rospy.Subscriber(
-                    self.camera_topics[cam]["image_topic"], Image, self.image_callback, callback_args=cam, queue_size=1
+                    self.camera_topics[cam]["image_topic"], Image, self.image_callback, callback_args=cam, queue_size=5
                 )
             self.camera_handler[cam]["image_sub"] = image_sub
 
@@ -174,13 +181,19 @@ class WvnFeatureExtractor:
             return_centers=False,
             return_dense_features=True,
             n_random_pixels=100,
-            fast_random=True,
         )
 
-        # Evaluate traversability
-        data = Data(x=dense_feat[0].permute(1, 2, 0).reshape(-1, dense_feat.shape[1]))
+        if self.publish_dense:
+            # Evaluate traversability
+            data = Data(x=dense_feat[0].permute(1, 2, 0).reshape(-1, dense_feat.shape[1]))
+        else:
+            input_feat = dense_feat[0].permute(1, 2, 0).reshape(-1, dense_feat.shape[1])
+            input_feat = feat[seg.reshape(-1)]
+            data = Data(x=input_feat)
+            
         prediction = self.model.forward(data)
         out_trav = prediction.reshape(H, W, -1)[:, :, 0]
+            
 
         # Publish traversability
         if self.scale_traversability:
@@ -272,11 +285,12 @@ class WvnFeatureExtractor:
 
 if __name__ == "__main__":
     node_name = "wvn_feature_extractor_node"
+    os.system(f"rosparam delete {node_name}")
     os.system(
         f"rosparam load /home/jonfrey/git/wild_visual_navigation/wild_visual_navigation_ros/config/wild_visual_navigation/default.yaml {node_name}"
     )
     os.system(
-        f"rosparam load /home/jonfrey/git/wild_visual_navigation/wild_visual_navigation_ros/config/wild_visual_navigation/inputs/alphasense_resize.yaml {node_name}"
+        f"rosparam load /home/jonfrey/git/wild_visual_navigation/wild_visual_navigation_ros/config/wild_visual_navigation/inputs/alphasense_single.yaml {node_name}"
     )
     rospy.init_node(node_name)
     wvn = WvnFeatureExtractor()

@@ -67,7 +67,7 @@ class FeatureExtractor:
             pass
 
     def extract(self, img, **kwargs):
-        if kwargs.get("fast_random", False):
+        if self._segmentation_type == "random":
             dense_feat = self.compute_features(img, None, None, **kwargs)
 
             H, W = img.shape[2:]
@@ -193,14 +193,14 @@ class FeatureExtractor:
         img_np = kornia.utils.tensor_to_image(img)
         seg = self.slic.iterate(np.uint8(np.ascontiguousarray(img_np) * 255))
         seg = torch.from_numpy(seg).to(self._device).type(torch.long)
-
-        if self.slic_num_components > kwargs.get("n_segments", 100):
-            unique = torch.unique(seg)
-            unique = torch.randperm(unique)[: min(kwargs.get("n_segments", 100), unique.shape[0])]
-            H, W = seg.shape
-            seg = seg.reshape(-1)
-            seg[unique] = -1
-            seg.reshape(H, W)
+        # TODO verify to be unnecessary        
+        # if self.slic_num_components > kwargs.get("n_segments", 100):
+        #     unique = torch.unique(seg)
+        #     unique = torch.randperm(unique)[: min(kwargs.get("n_segments", 100), unique.shape[0])]
+        #     H, W = seg.shape
+        #     seg = seg.reshape(-1)
+        #     seg[unique] = -1
+        #     seg.reshape(H, W)
         return seg
 
     def segment_random(self, img, **kwargs):
