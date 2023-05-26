@@ -165,7 +165,7 @@ class LearningVisualizer:
     @accumulate_time
     def plot_mission_node_training(self, node: any):
         if node._image is None or node._prediction is None:
-            return None
+            return None, None
 
         if node.supervision_signal is None:
             sa = node.image.shape

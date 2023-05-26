@@ -231,6 +231,9 @@ class WvnFeatureExtractor:
             loss_reco = F.mse_loss(prediction[:, 1:], data.x, reduction="none").mean(dim=1)
             confidence = self.confidence_generator.inference_without_update(x=loss_reco)
             out_confidence = confidence.reshape(H, W)
+            
+            out_confidence = out_confidence.clip(0, 1)
+            
             msg = rc.numpy_to_ros_image(out_confidence.cpu().numpy(), "passthrough")
             msg.header = image_msg.header
             msg.width = out_confidence.shape[0]
@@ -295,3 +298,70 @@ if __name__ == "__main__":
     rospy.init_node(node_name)
     wvn = WvnFeatureExtractor()
     rospy.spin()
+
+
+# rosbag record /alphasense_driver_ros/cam4/color_rect/camera_info \
+# /alphasense_driver_ros/cam4/color_rect/image \
+# /anymal_low_level_controller/actuator_readings \
+# /bpearl_front/point_cloud \
+# /bpearl_rear/point_cloud \
+# /clicked_point \
+# /clock \
+# /elevation_mapping/elevation_map_raw \
+# /elevation_mapping/semantic_map_raw \
+# /graph_msf/accel_bias \
+# /graph_msf/est_odometry_odom_imu \
+# /graph_msf/est_odometry_world_imu \
+# /graph_msf/est_path_odom_imu \
+# /graph_msf/est_path_world_imu \
+# /graph_msf/gyro_bias \
+# /graph_msf/measGnss_path_map_gnss \
+# /graph_msf/measLiDAR_path_map_imu \
+# /graph_msf/opt_odometry_world_imu \
+# /graph_msf/opt_path_world_imu \
+# /image_mask_filter/bpearl_front/point_cloud \
+# /image_mask_filter/bpearl_rear/point_cloud \
+# /initialpose \
+# /lidar/packets \
+# /lidar/point_cloud \
+# /lidar_nodelet_cloud/parameter_descriptions \
+# /lidar_nodelet_cloud/parameter_updates \
+# /lidar_nodelet_manager/bond \
+# /log/state/desiredRobotTwist \
+# /move_base_simple/goal \
+# /msf_compslam_lio_body_imu/msf_core/odometry \
+# /robot_self_filter/bpearl_front/point_cloud \
+# /robot_self_filter/bpearl_rear/point_cloud \
+# /rosout \
+# /rosout_agg \
+# /sensors/battery_voltage \
+# /sensors/imu \
+# /stack_launcher/node_states \
+# /state_estimator/anymal_state \
+# /state_estimator/odometry \
+# /state_estimator/pose_in_odom \
+# /tf \
+# /tf_static \
+# /twist_mux/twist \
+# /wild_visual_navigation_node/front/camera_info \
+# /wild_visual_navigation_node/front/confidence \
+# /wild_visual_navigation_node/front/debug/last_image_confidence \
+# /wild_visual_navigation_node/front/debug/last_image_traversability \
+# /wild_visual_navigation_node/front/debug/last_node_image_labeled \
+# /wild_visual_navigation_node/front/debug/last_node_image_mask \
+# /wild_visual_navigation_node/front/feat \
+# /wild_visual_navigation_node/front/image_input \
+# /wild_visual_navigation_node/front/traversability \
+# /wild_visual_navigation_node/graph_footprints \
+# /wild_visual_navigation_node/graph_footprints_array \
+# /wild_visual_navigation_node/instant_traversability \
+# /wild_visual_navigation_node/left/camera_info \
+# /wild_visual_navigation_node/left/traversability \
+# /wild_visual_navigation_node/mission_graph \
+# /wild_visual_navigation_node/proprioceptive_graph \
+# /wild_visual_navigation_node/right/camera_info \
+# /wild_visual_navigation_node/right/traversability \
+# /wild_visual_navigation_node/robot_state \
+# /wild_visual_navigation_node/system_state \
+# /wild_visual_navigation_visu_0/traversability_overlayed \
+# /wild_visual_navigation_visu_1/confidence_overlayed

@@ -671,7 +671,9 @@ class WvnLearning:
 
             # Add node to graph
             added_new_node = self.traversability_estimator.add_mission_node(mission_node, update_features=False)
-
+            if added_new_node:
+                self.traversability_estimator.update_visualization_node()
+                
             if self.mode == WVNMode.DEBUG:
                 # Publish current predictions
                 self.visualize_mission_graph()
@@ -841,17 +843,17 @@ class WvnLearning:
         # Get visualization node
         vis_node = self.traversability_estimator.get_mission_node_for_visualization()
 
-        # Publish predictions
-        if vis_node is not None:
-            cam = vis_node.camera_name
-            (
-                np_prediction_image,
-                np_uncertainty_image,
-            ) = self.traversability_estimator.plot_mission_node_prediction(vis_node)
+        # # Publish predictions
+        # if vis_node is not None:
+        #     cam = vis_node.camera_name
+        #     (
+        #         np_prediction_image,
+        #         np_uncertainty_image,
+        #     ) = self.traversability_estimator.plot_mission_node_prediction(vis_node)
 
-            # self.pub_image_input.publish(rc.torch_to_ros_image(vis_node.image))
-            self.camera_handler[cam]["debug"]["image_trav"].publish(rc.numpy_to_ros_image(np_prediction_image))
-            self.camera_handler[cam]["debug"]["image_conf"].publish(rc.numpy_to_ros_image(np_uncertainty_image))
+        #     # self.pub_image_input.publish(rc.torch_to_ros_image(vis_node.image))
+        #     self.camera_handler[cam]["debug"]["image_trav"].publish(rc.numpy_to_ros_image(np_prediction_image))
+        #     self.camera_handler[cam]["debug"]["image_conf"].publish(rc.numpy_to_ros_image(np_uncertainty_image))
 
         # Publish reprojections of last node in graph
         if vis_node is not None:
@@ -863,7 +865,6 @@ class WvnLearning:
                 return
             self.camera_handler[cam]["debug"]["image_labeled"].publish(rc.numpy_to_ros_image(np_labeled_image))
             self.camera_handler[cam]["debug"]["image_mask"].publish(rc.numpy_to_ros_image(np_mask_image))
-
 
 if __name__ == "__main__":
     node_name = "wvn_learning_node"
