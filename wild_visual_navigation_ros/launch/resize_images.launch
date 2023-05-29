@@ -3,9 +3,9 @@
   <arg name="uncompress_alphasense_cam3"     default="False"/>
   <arg name="uncompress_alphasense_cam4"     default="False"/>
   <arg name="uncompress_alphasense_cam5"     default="False"/>
-  <arg name="resize_alphasense_cam3"     default="False"/>
+  <arg name="resize_alphasense_cam3"     default="True"/>
   <arg name="resize_alphasense_cam4"     default="True"/>
-  <arg name="resize_alphasense_cam5"     default="False"/>
+  <arg name="resize_alphasense_cam5"     default="True"/>
 
   <arg name="hdr_cam"     default="False"/>
   <node if="$(arg hdr_cam)" name="hdr_cam_driver" pkg="usb_cam" type="usb_cam_node">

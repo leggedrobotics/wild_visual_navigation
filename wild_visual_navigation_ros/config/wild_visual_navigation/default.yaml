@@ -6,7 +6,7 @@ desired_twist_topic: "/motion_reference/command_twist"
 # Relevant frames
 fixed_frame: odom #odom_graph_msf
 base_frame: base
-footprint_frame: base
+footprint_frame: footprint
 
 # Robot size
 robot_length: 1.0
