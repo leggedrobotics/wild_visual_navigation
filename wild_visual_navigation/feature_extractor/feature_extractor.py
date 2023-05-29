@@ -55,7 +55,7 @@ class FeatureExtractor:
         else:
             raise f"Extractor[{self._feature_type}] not supported!"
 
-        if self.segmentation_type == "slic":
+        if self._segmentation_type == "slic":
             from fast_slic import Slic
 
             self.slic_num_components = kwargs.get("slic_num_components", 100)
@@ -63,7 +63,7 @@ class FeatureExtractor:
                 num_components=kwargs.get("slic_num_components", 100), compactness=kwargs.get("slic_compactness", 10)
             )
 
-        elif self.segmentation_type == "random":
+        elif self._segmentation_type == "random":
             pass
 
     def extract(self, img, **kwargs):

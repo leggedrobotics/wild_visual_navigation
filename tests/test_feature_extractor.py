@@ -1,6 +1,6 @@
 from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.feature_extractor import FeatureExtractor
-from wild_visual_navigation.visu import get_img_from_fig
+# from wild_visual_navigation.visu import get_img_from_fig
 import matplotlib.pyplot as plt
 import torch
 from torchvision import transforms as T
@@ -43,9 +43,9 @@ def test_feature_extractor():
     ax[1].set_title("Segmentation")
     plt.tight_layout()
 
-    # Store results to test directory
-    img = get_img_from_fig(fig)
-    img.save(str(p))
+    # # Store results to test directory
+    # img = get_img_from_fig(fig)
+    # img.save(str(p))
 
 
 if __name__ == "__main__":

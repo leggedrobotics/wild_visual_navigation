@@ -1,10 +1,10 @@
 # Input topics
 robot_state_topic: "/wild_visual_navigation_node/robot_state"
-# desired_twist_topic: "/motion_reference/command_twist"
-desired_twist_topic: "/log/state/desiredRobotTwist"
+desired_twist_topic: "/motion_reference/command_twist"
+# desired_twist_topic: "/log/state/desiredRobotTwist"
 
 # Relevant frames
-fixed_frame: odom_graph_msf
+fixed_frame: odom #odom_graph_msf
 base_frame: base
 footprint_frame: base
 
@@ -47,14 +47,14 @@ logging_thread_rate: 2 # hertz
 
 # Runtime options
 device: "cuda"
-mode: "debug" # check out comments in the class WVNMode
+mode: "online" # options: 'online' , 'debug' - check out comments in the class WVNMode
 colormap: "RdYlBu"
 
 print_image_callback_time: false
 print_proprio_callback_time: false
 log_time: false
 log_confidence: false
-verbose: true
+verbose: false
 debug_supervision_node_index_from_last: 10
 
 extraction_store_folder:  "nan"
