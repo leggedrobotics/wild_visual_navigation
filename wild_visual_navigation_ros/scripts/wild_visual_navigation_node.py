@@ -111,7 +111,8 @@ class WvnRosInterface:
         # Frames
         self.fixed_frame = rospy.get_param("~fixed_frame", "odom")
         self.base_frame = rospy.get_param("~base_frame", "base")
-        self.camera_frame = rospy.get_param("~camera_frame", "cam4_sensor_frame_helper")
+        # self.camera_frame = rospy.get_param("~camera_frame", "cam4_sensor_frame_helper")
+        self.camera_frame = rospy.get_param("~camera_frame", "wide_angle_camera_front_camera_parent")
         self.footprint_frame = rospy.get_param("~footprint_frame", "footprint")
 
         # Robot size and specs
@@ -123,8 +124,8 @@ class WvnRosInterface:
         self.traversability_radius = rospy.get_param("~traversability_radius", 3.0)
         self.image_graph_dist_thr = rospy.get_param("~image_graph_dist_thr", 0.2)
         self.proprio_graph_dist_thr = rospy.get_param("~proprio_graph_dist_thr", 0.1)
-        self.network_input_image_height = rospy.get_param("~network_input_image_height", 224)  # 448
-        self.network_input_image_width = rospy.get_param("~network_input_image_width", 224)  # 448
+        self.network_input_image_height = rospy.get_param("~network_input_image_height", 448)  # 448
+        self.network_input_image_width = rospy.get_param("~network_input_image_width", 448)  # 448
         self.segmentation_type = rospy.get_param("~segmentation_type", "slic")
         self.feature_type = rospy.get_param("~feature_type", "dino")
         self.dino_patch_size = rospy.get_param("~dino_patch_size", 8)
@@ -394,13 +395,23 @@ class WvnRosInterface:
 
             # Convert state to tensor
             proprio_tensor, proprio_labels = rc.wvn_robot_state_to_torch(state_msg, device=self.device)
-            current_twist_tensor = rc.twist_stamped_to_torch(state_msg.twist, device=self.device)
-            desired_twist_tensor = rc.twist_stamped_to_torch(desired_twist_msg, device=self.device)
+            # current_twist_tensor = rc.twist_stamped_to_torch(state_msg.twist, device=self.device)
+            current_twist_tensor = torch.zeros(6).to(self.device)
+            # desired_twist_tensor = torch.zeros(6).to(self.device)
+            # desired_twist_tensor = rc.twist_stamped_to_torch(desired_twist_msg, device=self.device)
+            #
+            # # Update traversability
+            # traversability, traversability_var, is_untraversable = self.supervision_generator.update_velocity_tracking(
+            #     current_twist_tensor, desired_twist_tensor, velocities=["vx", "vy"]
+            # )
 
-            # Update traversability
-            traversability, traversability_var, is_untraversable = self.supervision_generator.update_velocity_tracking(
-                current_twist_tensor, desired_twist_tensor, velocities=["vx", "vy"]
-            )
+            # print("traversability: ", traversability)
+            # print("traversability_var: ", traversability_var)
+            # print("is_untraversable: ", is_untraversable)
+
+            traversability = torch.tensor(1.0).to(self.device)
+            traversability_var = torch.tensor(0.0).to(self.device)
+            is_untraversable = False
 
             # Create proprioceptive node for the graph
             proprio_node = ProprioceptionNode(
@@ -484,18 +495,18 @@ class WvnRosInterface:
                 added_new_node = self.traversability_estimator.add_mission_node(mission_node)
 
             # Update prediction
-            self.traversability_estimator.update_prediction(mission_node)
+            # self.traversability_estimator.update_prediction(mission_node)
 
-            with Timer("image_callback - update visualizations"):
-                if self.mode != WVNMode.EXTRACT_LABELS:
-                    # Publish current predictions
-                    self.publish_predictions(mission_node, image_msg, info_msg, image_projector.scaled_camera_matrix)
-
-                    # Publish supervision data depending on the mode
-                    if self.mode != WVNMode.ONLINE:
-                        self.visualize_mission()
-                    else:
-                        self.visualize_mission(fast=True)
+            # with Timer("image_callback - update visualizations"):
+            #     if self.mode != WVNMode.EXTRACT_LABELS:
+            #         # Publish current predictions
+            #         self.publish_predictions(mission_node, image_msg, info_msg, image_projector.scaled_camera_matrix)
+            #
+            #         # Publish supervision data depending on the mode
+            #         if self.mode != WVNMode.ONLINE:
+            #             self.visualize_mission()
+            #         else:
+            #             self.visualize_mission(fast=True)
 
             # If a new node was added, update the node is used to visualize the supervision signals
             if added_new_node:

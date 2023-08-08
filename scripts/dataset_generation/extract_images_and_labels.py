@@ -9,7 +9,7 @@ import yaml
 from tf_bag import BagTfTransformer
 import rospy
 import rosparam
-from sensor_msgs.msg import Image, CameraInfo
+from sensor_msgs.msg import Image, CameraInfo, CompressedImage
 import rosbag
 
 from postprocessing_tools_ros.merging import merge_bags_single, merge_bags_all
@@ -18,7 +18,7 @@ from postprocessing_tools_ros.merging import merge_bags_single, merge_bags_all
 # from cv_bridge import CvBridge
 
 from wild_visual_navigation import WVN_ROOT_DIR
-from wild_visual_navigation.utils import perguia_dataset, ROOT_DIR
+from wild_visual_navigation.utils import perugia_dataset, ROOT_DIR
 
 sys.path.append(f"{WVN_ROOT_DIR}/wild_visual_navigation_ros/scripts")
 from wild_visual_navigation_node import WvnRosInterface
@@ -56,7 +56,7 @@ class BagTfTransformerWrapper:
 
 
 def do(n, dry_run):
-    d = perguia_dataset[n]
+    d = perugia_dataset[n]
 
     if bool(dry_run):
         print(d)
@@ -64,29 +64,63 @@ def do(n, dry_run):
 
     s = os.path.join(ROOT_DIR, d["name"])
 
-    valid_topics = ["/state_estimator/anymal_state", "/alphasense_driver_ros/cam4", "/log/state/desiredRobotTwist"]
+    # For South Africa
+    # valid_topics = ["/state_estimator/anymal_state", "/alphasense_driver_ros/cam4/debayered/compressed",
+    #                 "/twist_mux/twist"]
+    # valid_topics = ["/state_estimator/anymal_state", "/alphasense_driver_ros/cam4/debayered",
+    #                 "/twist_mux/twist"]
+    # valid_topics = ["/state_estimator/anymal_state", "/alphasense_driver_ros/cam4/debayered"]
+    # valid_topics = ["/state_estimator/anymal_state", "/alphasense_driver_ros/cam4/debayered"]
+
+    valid_topics = ["/state_estimator/anymal_state", "/wide_angle_camera_front/img_out"]
+
+    # valid_topics = ["/state_estimator/anymal_state", "/alphasense_driver_ros/cam4/dropped/debayered/slow"]
 
     # Merge rosbags if necessary
-    rosbags = [
-        str(s)
-        for s in Path(s).rglob("*.bag")
-        if str(s).find("lpc_robot_state") != -1
-        or str(s).find("jetson_images") != -1
-        or str(s).find("lpc_locomotion") != -1
-    ]
-    try:
-        rosbags.sort(key=lambda x: int(x.split("/")[-1][-5]))
-    except:
-        pass
+    # rosbags = [
+    #     str(s)
+    #     for s in Path(s).rglob("*.bag")
+    #     if str(s).find("lpc_robot_state") != -1  # Contains /state_estimator/anymal_state
+    #     or str(s).find("jetson_images") != -1  # Contains /alphasense_driver_ros/cam4/debayered/compressed
+    #     # or str(s).find("lpc_locomotion") != -1  # Contains /twist_mux/twist
+    # ]
+    # try:
+    #     rosbags.sort(key=lambda x: int(x.split("/")[-1][-5]))
+    # except:
+    #     pass
+
+    # rosbags = ["/home/rschmid/RosBags/perugia_grass_bags/raw/lpc_robot_state_0.bag",
+    #            "/home/rschmid/RosBags/perugia_grass_bags/raw/lpc_robot_state_1.bag",
+    #            "/home/rschmid/RosBags/perugia_grass_bags/raw/lpc_robot_state_2.bag",
+    #            "/home/rschmid/RosBags/perugia_grass_bags/raw/jetson_images.bag"]
+    # rosbags = ["/home/rschmid/RosBags/perugia/lpc_robot_state_0.bag",
+    #            "/home/rschmid/RosBags/perugia/jetson_images_0.bag"]
+    rosbags = ["/home/rschmid/RosBags/6/images.bag",
+               "/home/rschmid/RosBags/6/2023-03-02-11-13-08_anymal-d020-lpc_mission_0.bag",
+               "/home/rschmid/RosBags/6/2023-03-02-11-13-08_anymal-d020-lpc_mission_1.bag"]
+    # rosbags = ["/home/rschmid/RosBags/4/images.bag",
+    #            "/home/rschmid/RosBags/4/2023-03-02-10-11-56_anymal-d020-lpc_mission_0.bag",
+    #            "/home/rschmid/RosBags/4/2023-03-02-10-11-56_anymal-d020-lpc_mission_1.bag"]
+    # rosbags = ["/home/rschmid/RosBags/11/images.bag",
+    #            "/home/rschmid/RosBags/11/2023-03-02-12-31-23_anymal-d020-lpc_mission_0.bag",
+    #            "/home/rschmid/RosBags/11/2023-03-02-12-31-23_anymal-d020-lpc_mission_1.bag",
+    #            "/home/rschmid/RosBags/11/2023-03-02-12-31-23_anymal-d020-lpc_mission_2.bag"]
+
+    # rosbags = ["/home/rschmid/RosBags/hoengg_extract/2021-12-06-15-31-17.bag",
+    #            "/home/rschmid/RosBags/hoengg_extract/output_2023-02-10-15-20-27.bag"]
 
     output_bag_wvn = s + "_wvn.bag"
     output_bag_tf = s + "_tf.bag"
-    tf_bags = [b for b in rosbags if b.find("lpc_robot_state") != -1]
+    # tf_bags = [b for b in rosbags if b.find("lpc_robot_state") != -1]
 
     # jetson locomotion robot
+    # if not os.path.exists(output_bag_tf):
+    #     total_included_count, total_skipped_count = merge_bags_single(
+    #         input_bag=tf_bags, output_bag=output_bag_tf, topics="/tf /tf_static", verbose=True
+    #     )
     if not os.path.exists(output_bag_tf):
         total_included_count, total_skipped_count = merge_bags_single(
-            input_bag=tf_bags, output_bag=output_bag_tf, topics="/tf /tf_static", verbose=True
+            input_bag=rosbags, output_bag=output_bag_tf, topics="/tf /tf_static", verbose=True
         )
     if not os.path.exists(output_bag_wvn):
         total_included_count, total_skipped_count = merge_bags_single(
@@ -99,11 +133,12 @@ def do(n, dry_run):
     mission = s.split("/")[-1]
 
     # 2022-05-12T11:56:13_mission_0_day_3
-    running_store_folder = f"/media/Data/Datasets/2022_Perugia/wvn_output/day3/{mission}"
+    # running_store_folder = f"/media/Data/Datasets/2022_Perugia/wvn_output/day3/{mission}"
+    running_store_folder = f"/home/rschmid/RosBags/output/{mission}"
 
     if os.path.exists(running_store_folder):
-        print("Stopped because folder already exists")
-        return
+        print("Folder already exists, but proceeding!")
+        # return
 
     rosparam.set_param("wild_visual_navigation_node/mode", "extract_labels")
     rosparam.set_param("wild_visual_navigation_node/running_store_folder", running_store_folder)
@@ -112,7 +147,7 @@ def do(n, dry_run):
     state_msg_valid = False
     desired_twist_msg_valid = False
 
-    pub = rospy.Publisher("/alphasense_driver_ros/cam4", Image, queue_size=1)
+    # pub = rospy.Publisher("/wide_angle_camera_front/image_color/compressed", CompressedImage, queue_size=1)
     wvn_ros_interface = WvnRosInterface()
     print("-" * 80)
 
@@ -121,26 +156,45 @@ def do(n, dry_run):
     wvn_ros_interface.setup_rosbag_replay(tf_listener)
     print("done loading tf")
 
+    # Höngg new
     info_msg = CameraInfo()
-    info_msg.height = 540
-    info_msg.width = 720
-    info_msg.distortion_model = "plumb_bob"
-    info_msg.K = [347.548139773951, 0.0, 342.454373227748, 0.0, 347.434712422309, 271.368057185649, 0.0, 0.0, 1.0]
-    info_msg.P = [
-        347.548139773951,
-        0.0,
-        342.454373227748,
-        0.0,
-        0.0,
-        347.434712422309,
-        271.368057185649,
-        0.0,
-        0.0,
-        0.0,
-        1.0,
-        0.0,
-    ]
+    info_msg.height = 1080
+    info_msg.width = 1440
+    info_msg.distortion_model = "equidistant"
+    info_msg.D = [0.4316922809468283, 0.09279900476637248, -0.4010909691803734, 0.4756163338479413]
+    info_msg.K = [575.6050407221768, 0.0, 745.7312198525915, 0.0, 578.564849365178, 519.5207040671075, 0.0, 0.0, 1.0]
+    info_msg.P = [575.6050407221768, 0.0, 745.7312198525915, 0.0, 0.0, 578.564849365178, 519.5207040671075, 0.0, 0.0, 0.0, 1.0, 0.0]
     info_msg.R = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+
+    # Perugia
+    # info_msg = CameraInfo()
+    # info_msg.height = 540
+    # info_msg.width = 720
+    # info_msg.distortion_model = "plumb_bob"
+    # info_msg.K = [347.548139773951, 0.0, 342.454373227748, 0.0, 347.434712422309, 271.368057185649, 0.0, 0.0, 1.0]
+    # info_msg.P = [347.548139773951, 0.0, 342.454373227748, 0.0, 0.0, 347.434712422309, 271.368057185649, 0.0,
+    #               0.0, 0.0, 1.0, 0.0]
+    # info_msg.R = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+
+    # Höngg
+    # info_msg = CameraInfo()
+    # info_msg.height = 540
+    # info_msg.width = 720
+    # info_msg.distortion_model = "equidistant"
+    # info_msg.K = [349.5636550689, 0.0, 357.2746308879, 0.0, 349.4046775293, 264.3108985411, 0.0, 0.0, 1.0]
+    # info_msg.P = [349.5636550689, 0.0, 357.2746308879, 0.0, 0.0, 349.4046775293, 264.3108985411, 0.0, 0.0, 0.0, 1.0, 0.0]
+    # info_msg.R = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+
+    # South Africa
+    # info_msg = CameraInfo()
+    # info_msg.height = 1080
+    # info_msg.width = 1440
+    # info_msg.distortion_model = "equidistant"
+    # info_msg.D = [-0.0480706813, 0.0129997684, -0.0112199955, 0.0026955514]
+    # info_msg.K = [699.2284099702, 0.0, 711.8009584441, 0.0, 698.546880367, 524.7993478318, 0.0, 0.0, 1.0]
+    # info_msg.P = [699.2284099702, 0.0, 711.8009584441, 0.0, 0.0, 698.546880367, 524.7993478318, 0.0, 0.0,
+    #                                0.0, 1.0, 0.0]
+    # info_msg.R = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
 
     rosbag_info_dict = get_bag_info(output_bag_wvn)
     total_msgs = sum([x["messages"] for x in rosbag_info_dict["topics"] if x["topic"] in valid_topics])
@@ -161,30 +215,36 @@ def do(n, dry_run):
             for (topic, msg, ts) in bag.read_messages(topics=None, start_time=start_time, end_time=end_time):
                 pbar.update(1)
                 st = time.time()
+                # print(topic)
                 if topic == "/state_estimator/anymal_state":
+                    # print("Received /state_estimator/anymal_state")
                     state_msg = anymal_msg_callback(msg, return_msg=True)
                     state_msg_valid = True
 
-                elif topic == "/log/state/desiredRobotTwist":
-                    desired_twist_msg = msg
-                    desired_twist_msg_valid = True
+                # elif topic == "/twist_mux/twist":
+                #     # print("Received /twist_mux/twist")
+                #     desired_twist_msg = msg
+                #     desired_twist_msg_valid = True
 
-                elif topic == "/alphasense_driver_ros/cam4":
-                    for i in range(100):
-                        pub.publish(msg)
-                        try:
-                            image_msg = rospy.wait_for_message(
-                                "/alphasense_driver_ros/cam4/debayered", Image, timeout=0.1
-                            )
-                            suc = True
-                        except:
-                            suc = False
-                            pass
-                        if suc:
-                            if msg.header.stamp == image_msg.header.stamp:
-                                break
-                        if i >= 99:
-                            raise Exception("Timeout waiting for debayerd image message")
+                elif topic == "/wide_angle_camera_front/img_out":
+                    image_msg = msg
+                    # Image is already debayered, need to recompress it
+                    print("Received /wide_angle_camera_front/img_out")
+                    # for i in range(100):
+                    #     pub.publish(msg)
+                    #     try:
+                    #         image_msg = rospy.wait_for_message(
+                    #             "/wide_angle_camera_front/image_color", Image, timeout=0.1
+                    #         )
+                    #         suc = True
+                    #     except:
+                    #         suc = False
+                    #         pass
+                    #     if suc:
+                    #         if msg.header.stamp == image_msg.header.stamp:
+                    #             break
+                    #     if i >= 99:
+                    #         raise Exception("Timeout waiting for debayered image message")
 
                     info_msg.header = msg.header
                     try:
@@ -195,16 +255,16 @@ def do(n, dry_run):
                     total_time_img += time.time() - st
                     # print(f"image time: {total_time_img} , state time: {total_time_state}")
                     print("add image")
-                if state_msg_valid and desired_twist_msg_valid:
+                if state_msg_valid:
                     try:
-                        wvn_ros_interface.robot_state_callback(state_msg, desired_twist_msg)
+                        wvn_ros_interface.robot_state_callback(state_msg, None)
                     except Exception as e:
                         print("Bad robot_state callback ", e)
 
                     state_msg_valid = False
-                    desired_twist_msg_valid = True
+                    # desired_twist_msg_valid = True
                     total_time_state += time.time() - st
-                    print("add supervision")
+                    # print("add supervision")
 
     print("Finished with converting the dataset")
     rospy.signal_shutdown("stop the node")
@@ -214,8 +274,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--n", type=int, default=6, help="Store data")
+    parser.add_argument("--n", type=int, default=0, help="Store data")
     parser.add_argument("--dry_run", type=int, default=0, help="Store data")
     args = parser.parse_args()
-    print(args.n)
     do(args.n, args.dry_run)
