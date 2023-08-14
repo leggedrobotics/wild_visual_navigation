@@ -213,6 +213,9 @@ def do(n, dry_run):
             bar_format="{desc:<13}{percentage:3.0f}%|{bar:20}{r_bar}",
         ) as pbar:
             for (topic, msg, ts) in bag.read_messages(topics=None, start_time=start_time, end_time=end_time):
+
+                if rospy.is_shutdown():
+                    return
                 pbar.update(1)
                 st = time.time()
                 # print(topic)
@@ -277,4 +280,5 @@ if __name__ == "__main__":
     parser.add_argument("--n", type=int, default=0, help="Store data")
     parser.add_argument("--dry_run", type=int, default=0, help="Store data")
     args = parser.parse_args()
+
     do(args.n, args.dry_run)
