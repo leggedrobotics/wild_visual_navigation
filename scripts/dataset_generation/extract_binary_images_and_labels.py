@@ -155,13 +155,13 @@ def do(n, dry_run):
 
                     info_msg.header = msg.header
                     try:
-                        wvn_ros_interface.image_callback(image_msg, info_msg)
+                        wvn_ros_interface.image_callback(image_msg, info_msg, camera_options)
                     except Exception as e:
                         print("Bad image_callback", e)
 
                     total_time_img += time.time() - st
                     # print(f"image time: {total_time_img} , state time: {total_time_state}")
-                    print("add image")
+                    # print("add image")
                 if state_msg_valid:
                     try:
                         wvn_ros_interface.robot_state_callback(state_msg, None)
