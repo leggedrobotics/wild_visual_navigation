@@ -295,6 +295,7 @@ class WvnRosInterface:
 
         # Select mode: # debug, online, extract_labels
         self.use_debug_for_desired = rospy.get_param("~use_debug_for_desired")  # Note: Unused parameter
+        self.use_binary_only = rospy.get_param("~use_binary_only") # Only extract binary labels, do not update traversability
         self.mode = WVNMode.from_string(rospy.get_param("~mode", "debug"))
         self.extraction_store_folder = rospy.get_param("~extraction_store_folder")
 
@@ -335,7 +336,8 @@ class WvnRosInterface:
         self.step = -1
         self.step_time = rospy.get_time()
 
-        assert self.optical_flow_estimator_type == "none", "Optical flow estimator not tested due to changes"
+        if self.mode != WVNMode.EXTRACT_LABELS:
+            assert self.optical_flow_estimator_type == "none", "Optical flow estimator not tested due to changes"
 
     def setup_rosbag_replay(self, tf_listener):
         self.tf_listener = tf_listener
@@ -525,18 +527,37 @@ class WvnRosInterface:
         if stamp is None:
             stamp = rospy.Time(0)
 
-        try:
-            res = self.tf_buffer.lookup_transform(parent_frame, child_frame, stamp, timeout=rospy.Duration(0.03))
-            trans = (res.transform.translation.x, res.transform.translation.y, res.transform.translation.z)
-            rot = np.array(
-                [res.transform.rotation.x, res.transform.rotation.y, res.transform.rotation.z, res.transform.rotation.w]
-            )
-            rot /= np.linalg.norm(rot)
-            return (trans, tuple(rot))
-        except Exception as e:
-            print("Error in query tf: ", e)
-            rospy.logwarn(f"Couldn't get between {parent_frame} and {child_frame}")
-            return (None, None)
+        if self.mode != WVNMode.EXTRACT_LABELS:
+            try:
+                # res = self.tf_buffer.lookup_transform(parent_frame, child_frame, stamp, timeout=rospy.Duration(0.0))
+                res = self.tf_buffer.lookup_transform(parent_frame, child_frame, stamp)
+                trans = (res.transform.translation.x, res.transform.translation.y, res.transform.translation.z)
+                rot = np.array(
+                    [res.transform.rotation.x, res.transform.rotation.y, res.transform.rotation.z, res.transform.rotation.w]
+                )
+                rot /= np.linalg.norm(rot)
+                return (trans, tuple(rot))
+            except Exception as e:
+                print("Error in query tf: ", e)
+                rospy.logwarn(f"Couldn't get tf between {parent_frame} and {child_frame}")
+                return (None, None)
+        else:
+            # Wait for required tfs
+            try:
+                self.tf_listener.waitForTransform(parent_frame, child_frame, stamp, rospy.Duration(0.03))
+            except Exception as e:
+                print("Error in querry tf: ", e)
+                return (None, None)
+
+            try:
+                (trans, rot) = self.tf_listener.lookupTransform(parent_frame, child_frame, stamp)
+                # Rot vector is already normalized
+                return (trans, rot)
+            except Exception as e:
+                print("Error in querry tf: ", e)
+                # (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException): avoid all errors
+                rospy.logwarn(f"Couldn't get between {parent_frame} and {child_frame}")
+                return (None, None)
 
     @accumulate_memory
     @accumulate_time
@@ -582,15 +603,23 @@ class WvnRosInterface:
             # The footprint requires a correction: we use the same orientation as the base
             pose_footprint_in_base[:3, :3] = torch.eye(3, device=self.device)
 
-            # Convert state to tensor
             proprio_tensor, proprio_labels = rc.wvn_robot_state_to_torch(state_msg, device=self.device)
-            current_twist_tensor = rc.twist_stamped_to_torch(state_msg.twist, device=self.device)
-            desired_twist_tensor = rc.twist_stamped_to_torch(desired_twist_msg, device=self.device)
 
-            # Update traversability
-            traversability, traversability_var, is_untraversable = self.supervision_generator.update_velocity_tracking(
-                current_twist_tensor, desired_twist_tensor, velocities=["vx", "vy"]
-            )
+            if self.use_binary_only:
+                current_twist_tensor = torch.zeros(6).to(self.device)
+                desired_twist_tensor = torch.zeros(6).to(self.device)
+                traversability = torch.tensor(1.0).to(self.device)
+                traversability_var = torch.tensor(0.0).to(self.device)
+                is_untraversable = False
+            else:
+                # Convert state to tensor
+                current_twist_tensor = rc.twist_stamped_to_torch(state_msg.twist, device=self.device)
+                desired_twist_tensor = rc.twist_stamped_to_torch(desired_twist_msg, device=self.device)
+
+                # Update traversability
+                traversability, traversability_var, is_untraversable = self.supervision_generator.update_velocity_tracking(
+                    current_twist_tensor, desired_twist_tensor, velocities=["vx", "vy"]
+                )
 
             # Create proprioceptive node for the graph
             proprio_node = ProprioceptionNode(
@@ -703,10 +732,11 @@ class WvnRosInterface:
             # Add node to graph
             added_new_node = self.traversability_estimator.add_mission_node(mission_node)
 
-            with SystemLevelContextGpuMonitor(self, "update_prediction"):
-                with SystemLevelContextTimer(self, "update_prediction"):
-                    # Update prediction
-                    self.traversability_estimator.update_prediction(mission_node)
+            if not self.use_binary_only:
+                with SystemLevelContextGpuMonitor(self, "update_prediction"):
+                    with SystemLevelContextTimer(self, "update_prediction"):
+                        # Update prediction
+                        self.traversability_estimator.update_prediction(mission_node)
 
             if self.mode == WVNMode.ONLINE or self.mode == WVNMode.DEBUG:
                 self.publish_predictions(mission_node, image_msg, info_msg, image_projector.scaled_camera_matrix)
