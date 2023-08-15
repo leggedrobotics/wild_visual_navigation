@@ -47,7 +47,7 @@ min_samples_for_training: 5
 
 
 # Optical flow params
-optical_flow_estimator_type: "sparse"
+optical_flow_estimator_type: "none"
 
 # Supervision Generator
 untraversable_thr: 0.01
@@ -75,6 +75,6 @@ verbose: false
 debug_supervision_node_index_from_last: 10
 
 use_debug_for_desired: true
-extraction_store_folder:  /home/rschmid/RosBags/output/6
+extraction_store_folder:  "nan"
 exp: "nan"
 use_binary_only: true
