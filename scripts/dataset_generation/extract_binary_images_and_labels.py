@@ -66,9 +66,11 @@ def do(n, dry_run):
 
     valid_topics = ["/state_estimator/anymal_state", "/wide_angle_camera_front/img_out"]
 
-    rosbags = ["/home/rschmid/RosBags/6/images.bag",
-               "/home/rschmid/RosBags/6/2023-03-02-11-13-08_anymal-d020-lpc_mission_0.bag",
-               "/home/rschmid/RosBags/6/2023-03-02-11-13-08_anymal-d020-lpc_mission_1.bag"]
+    rosbags = [
+        "/home/rschmid/RosBags/6/images.bag",
+        "/home/rschmid/RosBags/6/2023-03-02-11-13-08_anymal-d020-lpc_mission_0.bag",
+        "/home/rschmid/RosBags/6/2023-03-02-11-13-08_anymal-d020-lpc_mission_1.bag",
+    ]
 
     output_bag_wvn = s + "_wvn.bag"
     output_bag_tf = s + "_tf.bag"
@@ -115,7 +117,20 @@ def do(n, dry_run):
     info_msg.distortion_model = "equidistant"
     info_msg.D = [0.4316922809468283, 0.09279900476637248, -0.4010909691803734, 0.4756163338479413]
     info_msg.K = [575.6050407221768, 0.0, 745.7312198525915, 0.0, 578.564849365178, 519.5207040671075, 0.0, 0.0, 1.0]
-    info_msg.P = [575.6050407221768, 0.0, 745.7312198525915, 0.0, 0.0, 578.564849365178, 519.5207040671075, 0.0, 0.0, 0.0, 1.0, 0.0]
+    info_msg.P = [
+        575.6050407221768,
+        0.0,
+        745.7312198525915,
+        0.0,
+        0.0,
+        578.564849365178,
+        519.5207040671075,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+    ]
     info_msg.R = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
 
     rosbag_info_dict = get_bag_info(output_bag_wvn)
@@ -150,7 +165,7 @@ def do(n, dry_run):
 
                     info_msg.header = msg.header
                     camera_options = {}
-                    camera_options['name'] = "wide_angle_camera_front"
+                    camera_options["name"] = "wide_angle_camera_front"
                     camera_options["use_for_training"] = True
 
                     info_msg.header = msg.header

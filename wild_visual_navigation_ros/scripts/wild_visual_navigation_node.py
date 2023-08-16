@@ -276,7 +276,9 @@ class WvnRosInterface:
 
         # Select mode: # debug, online, extract_labels
         self.use_debug_for_desired = rospy.get_param("~use_debug_for_desired")  # Note: Unused parameter
-        self.use_binary_only = rospy.get_param("~use_binary_only") # Only extract binary labels, do not update traversability
+        self.use_binary_only = rospy.get_param(
+            "~use_binary_only"
+        )  # Only extract binary labels, do not update traversability
         self.mode = WVNMode.from_string(rospy.get_param("~mode", "debug"))
         self.extraction_store_folder = rospy.get_param("~extraction_store_folder")
 
@@ -510,7 +512,12 @@ class WvnRosInterface:
                 res = self.tf_buffer.lookup_transform(parent_frame, child_frame, stamp)
                 trans = (res.transform.translation.x, res.transform.translation.y, res.transform.translation.z)
                 rot = np.array(
-                    [res.transform.rotation.x, res.transform.rotation.y, res.transform.rotation.z, res.transform.rotation.w]
+                    [
+                        res.transform.rotation.x,
+                        res.transform.rotation.y,
+                        res.transform.rotation.z,
+                        res.transform.rotation.w,
+                    ]
                 )
                 rot /= np.linalg.norm(rot)
                 return (trans, tuple(rot))
@@ -593,7 +600,11 @@ class WvnRosInterface:
                 desired_twist_tensor = rc.twist_stamped_to_torch(desired_twist_msg, device=self.device)
 
                 # Update traversability
-                traversability, traversability_var, is_untraversable = self.supervision_generator.update_velocity_tracking(
+                (
+                    traversability,
+                    traversability_var,
+                    is_untraversable,
+                ) = self.supervision_generator.update_velocity_tracking(
                     current_twist_tensor, desired_twist_tensor, velocities=["vx", "vy"]
                 )
 
@@ -706,7 +717,7 @@ class WvnRosInterface:
 
             # Add node to graph
             added_new_node = self.traversability_estimator.add_mission_node(mission_node)
-            
+
             if not self.use_binary_only:
                 with SystemLevelContextGpuMonitor(self, "update_prediction"):
                     with SystemLevelContextTimer(self, "update_prediction"):
