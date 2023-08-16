@@ -7,6 +7,41 @@ from torch import nn
 from torchmetrics import ROC, AUROC, Accuracy
 
 
+class AnomalyLoss(nn.Module):
+    def __init__(self, confidence_std_factor, method):
+        super(AnomalyLoss, self).__init__()
+        # self._confidence_generator = ConfidenceGenerator(
+        #     std_factor=confidence_std_factor,
+        #     method=method,
+        #     log_enabled=False,
+        #     log_folder="/tmp",
+        # )
+
+    def forward(
+        self, graph: Optional[Data], res: dict, update_generator: bool = True, step: int = 0, log_step: bool = False
+    ):
+        loss_aux = {}
+        loss_aux["loss_trav"] = torch.tensor([0.0])
+        loss_aux["loss_reco"] = torch.tensor([0.0])
+        loss_aux["confidence"] = torch.tensor([0.0])
+
+        losses = res["logprob"].sum(1) + res["log_det"]
+
+        std = 400
+        mean = 550
+
+        # Clip the losses
+        l_clip = torch.clip(losses, mean - 2 * std, mean + 2 * std)
+
+        # Normalize between 0 and 1
+        l_norm = (losses - torch.min(l_clip)) / (torch.max(l_clip) - torch.min(l_clip))
+        loss_aux["loss_trav"] = -torch.mean(losses)
+        return -torch.mean(losses), loss_aux, l_norm
+
+    def update_node_confidence(self, node):
+        node.confidence = 0
+
+
 class TraversabilityLoss(nn.Module):
     def __init__(
         self,
@@ -104,3 +139,7 @@ class TraversabilityLoss(nn.Module):
             },
             res_updated,
         )
+
+    def update_node_confidence(self, node):
+        reco_loss = F.mse_loss(node.prediction[:, 1:], node.features, reduction="none").mean(dim=1)
+        node.confidence = self._confidence_generator.inference_without_update(reco_loss)

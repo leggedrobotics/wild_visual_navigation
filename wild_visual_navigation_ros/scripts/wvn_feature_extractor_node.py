@@ -8,6 +8,7 @@ from wild_visual_navigation_msgs.msg import ImageFeatures
 import wild_visual_navigation_ros.ros_converter as rc
 from wild_visual_navigation.learning.model import get_model
 from wild_visual_navigation.utils import ConfidenceGenerator
+from wild_visual_navigation.learning.utils import AnomalyLoss
 
 import rospy
 from sensor_msgs.msg import Image, CameraInfo, CompressedImage
@@ -30,6 +31,8 @@ class WvnFeatureExtractor:
     def __init__(self):
         # Read params
         self.read_params()
+        self.anomaly_detection = self.exp_cfg["model"]["name"] == "LinearRnvp"
+
         self.feature_extractor = FeatureExtractor(
             self.device,
             segmentation_type=self.segmentation_type,
@@ -42,11 +45,16 @@ class WvnFeatureExtractor:
         self.model = get_model(self.exp_cfg["model"]).to(self.device)
         self.model.eval()
 
-        self.confidence_generator = ConfidenceGenerator(
-            method=self.exp_cfg["loss"]["method"], std_factor=self.exp_cfg["loss"]["confidence_std_factor"]
-        )
-        self.scale_traversability = True
-        self.traversability_thershold = 0.5
+        if not self.anomaly_detection:
+            self.confidence_generator = ConfidenceGenerator(
+                method=self.exp_cfg["loss"]["method"], std_factor=self.exp_cfg["loss"]["confidence_std_factor"]
+            )
+            self.scale_traversability = True
+            self.traversability_thershold = 0.5
+        else:
+            self.traversability_loss = AnomalyLoss(**self.exp_cfg["loss_anomaly"])
+            self.traversability_loss.to(self.device)
+            self.scale_traversability = False
 
         if self.verbose:
             self.status_thread = Thread(target=self.status_thread_loop, name="status")
@@ -194,6 +202,9 @@ class WvnFeatureExtractor:
             info_pub = rospy.Publisher(f"/wild_visual_navigation_node/{cam}/camera_info", CameraInfo, queue_size=10)
             self.camera_handler[cam]["trav_pub"] = trav_pub
             self.camera_handler[cam]["info_pub"] = info_pub
+            if self.anomaly_detection and self.camera_topics[cam]["publish_confidence"]:
+                print(colored("Warning force set public confidence to false", "red"))
+                self.camera_topics[cam]["publish_confidence"] = False
 
             if self.camera_topics[cam]["publish_input_image"]:
                 input_pub = rospy.Publisher(f"/wild_visual_navigation_node/{cam}/image_input", Image, queue_size=10)
@@ -247,20 +258,29 @@ class WvnFeatureExtractor:
 
         # Evaluate traversability
         prediction = self.model.forward(data)
-        out_trav = prediction.reshape(H, W, -1)[:, :, 0]
 
-        # Publish traversability
-        if self.scale_traversability:
-            # Apply piecewise linear scaling 0->0; threshold->0.5; 1->1
-            traversability = out_trav.clone()
-            m = traversability < self.traversability_thershold
-            # Scale untraversable
-            traversability[m] *= 0.5 / self.traversability_thershold
-            # Scale traversable
-            traversability[~m] -= self.traversability_thershold
-            traversability[~m] *= 0.5 / (1 - self.traversability_thershold)
-            traversability[~m] += 0.5
-            traversability = traversability.clip(0, 1)
+        if not self.anomaly_detection:
+
+            out_trav = prediction.reshape(H, W, -1)[:, :, 0]
+
+            # Publish traversability
+            if self.scale_traversability:
+                # Apply piecewise linear scaling 0->0; threshold->0.5; 1->1
+                traversability = out_trav.clone()
+                m = traversability < self.traversability_thershold
+                # Scale untraversable
+                traversability[m] *= 0.5 / self.traversability_thershold
+                # Scale traversable
+                traversability[~m] -= self.traversability_thershold
+                traversability[~m] *= 0.5 / (1 - self.traversability_thershold)
+                traversability[~m] += 0.5
+                traversability = traversability.clip(0, 1)
+                # TODO Check if this was a bug
+                out_trav = traversability
+        else:
+            loss, loss_aux, trav = self.traversability_loss(None, prediction)
+
+            out_trav = trav.reshape(H, W, -1)[:, :, 0]
 
         msg = rc.numpy_to_ros_image(out_trav.cpu().numpy(), "passthrough")
         msg.header = image_msg.header
@@ -319,7 +339,8 @@ class WvnFeatureExtractor:
             self.i += 1
             if self.i % 100 == 0:
                 res = torch.load(f"{WVN_ROOT_DIR}/tmp_state_dict2.pt")
-                if (self.model.state_dict()["layers.0.weight"] != res["layers.0.weight"]).any():
+                k = list(self.model.state_dict().keys())[-1]
+                if (self.model.state_dict()[k] != res[k]).any():
                     if self.verbose:
                         self.log_data[f"time_last_model"] = rospy.get_time()
                         self.log_data[f"nr_model_updates"] += 1

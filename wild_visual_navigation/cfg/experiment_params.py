@@ -43,10 +43,17 @@ class ExperimentParams(Serializable):
         w_reco: float = 0.5
         w_temp: float = 0.0  # 0.75
         method: str = "latest_measurment"
-        confidence_std_factor: float = 1.0
+        confidence_std_factor: float = 0.5
         trav_cross_entropy: bool = False
 
     loss: LossParams = LossParams()
+
+    @dataclass
+    class LossAnomalyParams:
+        method: str = "latest_measurment"
+        confidence_std_factor: float = 0.5
+
+    loss_anomaly: LossAnomalyParams = LossAnomalyParams()
 
     @dataclass
     class TrainerParams:
@@ -109,6 +116,17 @@ class ExperimentParams(Serializable):
             hidden_sizes: List[int] = field(default_factory=lambda: [256, 128, 1])
 
         simple_gcn_cfg: SimpleGcnCfgParams = SimpleGcnCfgParams()
+
+        @dataclass
+        class LinearRnvpCfgParams:
+            input_dim: int = 90
+            coupling_topology: List[int] = field(default_factory=lambda: [200])
+            mask_type: str = "odds"
+            conditioning_size: int = 0
+            use_permutation: bool = True
+            single_function: bool = True
+
+        linear_rnvp_cfg: LinearRnvpCfgParams = LinearRnvpCfgParams()
 
     model: ModelParams = ModelParams()
 

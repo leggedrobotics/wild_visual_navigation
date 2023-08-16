@@ -68,7 +68,6 @@ class WvnLearning:
             max_distance=self.traversability_radius,
             image_distance_thr=self.image_graph_dist_thr,
             proprio_distance_thr=self.proprio_graph_dist_thr,
-            optical_flow_estimator_type=self.optical_flow_estimator_type,
             min_samples_for_training=self.min_samples_for_training,
             vis_node_index=self.vis_node_index,
             mode=self.mode,
@@ -192,19 +191,21 @@ class WvnLearning:
                 res = self.traversability_estimator._model.state_dict()
 
                 # Compute ROC Threshold
-                if self.traversability_estimator._auxiliary_training_roc._update_count != 0:
-                    try:
-                        fpr, tpr, thresholds = self.traversability_estimator._auxiliary_training_roc.compute()
-                        index = torch.where(fpr > self.scale_traversability_max_fpr)[0][0]
-                        traversability_thershold = thresholds[index]
-                    except:
+                if self.scale_traversability:
+                    if self.traversability_estimator._auxiliary_training_roc._update_count != 0:
+                        try:
+                            fpr, tpr, thresholds = self.traversability_estimator._auxiliary_training_roc.compute()
+                            index = torch.where(fpr > self.scale_traversability_max_fpr)[0][0]
+                            traversability_thershold = thresholds[index]
+                        except:
+                            traversability_thershold = 0.5
+                    else:
                         traversability_thershold = 0.5
-                else:
-                    traversability_thershold = 0.5
 
-                res["traversability_thershold"] = traversability_thershold
-                cg = self.traversability_estimator._traversability_loss._confidence_generator
-                res["confidence_generator"] = cg.get_dict()
+                    res["traversability_thershold"] = traversability_thershold
+                    cg = self.traversability_estimator._traversability_loss._confidence_generator
+                    res["confidence_generator"] = cg.get_dict()
+
                 os.system(f"rm {WVN_ROOT_DIR}/tmp_state_dict2.pt")
                 torch.save(res, f"{WVN_ROOT_DIR}/tmp_state_dict2.pt")
             i += 1
@@ -273,9 +274,6 @@ class WvnLearning:
         self.robot_max_velocity = rospy.get_param("~robot_max_velocity")
         self.untraversable_thr = rospy.get_param("~untraversable_thr")
 
-        # Optical flow params
-        self.optical_flow_estimator_type = rospy.get_param("~optical_flow_estimator_type")
-
         # Threads
         self.image_callback_rate = rospy.get_param("~image_callback_rate")  # hertz
         self.proprio_callback_rate = rospy.get_param("~proprio_callback_rate")  # hertz
@@ -304,7 +302,6 @@ class WvnLearning:
         elif self.mode == WVNMode.EXTRACT_LABELS:
             self.image_callback_rate = 3
             self.proprio_callback_rate = 4
-            self.optical_flow_estimator_type = False
             self.image_graph_dist_thr = 0.2
             self.proprio_graph_dist_thr = 0.1
 
@@ -333,8 +330,6 @@ class WvnLearning:
         self.params.loss.w_temp = 0
         self.step = -1
         self.step_time = rospy.get_time()
-
-        assert self.optical_flow_estimator_type == "none", "Optical flow estimator not tested due to changes"
 
     def setup_ros(self, setup_fully=True):
         """Main function to setup ROS-related stuff: publishers, subscribers and services"""
@@ -654,7 +649,6 @@ class WvnLearning:
                 pose_cam_in_base=pose_cam_in_base,
                 image=torch.zeros((3, h_small, w_small), device=self.device, dtype=torch.float32),
                 image_projector=image_projector,
-                correspondence=torch.zeros((1,)),
                 camera_name=camera_options["name"],
                 use_for_training=camera_options["use_for_training"],
             )
