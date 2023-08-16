@@ -45,6 +45,7 @@ image_callback_rate: 10 # hertz
 proprio_callback_rate: 4 # hertz
 learning_thread_rate: 10 # hertz
 logging_thread_rate: 2 # hertz
+status_thread_rate: 0.5 # hertz
 
 # Runtime options
 device: "cuda"
@@ -55,7 +56,7 @@ print_image_callback_time: false
 print_proprio_callback_time: false
 log_time: false
 log_confidence: false
-verbose: false
+verbose: true
 debug_supervision_node_index_from_last: 10
 
 extraction_store_folder:  "nan"
