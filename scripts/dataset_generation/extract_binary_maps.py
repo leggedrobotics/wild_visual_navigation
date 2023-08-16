@@ -125,6 +125,9 @@ def do(n, dry_run):
     n = 0
 
     with rosbag.Bag(output_bag_wvn, "r") as bag:
+        if rospy.is_shutdown():
+            return
+
         start_time = rospy.Time.from_sec(bag.get_start_time() + d["start"])
         end_time = rospy.Time.from_sec(bag.get_start_time() + d["stop"])
         with tqdm(
@@ -138,6 +141,7 @@ def do(n, dry_run):
 
                 if rospy.is_shutdown():
                     return
+
                 pbar.update(1)
                 st = time.time()
                 if topic == "/state_estimator/anymal_state":

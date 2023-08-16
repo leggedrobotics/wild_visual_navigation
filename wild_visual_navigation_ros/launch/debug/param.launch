@@ -1,0 +1,6 @@
+<launch>
+  <arg name="name"              default="wild_visual_navigation_node"/>
+  <arg name="params_file"       default="$(find wild_visual_navigation_ros)/config/wild_visual_navigation/default.yaml"/>
+
+  <rosparam command="load" file="$(arg params_file)" ns="$(arg name)"/>
+</launch>

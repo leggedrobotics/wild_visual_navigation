@@ -617,7 +617,7 @@ class WvnRosInterface:
             self.traversability_estimator.add_proprio_node(proprio_node)
 
             # if self.mode == WVNMode.DEBUG or self.mode == WVNMode.ONLINE:
-            self.visualize_proprioception()
+            # self.visualize_proprioception()
 
             if self.print_proprio_callback_time:
                 print(self.timer)
@@ -721,6 +721,8 @@ class WvnRosInterface:
                 self.visualize_mission()
                 # Publish supervision data depending on the mode
                 self.visualize_debug()
+
+            self.visualize_proprioception()
 
             # If a new node was added, update the node is used to visualize the supervision signals
             if added_new_node:
@@ -914,6 +916,9 @@ class WvnRosInterface:
             if self.verbose:
                 print(f"number of points for footprint is {len(footprints_marker.points)}")
             return
+
+        print("points", footprints_marker.points)
+
         self.pub_graph_footprints.publish(footprints_marker)
         self.pub_debug_proprio_graph.publish(proprio_graph_msg)
 

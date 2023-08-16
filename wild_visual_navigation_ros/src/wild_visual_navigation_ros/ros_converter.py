@@ -106,14 +106,24 @@ def ros_tf_to_torch(tf_pose, device="cpu"):
 
 
 def ros_image_to_torch(ros_img, desired_encoding="rgb8", device="cpu"):
-    if type(ros_img).__name__ is "_sensor_msgs__Image":
+    if type(ros_img).__name__ == "_sensor_msgs__Image":
         np_image = CV_BRIDGE.imgmsg_to_cv2(ros_img, desired_encoding=desired_encoding)
 
-    elif type(ros_img).__name__ is "_sensor_msgs__CompressedImage":
+    elif type(ros_img).__name__ == "_sensor_msgs__CompressedImage":
         np_arr = np.fromstring(ros_img.data, np.uint8)
         np_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
         if "bgr" in ros_img.format:
             np_image = cv2.cvtColor(np_image, cv2.COLOR_BGR2RGB)
+
+    # print(isinstance(type(ros_img), Image))
+    # print(isinstance(type(ros_img), CompressedImage))
+    #
+    # print(issubclass(type(ros_img), Image))
+    # print(issubclass(type(ros_img), CompressedImage))
+    #
+    # print(isinstance(ros_img, Image))
+    # print(isinstance(ros_img, CompressedImage))
+
     return TO_TENSOR(np_image).to(device)
 
 
