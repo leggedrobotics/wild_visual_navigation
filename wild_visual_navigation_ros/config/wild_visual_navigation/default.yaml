@@ -60,3 +60,4 @@ debug_supervision_node_index_from_last: 10
 
 extraction_store_folder:  "nan"
 exp: "nan"
+use_binary_only: true
