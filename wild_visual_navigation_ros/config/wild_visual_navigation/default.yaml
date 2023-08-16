@@ -58,6 +58,6 @@ log_confidence: false
 verbose: false
 debug_supervision_node_index_from_last: 10
 
-extraction_store_folder:  "nan"
+extraction_store_folder:  /home/rschmid/RosBags/output/6
 exp: "nan"
 use_binary_only: true
