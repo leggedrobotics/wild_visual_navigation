@@ -228,6 +228,9 @@ done.
 
 ## Contributing
 
+The code on main should be always stable and capable to run on a robot.
+The code on develop should be used for development code and then tested on the robot and merged into main. 
+
 ### Code formatting
 ```shell
 # for formatting

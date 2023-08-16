@@ -4,7 +4,7 @@ import random
 from threading import Lock
 import networkx
 import torch
-from wild_visual_navigation.utils import Timer
+from pytictac import Timer
 
 
 class BaseGraph:

@@ -2,7 +2,7 @@ from wild_visual_navigation.feature_extractor import FeatureExtractor
 from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation.learning.model import get_model
 from wild_visual_navigation.cfg import ExperimentParams
-from wild_visual_navigation.utils import Timer, accumulate_time
+from pytictac import Timer, accumulate_time
 from wild_visual_navigation.traversability_estimator import (
     BaseGraph,
     DistanceWindowGraph,
@@ -369,7 +369,7 @@ class TraversabilityEstimator:
             )
 
     @accumulate_time
-    def add_mission_node(self, node: MissionNode, verbose: bool = False):
+    def add_mission_node(self, node: MissionNode, verbose: bool = False, update_features: bool = True):
         """Adds a node to the mission graph to images and training info
 
         Args:
@@ -379,8 +379,9 @@ class TraversabilityEstimator:
         if self._pause_mission_graph:
             return False
 
-        # Compute image features
-        self.update_features(node)
+        if update_features:
+            # Compute image features
+            self.update_features(node)
 
         # Get last added node
         previous_node = self._mission_graph.get_last_node()
@@ -701,7 +702,9 @@ class TraversabilityEstimator:
                 res = self._model(graph)
 
                 log_step = (self._step % 20) == 0
-                self._loss, loss_aux = self._traversability_loss(graph, res, step=self._step, log_step=log_step)
+                self._loss, loss_aux, res_updated = self._traversability_loss(
+                    graph, res, step=self._step, log_step=log_step
+                )
 
                 # Keep track of ROC during training for rescaling the loss when publishing
                 if self._scale_traversability:

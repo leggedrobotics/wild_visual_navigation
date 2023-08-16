@@ -7,12 +7,10 @@ Panels:
         - /Global Options1
         - /TF1/Tree1
         - /Wild Visual Navigation1
-        - /Wild Visual Navigation1/Depth Sensors1
-        - /Wild Visual Navigation1/Prediction1
-        - /Elevation Map WIFI1
         - /Elevation Map WIFI1/Local Planner (SDF)1
-      Splitter Ratio: 0.6102783679962158
-    Tree Height: 546
+        - /Elevation Map RAW1
+      Splitter Ratio: 0.4659898579120636
+    Tree Height: 465
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -31,7 +29,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: Input Image
+    SyncSource: F Input Image
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -118,383 +116,7 @@ Visualization Manager:
             Expand Joint Details: false
             Expand Link Details: false
             Expand Tree: false
-            LF_FOOT:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LF_HAA:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LF_HFE:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LF_HIP:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            LF_KFE:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LF_SHANK:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            LF_THIGH:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            LF_hip_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LF_shank_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LF_thigh_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LH_FOOT:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LH_HAA:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LH_HFE:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LH_HIP:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            LH_KFE:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LH_SHANK:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            LH_THIGH:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            LH_hip_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LH_shank_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            LH_thigh_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
             Link Tree Style: Links in Alphabetic Order
-            RF_FOOT:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RF_HAA:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RF_HFE:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RF_HIP:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            RF_KFE:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RF_SHANK:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            RF_THIGH:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            RF_hip_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RF_shank_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RF_thigh_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RH_FOOT:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RH_HAA:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RH_HFE:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RH_HIP:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            RH_KFE:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RH_SHANK:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            RH_THIGH:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            RH_hip_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RH_shank_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            RH_thigh_fixed:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            alphasense_mesh:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            base:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            base_inertia:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            battery:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            body_top:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            bottom_shell:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            cam0_sensor_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            cam1_sensor_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            cam2_sensor_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            cam3_sensor_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            cam3_sensor_frame_helper:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            cam4_sensor_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            cam4_sensor_frame_helper:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            cam5_sensor_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            cam5_sensor_frame_helper:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            cam6_sensor_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            cam6_sensor_frame_helper:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            depth_camera_front_camera:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            depth_camera_front_camera_parent:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            depth_camera_left_camera:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            depth_camera_left_camera_parent:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            depth_camera_rear_camera:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            depth_camera_rear_camera_parent:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            depth_camera_right_camera:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            depth_camera_right_camera_parent:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            docking_hatch_cover:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            face_front:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            face_rear:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            front_handle:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            handle:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            hatch:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            imu_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            imu_sensor_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            interface_hatch:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            lidar:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            perception_head_cage:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            remote:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            top_shell:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            wide_angle_camera_front_camera:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            wide_angle_camera_front_camera_parent:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            wide_angle_camera_rear_camera:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            wide_angle_camera_rear_camera_parent:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
           Name: RobotModel
           Robot Description: anymal_description
           TF Prefix: ""
@@ -512,7 +134,7 @@ Visualization Manager:
               Marker Topic: /wild_visual_navigation_node/graph_footprints
               Name: Footprint
               Namespaces:
-                {}
+                footprints: true
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -632,7 +254,7 @@ Visualization Manager:
         - Class: rviz/Group
           Displays:
             - Class: rviz/Image
-              Enabled: true
+              Enabled: false
               Image Topic: /alphasense_driver_ros/cam4/debayered
               Max Value: 1
               Median window: 5
@@ -642,7 +264,7 @@ Visualization Manager:
               Queue Size: 2
               Transport Hint: raw
               Unreliable: false
-              Value: true
+              Value: false
             - Class: rviz/Image
               Enabled: false
               Image Topic: /alphasense_driver_ros/cam3/debayered
@@ -668,7 +290,7 @@ Visualization Manager:
               Unreliable: false
               Value: false
             - Class: rviz/Image
-              Enabled: false
+              Enabled: true
               Image Topic: /wide_angle_camera_front/image_color
               Max Value: 1
               Median window: 5
@@ -678,7 +300,7 @@ Visualization Manager:
               Queue Size: 2
               Transport Hint: raw
               Unreliable: false
-              Value: false
+              Value: true
             - Class: rviz/Image
               Enabled: false
               Image Topic: ""
@@ -866,8 +488,8 @@ Visualization Manager:
             - Alpha: 1
               Autocompute Intensity Bounds: true
               Autocompute Value Bounds:
-                Max Value: 12.096750259399414
-                Min Value: -2.868344783782959
+                Max Value: 11.413318634033203
+                Min Value: -0.9144046306610107
                 Value: true
               Axis: Z
               Channel Name: intensity
@@ -896,24 +518,48 @@ Visualization Manager:
         - Class: rviz/Group
           Displays:
             - Class: rviz/Image
-              Enabled: true
+              Enabled: false
               Image Topic: /wild_visual_navigation_node/front/image_input
               Max Value: 1
               Median window: 5
               Min Value: 0
-              Name: Input Image
+              Name: F Input Image
               Normalize Range: true
               Queue Size: 2
               Transport Hint: raw
               Unreliable: false
-              Value: true
+              Value: false
             - Class: rviz/Image
               Enabled: false
               Image Topic: /wild_visual_navigation_node/front/traversability
               Max Value: 1
               Median window: 5
               Min Value: 0
-              Name: Traversability Raw
+              Name: F Traversability Raw
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: false
+            - Class: rviz/Image
+              Enabled: true
+              Image Topic: /wild_visual_navigation_node/front/confidence
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: F Confidence Raw
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: true
+            - Class: rviz/Image
+              Enabled: false
+              Image Topic: /wild_visual_navigation_visu_traversability/traversability_overlayed
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: F Traversability Overlay
               Normalize Range: true
               Queue Size: 2
               Transport Hint: raw
@@ -921,40 +567,40 @@ Visualization Manager:
               Value: false
             - Class: rviz/Image
               Enabled: false
-              Image Topic: /wild_visual_navigation_node/front/confidence
+              Image Topic: /wild_visual_navigation_visu_0/traversability_overlayed
               Max Value: 1
               Median window: 5
               Min Value: 0
-              Name: Confidence Raw
+              Name: F Traversability Overlay Replay
               Normalize Range: true
               Queue Size: 2
               Transport Hint: raw
               Unreliable: false
               Value: false
             - Class: rviz/Image
-              Enabled: true
-              Image Topic: /wild_visual_navigation_visu_traversability/traversability_overlayed
-              Max Value: 1
-              Median window: 5
-              Min Value: 0
-              Name: Traversability Overlay
-              Normalize Range: true
-              Queue Size: 2
-              Transport Hint: raw
-              Unreliable: false
-              Value: true
-            - Class: rviz/Image
-              Enabled: true
+              Enabled: false
               Image Topic: /wild_visual_navigation_visu_confidence/confidence_overlayed
               Max Value: 1
               Median window: 5
               Min Value: 0
-              Name: Confidence Overlay
+              Name: F Confidence Overlay
               Normalize Range: true
               Queue Size: 2
               Transport Hint: raw
               Unreliable: false
-              Value: true
+              Value: false
+            - Class: rviz/Image
+              Enabled: false
+              Image Topic: /wild_visual_navigation_visu_1/confidence_overlayed
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: F Confidence Overlay Replay
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: false
           Enabled: true
           Name: Prediction
         - Class: rviz/Group
@@ -964,7 +610,7 @@ Visualization Manager:
               Marker Topic: /field_local_planner/real_carrot
               Name: Goal (carrot)
               Namespaces:
-                carrot: true
+                {}
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -1024,6 +670,82 @@ Visualization Manager:
               Value: false
           Enabled: true
           Name: Local planner
+        - Class: rviz/Group
+          Displays:
+            - Class: rviz/Image
+              Enabled: true
+              Image Topic: /wild_visual_navigation_node/left/image_input
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: L Input Image
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: true
+            - Class: rviz/Image
+              Enabled: true
+              Image Topic: /wild_visual_navigation_node/left/traversability
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: L Traversability Raw
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: true
+            - Class: rviz/Image
+              Enabled: false
+              Image Topic: /wild_visual_navigation_node/left/confidence
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: L Confidence Raw
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: false
+            - Class: rviz/Image
+              Enabled: false
+              Image Topic: /wild_visual_navigation_node/right/image_input
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: R Input Image
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: false
+            - Class: rviz/Image
+              Enabled: false
+              Image Topic: /wild_visual_navigation_node/right/traversability
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: R Traversability Raw
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: false
+            - Class: rviz/Image
+              Enabled: false
+              Image Topic: /wild_visual_navigation_node/right/confidence
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: R Confidence Raw
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: false
+          Enabled: true
+          Name: LR Prediction
       Enabled: true
       Name: Wild Visual Navigation
     - Class: rviz/Group
@@ -1172,7 +894,7 @@ Visualization Manager:
           Unreliable: false
           Use ColorMap: true
           Value: false
-      Enabled: true
+      Enabled: false
       Name: Elevation Map WIFI
     - Class: rviz/Group
       Displays:
@@ -1303,10 +1025,10 @@ Visualization Manager:
           Color Layer: visual_traversability
           Color Transformer: ""
           ColorMap: coolwarm
-          Enabled: false
+          Enabled: true
           Grid Cell Decimation: 1
           Grid Line Thickness: 0.10000000149011612
-          Height Layer: visual_traversability
+          Height Layer: elevation_with_semantic
           Height Transformer: GridMapLayer
           History Length: 1
           Invert ColorMap: true
@@ -1319,7 +1041,7 @@ Visualization Manager:
           Topic: /elevation_mapping/semantic_map_raw
           Unreliable: false
           Use ColorMap: true
-          Value: false
+          Value: true
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Class: grid_map_rviz_plugin/GridMap
@@ -1374,7 +1096,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 17.14068031311035
+      Distance: 15.3408784866333
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -1382,17 +1104,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 3.1985225677490234
-        Y: 1.6920582056045532
-        Z: -5.593326568603516
+        X: 0.8738794326782227
+        Y: 1.1860613822937012
+        Z: -5.593326091766357
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5297969579696655
+      Pitch: 0.734797477722168
       Target Frame: base
-      Yaw: 0.04853395000100136
+      Yaw: 5.81669807434082
     Saved: ~
 Window Geometry:
   AB Wide Angle Front:
@@ -1403,20 +1125,40 @@ Window Geometry:
     collapsed: false
   AS Right (cam5):
     collapsed: false
-  Confidence Overlay:
-    collapsed: false
-  Confidence Raw:
-    collapsed: false
   Displays:
+    collapsed: false
+  F Confidence Overlay:
+    collapsed: false
+  F Confidence Overlay Replay:
+    collapsed: false
+  F Confidence Raw:
+    collapsed: false
+  F Input Image:
+    collapsed: false
+  F Traversability Overlay:
+    collapsed: false
+  F Traversability Overlay Replay:
+    collapsed: false
+  F Traversability Raw:
     collapsed: false
   Height: 1016
   Hide Left Dock: false
   Hide Right Dock: true
-  Input Image:
+  L Confidence Raw:
+    collapsed: false
+  L Input Image:
+    collapsed: false
+  L Traversability Raw:
     collapsed: false
   Placeholder:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000400000000000001560000025ffc020000000dfb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000005fb000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000017c0000025f000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000c00430061006d00650072006100000002ea000000c80000000000000000fb00000036005300750070006500720076006900730069006f006e0020002d00200049006d0061006700650020004c006100620065006c006500640000000259000000520000000000000000fb00000024005300750070006500720076006900730069006f006e0020002d0020004d00610073006b000000027e000000b80000000000000000fb0000000a0049006d00610067006500000002eb000001280000000000000000fb000000140043006f006e0066006900640065006e0063006500000003b3000000c60000000000000000000000010000010f0000025ffc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000017c0000025f000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000000000020000073800000139fc010000000bfb0000001c0049006d00610067006500200046006500610074007500720065007300000000bf000003690000000000000000fc0000000000000268000000c200fffffffa000000020200000003fb00000026004100420020005700690064006500200041006e0067006c0065002000460072006f006e00740100000000ffffffff0000001600fffffffb0000002400460072006f006e0074002000280063006f006d007000720065007300730065006400290000000000ffffffff0000000000000000fb0000001e00410053002000460072006f006e00740020002800630061006d00340029010000003d0000010c0000001600fffffffb000000160049006e00700075007400200049006d006100670065010000026e000001b00000008600fffffffb0000000a0049006d00610067006501000003240000018a0000000000000000fc0000042400000194000000c800fffffffa000000000200000002fb0000002c0054007200610076006500720073006100620069006c0069007400790020004f007600650072006c006100790100000000ffffffff0000001600fffffffb000000240054007200610076006500720073006100620069006c0069007400790020005200610077010000003d0000012b0000001600fffffffc000005be0000017a000000bb00fffffffa000000000200000002fb000000240043006f006e0066006900640065006e006300650020004f007600650072006c006100790100000000ffffffff0000001600fffffffb0000001c0043006f006e0066006900640065006e006300650020005200610077010000003d0000012b0000001600fffffffb000000160050006c0061006300650068006f006c0064006500720000000492000002a60000008500fffffffb000000160049006e00700075007400200049006d006100670065010000031e000001790000000000000000fb00000036005300750070006500720076006900730069006f006e0020002d00200049006d0061006700650020004c006100620065006c006500640100000659000001af0000000000000000fb00000024005300750070006500720076006900730069006f006e0020002d0020004d00610073006b010000080e000001aa0000000000000000fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000073800000061fc010000000dfb000000200052006500700072006f006a006500630074006500640020005000610074006800000000000000011b000000ab00fffffffb00000024005300750070006500720076006900730069006f006e0020005300690067006e0061006c00000001210000011b000000b000fffffffb0000001c0054007200610076006500720073006100620069006c00690074007900000002420000011d0000009100fffffffb000000160055006e006300650072007400610069006e0074007900000003650000011b0000008500fffffffb000000160050006c0061006300650068006f006c0064006500720000000000000007380000008500fffffffb0000001c0054007200610076006500720073006100620069006c006900740079010000031f0000017d0000000000000000fb000000160055006e006300650072007400610069006e0074007901000004a2000002960000000000000000fb000000140043006f006e0066006900640065006e006300650000000000000003d40000000000000000fb0000001c0054007200610076006500720073006100620069006c0069007400790000000231000001f20000000000000000fb0000001c004100530020004c0065006600740020002800630061006d003300290000000000000007380000009700fffffffb0000001e004100530020005200690067006800740020002800630061006d0035002900000003f000000348000000a000fffffffb0000000800540069006d0065000000000000000780000002eb00fffffffb0000000800540069006d00650100000000000004500000000000000000000005dc0000025f00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000003db0000020efc0200000011fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000005fb000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c00610079007301000001cd0000020e000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000c00430061006d00650072006100000002ea000000c80000000000000000fb00000036005300750070006500720076006900730069006f006e0020002d00200049006d0061006700650020004c006100620065006c006500640000000259000000520000000000000000fb00000024005300750070006500720076006900730069006f006e0020002d0020004d00610073006b000000027e000000b80000000000000000fb0000000a0049006d00610067006500000002eb000001280000000000000000fb000000140043006f006e0066006900640065006e0063006500000003b3000000c60000000000000000fb00000028004600200043006f006e0066006900640065006e006300650020004f007600650072006c0061007900000002be000000160000001600fffffffb00000030004600200054007200610076006500720073006100620069006c0069007400790020004f007600650072006c0061007900000002ea0000001a0000001600fffffffb00000036004600200043006f006e0066006900640065006e006300650020004f007600650072006c006100790020005200650070006c0061007900000002fc0000001e0000001600fffffffb0000003e004600200054007200610076006500720073006100620069006c0069007400790020004f007600650072006c006100790020005200650070006c00610079000000033c0000009f0000001600ffffff000000010000010f0000025ffc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000017c0000025f000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b2000000000000000000000002000007380000018afc010000000bfb0000001c0049006d00610067006500200046006500610074007500720065007300000000bf000003690000000000000000fc00000000000001ef000000c200fffffffa000000000200000003fb00000026004100420020005700690064006500200041006e0067006c0065002000460072006f006e00740100000000ffffffff0000001600fffffffb0000002400460072006f006e0074002000280063006f006d007000720065007300730065006400290000000000ffffffff0000000000000000fb0000001e00410053002000460072006f006e00740020002800630061006d00340029010000003d0000010c0000001600fffffffc000001f5000001da0000009300fffffffa000000020200000003fb0000001a004600200049006e00700075007400200049006d006100670065010000003d000001ac0000001600fffffffb0000001a005200200049006e00700075007400200049006d0061006700650100000000ffffffff0000001600fffffffb0000001a004c00200049006e00700075007400200049006d0061006700650100000000ffffffff0000001600fffffffb0000000a0049006d00610067006501000003240000018a0000000000000000fc000003d5000001a6000000bd00fffffffa000000030200000005fb0000003e004600200054007200610076006500720073006100620069006c0069007400790020004f007600650072006c006100790020005200650070006c006100790100000000ffffffff0000000000000000fb00000028004600200054007200610076006500720073006100620069006c0069007400790020005200610077010000003d0000012b0000001600fffffffb00000028005200200054007200610076006500720073006100620069006c00690074007900200052006100770100000000ffffffff0000001600fffffffb00000028004c00200054007200610076006500720073006100620069006c00690074007900200052006100770100000000ffffffff0000001600fffffffb00000030004600200054007200610076006500720073006100620069006c0069007400790020004f007600650072006c006100790000000000ffffffff0000000000000000fc00000581000001b7000000af00fffffffa000000010200000005fb00000036004600200043006f006e0066006900640065006e006300650020004f007600650072006c006100790020005200650070006c006100790100000000ffffffff0000000000000000fb00000020004600200043006f006e0066006900640065006e006300650020005200610077010000003d0000012b0000001600fffffffb00000020005200200043006f006e0066006900640065006e0063006500200052006100770100000000ffffffff0000001600fffffffb00000020004c00200043006f006e0066006900640065006e0063006500200052006100770100000000ffffffff0000001600fffffffb00000028004600200043006f006e0066006900640065006e006300650020004f007600650072006c006100790000000000ffffffff0000000000000000fb000000160050006c0061006300650068006f006c006400650072000000054b000001ed0000008500fffffffb000000160049006e00700075007400200049006d006100670065010000031e000001790000000000000000fb00000036005300750070006500720076006900730069006f006e0020002d00200049006d0061006700650020004c006100620065006c006500640100000659000001af0000000000000000fb00000024005300750070006500720076006900730069006f006e0020002d0020004d00610073006b010000080e000001aa0000000000000000fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000073800000061fc010000000dfb000000200052006500700072006f006a00650063007400650064002000500061007400680000000000000000ab000000ab00fffffffb00000024005300750070006500720076006900730069006f006e0020005300690067006e0061006c00000000b1000004d2000000b000fffffffb0000001c0054007200610076006500720073006100620069006c0069007400790000000589000000f60000009100fffffffb000000160055006e006300650072007400610069006e007400790000000685000000b30000008500fffffffb000000160050006c0061006300650068006f006c0064006500720000000000000007380000008500fffffffb0000001c0054007200610076006500720073006100620069006c006900740079010000031f0000017d0000000000000000fb000000160055006e006300650072007400610069006e0074007901000004a2000002960000000000000000fb000000140043006f006e0066006900640065006e006300650000000000000003d40000000000000000fb0000001c0054007200610076006500720073006100620069006c0069007400790000000231000001f20000000000000000fb0000001c004100530020004c0065006600740020002800630061006d003300290000000000000007380000009700fffffffb0000001e004100530020005200690067006800740020002800630061006d0035002900000003f000000348000000a000fffffffb0000000800540069006d0065000000000000000780000004f300fffffffb0000000800540069006d00650100000000000004500000000000000000000003570000020e00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  R Confidence Raw:
+    collapsed: false
+  R Input Image:
+    collapsed: false
+  R Traversability Raw:
+    collapsed: false
   Reprojected Path:
     collapsed: false
   Selection:
@@ -1428,10 +1170,6 @@ Window Geometry:
   Tool Properties:
     collapsed: false
   Traversability:
-    collapsed: false
-  Traversability Overlay:
-    collapsed: false
-  Traversability Raw:
     collapsed: false
   Uncertainty:
     collapsed: false

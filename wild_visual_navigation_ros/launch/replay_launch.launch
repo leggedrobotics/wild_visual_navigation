@@ -72,4 +72,6 @@
   <node if="$(arg uncompress_alphasense_cam3)" name="uncompress_cam3" pkg="image_transport" type="republish" args="compressed in:=/alphasense_driver_ros/cam3/debayered raw out:=/alphasense_driver_ros/cam3/debayered" />
   <node if="$(arg uncompress_alphasense_cam4)" name="uncompress_cam4" pkg="image_transport" type="republish" args="compressed in:=/alphasense_driver_ros/cam4/debayered raw out:=/alphasense_driver_ros/cam4/debayered" />
   <node if="$(arg uncompress_alphasense_cam5)" name="uncompress_cam5" pkg="image_transport" type="republish" args="compressed in:=/alphasense_driver_ros/cam5/debayered raw out:=/alphasense_driver_ros/cam5/debayered" />
+
+  
 </launch>
