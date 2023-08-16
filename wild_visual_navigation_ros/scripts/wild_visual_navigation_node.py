@@ -592,10 +592,10 @@ class WvnRosInterface:
                 current_twist_tensor = rc.twist_stamped_to_torch(state_msg.twist, device=self.device)
                 desired_twist_tensor = rc.twist_stamped_to_torch(desired_twist_msg, device=self.device)
 
-                # Update traversability
-                traversability, traversability_var, is_untraversable = self.supervision_generator.update_velocity_tracking(
-                    current_twist_tensor, desired_twist_tensor, velocities=["vx", "vy"]
-                )
+            # Update traversability
+            traversability, traversability_var, is_untraversable = self.supervision_generator.update_velocity_tracking(
+                current_twist_tensor, desired_twist_tensor, velocities=["vx", "vy"]
+            )
 
             # Create proprioceptive node for the graph
             proprio_node = ProprioceptionNode(
@@ -616,8 +616,8 @@ class WvnRosInterface:
             # Add node to the graph
             self.traversability_estimator.add_proprio_node(proprio_node)
 
-            if self.mode == WVNMode.DEBUG or self.mode == WVNMode.ONLINE:
-                self.visualize_proprioception()
+            # if self.mode == WVNMode.DEBUG or self.mode == WVNMode.ONLINE:
+            self.visualize_proprioception()
 
             if self.print_proprio_callback_time:
                 print(self.timer)
