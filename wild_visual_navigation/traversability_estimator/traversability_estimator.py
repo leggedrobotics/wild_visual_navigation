@@ -692,8 +692,9 @@ class TraversabilityEstimator:
         if self._pause_training:
             return {}
 
-        return_dict = {}
-        if self._mission_graph.get_num_valid_nodes() > self._min_samples_for_training:
+        num_valid_nodes = self._mission_graph.get_num_valid_nodes()
+        return_dict = {"mission_graph_num_valid_node": num_valid_nodes}
+        if num_valid_nodes > self._min_samples_for_training:
             # Prepare new batch
             graph = self.make_batch(self._exp_cfg["ablation_data_module"]["batch_size"])
 
@@ -737,8 +738,10 @@ class TraversabilityEstimator:
             return_dict["loss_total"] = self._loss.item()
             return_dict["loss_trav"] = loss_aux["loss_trav"].item()
             return_dict["loss_reco"] = loss_aux["loss_reco"].item()
+
             return return_dict
-        return {"loss_total": -1}
+        return_dict["loss_total"] = -1
+        return return_dict
 
     @accumulate_time
     def plot_mission_node_prediction(self, node: MissionNode):

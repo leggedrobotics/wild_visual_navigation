@@ -22,6 +22,8 @@ import torch.nn.functional as F
 from threading import Thread, Event
 from prettytable import PrettyTable
 from termcolor import colored
+import signal
+import sys
 
 
 class WvnFeatureExtractor:
@@ -48,12 +50,23 @@ class WvnFeatureExtractor:
 
         if self.verbose:
             self.status_thread = Thread(target=self.status_thread_loop, name="status")
+            self.run_status_thread = True
             self.status_thread.start()
+
+        rospy.on_shutdown(self.shutdown_callback)
+        signal.signal(signal.SIGINT, self.shutdown_callback)
+        signal.signal(signal.SIGTERM, self.shutdown_callback)
+
+    def shutdown_callback(self, *args, **kwargs):
+        self.run_status_thread = False
+        self.status_thread.join()
+        rospy.signal_shutdown(f"Wild Visual Navigation Feature Extraction killed {args}")
+        sys.exit(0)
 
     def status_thread_loop(self):
         rate = rospy.Rate(self.status_thread_rate)
         # Learning loop
-        while True:
+        while self.run_status_thread:
             t = rospy.get_time()
             x = PrettyTable()
             x.field_names = ["Key", "Value"]
@@ -98,7 +111,7 @@ class WvnFeatureExtractor:
         self.scale_traversability = rospy.get_param("~scale_traversability")
         self.scale_traversability_max_fpr = rospy.get_param("~scale_traversability_max_fpr")
         self.status_thread_rate = rospy.get_param("~status_thread_rate")
-
+        self.prediction_per_pixel = rospy.get_param("~prediction_per_pixel")
         # Initialize traversability estimator parameters
         # Experiment file
         exp_file = rospy.get_param("~exp")
@@ -222,11 +235,17 @@ class WvnFeatureExtractor:
             return_centers=False,
             return_dense_features=True,
             n_random_pixels=100,
-            fast_random=True,
         )
 
+        if self.prediction_per_pixel:
+            # Evaluate traversability
+            data = Data(x=dense_feat[0].permute(1, 2, 0).reshape(-1, dense_feat.shape[1]))
+        else:
+            input_feat = dense_feat[0].permute(1, 2, 0).reshape(-1, dense_feat.shape[1])
+            input_feat = feat[seg.reshape(-1)]
+            data = Data(x=input_feat)
+
         # Evaluate traversability
-        data = Data(x=dense_feat[0].permute(1, 2, 0).reshape(-1, dense_feat.shape[1]))
         prediction = self.model.forward(data)
         out_trav = prediction.reshape(H, W, -1)[:, :, 0]
 

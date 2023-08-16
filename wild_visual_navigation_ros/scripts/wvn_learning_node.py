@@ -814,5 +814,15 @@ class WvnLearning:
 if __name__ == "__main__":
     node_name = "wvn_learning_node"
     rospy.init_node(node_name)
+    if True:
+        import rospkg
+
+        rospack = rospkg.RosPack()
+        wvn_path = rospack.get_path("wild_visual_navigation_ros")
+        os.system(f"rosparam load {wvn_path}/config/wild_visual_navigation/default.yaml wvn_learning_node")
+        os.system(
+            f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/alphasense_compressed.yaml wvn_learning_node"
+        )
+
     wvn = WvnLearning()
     rospy.spin()

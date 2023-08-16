@@ -9,8 +9,8 @@ base_frame: base
 footprint_frame: footprint
 
 # Robot size
-robot_length: 1.0
-robot_width: 0.6
+robot_length: 0.8
+robot_width: 0.4
 robot_height: 0.3
 
 # Robot specs
@@ -22,14 +22,14 @@ image_graph_dist_thr: 0.2 # meters
 proprio_graph_dist_thr: 0.1 # meters
 network_input_image_height: 224 # 448
 network_input_image_width: 224 # 448
-segmentation_type: "random"
+segmentation_type: "slic"
 feature_type: "dino"
 dino_patch_size: 16 # DINO only
 confidence_std_factor: 4.0
 scale_traversability: True
 scale_traversability_max_fpr: 0.25
 min_samples_for_training: 5
-
+prediction_per_pixel: False
 
 # Optical flow params
 optical_flow_estimator_type: "none"
