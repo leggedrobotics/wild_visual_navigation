@@ -190,7 +190,7 @@ class ImageProjector:
         return self.masks, image_overlay, projected_points, valid_points
 
     def project_and_render_on_map(
-        self, pose_base_in_world: torch.tensor, points: torch.tensor, colors: torch.tensor, image: torch.tensor = None
+        self, pose_base_in_world: torch.tensor, points: torch.tensor, colors: torch.tensor, map_resolution: float, map_size: int, image: torch.tensor = None
         ):
         """Projects the points and returns an image with the projection
 
@@ -219,7 +219,7 @@ class ImageProjector:
         flat_points = points_B[:, :, :-1]
 
         # Shift to grid map coordinates
-        flat_points = flat_points / 0.1 + 128
+        flat_points = flat_points / map_resolution + map_size / 2
 
         # Fill the mask
         self.masks = draw_convex_polygon(self.masks, flat_points, colors)

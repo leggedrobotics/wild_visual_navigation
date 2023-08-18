@@ -48,6 +48,8 @@ class TraversabilityEstimator:
         optical_flow_estimator_type: str = "none",
         min_samples_for_training: int = 10,
         vis_node_index: int = 10,
+        map_resolution: float = 0.1,
+        map_size: int = 128,
         mode: bool = False,
         extraction_store_folder=None,
         **kwargs,
@@ -60,6 +62,8 @@ class TraversabilityEstimator:
         self._scale_traversability = scale_traversability
         self._params = params
         self._scale_traversability_threshold = 0
+        self._map_resolution = map_resolution
+        self._map_size = map_size
 
         if self._scale_traversability:
             # Use 500 bins for constant memory usuage
@@ -499,10 +503,13 @@ class TraversabilityEstimator:
 
             im = ImageProjector(K, H, W)
 
+            map_resolution = self._map_resolution
+            map_size = self._map_size
+
             if projection_mode == "image":
                 mask, _, _, _ = im.project_and_render(pose_camera_in_world, footprints, color)  # Generating the new supervisiom mask to add
             elif projection_mode == "map":
-                mask, _ = im.project_and_render_on_map(pose_base_in_world, footprints, color)
+                mask, _ = im.project_and_render_on_map(pose_base_in_world, footprints, color, map_resolution, map_size)
 
             # Update traversability
             # mask = mask * pnode.traversability

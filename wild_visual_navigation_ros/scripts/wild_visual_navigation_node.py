@@ -67,6 +67,8 @@ class WvnRosInterface:
             segmentation_type=self.segmentation_type,
             feature_type=self.feature_type,
             max_distance=self.traversability_radius,
+            map_resolution=self.map_resolution,
+            map_size=self.map_size,
             image_distance_thr=self.image_graph_dist_thr,
             proprio_distance_thr=self.proprio_graph_dist_thr,
             optical_flow_estimator_type=self.optical_flow_estimator_type,
@@ -251,6 +253,10 @@ class WvnRosInterface:
         self.scale_traversability_max_fpr = rospy.get_param("~scale_traversability_max_fpr")
         self.min_samples_for_training = rospy.get_param("~min_samples_for_training")
         self.vis_node_index = rospy.get_param("~debug_supervision_node_index_from_last")
+
+        # Map params
+        self.map_resolution = rospy.get_param("~map_resolution")
+        self.map_size = rospy.get_param("~map_size")
 
         # Supervision Generator
         self.robot_max_velocity = rospy.get_param("~robot_max_velocity")
@@ -725,7 +731,7 @@ class WvnRosInterface:
                 # Publish supervision data depending on the mode
                 self.visualize_debug()
 
-            self.visualize_proprioception()
+            # self.visualize_proprioception()
 
             # If a new node was added, update the node is used to visualize the supervision signals
             if added_new_node:
