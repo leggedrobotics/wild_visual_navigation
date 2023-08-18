@@ -32,7 +32,7 @@ robot_height: 0.3
 robot_max_velocity: 0.8
 
 # Traversability estimation params
-traversability_radius: 5.0 # meters
+traversability_radius: 10.0 # meters
 image_graph_dist_thr: 0.2 # meters
 proprio_graph_dist_thr: 0.1 # meters
 network_input_image_height: 448 # 448
@@ -68,8 +68,8 @@ colormap: "RdYlBu"
 
 print_image_callback_time: false
 print_proprio_callback_time: false
-log_time: true
-log_memory: true
+log_time: false
+log_memory: false
 log_confidence: true
 verbose: false
 debug_supervision_node_index_from_last: 10
@@ -78,3 +78,4 @@ use_debug_for_desired: true
 extraction_store_folder:  /home/rschmid/RosBags/output/6
 exp: "nan"
 use_binary_only: true
+supervision_projection_mode: "map"

@@ -423,7 +423,7 @@ class TraversabilityEstimator:
 
     @accumulate_time
     @torch.no_grad()
-    def add_proprio_node(self, pnode: ProprioceptionNode):
+    def add_proprio_node(self, pnode: ProprioceptionNode, projection_mode: str = "image"):
         """Adds a node to the proprioceptive graph to store proprioception
 
         Args:
@@ -473,7 +473,7 @@ class TraversabilityEstimator:
             color = torch.ones((3,), device=self._device)
 
             # New implementation
-            B = len(mission_nodes)
+            B = len(mission_nodes)  # Number of mission nodes to project
 
             # Prepare batches
             K = torch.eye(4, device=self._device).repeat(B, 1, 1)
@@ -481,6 +481,8 @@ class TraversabilityEstimator:
                 B, 1, 1, 1
             )
             pose_camera_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
+            pose_base_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
+
             H = last_mission_node.image_projector.camera.height
             W = last_mission_node.image_projector.camera.width
             footprints = footprint.repeat(B, 1, 1)
@@ -488,23 +490,28 @@ class TraversabilityEstimator:
             for i, mnode in enumerate(mission_nodes):
                 K[i] = mnode.image_projector.camera.intrinsics
                 pose_camera_in_world[i] = mnode.pose_cam_in_world
+                pose_base_in_world[i] = mnode.pose_base_in_world
 
                 if (not hasattr(mnode, "supervision_mask")) or (mnode.supervision_mask is None):
                     continue
                 else:
-                    supervision_masks[i] = mnode.supervision_mask
+                    supervision_masks[i] = mnode.supervision_mask   # Getting all the existing supervision masks
 
             im = ImageProjector(K, H, W)
-            mask, _, _, _ = im.project_and_render(pose_camera_in_world, footprints, color)
+
+            if projection_mode == "image":
+                mask, _, _, _ = im.project_and_render(pose_camera_in_world, footprints, color)  # Generating the new supervisiom mask to add
+            elif projection_mode == "map":
+                mask, _ = im.project_and_render_on_map(pose_base_in_world, footprints, color)
 
             # Update traversability
-            mask = mask * pnode.traversability
-            supervision_masks = torch.fmin(supervision_masks, mask)
+            # mask = mask * pnode.traversability
+            supervision_masks = torch.fmin(supervision_masks, mask)   # Adding the new mask to the supervision mask, using element-wise non-nan values
 
             # Update supervision mask per node
             for i, mnode in enumerate(mission_nodes):
                 mnode.supervision_mask = supervision_masks[i]
-                mnode.update_supervision_signal()
+                # mnode.update_supervision_signal()   # Accumulate supervision signal, check if features are there
 
                 if self._mode == WVNMode.EXTRACT_LABELS:
                     p = os.path.join(
@@ -514,7 +521,6 @@ class TraversabilityEstimator:
                     )
                     store = torch.nan_to_num(mnode.supervision_mask.nanmean(axis=0)) != 0
                     torch.save(store, p)
-
             return True
 
     def get_mission_nodes(self):

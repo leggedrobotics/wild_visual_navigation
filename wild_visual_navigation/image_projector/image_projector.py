@@ -189,6 +189,52 @@ class ImageProjector:
 
         return self.masks, image_overlay, projected_points, valid_points
 
+    def project_and_render_on_map(
+        self, pose_base_in_world: torch.tensor, points: torch.tensor, colors: torch.tensor, image: torch.tensor = None
+        ):
+        """Projects the points and returns an image with the projection
+
+        Args:
+            points: (torch.Tensor, dtype=torch.float32, shape=(B, N, 3)): B batches, of N input points in 3D space
+            colors: (torch.Tensor, rtype=torch.float32, shape=(B, 3))
+
+        Returns:
+            out_img (torch.tensor, dtype=torch.int64): Image with projected points
+        """
+
+        # self.masks = self.masks * 0.0
+        B = self.camera.batch_size
+        C = 3  # RGB channel output
+        H = self.camera.height.item()
+        W = self.camera.width.item()
+        self.masks = torch.zeros((B, C, H, W), dtype=torch.float32, device=self.camera.camera_matrix.device)
+        image_overlay = image
+
+        T_BW = pose_base_in_world.inverse()
+        # Convert from fixed to base frame
+        points_B = transform_points(T_BW, points)
+
+        # Remove z dimension
+        # TODO: project footprint on gravity aligned plane
+        flat_points = points_B[:, :, :-1]
+
+        # Shift to grid map coordinates
+        flat_points = flat_points / 0.1 + 128
+
+        # Fill the mask
+        self.masks = draw_convex_polygon(self.masks, flat_points, colors)
+
+        # Draw on image (if applies)
+        if image is not None:
+            if len(image.shape) != 4:
+                image = image[None]
+            image_overlay = draw_convex_polygon(image, flat_points, colors)
+
+        # Return torch masks
+        self.masks[self.masks == 0.0] = torch.nan
+
+        return self.masks, image_overlay
+
     def resize_image(self, image: torch.tensor):
         return self.image_crop(image)
 

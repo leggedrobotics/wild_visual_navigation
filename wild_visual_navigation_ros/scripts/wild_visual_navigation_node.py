@@ -41,6 +41,8 @@ import tf2_ros
 if torch.cuda.is_available():
     torch.cuda.empty_cache()
 
+torch.set_printoptions(edgeitems=200)
+
 
 class WvnRosInterface:
     def __init__(self):
@@ -277,6 +279,7 @@ class WvnRosInterface:
         # Select mode: # debug, online, extract_labels
         self.use_debug_for_desired = rospy.get_param("~use_debug_for_desired")  # Note: Unused parameter
         self.use_binary_only = rospy.get_param("~use_binary_only") # Only extract binary labels, do not update traversability
+        self.supervision_projection_mode = rospy.get_param("~supervision_projection_mode")
         self.mode = WVNMode.from_string(rospy.get_param("~mode", "debug"))
         self.extraction_store_folder = rospy.get_param("~extraction_store_folder")
 
@@ -614,7 +617,7 @@ class WvnRosInterface:
             )
 
             # Add node to the graph
-            self.traversability_estimator.add_proprio_node(proprio_node)
+            self.traversability_estimator.add_proprio_node(proprio_node, projection_mode=self.supervision_projection_mode)
 
             # if self.mode == WVNMode.DEBUG or self.mode == WVNMode.ONLINE:
             # self.visualize_proprioception()
@@ -916,8 +919,6 @@ class WvnRosInterface:
             if self.verbose:
                 print(f"number of points for footprint is {len(footprints_marker.points)}")
             return
-
-        print("points", footprints_marker.points)
 
         self.pub_graph_footprints.publish(footprints_marker)
         self.pub_debug_proprio_graph.publish(proprio_graph_msg)
