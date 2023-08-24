@@ -29,6 +29,12 @@ import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 from torchmetrics import ROC
+import numpy as np
+import cv2
+import rospy
+import random
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge
 
 to_tensor = transforms.ToTensor()
 
@@ -49,6 +55,8 @@ class TraversabilityEstimator:
         vis_node_index: int = 10,
         mode: bool = False,
         extraction_store_folder=None,
+        anomaly_detection: bool = False,
+        vis_training_samples: bool = False,
         **kwargs,
     ):
         self._device = device
@@ -59,6 +67,8 @@ class TraversabilityEstimator:
         self._scale_traversability = scale_traversability
         self._params = params
         self._scale_traversability_threshold = 0
+        self._anomaly_detection = anomaly_detection
+        self._vis_training_samples = vis_training_samples
 
         if self._scale_traversability:
             # Use 500 bins for constant memory usuage
@@ -98,6 +108,12 @@ class TraversabilityEstimator:
 
         # Visualization
         self._visualizer = LearningVisualizer()
+
+        if self._vis_training_samples:
+            self._last_image_mask_pub = rospy.Publisher(
+                f"/wild_visual_navigation_node/last_node_image_mask", Image, queue_size=1
+            )
+            self._bridge = CvBridge()
 
         # Lightning module
         seed_everything(42)
@@ -390,6 +406,11 @@ class TraversabilityEstimator:
                     store = torch.nan_to_num(mnode.supervision_mask.nanmean(axis=0)) != 0
                     torch.save(store, p)
 
+                # if self._anomaly_detection:
+                #     # Visualize supervision mask
+                #     store = torch.nan_to_num(mnode.supervision_mask.nanmean(axis=0)) != 0
+                #     self._last_image_mask_pub.publish(self._bridge.cv2_to_imgmsg(store.cpu().numpy().astype(np.uint8) * 255, "mono8"))
+
             return True
 
     def get_mission_nodes(self):
@@ -521,16 +542,69 @@ class TraversabilityEstimator:
             self._pause_training = False
 
     @accumulate_time
-    def make_batch(self, batch_size: int = 8):
+    def make_batch(self, batch_size: int = 8, anomaly_detection: bool = False, n_features: int = 200, vis_training_samples: bool = False):
         """Samples a batch from the mission_graph
 
         Args:
             batch_size (int): Size of the batch
         """
 
-        # Just sample N random nodes
-        mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
-        batch = Batch.from_data_list([x.as_pyg_data() for x in mission_nodes])
+        if not anomaly_detection:
+            # Just sample N random nodes
+            mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
+            batch = Batch.from_data_list([x.as_pyg_data() for x in mission_nodes])
+
+        else:
+            # TODO: how does the samplig make the most sense
+            # last_mission_node = self._mission_graph.get_last_node()
+            #
+            # if last_mission_node is None:
+            #     return None
+            # if (not hasattr(last_mission_node, "supervision_mask")) or (last_mission_node.supervision_mask is None):
+            #     return None
+            #
+            # mission_nodes = self._mission_graph.get_nodes_within_radius_range(
+            #     last_mission_node, 0, self._proprio_graph.max_distance
+            # )
+
+            mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
+
+            p_feat = []
+
+            for i, mnode in enumerate(mission_nodes):
+                feat = mnode.features
+                seg = mnode.feature_segments
+                mask = mnode.supervision_mask
+
+                mask = torch.nan_to_num(mask.nanmean(axis=0)) != 0
+
+                # Visualize supervision mask
+                if vis_training_samples:
+                    self._last_image_mask_pub.publish(self._bridge.cv2_to_imgmsg(mask.cpu().numpy().astype(np.uint8) * 255, "mono8"))
+
+                # Save mask as numpy with opencv
+                # cv2.imwrite(os.path.join("/home/rschmid/ext", "mask", f"{rospy.get_time()}.png"), mask.cpu().numpy().astype(np.uint8) * 255)
+
+                for s in torch.unique(seg):
+                    m = mask[seg == s]
+                    pos = m.sum()  # Inside
+                    neg = (~m).sum()  # Outside
+
+                    # Check if more inside features than outside features
+                    if pos > neg:
+                        # Check if the vector contains any NaN values
+                        if not np.isnan(feat[s.item()].cpu()).any():
+                            p_feat.append(feat[s.item()])
+
+                # Only sample up to 200 features
+                if len(p_feat) > n_features:
+                    random.shuffle(p_feat)
+                    p_feat = p_feat[:n_features]
+                    break
+
+            p_feat = torch.stack(p_feat, dim=1).T
+
+            batch = Data(x=p_feat)
 
         return batch
 
@@ -548,49 +622,60 @@ class TraversabilityEstimator:
         return_dict = {"mission_graph_num_valid_node": num_valid_nodes}
         if num_valid_nodes > self._min_samples_for_training:
             # Prepare new batch
-            graph = self.make_batch(self._exp_cfg["ablation_data_module"]["batch_size"])
+            graph = self.make_batch(self._exp_cfg["ablation_data_module"]["batch_size"], anomaly_detection=self._anomaly_detection, vis_training_samples=self._vis_training_samples)
+            if graph is not None:
 
-            with self._learning_lock:
-                # Forward pass
-                res = self._model(graph)
+                self._loss_mean = None
+                self._loss_std = None
 
-                log_step = (self._step % 20) == 0
-                self._loss, loss_aux, trav = self._traversability_loss(graph, res, step=self._step, log_step=log_step)
+                with self._learning_lock:
+                    # Forward pass
 
-                # Keep track of ROC during training for rescaling the loss when publishing
-                if self._scale_traversability:
-                    # This mask should contain all the segments corrosponding to trees.
-                    mask_anomaly = loss_aux["confidence"] < 0.5
-                    mask_proprioceptive = graph.y == 1
-                    # Remove the segments that are for sure not an anomalies given that we have walked on them.
-                    mask_anomaly[mask_proprioceptive] = False
-                    # Elements are valid if they are either an anomaly or we have walked on them to fit the ROC
-                    mask_valid = mask_anomaly | mask_proprioceptive
-                    self._auxiliary_training_roc(res[mask_valid, 0], graph.y[mask_valid].type(torch.long))
-                    return_dict["scale_traversability_threshold"] = self._scale_traversability_threshold
+                    if self._anomaly_detection:
+                        res = self._model(graph)
+                    else:
+                        res = self._model(graph)
 
-                # Backprop
-                self._optimizer.zero_grad()
-                self._loss.backward()
-                self._optimizer.step()
+                    log_step = (self._step % 20) == 0
+                    self._loss, loss_aux, trav = self._traversability_loss(graph, res, step=self._step, log_step=log_step, loss_mean=self._loss_mean, loss_std=self._loss_std, train=True)
 
-            # Print losses
-            if log_step:
-                loss_trav = loss_aux["loss_trav"]
-                loss_reco = loss_aux["loss_reco"]
-                print(
-                    f"step: {self._step} | loss: {self._loss.item():5f} | loss_trav: {loss_trav.item():5f} | loss_reco: {loss_reco.item():5f}"
-                )
+                    self._loss_mean = loss_aux["loss_mean"]
+                    self._loss_std = loss_aux["loss_std"]
 
-            # Update steps
-            self._step += 1
+                    # Keep track of ROC during training for rescaling the loss when publishing
+                    if self._scale_traversability:
+                        # This mask should contain all the segments corrosponding to trees.
+                        mask_anomaly = loss_aux["confidence"] < 0.5
+                        mask_proprioceptive = graph.y == 1
+                        # Remove the segments that are for sure not an anomalies given that we have walked on them.
+                        mask_anomaly[mask_proprioceptive] = False
+                        # Elements are valid if they are either an anomaly or we have walked on them to fit the ROC
+                        mask_valid = mask_anomaly | mask_proprioceptive
+                        self._auxiliary_training_roc(res[mask_valid, 0], graph.y[mask_valid].type(torch.long))
+                        return_dict["scale_traversability_threshold"] = self._scale_traversability_threshold
 
-            # Return loss
-            return_dict["loss_total"] = self._loss.item()
-            return_dict["loss_trav"] = loss_aux["loss_trav"].item()
-            return_dict["loss_reco"] = loss_aux["loss_reco"].item()
+                    # Backprop
+                    self._optimizer.zero_grad()
+                    self._loss.backward()
+                    self._optimizer.step()
 
-            return return_dict
+                # Print losses
+                if log_step:
+                    loss_trav = loss_aux["loss_trav"]
+                    loss_reco = loss_aux["loss_reco"]
+                    print(
+                        f"step: {self._step} | loss: {self._loss.item():5f} | loss_trav: {loss_trav.item():5f} | loss_reco: {loss_reco.item():5f}"
+                    )
+
+                # Update steps
+                self._step += 1
+
+                # Return loss
+                return_dict["loss_total"] = self._loss.item()
+                return_dict["loss_trav"] = loss_aux["loss_trav"].item()
+                return_dict["loss_reco"] = loss_aux["loss_reco"].item()
+
+                return return_dict
         return_dict["loss_total"] = -1
         return return_dict
 

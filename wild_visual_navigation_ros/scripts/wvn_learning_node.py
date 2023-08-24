@@ -32,6 +32,7 @@ from threading import Thread, Event
 import os
 import seaborn as sns
 import torch
+import dataclasses
 import numpy as np
 from typing import Optional
 import traceback
@@ -51,6 +52,7 @@ class WvnLearning:
 
         # Read params
         self.read_params()
+        self.anomaly_detection = self.exp_cfg["model"]["name"] == "LinearRnvp"
 
         # Visualization
         self.color_palette = sns.color_palette(self.colormap, as_cmap=True)
@@ -74,6 +76,8 @@ class WvnLearning:
             extraction_store_folder=self.extraction_store_folder,
             patch_size=self.dino_patch_size,
             scale_traversability=self.scale_traversability,
+            anomaly_detection=self.anomaly_detection,
+            vis_training_samples=self.vis_training_samples,
         )
 
         # Initialize traversability generator to process velocity commands
@@ -196,13 +200,13 @@ class WvnLearning:
                         try:
                             fpr, tpr, thresholds = self.traversability_estimator._auxiliary_training_roc.compute()
                             index = torch.where(fpr > self.scale_traversability_max_fpr)[0][0]
-                            traversability_thershold = thresholds[index]
+                            traversability_threshold = thresholds[index]
                         except:
-                            traversability_thershold = 0.5
+                            traversability_threshold = 0.5
                     else:
-                        traversability_thershold = 0.5
+                        traversability_threshold = 0.5
 
-                    res["traversability_thershold"] = traversability_thershold
+                    res["traversability_threshold"] = traversability_threshold
                     cg = self.traversability_estimator._traversability_loss._confidence_generator
                     res["confidence_generator"] = cg.get_dict()
 
@@ -294,6 +298,7 @@ class WvnLearning:
         # Select mode: # debug, online, extract_labels
         self.mode = WVNMode.from_string(rospy.get_param("~mode", "debug"))
         self.extraction_store_folder = rospy.get_param("~extraction_store_folder")
+        self.vis_training_samples = rospy.get_param("~vis_training_samples")
 
         # Parse operation modes
         if self.mode == WVNMode.ONLINE:
@@ -322,6 +327,8 @@ class WvnLearning:
         if exp_file != "nan":
             exp_override = load_yaml(os.path.join(WVN_ROOT_DIR, "cfg/exp", exp_file))
             self.params = override_params(self.params, exp_override)
+
+        self.exp_cfg = dataclasses.asdict(self.params)
 
         self.params.general.name = self.mission_name
         self.params.general.timestamp = self.mission_timestamp
@@ -815,7 +822,7 @@ if __name__ == "__main__":
         wvn_path = rospack.get_path("wild_visual_navigation_ros")
         os.system(f"rosparam load {wvn_path}/config/wild_visual_navigation/default.yaml wvn_learning_node")
         os.system(
-            f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/alphasense_compressed.yaml wvn_learning_node"
+            f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/wide_angle_front_compressed.yaml wvn_learning_node"
         )
 
     wvn = WvnLearning()

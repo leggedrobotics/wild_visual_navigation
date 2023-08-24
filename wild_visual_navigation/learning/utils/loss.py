@@ -18,25 +18,30 @@ class AnomalyLoss(nn.Module):
         # )
 
     def forward(
-        self, graph: Optional[Data], res: dict, update_generator: bool = True, step: int = 0, log_step: bool = False
+        self, graph: Optional[Data], res: dict, loss_mean: int = None, loss_std: int = None, train: bool = False, update_generator: bool = True, step: int = 0, log_step: bool = False
     ):
         loss_aux = {}
         loss_aux["loss_trav"] = torch.tensor([0.0])
         loss_aux["loss_reco"] = torch.tensor([0.0])
         loss_aux["confidence"] = torch.tensor([0.0])
 
-        losses = res["logprob"].sum(1) + res["log_det"]
+        losses = -(res["logprob"].sum(1) + res["log_det"])
 
-        std = 400
-        mean = 550
-
-        # Clip the losses
-        l_clip = torch.clip(losses, mean - 2 * std, mean + 2 * std)
+        # print(torch.mean(losses))
+        l_clip = losses
+        if loss_mean is not None and loss_std is not None:
+            # Clip the losses
+            l_clip = torch.clip(losses, loss_mean - 2 * loss_std, loss_mean + 2 * loss_std)
 
         # Normalize between 0 and 1
         l_norm = (losses - torch.min(l_clip)) / (torch.max(l_clip) - torch.min(l_clip))
-        loss_aux["loss_trav"] = -torch.mean(losses)
-        return -torch.mean(losses), loss_aux, l_norm
+        l_trav = 1 - l_norm
+
+        if train:
+            loss_aux["loss_mean"] = torch.median(losses)
+            loss_aux["loss_std"] = torch.std(losses)
+
+        return torch.mean(losses), loss_aux, l_trav
 
     def update_node_confidence(self, node):
         node.confidence = 0

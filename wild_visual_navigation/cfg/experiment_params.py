@@ -91,12 +91,12 @@ class ExperimentParams(Serializable):
 
     @dataclass
     class ModelParams:
-        name: str = "SimpleMLP"
+        name: str = "LinearRnvp" # LinearRnvp, SimpleMLP, SimpleGCN, DoubleMLP
         load_ckpt: Optional[str] = None
 
         @dataclass
         class SimpleMlpCfgParams:
-            input_size: int = 90
+            input_size: int = 384
             hidden_sizes: List[int] = field(default_factory=lambda: [256, 32, 1])
             reconstruction: bool = True
 
@@ -119,7 +119,7 @@ class ExperimentParams(Serializable):
 
         @dataclass
         class LinearRnvpCfgParams:
-            input_dim: int = 90
+            input_dim: int = 384
             coupling_topology: List[int] = field(default_factory=lambda: [200])
             mask_type: str = "odds"
             conditioning_size: int = 0
