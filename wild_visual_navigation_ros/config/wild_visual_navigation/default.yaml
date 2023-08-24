@@ -17,7 +17,7 @@ robot_height: 0.3
 robot_max_velocity: 0.8
 
 # Traversability estimation params
-traversability_radius: 8.0 # meters
+traversability_radius: 5.0 # meters
 image_graph_dist_thr: 0.2 # meters
 proprio_graph_dist_thr: 0.1 # meters
 network_input_image_height: 448 # 448
