@@ -51,7 +51,6 @@ class WvnFeatureExtractor:
                 method=self.exp_cfg["loss"]["method"], std_factor=self.exp_cfg["loss"]["confidence_std_factor"]
             )
             self.scale_traversability = True
-            self.traversability_threshold = 0.5
         else:
             self.traversability_loss = AnomalyLoss(**self.exp_cfg["loss_anomaly"])
             self.traversability_loss.to(self.device)
@@ -355,22 +354,20 @@ class WvnFeatureExtractor:
                         self.log_data[f"nr_model_updates"] += 1
 
                 self.model.load_state_dict(res, strict=False)
-                # if res["traversability_threshold"] is not None:
-                #     self.traversability_threshold = res["traversability_threshold"]
-                # if res["confidence_generator"] is not None:
-                #     self.confidence_generator_state = res["confidence_generator"]
 
-                # self.traversability_threshold = 0.5
+                try:
+                    if res["traversability_threshold"] is not None:
+                        self.traversability_threshold = res["traversability_threshold"]
+                    if res["confidence_generator"] is not None:
+                        self.confidence_generator_state = res["confidence_generator"]
 
-                # self.confidence_generator_state = res["confidence_generator"]
+                    self.confidence_generator_state = res["confidence_generator"]
+                    self.confidence_generator.var = self.confidence_generator_state["var"]
+                    self.confidence_generator.mean = self.confidence_generator_state["mean"]
+                    self.confidence_generator.std = self.confidence_generator_state["std"]
+                except:
+                    pass
 
-                # self.confidence_generator.var = 0
-                # self.confidence_generator.mean = 1
-                # self.confidence_generator.std = 1
-
-                # self.confidence_generator.var = self.confidence_generator_state["var"]
-                # self.confidence_generator.mean = self.confidence_generator_state["mean"]
-                # self.confidence_generator.std = self.confidence_generator_state["std"]
         except Exception as e:
             if self.verbose:
                 print(f"Model Loading Failed: {e}")

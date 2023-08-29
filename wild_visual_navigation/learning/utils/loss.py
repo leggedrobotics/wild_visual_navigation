@@ -4,26 +4,23 @@ import torch
 from typing import Optional
 from wild_visual_navigation.utils import ConfidenceGenerator
 from torch import nn
-from torchmetrics import ROC, AUROC, Accuracy
 
 
 class AnomalyLoss(nn.Module):
-    def __init__(self, confidence_std_factor, method):
+    def __init__(self, confidence_std_factor: float, method: str, log_enabled: bool, log_folder: str):
         super(AnomalyLoss, self).__init__()
-        # self._confidence_generator = ConfidenceGenerator(
-        #     std_factor=confidence_std_factor,
-        #     method=method,
-        #     log_enabled=False,
-        #     log_folder="/tmp",
-        # )
+
+        self._confidence_generator = ConfidenceGenerator(
+            std_factor=confidence_std_factor,
+            method=method,
+            log_enabled=log_enabled,
+            log_folder=log_folder,
+        )
 
     def forward(
         self,
         graph: Optional[Data],
         res: dict,
-        loss_mean: int = None,
-        loss_std: int = None,
-        train: bool = False,
         update_generator: bool = True,
         step: int = 0,
         log_step: bool = False,
@@ -31,25 +28,15 @@ class AnomalyLoss(nn.Module):
         loss_aux = {}
         loss_aux["loss_trav"] = torch.tensor([0.0])
         loss_aux["loss_reco"] = torch.tensor([0.0])
-        loss_aux["confidence"] = torch.tensor([0.0])
 
         losses = -(res["logprob"].sum(1) + res["log_det"])  # Sum over all channels, resulting in h*w output dimensions
 
-        # print(torch.mean(losses))
-        l_clip = losses
-        if loss_mean is not None and loss_std is not None:
-            # Clip the losses
-            l_clip = torch.clip(losses, loss_mean - 2 * loss_std, loss_mean + 2 * loss_std)
+        if update_generator:
+            confidence = self._confidence_generator.update(x=losses, x_positive=losses)
 
-        # Normalize between 0 and 1
-        l_norm = (losses - torch.min(l_clip)) / (torch.max(l_clip) - torch.min(l_clip))
-        l_trav = 1 - l_norm
+        loss_aux["confidence"] = confidence
 
-        if train:
-            loss_aux["loss_mean"] = torch.median(losses)
-            loss_aux["loss_std"] = torch.std(losses)
-
-        return torch.mean(losses), loss_aux, l_trav
+        return torch.mean(losses), loss_aux, confidence
 
     def update_node_confidence(self, node):
         node.confidence = 0
@@ -58,16 +45,16 @@ class AnomalyLoss(nn.Module):
 class TraversabilityLoss(nn.Module):
     def __init__(
         self,
-        w_trav,
-        w_reco,
-        w_temp,
-        anomaly_balanced,
-        model,
-        method,
-        confidence_std_factor,
+        w_trav: float,
+        w_reco: float,
+        w_temp: float,
+        anomaly_balanced: bool,
+        model: nn.Module,
+        method: str,
+        confidence_std_factor: float,
+        log_enabled: bool,
+        log_folder: str,
         trav_cross_entropy=False,
-        log_enabled: bool = False,
-        log_folder: str = "/tmp",
     ):
         # TODO remove trav_cross_entropy default param when running in online mode
         super(TraversabilityLoss, self).__init__()

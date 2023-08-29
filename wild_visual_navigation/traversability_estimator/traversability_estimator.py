@@ -123,7 +123,11 @@ class TraversabilityEstimator:
         self._model.train()
 
         if self._exp_cfg["model"]["name"] == "LinearRnvp":
-            self._traversability_loss = AnomalyLoss(**self._exp_cfg["loss_anomaly"])
+            self._traversability_loss = AnomalyLoss(
+                **self._exp_cfg["loss_anomaly"],
+                log_enabled=self._exp_cfg["general"]["log_confidence"],
+                log_folder=self._exp_cfg["general"]["model_path"],
+            )
             self._traversability_loss.to(self._device)
 
         else:
@@ -545,9 +549,6 @@ class TraversabilityEstimator:
     def make_batch(
         self,
         batch_size: int = 8,
-        anomaly_detection: bool = False,
-        n_features: int = 200,
-        vis_training_samples: bool = False,
     ):
         """Samples a batch from the mission_graph
 
@@ -557,7 +558,7 @@ class TraversabilityEstimator:
 
         # Just sample N random nodes
         mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
-        batch = Batch.from_data_list([x.as_pyg_data(anomaly_detection=anomaly_detection) for x in mission_nodes])
+        batch = Batch.from_data_list([x.as_pyg_data(anomaly_detection=self._anomaly_detection) for x in mission_nodes])
 
         return batch
 
@@ -575,15 +576,8 @@ class TraversabilityEstimator:
         return_dict = {"mission_graph_num_valid_node": num_valid_nodes}
         if num_valid_nodes > self._min_samples_for_training:
             # Prepare new batch
-            graph = self.make_batch(
-                self._exp_cfg["ablation_data_module"]["batch_size"],
-                anomaly_detection=self._anomaly_detection,
-                vis_training_samples=self._vis_training_samples,
-            )
+            graph = self.make_batch(self._exp_cfg["ablation_data_module"]["batch_size"])
             if graph is not None:
-
-                self._loss_mean = None
-                self._loss_std = None
 
                 with self._learning_lock:
                     # Forward pass
@@ -592,17 +586,8 @@ class TraversabilityEstimator:
 
                     log_step = (self._step % 20) == 0
                     self._loss, loss_aux, trav = self._traversability_loss(
-                        graph,
-                        res,
-                        step=self._step,
-                        log_step=log_step,
-                        loss_mean=self._loss_mean,
-                        loss_std=self._loss_std,
-                        train=True,
+                        graph, res, step=self._step, log_step=log_step
                     )
-
-                    self._loss_mean = loss_aux["loss_mean"]
-                    self._loss_std = loss_aux["loss_std"]
 
                     # Keep track of ROC during training for rescaling the loss when publishing
                     if self._scale_traversability:

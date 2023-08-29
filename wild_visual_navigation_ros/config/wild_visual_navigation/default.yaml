@@ -33,7 +33,6 @@ min_samples_for_training: 5
 prediction_per_pixel: false
 traversability_threshold: 0.55
 clip_to_binary: false
-anomaly_detection: true
 vis_training_samples: true
 
 # Supervision Generator
