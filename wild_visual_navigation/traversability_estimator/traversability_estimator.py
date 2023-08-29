@@ -555,64 +555,9 @@ class TraversabilityEstimator:
             batch_size (int): Size of the batch
         """
 
-        if not anomaly_detection:
-            # Just sample N random nodes
-            mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
-            batch = Batch.from_data_list([x.as_pyg_data() for x in mission_nodes])
-
-        else:
-            # TODO: how does the samplig make the most sense
-            # last_mission_node = self._mission_graph.get_last_node()
-            #
-            # if last_mission_node is None:
-            #     return None
-            # if (not hasattr(last_mission_node, "supervision_mask")) or (last_mission_node.supervision_mask is None):
-            #     return None
-            #
-            # mission_nodes = self._mission_graph.get_nodes_within_radius_range(
-            #     last_mission_node, 0, self._proprio_graph.max_distance
-            # )
-
-            mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
-
-            p_feat = []
-
-            for i, mnode in enumerate(mission_nodes):
-                feat = mnode.features
-                seg = mnode.feature_segments
-                mask = mnode.supervision_mask
-
-                mask = torch.nan_to_num(mask.nanmean(axis=0)) != 0
-
-                # Visualize supervision mask
-                if vis_training_samples:
-                    self._last_image_mask_pub.publish(
-                        self._bridge.cv2_to_imgmsg(mask.cpu().numpy().astype(np.uint8) * 255, "mono8")
-                    )
-
-                # Save mask as numpy with opencv
-                # cv2.imwrite(os.path.join("/home/rschmid/ext", "mask", f"{rospy.get_time()}.png"), mask.cpu().numpy().astype(np.uint8) * 255)
-
-                for s in torch.unique(seg):
-                    m = mask[seg == s]
-                    pos = m.sum()  # Inside
-                    neg = (~m).sum()  # Outside
-
-                    # Check if more inside features than outside features
-                    if pos > neg:
-                        # Check if the vector contains any NaN values
-                        if not np.isnan(feat[s.item()].cpu()).any():
-                            p_feat.append(feat[s.item()])
-
-                # Only sample up to 200 features
-                if len(p_feat) > n_features:
-                    random.shuffle(p_feat)
-                    p_feat = p_feat[:n_features]
-                    break
-
-            p_feat = torch.stack(p_feat, dim=1).T
-
-            batch = Data(x=p_feat)
+        # Just sample N random nodes
+        mission_nodes = self._mission_graph.get_n_random_valid_nodes(n=batch_size)
+        batch = Batch.from_data_list([x.as_pyg_data(anomaly_detection=anomaly_detection) for x in mission_nodes])
 
         return batch
 

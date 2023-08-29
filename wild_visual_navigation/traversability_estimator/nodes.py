@@ -182,25 +182,44 @@ class MissionNode(BaseNode):
         if self._confidence is not None:
             self._confidence = self._confidence.to(device)
 
-    def as_pyg_data(self, previous_node: Optional[BaseNode] = None, aux: bool = False):
+    def as_pyg_data(self, previous_node: Optional[BaseNode] = None, anomaly_detection: bool = False, aux: bool = False):
         if aux:
             return Data(x=self.features, edge_index=self._feature_edges)
         if previous_node is None:
-            return Data(
-                x=self.features,
-                edge_index=self._feature_edges,
-                y=self._supervision_signal,
-                y_valid=self._supervision_signal_valid,
-            )
+            if anomaly_detection:
+                return Data(
+                    x=self.features[self._supervision_signal_valid],
+                    edge_index=self._feature_edges[self._supervision_signal_valid],
+                    y=self._supervision_signal[self._supervision_signal_valid],
+                    y_valid=self._supervision_signal_valid[self._supervision_signal_valid],
+                )
+            else:
+                return Data(
+                    x=self.features,
+                    edge_index=self._feature_edges,
+                    y=self._supervision_signal,
+                    y_valid=self._supervision_signal_valid,
+                )
+
         else:
-            return Data(
-                x=self.features,
-                edge_index=self._feature_edges,
-                y=self._supervision_signal,
-                y_valid=self._supervision_signal_valid,
-                x_previous=previous_node.features,
-                edge_index_previous=previous_node._feature_edges,
-            )
+            if anomaly_detection:
+                return Data(
+                    x=self.features[self._supervision_signal_valid],
+                    edge_index=self._feature_edges[self._supervision_signal_valid],
+                    y=self._supervision_signal[self._supervision_signal_valid],
+                    y_valid=self._supervision_signal_valid[self._supervision_signal_valid],
+                    x_previous=previous_node.features,
+                    edge_index_previous=previous_node._feature_edges,
+                )
+            else:
+                return Data(
+                    x=self.features,
+                    edge_index=self._feature_edges,
+                    y=self._supervision_signal,
+                    y_valid=self._supervision_signal_valid,
+                    x_previous=previous_node.features,
+                    edge_index_previous=previous_node._feature_edges,
+                )
 
     def is_valid(self):
 
