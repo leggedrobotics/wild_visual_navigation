@@ -18,7 +18,7 @@ class DinoInterface:
         model_type: str = "vit_small",
         patch_size: int = 8,
         dim: int = 384,
-        projection_type: str = None, # nonlinear or None
+        projection_type: str = None,  # nonlinear or None
         dropout: bool = False,  # True or False
     ):
         self.dim = dim  # 90 or 384

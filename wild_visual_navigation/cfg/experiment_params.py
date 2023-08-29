@@ -91,7 +91,7 @@ class ExperimentParams(Serializable):
 
     @dataclass
     class ModelParams:
-        name: str = "LinearRnvp" # LinearRnvp, SimpleMLP, SimpleGCN, DoubleMLP
+        name: str = "LinearRnvp"  # LinearRnvp, SimpleMLP, SimpleGCN, DoubleMLP
         load_ckpt: Optional[str] = None
 
         @dataclass

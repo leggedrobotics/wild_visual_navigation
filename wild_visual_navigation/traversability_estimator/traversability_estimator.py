@@ -542,7 +542,13 @@ class TraversabilityEstimator:
             self._pause_training = False
 
     @accumulate_time
-    def make_batch(self, batch_size: int = 8, anomaly_detection: bool = False, n_features: int = 200, vis_training_samples: bool = False):
+    def make_batch(
+        self,
+        batch_size: int = 8,
+        anomaly_detection: bool = False,
+        n_features: int = 200,
+        vis_training_samples: bool = False,
+    ):
         """Samples a batch from the mission_graph
 
         Args:
@@ -580,7 +586,9 @@ class TraversabilityEstimator:
 
                 # Visualize supervision mask
                 if vis_training_samples:
-                    self._last_image_mask_pub.publish(self._bridge.cv2_to_imgmsg(mask.cpu().numpy().astype(np.uint8) * 255, "mono8"))
+                    self._last_image_mask_pub.publish(
+                        self._bridge.cv2_to_imgmsg(mask.cpu().numpy().astype(np.uint8) * 255, "mono8")
+                    )
 
                 # Save mask as numpy with opencv
                 # cv2.imwrite(os.path.join("/home/rschmid/ext", "mask", f"{rospy.get_time()}.png"), mask.cpu().numpy().astype(np.uint8) * 255)
@@ -622,7 +630,11 @@ class TraversabilityEstimator:
         return_dict = {"mission_graph_num_valid_node": num_valid_nodes}
         if num_valid_nodes > self._min_samples_for_training:
             # Prepare new batch
-            graph = self.make_batch(self._exp_cfg["ablation_data_module"]["batch_size"], anomaly_detection=self._anomaly_detection, vis_training_samples=self._vis_training_samples)
+            graph = self.make_batch(
+                self._exp_cfg["ablation_data_module"]["batch_size"],
+                anomaly_detection=self._anomaly_detection,
+                vis_training_samples=self._vis_training_samples,
+            )
             if graph is not None:
 
                 self._loss_mean = None
@@ -634,7 +646,15 @@ class TraversabilityEstimator:
                     res = self._model(graph)
 
                     log_step = (self._step % 20) == 0
-                    self._loss, loss_aux, trav = self._traversability_loss(graph, res, step=self._step, log_step=log_step, loss_mean=self._loss_mean, loss_std=self._loss_std, train=True)
+                    self._loss, loss_aux, trav = self._traversability_loss(
+                        graph,
+                        res,
+                        step=self._step,
+                        log_step=log_step,
+                        loss_mean=self._loss_mean,
+                        loss_std=self._loss_std,
+                        train=True,
+                    )
 
                     self._loss_mean = loss_aux["loss_mean"]
                     self._loss_std = loss_aux["loss_std"]

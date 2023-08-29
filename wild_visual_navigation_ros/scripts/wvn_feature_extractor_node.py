@@ -290,7 +290,6 @@ class WvnFeatureExtractor:
             if self.clip_to_binary:
                 out_trav = torch.where(out_trav.squeeze() <= self.traversability_threshold, 0.0, 1.0)
 
-
         msg = rc.numpy_to_ros_image(out_trav.cpu().numpy(), "passthrough")
         msg.header = image_msg.header
         msg.width = out_trav.shape[0]
@@ -381,7 +380,7 @@ if __name__ == "__main__":
     node_name = "wvn_feature_extractor_node"
     rospy.init_node(node_name)
 
-    if True:
+    if rospy.get_param("~reload_default_params", True):
         import rospkg
 
         rospack = rospkg.RosPack()
@@ -390,7 +389,9 @@ if __name__ == "__main__":
         os.system(
             f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/wide_angle_front_compressed.yaml wvn_feature_extractor_node"
         )
-        print(f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/wide_angle_front_compressed.yaml wvn_feature_extractor_node")
+        print(
+            f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/wide_angle_front_compressed.yaml wvn_feature_extractor_node"
+        )
 
     wvn = WvnFeatureExtractor()
     rospy.spin()

@@ -815,7 +815,7 @@ class WvnLearning:
 if __name__ == "__main__":
     node_name = "wvn_learning_node"
     rospy.init_node(node_name)
-    if True:
+    if rospy.get_param("~reload_default_params", True):
         import rospkg
 
         rospack = rospkg.RosPack()

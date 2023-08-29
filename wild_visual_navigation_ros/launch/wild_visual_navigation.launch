@@ -5,6 +5,7 @@
   <arg name="params_file"       default="$(find wild_visual_navigation_ros)/config/wild_visual_navigation/default.yaml"/>
   <arg name="overlay_images"    default="True"/>
   <arg name="resize_images"    default="True"/>
+  <arg name="reload_default_params"    default="False"/>
 
   <!-- Load parameters -->
   <rosparam command="load" file="$(arg params_file)" ns="wvn_learning_node"/>
@@ -19,10 +20,12 @@
   <node name="wvn_learning_node" pkg="wild_visual_navigation_ros" type="wvn_learning_node.py" output="screen">
     <param if="$(eval arg('stack') == 'rsl')" name="desired_twist_topic" value="/log/state/desiredRobotTwist"/>
     <param if="$(eval arg('stack') == 'anybotics')" name="desired_twist_topic" value="/motion_reference/command_twist"/>
+    <param name="reload_default_params" value="$(arg reload_default_params)" />
   </node>
   <node name="wvn_feature_extractor_node" pkg="wild_visual_navigation_ros" type="wvn_feature_extractor_node.py" output="screen">
     <param if="$(eval arg('stack') == 'rsl')" name="desired_twist_topic" value="/log/state/desiredRobotTwist"/>
     <param if="$(eval arg('stack') == 'anybotics')" name="desired_twist_topic" value="/motion_reference/command_twist"/>
+    <param name="reload_default_params" value="$(arg reload_default_params)" />
   </node>
 
   <include if="$(arg resize_images)" file="$(find wild_visual_navigation_ros)/launch/resize_images.launch"/> 

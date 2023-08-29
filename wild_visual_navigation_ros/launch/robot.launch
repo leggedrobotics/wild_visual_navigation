@@ -9,7 +9,8 @@
 
   <!-- Launch node -->
   <include file="$(find wild_visual_navigation_ros)/launch/wild_visual_navigation.launch">
-    <arg name="camera" value="$(arg camera)"/>
-    <arg name="stack"  value="$(arg stack)"/>
+    <arg name="camera"                   value="$(arg camera)"/>
+    <arg name="stack"                    value="$(arg stack)"/>
+    <arg name="reload_default_params"    value="True"/>
   </include>
 </launch>

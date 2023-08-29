@@ -18,14 +18,22 @@ class AnomalyLoss(nn.Module):
         # )
 
     def forward(
-        self, graph: Optional[Data], res: dict, loss_mean: int = None, loss_std: int = None, train: bool = False, update_generator: bool = True, step: int = 0, log_step: bool = False
+        self,
+        graph: Optional[Data],
+        res: dict,
+        loss_mean: int = None,
+        loss_std: int = None,
+        train: bool = False,
+        update_generator: bool = True,
+        step: int = 0,
+        log_step: bool = False,
     ):
         loss_aux = {}
         loss_aux["loss_trav"] = torch.tensor([0.0])
         loss_aux["loss_reco"] = torch.tensor([0.0])
         loss_aux["confidence"] = torch.tensor([0.0])
 
-        losses = -(res["logprob"].sum(1) + res["log_det"]) # Sum over all channels, resulting in h*w output dimensions
+        losses = -(res["logprob"].sum(1) + res["log_det"])  # Sum over all channels, resulting in h*w output dimensions
 
         # print(torch.mean(losses))
         l_clip = losses
