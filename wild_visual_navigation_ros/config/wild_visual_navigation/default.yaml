@@ -30,11 +30,11 @@ confidence_std_factor: 4.0
 scale_traversability: False  # This parameter needs to be false when using the anomaly detection model
 scale_traversability_max_fpr: 0.25
 min_samples_for_training: 5
-prediction_per_pixel: False
+prediction_per_pixel: false
 traversability_threshold: 0.55
-clip_to_binary: False
-anomaly_detection: True
-vis_training_samples: True
+clip_to_binary: false
+anomaly_detection: true
+vis_training_samples: true
 
 # Supervision Generator
 untraversable_thr: 0.01

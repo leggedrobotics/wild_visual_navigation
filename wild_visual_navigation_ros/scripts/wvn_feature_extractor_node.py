@@ -256,7 +256,7 @@ class WvnFeatureExtractor:
             # Evaluate traversability
             data = Data(x=dense_feat[0].permute(1, 2, 0).reshape(-1, dense_feat.shape[1]))
         else:
-            input_feat = dense_feat[0].permute(1, 2, 0).reshape(-1, dense_feat.shape[1])
+            # input_feat = dense_feat[0].permute(1, 2, 0).reshape(-1, dense_feat.shape[1])
             input_feat = feat[seg.reshape(-1)]
             data = Data(x=input_feat)
 
@@ -350,7 +350,7 @@ class WvnFeatureExtractor:
                 res = torch.load(f"{WVN_ROOT_DIR}/tmp_state_dict2.pt")
                 k = list(self.model.state_dict().keys())[-1]
 
-                if (self.model.state_dict()[k] != res[k]).any():  # TODO: model params are changing
+                if (self.model.state_dict()[k] != res[k]).any():  # TODO: model params are changing?
                     if self.verbose:
                         self.log_data[f"time_last_model"] = rospy.get_time()
                         self.log_data[f"nr_model_updates"] += 1

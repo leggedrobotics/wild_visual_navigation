@@ -124,7 +124,7 @@ class ExperimentParams(Serializable):
             mask_type: str = "odds"
             conditioning_size: int = 0
             use_permutation: bool = True
-            single_function: bool = True
+            single_function: bool = False
 
         linear_rnvp_cfg: LinearRnvpCfgParams = LinearRnvpCfgParams()
 

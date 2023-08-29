@@ -631,10 +631,7 @@ class TraversabilityEstimator:
                 with self._learning_lock:
                     # Forward pass
 
-                    if self._anomaly_detection:
-                        res = self._model(graph)
-                    else:
-                        res = self._model(graph)
+                    res = self._model(graph)
 
                     log_step = (self._step % 20) == 0
                     self._loss, loss_aux, trav = self._traversability_loss(graph, res, step=self._step, log_step=log_step, loss_mean=self._loss_mean, loss_std=self._loss_std, train=True)

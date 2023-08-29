@@ -25,7 +25,7 @@ class AnomalyLoss(nn.Module):
         loss_aux["loss_reco"] = torch.tensor([0.0])
         loss_aux["confidence"] = torch.tensor([0.0])
 
-        losses = -(res["logprob"].sum(1) + res["log_det"])
+        losses = -(res["logprob"].sum(1) + res["log_det"]) # Sum over all channels, resulting in h*w output dimensions
 
         # print(torch.mean(losses))
         l_clip = losses

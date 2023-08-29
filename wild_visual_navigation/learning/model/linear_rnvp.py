@@ -114,7 +114,7 @@ class LinearCouplingLayer(nn.Module):
             _mx = mx
 
         s, t = self.st(_mx)
-        s = torch.tanh(s)
+        s = torch.tanh(s)   # Adding an activation function here with non-linearities
 
         u = mx + (1 - self.mask) * (x - t) * torch.exp(-s)
 
@@ -221,8 +221,8 @@ class LinearRnvp(nn.Module):
     ):
         super().__init__()
 
-        self.register_buffer("prior_mean", torch.zeros(input_dim))
-        self.register_buffer("prior_var", torch.ones(input_dim))
+        self.register_buffer("prior_mean", torch.zeros(input_dim))  # Normal Gaussian with zero mean
+        self.register_buffer("prior_var", torch.ones(input_dim))    # Normal Gaussian with unit variance
 
         if mask_type == "odds":
             mask = torch.arange(0, input_dim).float() % 2
@@ -258,16 +258,17 @@ class LinearRnvp(nn.Module):
         self.flows = SequentialFlow(*blocks)
 
     def logprob(self, x):
-        return self.prior.log_prob(x)
+        return self.prior.log_prob(x)   # Compute log probability of the input at the Gaussian distribution
 
     @property
     def prior(self):
-        return distributions.Normal(self.prior_mean, self.prior_var)
+        return distributions.Normal(self.prior_mean, self.prior_var)    # Normal Gaussian with zero mean and unit variance
 
     def forward(self, data: Data):
         x = data.x
-        z, log_det = self.flows.forward(x, None)
-        return {"z": z, "log_det": log_det, "logprob": self.logprob(z)}
+        z, log_det = self.flows.forward(x, y=None)
+        log_prob = self.logprob(z)
+        return {"z": z, "log_det": log_det, "logprob": log_prob}
 
     def backward(self, u, y=None, return_step=False):
         if return_step:
