@@ -17,16 +17,19 @@ class DinoInterface:
         input_interp: str = "bilinear",
         model_type: str = "vit_small",
         patch_size: int = 8,
+        dim: int = 384,
+        projection_type: str = None, # nonlinear or None
+        dropout: bool = False,  # True or False
     ):
-        self.dim = 384  # 90
+        self.dim = dim  # 90 or 384
         self.cfg = DictConfig(
             {
                 "dino_patch_size": patch_size,
                 "dino_feat_type": "feat",
                 "model_type": model_type,
-                "projection_type": None,    # "nonlinear"
+                "projection_type": projection_type,
                 "pretrained_weights": None,
-                "dropout": False,        # True
+                "dropout": dropout,
             }
         )
 
