@@ -21,7 +21,7 @@ class DinoInterface:
         projection_type: str = None,  # nonlinear or None
         dropout: bool = False,  # True or False
     ):
-        self.dim = dim  # 90 or 384
+        self.dim = dim
         self.cfg = DictConfig(
             {
                 "dino_patch_size": patch_size,
