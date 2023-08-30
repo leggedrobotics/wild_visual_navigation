@@ -131,7 +131,10 @@ class ConfidenceGenerator(torch.nn.Module):
         if x.device != self.mean.device:
             return torch.zeros_like(x)
 
-        confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
+        # confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
+        x = torch.clip(x, self.mean - 2 * self.std, self.mean + 2 * self.std)
+        confidence = (x - torch.min(x)) / (torch.max(x) - torch.min(x))
+
         return confidence.type(torch.float32)
 
     def forward(self, x: torch.tensor):

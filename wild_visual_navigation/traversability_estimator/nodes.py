@@ -189,7 +189,7 @@ class MissionNode(BaseNode):
             if anomaly_detection:
                 return Data(
                     x=self.features[self._supervision_signal_valid],
-                    edge_index=self._feature_edges[self._supervision_signal_valid],
+                    edge_index=self._feature_edges,
                     y=self._supervision_signal[self._supervision_signal_valid],
                     y_valid=self._supervision_signal_valid[self._supervision_signal_valid],
                 )
@@ -205,7 +205,7 @@ class MissionNode(BaseNode):
             if anomaly_detection:
                 return Data(
                     x=self.features[self._supervision_signal_valid],
-                    edge_index=self._feature_edges[self._supervision_signal_valid],
+                    edge_index=self._feature_edges,
                     y=self._supervision_signal[self._supervision_signal_valid],
                     y_valid=self._supervision_signal_valid[self._supervision_signal_valid],
                     x_previous=previous_node.features,

@@ -52,7 +52,9 @@ class WvnFeatureExtractor:
             )
             self.scale_traversability = True
         else:
-            self.traversability_loss = AnomalyLoss(**self.exp_cfg["loss_anomaly"])
+            self.traversability_loss = AnomalyLoss(**self.exp_cfg["loss_anomaly"],
+                                                   log_enabled=self.exp_cfg["general"]["log_confidence"],
+                                                   log_folder=self.exp_cfg["general"]["model_path"])
             self.traversability_loss.to(self.device)
             self.scale_traversability = False
 
@@ -348,7 +350,7 @@ class WvnFeatureExtractor:
                 res = torch.load(f"{WVN_ROOT_DIR}/tmp_state_dict2.pt")
                 k = list(self.model.state_dict().keys())[-1]
 
-                if (self.model.state_dict()[k] != res[k]).any():  # TODO: model params are changing?
+                if (self.model.state_dict()[k] != res[k]).any():
                     if self.verbose:
                         self.log_data[f"time_last_model"] = rospy.get_time()
                         self.log_data[f"nr_model_updates"] += 1

@@ -29,14 +29,14 @@ class AnomalyLoss(nn.Module):
         loss_aux["loss_trav"] = torch.tensor([0.0])
         loss_aux["loss_reco"] = torch.tensor([0.0])
 
-        losses = -(res["logprob"].sum(1) + res["log_det"])  # Sum over all channels, resulting in h*w output dimensions
+        losses = res["logprob"].sum(1) + res["log_det"]  # Sum over all channels, resulting in h*w output dimensions
 
         if update_generator:
-            confidence = self._confidence_generator.update(x=losses, x_positive=losses)
+            confidence = self._confidence_generator.update(x=losses, x_positive=losses, step=step)
 
         loss_aux["confidence"] = confidence
 
-        return torch.mean(losses), loss_aux, confidence
+        return -torch.mean(losses), loss_aux, confidence
 
     def update_node_confidence(self, node):
         node.confidence = 0
