@@ -39,6 +39,7 @@ class WvnFeatureExtractor:
             feature_type=self.feature_type,
             input_size=self.network_input_image_height,
             slic_num_components=self.slic_num_components,
+            dino_dim=self.dino_dim,
         )
         self.i = 0
         self.setup_ros()
@@ -116,6 +117,7 @@ class WvnFeatureExtractor:
         self.segmentation_type = rospy.get_param("~segmentation_type")
         self.feature_type = rospy.get_param("~feature_type")
         self.dino_patch_size = rospy.get_param("~dino_patch_size")
+        self.dino_dim = rospy.get_param("~dino_dim")
         self.slic_num_components = rospy.get_param("~slic_num_components")
         self.traversability_threshold = rospy.get_param("~traversability_threshold")
         self.clip_to_binary = rospy.get_param("~clip_to_binary")

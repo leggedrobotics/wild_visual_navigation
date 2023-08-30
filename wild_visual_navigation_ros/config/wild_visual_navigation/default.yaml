@@ -25,6 +25,7 @@ network_input_image_width: 224 # 448
 segmentation_type: "slic"
 feature_type: "dino"
 dino_patch_size: 8 # DINO only, 16
+dino_dim: 384 # 90, 384
 slic_num_components: 500
 confidence_std_factor: 4.0
 scale_traversability: False  # This parameter needs to be false when using the anomaly detection model
