@@ -40,11 +40,13 @@ class WvnFeatureExtractor:
             input_size=self.network_input_image_height,
             slic_num_components=self.slic_num_components,
         )
-        self.i = 0
-        self.setup_ros()
+        self.i = 0        
+        
 
         self.model = get_model(self.exp_cfg["model"]).to(self.device)
         self.model.eval()
+        
+        
 
         if not self.anomaly_detection:
             self.confidence_generator = ConfidenceGenerator(
@@ -52,16 +54,18 @@ class WvnFeatureExtractor:
             )
             self.scale_traversability = True
         else:
-            self.traversability_loss = AnomalyLoss(**self.exp_cfg["loss_anomaly"],
-                                                   log_enabled=self.exp_cfg["general"]["log_confidence"],
-                                                   log_folder=self.exp_cfg["general"]["model_path"])
+            self.traversability_loss = AnomalyLoss(**self.exp_cfg["loss_anomaly"], log_enabled=self.exp_cfg["general"]["log_confidence"], log_folder=self.exp_cfg["general"]["model_path"])
             self.traversability_loss.to(self.device)
             self.scale_traversability = False
 
         if self.verbose:
+            self.log_data = {}
+            self.status_thread_stop_event = Event()
             self.status_thread = Thread(target=self.status_thread_loop, name="status")
             self.run_status_thread = True
             self.status_thread.start()
+
+        self.setup_ros()
 
         rospy.on_shutdown(self.shutdown_callback)
         signal.signal(signal.SIGINT, self.shutdown_callback)
@@ -69,7 +73,9 @@ class WvnFeatureExtractor:
 
     def shutdown_callback(self, *args, **kwargs):
         self.run_status_thread = False
+        self.status_thread_stop_event.set()
         self.status_thread.join()
+
         rospy.signal_shutdown(f"Wild Visual Navigation Feature Extraction killed {args}")
         sys.exit(0)
 
@@ -77,6 +83,12 @@ class WvnFeatureExtractor:
         rate = rospy.Rate(self.status_thread_rate)
         # Learning loop
         while self.run_status_thread:
+
+            self.status_thread_stop_event.wait(timeout=0.01)
+            if self.status_thread_stop_event.is_set():
+                rospy.logwarn("Stopped learning thread")
+                break
+
             t = rospy.get_time()
             x = PrettyTable()
             x.field_names = ["Key", "Value"]
@@ -101,6 +113,8 @@ class WvnFeatureExtractor:
             except Exception as e:
                 rate = rospy.Rate(self.status_thread_rate)
                 print("Ignored jump pack in time!")
+        self.status_thread_stop_event.clear()
+
 
     def read_params(self):
         """Reads all the parameters from the parameter server"""
@@ -144,7 +158,6 @@ class WvnFeatureExtractor:
 
         if self.verbose:
             # DEBUG Logging
-            self.log_data = {}
             self.log_data[f"time_last_model"] = -1
             self.log_data[f"nr_model_updates"] = -1
 
