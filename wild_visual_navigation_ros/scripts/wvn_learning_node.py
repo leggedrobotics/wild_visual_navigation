@@ -116,7 +116,7 @@ class WvnLearning:
         signal.signal(signal.SIGTERM, self.shutdown_callback)
 
         # Launch processes
-        print("─" * 80)
+        print("-" * 80)
         print("Launching [learning] thread")
         if self.mode != WVNMode.EXTRACT_LABELS:
             self.learning_thread_stop_event = Event()
