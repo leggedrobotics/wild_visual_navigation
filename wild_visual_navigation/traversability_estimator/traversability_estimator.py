@@ -29,12 +29,7 @@ import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 from torchmetrics import ROC
-import numpy as np
-import cv2
-import rospy
 import random
-from sensor_msgs.msg import Image
-from cv_bridge import CvBridge
 
 to_tensor = transforms.ToTensor()
 
@@ -108,12 +103,6 @@ class TraversabilityEstimator:
 
         # Visualization
         self._visualizer = LearningVisualizer()
-
-        if self._vis_training_samples:
-            self._last_image_mask_pub = rospy.Publisher(
-                f"/wild_visual_navigation_node/last_node_image_mask", Image, queue_size=1
-            )
-            self._bridge = CvBridge()
 
         # Lightning module
         seed_everything(42)
