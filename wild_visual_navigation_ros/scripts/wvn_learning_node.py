@@ -863,7 +863,7 @@ class WvnLearning:
             torch_mask = torch.nan_to_num(torch_mask.nanmean(axis=0)) != 0
             torch_mask = torch_mask.float()
 
-            image_out = self._visualizer.plot_detectron_classification(torch_image, torch_mask)
+            image_out = self._visualizer.plot_detectron_classification(torch_image, torch_mask, cmap="Greens")
             self.camera_handler[cam]["debug"]["image_overlay"].publish(rc.numpy_to_ros_image(image_out))
 
 
