@@ -109,11 +109,11 @@ class WvnFeatureExtractor:
                 else:
                     x.add_row([k, v])
             print(x)
-            try:
-                rate.sleep()
-            except Exception as e:
-                rate = rospy.Rate(self.status_thread_rate)
-                print("Ignored jump pack in time!")
+            # try:
+            #    rate.sleep()
+            # except Exception as e:
+            #    rate = rospy.Rate(self.status_thread_rate)
+            #    print("Ignored jump pack in time!")
         self.status_thread_stop_event.clear()
 
 
