@@ -22,18 +22,18 @@ image_graph_dist_thr: 0.2 # meters
 proprio_graph_dist_thr: 0.1 # meters
 network_input_image_height: 224 # 448
 network_input_image_width: 224 # 448
-segmentation_type: "slic"
+segmentation_type: "random"
 feature_type: "dino"
 dino_patch_size: 8 # DINO only, 16
-slic_num_components: 500
+slic_num_components: 100
 confidence_std_factor: 4.0
 scale_traversability: False  # This parameter needs to be false when using the anomaly detection model
 scale_traversability_max_fpr: 0.25
 min_samples_for_training: 5
-prediction_per_pixel: false
+prediction_per_pixel: True
 traversability_threshold: 0.55
-clip_to_binary: false
-vis_training_samples: true
+clip_to_binary: False
+vis_training_samples: True
 
 # Supervision Generator
 untraversable_thr: 0.01
@@ -57,7 +57,7 @@ print_image_callback_time: false
 print_proprio_callback_time: false
 log_time: false
 log_confidence: false
-verbose: true
+verbose: false
 debug_supervision_node_index_from_last: 10
 use_debug_for_desired: false
 

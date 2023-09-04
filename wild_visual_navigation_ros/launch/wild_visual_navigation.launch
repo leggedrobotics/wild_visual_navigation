@@ -1,10 +1,11 @@
 <launch>
   <!-- Arguments -->
   <arg name="camera"            default="wide_angle_front"/> <!-- alphasense, wide_angle_front, realsense_front, realsense_rear -->
-  <arg name="stack"             default="anybotics"/> <!-- rsl or anybotics -->
+  <arg name="stack"             default="anybotics"/> <!-- rsl or anybotics  $(eval arg('camera') == 'wide_angle_front_resize')  $(eval arg('camera') == 'alphasense_resize') -->  
   <arg name="params_file"       default="$(find wild_visual_navigation_ros)/config/wild_visual_navigation/default.yaml"/>
   <arg name="overlay_images"    default="True"/>
-  <arg name="resize_images"     default="$(eval arg('camera') == 'alphasense_resize')"/>
+  <arg name="resize_images_alphasense"     default="False"/>
+  <arg name="resize_images_wide_angle_front"     default="True"/>
   <arg name="reload_default_params"    default="False"/>
 
   <!-- Load parameters -->
@@ -22,13 +23,14 @@
     <param if="$(eval arg('stack') == 'anybotics')" name="desired_twist_topic" value="/motion_reference/command_twist"/>
     <param name="reload_default_params" value="$(arg reload_default_params)" />
   </node>
-  <node name="wvn_feature_extractor_node" pkg="wild_visual_navigation_ros" type="wvn_feature_extractor_node.py" output="screen">
+  <!--<node name="wvn_feature_extractor_node" pkg="wild_visual_navigation_ros" type="wvn_feature_extractor_node.py" output="screen">
     <param if="$(eval arg('stack') == 'rsl')" name="desired_twist_topic" value="/log/state/desiredRobotTwist"/>
     <param if="$(eval arg('stack') == 'anybotics')" name="desired_twist_topic" value="/motion_reference/command_twist"/>
     <param name="reload_default_params" value="$(arg reload_default_params)" />
-  </node>
+  </node>-->
 
-  <include if="$(arg resize_images)" file="$(find wild_visual_navigation_ros)/launch/resize_images.launch"/> 
+  <include if="$(arg resize_images_alphasense)" file="$(find wild_visual_navigation_ros)/launch/resize_images_alphasense.launch"/> 
+  <include if="$(arg resize_images_wide_angle_front)" file="$(find wild_visual_navigation_ros)/launch/resize_images_wide_angle_front.launch"/> 
 
   <!-- Nice visualization overlay-->
   <include if="$(arg overlay_images)" file="$(find wild_visual_navigation_ros)/launch/overlay_images.launch"/> 

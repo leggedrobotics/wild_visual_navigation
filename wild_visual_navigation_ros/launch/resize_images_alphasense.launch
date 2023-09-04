@@ -25,7 +25,7 @@
     <remap from="~camera_info" to="/alphasense_driver_ros/cam3/color_rect_resize/camera_info" />
     <remap from="image" to="/alphasense_driver_ros/cam3/color_rect/image" />
     <remap from="~image" to="/alphasense_driver_ros/cam3/color_rect_resize/image" />
-    <param name="scale_height" value="0.2074077" />
+    <param name="scale_width" value="0.2074077" />
     <param name="scale_height" value="0.2074077" />
   </node>
     <node if="$(arg resize_alphasense_cam4)" pkg="nodelet" type="nodelet" name="image_proc_nodelet_cam4" args="load image_proc/resize standalone_nodelet">
@@ -33,7 +33,7 @@
     <remap from="~camera_info" to="/alphasense_driver_ros/cam4/color_rect_resize/camera_info" />
     <remap from="image" to="/alphasense_driver_ros/cam4/color_rect/image" />
     <remap from="~image" to="/alphasense_driver_ros/cam4/color_rect_resize/image" />
-    <param name="scale_height" value="0.2074077" />
+    <param name="scale_width" value="0.2074077" />
     <param name="scale_height" value="0.2074077" />
   </node>
   <node if="$(arg resize_alphasense_cam5)" pkg="nodelet" type="nodelet" name="image_proc_nodelet_cam5" args="load image_proc/resize standalone_nodelet">
@@ -41,7 +41,7 @@
     <remap from="~camera_info" to="/alphasense_driver_ros/cam5/color_rect_resize/camera_info" />
     <remap from="image" to="/alphasense_driver_ros/cam5/color_rect/image" />
     <remap from="~image" to="/alphasense_driver_ros/cam5/color_rect_resize/image" />
-    <param name="scale_height" value="0.2074077" />
+    <param name="scale_width" value="0.2074077" />
     <param name="scale_height" value="0.2074077" />
   </node>
 
