@@ -5,6 +5,7 @@ from wild_visual_navigation.traversability_estimator import TraversabilityEstima
 from wild_visual_navigation.traversability_estimator import MissionNode, ProprioceptionNode
 import wild_visual_navigation_ros.ros_converter as rc
 from wild_visual_navigation_msgs.msg import RobotState, SystemState, ImageFeatures
+from wild_visual_navigation.visu import LearningVisualizer
 from wild_visual_navigation_msgs.srv import (
     LoadCheckpoint,
     SaveCheckpoint,
@@ -370,14 +371,31 @@ class WvnLearning:
                 self.camera_topics[cam]["name"] = cam
 
                 # Set subscribers
-                imagefeat_sub = message_filters.Subscriber(f"/wild_visual_navigation_node/{cam}/feat", ImageFeatures)
-                info_sub = message_filters.Subscriber(f"/wild_visual_navigation_node/{cam}/camera_info", CameraInfo)
-                sync = message_filters.ApproximateTimeSynchronizer([imagefeat_sub, info_sub], queue_size=4, slop=0.5)
-                sync.registerCallback(self.imagefeat_callback, self.camera_topics[cam])
+                if self.mode == WVNMode.DEBUG:
+                    # In debug mode additionally send the image to the callback function
+                    self._visualizer = LearningVisualizer()
 
-                self.camera_handler[cam]["image_sub"] = imagefeat_sub
-                self.camera_handler[cam]["info_sub"] = info_sub
-                self.camera_handler[cam]["sync"] = sync
+                    imagefeat_sub = message_filters.Subscriber(f"/wild_visual_navigation_node/{cam}/feat",
+                                                               ImageFeatures)
+                    info_sub = message_filters.Subscriber(f"/wild_visual_navigation_node/{cam}/camera_info", CameraInfo)
+                    image_sub = message_filters.Subscriber(f"/wild_visual_navigation_node/{cam}/image_input",
+                                                               Image)
+                    sync = message_filters.ApproximateTimeSynchronizer([imagefeat_sub, info_sub, image_sub], queue_size=4,
+                                                                       slop=0.5)
+                    sync.registerCallback(self.imagefeat_callback, self.camera_topics[cam])
+
+                    last_image_overlay_pub = rospy.Publisher(
+                        f"/wild_visual_navigation_node/{cam}/debug/last_node_image_overlay", Image, queue_size=10
+                    )
+
+                    self.camera_handler[cam]["debug"] = {}
+                    self.camera_handler[cam]["debug"]["image_overlay"] = last_image_overlay_pub
+
+                else:
+                    imagefeat_sub = message_filters.Subscriber(f"/wild_visual_navigation_node/{cam}/feat", ImageFeatures)
+                    info_sub = message_filters.Subscriber(f"/wild_visual_navigation_node/{cam}/camera_info", CameraInfo)
+                    sync = message_filters.ApproximateTimeSynchronizer([imagefeat_sub, info_sub], queue_size=4, slop=0.5)
+                    sync.registerCallback(self.imagefeat_callback, self.camera_topics[cam])
 
         # 3D outputs
         self.pub_debug_proprio_graph = rospy.Publisher(
@@ -593,13 +611,20 @@ class WvnLearning:
             raise Exception("Error in robot state callback")
 
     @accumulate_time
-    def imagefeat_callback(self, imagefeat_msg: ImageFeatures, info_msg: CameraInfo, camera_options: dict):
+    def imagefeat_callback(self, *args):
         """Main callback to process incoming images
 
         Args:
             imagefeat_msg (wild_visual_navigation_msg/ImageFeatures): Incoming imagefeatures
             info_msg (sensor_msgs/CameraInfo): Camera info message associated to the image
         """
+        if self.mode == WVNMode.DEBUG:
+            assert len(args) == 4
+            imagefeat_msg, info_msg, image_msg, camera_options = tuple(args)
+        else:
+            assert len(args) == 3
+            imagefeat_msg, info_msg, camera_options = tuple(args)
+
         self.system_events["image_callback_received"] = {"time": rospy.get_time(), "value": "message received"}
         if self.verbose:
             print(f"\nImage callback: {camera_options['name']}... ", end="")
@@ -649,12 +674,21 @@ class WvnLearning:
                 imagefeat_msg.feature_segments, desired_encoding="passthrough", device=self.device
             ).clone()
             h_small, w_small = feature_segments.shape[1:3]
+
+            torch_image = torch.zeros((3, h_small, w_small), device=self.device, dtype=torch.float32)
+
+            # convert image message to torch image
+            if self.mode == WVNMode.DEBUG:
+                torch_image = rc.ros_image_to_torch(
+                    image_msg, desired_encoding="passthrough", device=self.device
+                ).clone()
+
             # Create mission node for the graph
             mission_node = MissionNode(
                 timestamp=ts,
                 pose_base_in_world=pose_base_in_world,
                 pose_cam_in_base=pose_cam_in_base,
-                image=torch.zeros((3, h_small, w_small), device=self.device, dtype=torch.float32),
+                image=torch_image,
                 image_projector=image_projector,
                 camera_name=camera_options["name"],
                 use_for_training=camera_options["use_for_training"],
@@ -673,7 +707,10 @@ class WvnLearning:
                 # Publish current predictions
                 self.visualize_mission_graph()
                 # Publish supervision data depending on the mode
-                self.visualize_debug()
+                self.visualize_image_overlay()
+
+                if added_new_node:
+                    self.traversability_estimator.update_visualization_node()
 
             # Print callback time if required
             if self.print_image_callback_time:
@@ -810,6 +847,24 @@ class WvnLearning:
             mission_graph_msg.poses.append(pose)
 
         self.pub_mission_graph.publish(mission_graph_msg)
+
+    @accumulate_time
+    def visualize_image_overlay(self):
+        """Publishes all the debugging, slow visualizations"""
+
+        # Get visualization node
+        vis_node = self.traversability_estimator.get_mission_node_for_visualization()
+
+        # Publish reprojections of last node in graph
+        if vis_node is not None:
+            cam = vis_node.camera_name
+            torch_image = vis_node._image
+            torch_mask = vis_node._supervision_mask
+            torch_mask = torch.nan_to_num(torch_mask.nanmean(axis=0)) != 0
+            torch_mask = torch_mask.float()
+
+            image_out = self._visualizer.plot_detectron_classification(torch_image, torch_mask, cmap="Greens")
+            self.camera_handler[cam]["debug"]["image_overlay"].publish(rc.numpy_to_ros_image(image_out))
 
 
 if __name__ == "__main__":

@@ -21,7 +21,7 @@ class DinoInterface:
         projection_type: str = None,  # nonlinear or None
         dropout: bool = False,  # True or False
     ):
-        self.dim = dim  # 90 or 384
+        self.dim = dim
         self.cfg = DictConfig(
             {
                 "dino_patch_size": patch_size,
@@ -71,8 +71,6 @@ class DinoInterface:
 
         # Just normalization
         self.norm = T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-
-        self.mean_kernel = torch.ones((1, 5, 5), device=device) / 25
 
     def change_device(self, device):
         """Changes the device of all the class members
@@ -142,8 +140,6 @@ class DinoInterface:
         pad = int((W - H) / 2)
         features = F.interpolate(features, new_size, mode="bilinear", align_corners=True)
         features = F.pad(features, pad=[pad, pad, 0, 0])
-        # Optionally turn on image feature smoothing
-        # features = filter2d(features, self.mean_kernel, "replicate")
         return features
 
     @property
