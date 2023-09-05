@@ -1,4 +1,4 @@
-group "1.startup" {
+group "01.startup" {
     cmd "1.1.chrony" {
         exec = "rosrun anymal_rsl_chrony reset_chrony.sh jonfrey dodo d020 false";
         host = "localhost";
@@ -25,7 +25,7 @@ group "1.startup" {
     }
 }
 
-group "2.start" {
+group "02.start" {
     cmd "2.1.lpc" {
         exec = "rosrun anymal_dodo_rsl lpc.py";
         host = "lpc";
@@ -44,7 +44,7 @@ group "2.start" {
     }
 }
 
-group "3.recording" {
+group "03.recording" {
     cmd "3.1.rosbag_record" {
         exec = "rosservice call /rosbag_record_robot_coordinator/record_bag 'yaml_file: /home/jonfrey/git/diffusion_navigation/diffusion_navigation_ros/config/recording/dodo.yaml' ";
         host = "localhost";
@@ -71,7 +71,7 @@ group "3.recording" {
     }
 }
 
-group "4.monitoring" {
+group "04.monitoring" {
     cmd "4.1.lpc_disk" {
         exec = "rostopic echo /disk_monitor_lpc/status/disks[1]";
         host = "localhost";
@@ -86,7 +86,7 @@ group "4.monitoring" {
     }
 }
 
-group "5.network" {
+group "05.network" {
     cmd "5.1.switch_to_access_point" {
         exec = "rosrun anymal_router_utils router_utils.bash -i 192.168.0.173 -p d020 -m 1";
         host = "localhost";
@@ -98,7 +98,7 @@ group "5.network" {
 }
 
 
-group "6.disk_free" {
+group "06.disk_free" {
     cmd "6.1.lpc" {
         exec = "df -h /dev/sda4";
         host = "lpc";
@@ -118,7 +118,7 @@ group "6.disk_free" {
     
 }
 
-group "7.tools for bags" {
+group "07.tools for bags" {
     cmd "7.1.collect_lpc" {
         exec = " rsync -rzPav anymal-dodo-lpc:/home/jonfrey/catkin_ws/src/anymal_rsl/anymal_rsl/anymal_rsl_utils/anymal_rsl_recording/anymal_rsl_recording/data /home/jonfrey/mission_data/lpc";
         host = "jetson";
@@ -138,7 +138,7 @@ group "7.tools for bags" {
 }
 
 
-group "8.npc" {
+group "08.npc" {
     cmd "8.1.alphasense_ptp" {
         exec = "sudo service phc2sys restart";
         host = "npc";
@@ -174,7 +174,7 @@ group "8.npc" {
 }
 
 
-group "9.orin" {
+group "09.orin" {
     cmd "9.1.wild_visual_navigation" {
         exec = "roslaunch wild_visual_navigation_ros robot.launch";
         host = "jetson";
@@ -212,6 +212,13 @@ group "12.white_balance" {
     cmd "12.3.white_balance_right_reset" {
         exec = "rosservice call /alphasense_raw_image_pipeline_right/reset_white_balance";
         host = "localhost";
+    }
+}
+
+group "13.lpc" {
+    cmd "13.1.anymal_msg_converter" {
+        exec = "rosrun wild_visual_navigation_anymal anymal_msg_converter_node.py";
+        host = "lpc";
     }
 }
 
