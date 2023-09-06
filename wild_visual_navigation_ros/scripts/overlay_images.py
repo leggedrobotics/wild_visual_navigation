@@ -29,11 +29,13 @@ class ImageOverlayNode:
 if __name__ == "__main__":
     print("Stated ImageOverlayNode")
     try:
-        nr = "0"
-        if len(sys.argv) > 1:
-            nr = rospy.myargv(argv=sys.argv)[-1].split(" ")[-1]
-        nr_str = "_" + nr
-        rospy.init_node(f"wild_visual_navigation_visu{nr_str}")
+        args = rospy.myargv(argv=sys.argv)
+        if "--nr" in args:
+            nr_index = args.index("--nr")
+            nr = args[nr_index + 1]
+        else:
+            nr = "0"             # Handle case when no arg is set
+        rospy.init_node(f"wild_visual_navigation_visu_{nr}")
     except:
         rospy.init_node("wild_visual_navigation_visu")
 
