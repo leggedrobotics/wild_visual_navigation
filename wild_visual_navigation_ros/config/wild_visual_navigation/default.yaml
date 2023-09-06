@@ -34,7 +34,6 @@ min_samples_for_training: 5
 prediction_per_pixel: True
 traversability_threshold: 0.55
 clip_to_binary: False
-vis_training_samples: True
 
 # Supervision Generator
 untraversable_thr: 0.01
@@ -51,7 +50,7 @@ status_thread_rate: 0.5 # hertz
 
 # Runtime options
 device: "cuda"
-mode: "online" # check out comments in the class WVNMode
+mode: "debug" # check out comments in the class WVNMode
 colormap: "RdYlBu"
 
 print_image_callback_time: false

@@ -63,7 +63,6 @@ class TraversabilityEstimator:
         self._params = params
         self._scale_traversability_threshold = 0
         self._anomaly_detection = anomaly_detection
-        self._vis_training_samples = vis_training_samples
 
         if self._scale_traversability:
             # Use 500 bins for constant memory usuage
