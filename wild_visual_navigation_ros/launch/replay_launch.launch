@@ -14,7 +14,9 @@
   <arg name="uncompress_alphasense_cam3"     default="False"/>
   <arg name="uncompress_alphasense_cam4"     default="False"/>
   <arg name="uncompress_alphasense_cam5"     default="False"/>
-  <arg name="uncompress_wide_angle_cam"     default="True"/>
+  <arg name="uncompress_wide_angle_front"     default="True"/>
+  <arg name="resize_images_wide_angle_front"     default="True"/>
+
 
   <!-- Set sim time to true -->
   <param name="/use_sim_time" type="bool" value="True" />
@@ -74,7 +76,8 @@
   <node if="$(arg uncompress_alphasense_cam4)" name="uncompress_cam4" pkg="image_transport" type="republish" args="compressed in:=/alphasense_driver_ros/cam4/debayered raw out:=/alphasense_driver_ros/cam4/debayered" />
   <node if="$(arg uncompress_alphasense_cam5)" name="uncompress_cam5" pkg="image_transport" type="republish" args="compressed in:=/alphasense_driver_ros/cam5/debayered raw out:=/alphasense_driver_ros/cam5/debayered" />
 
-  <node if="$(arg uncompress_wide_angle_cam)" name="uncompress_wide_angle_cam" pkg="image_transport" type="republish" args="compressed in:=/wide_angle_camera_front/image_color raw out:=/wide_angle_camera_front/image_color" />
+  <node if="$(arg uncompress_wide_angle_front)" name="uncompress_wide_angle_front" pkg="image_transport" type="republish" args="compressed in:=/wide_angle_camera_front/image_color raw out:=/wide_angle_camera_front/image_color" />
+  <include if="$(arg resize_images_wide_angle_front)" file="$(find wild_visual_navigation_ros)/launch/resize_images_wide_angle_front.launch"/>
 
-  
+
 </launch>
