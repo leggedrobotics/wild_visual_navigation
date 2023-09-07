@@ -2,7 +2,7 @@
   <!-- Arguments -->
   <arg name="name"              default="wild_visual_navigation_node"/>
   <arg name="params_file"       default="$(find wild_visual_navigation_ros)/config/wild_visual_navigation/default.yaml"/>
-  <arg name="rviz_config"       default="anymal.rviz" />
+  <arg name="rviz_config"       default="anymal_dodo.rviz" />
   <arg name="anymal_config"     default="/home/rschmid/RosBags/11/2023-03-02-12-31-23_anymal-d020-lpc_mission.yaml" />
 
   <arg name="anymal_converter"  default="True"/>

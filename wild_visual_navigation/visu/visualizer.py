@@ -358,8 +358,9 @@ class LearningVisualizer:
         if kwargs.get("cmap", None):
             cmap = kwargs["cmap"]
         else:
+            c = 0.1
             cmap = cm.get_cmap("RdYlBu", 256)
-            cmap = np.concatenate([cmap(np.linspace(0, 0.3, 128)), cmap(np.linspace(0.7, 1.0, 128))])
+            cmap = np.concatenate([cmap(np.linspace(0, c, 128)), cmap(np.linspace(1 - c, 1.0, 128))])
             cmap = torch.from_numpy(cmap).to(seg)[:, :3]
 
         img = self.plot_image(img, not_log=True)
