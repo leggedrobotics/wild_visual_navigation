@@ -75,7 +75,8 @@ publishers:
     fps: 5.0
 
   semantic_map_raw:
-    layers: ['elevation', 'traversability', 'visual_traversability']
+    layers: ['elevation', 'traversability', 'visual_traversability', "elevation_semantic"]
+#    layers: [ 'elevation', 'traversability', 'visual_traversability']
     basic_layers: ['elevation', 'traversability']
     fps: 5.0
   # elevation_map_recordable:
