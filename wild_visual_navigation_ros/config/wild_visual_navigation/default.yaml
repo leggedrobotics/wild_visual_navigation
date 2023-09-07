@@ -51,7 +51,7 @@ status_thread_rate: 0.5 # hertz
 
 # Runtime options
 device: "cuda"
-mode: "online" # check out comments in the class WVNMode
+mode: "debug" # check out comments in the class WVNMode
 colormap: "RdYlBu"
 
 print_image_callback_time: false
