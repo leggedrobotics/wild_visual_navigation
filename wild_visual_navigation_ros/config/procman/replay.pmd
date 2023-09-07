@@ -1,0 +1,16 @@
+cmd "1. rviz replay" {
+    exec = "roslaunch wild_visual_navigation_ros replay_launch.launch";
+    host = "localhost";
+}
+cmd "2. feat extractor" {
+    exec = "/home/rschmid/anaconda3/envs/wvn/bin/python3 /home/rschmid/git/wild_visual_navigation/wild_visual_navigation_ros/scripts/wvn_feature_extractor_node.py";
+    host = "localhost";
+}
+cmd "3. learning node" {
+    exec = "/home/rschmid/anaconda3/envs/wvn/bin/python3 /home/rschmid/git/wild_visual_navigation/wild_visual_navigation_ros/scripts/wvn_learning_node.py";
+    host = "localhost";
+}
+cmd "4. image overlay" {
+    exec = "/home/rschmid/anaconda3/envs/wvn/bin/python3 /home/rschmid/git/wild_visual_navigation/wild_visual_navigation_ros/scripts/overlay_images.py _image_sub_topic:=/wild_visual_navigation_node/front/image_input _value_sub_topic:=/wild_visual_navigation_node/front/traversability _image_pub_topic:=traversability_overlayed";
+    host = "localhost";
+}
