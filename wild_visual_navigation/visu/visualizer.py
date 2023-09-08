@@ -359,8 +359,8 @@ class LearningVisualizer:
             cmap = kwargs["cmap"]
         else:
             s = 0.2 # If bigger, get more fine-grained green, if smaller get more fine-grained red
-            cmap = cm.get_cmap("RdYlGn", 256)
-            # cmap = cm.get_cmap("RdBu", 256)
+            # cmap = cm.get_cmap("RdYlGn", 256)
+            cmap = cm.get_cmap("RdYlBu", 256)
             cmap = np.concatenate([cmap(np.linspace(0, s, 128)), cmap(np.linspace(1 - s, 1.0, 128))])   # Stretch the colormap
             cmap = torch.from_numpy(cmap).to(seg)[:, :3]
 
