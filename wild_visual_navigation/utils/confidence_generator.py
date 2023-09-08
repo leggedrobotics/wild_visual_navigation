@@ -1,6 +1,7 @@
 from wild_visual_navigation.utils import KalmanFilter
 import torch
 import os
+from collections import deque
 
 
 class ConfidenceGenerator(torch.nn.Module):
@@ -26,9 +27,13 @@ class ConfidenceGenerator(torch.nn.Module):
         mean = torch.zeros(1, dtype=torch.float32)
         var = torch.ones((1, 1), dtype=torch.float32)
         std = torch.ones(1, dtype=torch.float32)
-        self.mean = torch.nn.Parameter(mean, requires_grad=False)
-        self.var = torch.nn.Parameter(var, requires_grad=False)
-        self.std = torch.nn.Parameter(std, requires_grad=False)
+        # self.mean = torch.nn.Parameter(mean, requires_grad=False)
+        # self.var = torch.nn.Parameter(var, requires_grad=False)
+        # self.std = torch.nn.Parameter(std, requires_grad=False)
+
+        self.mean = 0
+        self.var = 1
+        self.std = 1
 
         if method == "kalman_filter":
             kf_process_cov = 0.2
@@ -61,6 +66,11 @@ class ConfidenceGenerator(torch.nn.Module):
         elif method == "latest_measurment":
             self._update = self.update_latest_measurment
             self._reset = self.reset_latest_measurment
+        elif method == "moving_average":
+            window_size = 5
+            self.data_window = deque(maxlen=window_size)
+            self._update = self.update_moving_average
+            self._reset = self.reset_moving_average
         else:
             raise ValueError("Unknown method")
 
@@ -71,6 +81,11 @@ class ConfidenceGenerator(torch.nn.Module):
         return self.inference_without_update(x)
 
     def reset_latest_measurment(self, x: torch.Tensor, x_positive: torch.Tensor):
+        self.mean[0] = 0
+        self.var[0] = 1
+        self.std[0] = 1
+
+    def reset_moving_average(self, x: torch.Tensor, x_positive: torch.Tensor):
         self.mean[0] = 0
         self.var[0] = 1
         self.std[0] = 1
@@ -92,6 +107,20 @@ class ConfidenceGenerator(torch.nn.Module):
         # Then the confidence is computed as the distance to the center of the Gaussian given factor*sigma
         # confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
         # confidence[x < self.mean] = 1.0
+
+        x = torch.clip(x, self.mean - 2 * self.std, self.mean + 2 * self.std)
+        confidence = (x - torch.min(x)) / (torch.max(x) - torch.min(x))
+
+        return confidence.type(torch.float32)
+
+    def update_moving_average(self, x: torch.tensor, x_positive: torch.tensor):
+        self.data_window.append(x_positive)
+
+        data_window_tensor = list(self.data_window)
+        data_window_tensor = torch.cat(data_window_tensor, dim=0)
+
+        self.mean = data_window_tensor.mean()
+        self.std = data_window_tensor.std()
 
         x = torch.clip(x, self.mean - 2 * self.std, self.mean + 2 * self.std)
         confidence = (x - torch.min(x)) / (torch.max(x) - torch.min(x))
