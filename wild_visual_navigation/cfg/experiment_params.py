@@ -50,7 +50,7 @@ class ExperimentParams(Serializable):
 
     @dataclass
     class LossAnomalyParams:
-        method: str = "moving_average"    # "latest_measurment", "running_mean"
+        method: str = "moving_average"    # "latest_measurment", "running_mean", "moving_average"
         confidence_std_factor: float = 0.5
 
     loss_anomaly: LossAnomalyParams = LossAnomalyParams()
