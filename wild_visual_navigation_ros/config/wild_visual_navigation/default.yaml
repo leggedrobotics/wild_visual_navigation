@@ -17,16 +17,16 @@ robot_height: 0.3
 robot_max_velocity: 0.8
 
 # Traversability estimation params
-traversability_radius: 5.0 # meters
+traversability_radius: 10.0 # meters
 image_graph_dist_thr: 0.2 # meters
 proprio_graph_dist_thr: 0.1 # meters
 network_input_image_height: 224 # 448
 network_input_image_width: 224 # 448
 segmentation_type: "random"
 feature_type: "dino"
-dino_patch_size: 8 # DINO only, 16
+dino_patch_size: 8 # 8 or 16; 8 is finer
 slic_num_components: 100
-dino_dim: 384 # 90, 384
+dino_dim: 384 # 90 or 384; 384 is better
 confidence_std_factor: 4.0
 scale_traversability: False  # This parameter needs to be false when using the anomaly detection model
 scale_traversability_max_fpr: 0.25
