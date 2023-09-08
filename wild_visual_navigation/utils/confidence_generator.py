@@ -48,9 +48,14 @@ class ConfidenceGenerator(torch.nn.Module):
             running_sum = torch.zeros(1, dtype=torch.float64)
             running_sum_of_squares = torch.zeros(1, dtype=torch.float64)
 
-            self.running_n = torch.nn.Parameter(running_n, requires_grad=False)
-            self.running_sum = torch.nn.Parameter(running_sum, requires_grad=False)
-            self.running_sum_of_squares = torch.nn.Parameter(running_sum_of_squares, requires_grad=False)
+            # self.running_n = torch.nn.Parameter(running_n, requires_grad=False)
+            # self.running_sum = torch.nn.Parameter(running_sum, requires_grad=False)
+            # self.running_sum_of_squares = torch.nn.Parameter(running_sum_of_squares, requires_grad=False)
+
+            self.running_n = running_n.to("cuda")
+            self.running_sum = running_sum.to("cuda")
+            self.running_sum_of_squares = running_sum_of_squares.to("cuda")
+
             self._update = self.update_running_mean
             self._reset = self.reset_running_mean
         elif method == "latest_measurment":
@@ -81,9 +86,15 @@ class ConfidenceGenerator(torch.nn.Module):
         self.var[0] = self.running_sum_of_squares / self.running_n - self.mean**2
         self.std[0] = torch.sqrt(self.var)
 
+        if x.device != self.mean.device:
+            return torch.zeros_like(x)
+
         # Then the confidence is computed as the distance to the center of the Gaussian given factor*sigma
-        confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
-        confidence[x < self.mean] = 1.0
+        # confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
+        # confidence[x < self.mean] = 1.0
+
+        x = torch.clip(x, self.mean - 2 * self.std, self.mean + 2 * self.std)
+        confidence = (x - torch.min(x)) / (torch.max(x) - torch.min(x))
 
         return confidence.type(torch.float32)
 
