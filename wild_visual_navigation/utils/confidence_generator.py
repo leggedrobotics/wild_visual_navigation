@@ -27,13 +27,9 @@ class ConfidenceGenerator(torch.nn.Module):
         mean = torch.zeros(1, dtype=torch.float32)
         var = torch.ones((1, 1), dtype=torch.float32)
         std = torch.ones(1, dtype=torch.float32)
-        # self.mean = torch.nn.Parameter(mean, requires_grad=False)
-        # self.var = torch.nn.Parameter(var, requires_grad=False)
-        # self.std = torch.nn.Parameter(std, requires_grad=False)
-
-        self.mean = 0
-        self.var = 1
-        self.std = 1
+        self.mean = torch.nn.Parameter(mean, requires_grad=False)
+        self.var = torch.nn.Parameter(var, requires_grad=False)
+        self.std = torch.nn.Parameter(std, requires_grad=False)
 
         if method == "kalman_filter":
             kf_process_cov = 0.2
@@ -119,8 +115,8 @@ class ConfidenceGenerator(torch.nn.Module):
         data_window_tensor = list(self.data_window)
         data_window_tensor = torch.cat(data_window_tensor, dim=0)
 
-        self.mean = data_window_tensor.mean()
-        self.std = data_window_tensor.std()
+        self.mean[0] = data_window_tensor.mean()
+        self.std[0] = data_window_tensor.std()
 
         x = torch.clip(x, self.mean - 2 * self.std, self.mean + 2 * self.std)
         confidence = (x - torch.min(x)) / (torch.max(x) - torch.min(x))
