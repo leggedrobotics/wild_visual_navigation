@@ -51,7 +51,7 @@ class WvnFeatureExtractor:
 
         if not self.anomaly_detection:
             self.confidence_generator = ConfidenceGenerator(
-                method=self.exp_cfg["loss"]["method"], std_factor=self.exp_cfg["loss"]["confidence_std_factor"]
+                method=self.exp_cfg["loss"]["method"], std_factor=self.exp_cfg["loss"]["confidence_std_factor"], anomaly_detection=self.anomaly_detection
             )
             self.scale_traversability = True
         else:

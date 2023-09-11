@@ -11,6 +11,7 @@ class ConfidenceGenerator(torch.nn.Module):
         method: str = "running_mean",
         log_enabled: bool = False,
         log_folder: str = "/tmp",
+        anomaly_detection: bool = False,
     ):
         """Returns a confidence value for each number
 
@@ -23,6 +24,7 @@ class ConfidenceGenerator(torch.nn.Module):
 
         self.log_enabled = log_enabled
         self.log_folder = log_folder
+        self.anomaly_detection = anomaly_detection
 
         mean = torch.zeros(1, dtype=torch.float32)
         var = torch.ones((1, 1), dtype=torch.float32)
@@ -100,12 +102,13 @@ class ConfidenceGenerator(torch.nn.Module):
         if x.device != self.mean.device:
             return torch.zeros_like(x)
 
-        # Then the confidence is computed as the distance to the center of the Gaussian given factor*sigma
-        # confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
-        # confidence[x < self.mean] = 1.0
-
-        x = torch.clip(x, self.mean - 2 * self.std, self.mean + 2 * self.std)
-        confidence = (x - torch.min(x)) / (torch.max(x) - torch.min(x))
+        if self.anomaly_detection:
+            x = torch.clip(x, self.mean - 2 * self.std, self.mean + 2 * self.std)
+            confidence = (x - torch.min(x)) / (torch.max(x) - torch.min(x))
+        else:
+            # Then the confidence is computed as the distance to the center of the Gaussian given factor*sigma
+            confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
+            confidence[x < self.mean] = 1.0
 
         return confidence.type(torch.float32)
 
@@ -167,9 +170,11 @@ class ConfidenceGenerator(torch.nn.Module):
         if x.device != self.mean.device:
             return torch.zeros_like(x)
 
-        # confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
-        x = torch.clip(x, self.mean - 2 * self.std, self.mean + 2 * self.std)
-        confidence = (x - torch.min(x)) / (torch.max(x) - torch.min(x))
+        if self.anomaly_detection:
+            x = torch.clip(x, self.mean - 2 * self.std, self.mean + 2 * self.std)
+            confidence = (x - torch.min(x)) / (torch.max(x) - torch.min(x))
+        else:
+            confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
 
         return confidence.type(torch.float32)
 
