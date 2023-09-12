@@ -216,7 +216,14 @@ class ImageProjector:
 
         # Remove z dimension
         # TODO: project footprint on gravity aligned plane
-        flat_points = points_B[:, :, :-1]
+        flat_points = points_B[:, :, :-1]   # (B, N, 2)
+
+        # Center index of flat_points for first dimentions
+        # Hack to center points
+        # center_patch = flat_points[flat_points.shape[0] // 2, :, :]
+        # center = torch.mean(center_patch, dim=0, keepdim=True)
+        # center = center.repeat(flat_points.shape[0], flat_points.shape[1], 1)
+        # flat_points = (flat_points - center) / map_resolution + map_size / 2
 
         # Shift to grid map coordinates
         flat_points = flat_points / map_resolution + map_size / 2
