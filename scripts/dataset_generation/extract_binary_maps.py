@@ -11,6 +11,7 @@ import rospy
 import rosparam
 from sensor_msgs.msg import Image, CameraInfo, CompressedImage
 import rosbag
+from wild_visual_navigation.cfg import ExtractionParams
 
 from postprocessing_tools_ros.merging import merge_bags_single, merge_bags_all
 
@@ -64,11 +65,16 @@ def do(n, dry_run):
 
     s = os.path.join(ROOT_DIR, d["name"])
 
-    valid_topics = ["/state_estimator/anymal_state", "/wide_angle_camera_front/img_out"]
+    extraction_cfg = ExtractionParams()
 
-    rosbags = ["/home/rschmid/RosBags/6_proc/images.bag",
-               "/home/rschmid/RosBags/6_proc/2023-03-02-11-13-08_anymal-d020-lpc_mission_0.bag",
-               "/home/rschmid/RosBags/6_proc/2023-03-02-11-13-08_anymal-d020-lpc_mission_1.bag"]
+    valid_topics = extraction_cfg.wvn_topics
+    rosbags = extraction_cfg.wvn_bags
+
+    # valid_topics = ["/state_estimator/anymal_state", "/wide_angle_camera_front/img_out", "/depth_camera_front_upper/point_cloud_self_filtered"]
+    #
+    # rosbags = ["/home/rschmid/RosBags/6_proc/images.bag",
+    #            "/home/rschmid/RosBags/6_proc/2023-03-02-11-13-08_anymal-d020-lpc_mission_0.bag",
+    #            "/home/rschmid/RosBags/6_proc/2023-03-02-11-13-08_anymal-d020-lpc_mission_1.bag"]
 
     output_bag_wvn = s + "_wvn.bag"
     output_bag_tf = s + "_tf.bag"

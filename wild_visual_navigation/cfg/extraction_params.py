@@ -1,0 +1,11 @@
+from dataclasses import dataclass, field, asdict
+from typing import Tuple, Dict, List, Optional, Any
+
+@dataclass
+class ExtractionParams:
+    wvn_topics: List[str] = field(default_factory=lambda: ["/state_estimator/anymal_state", "/wide_angle_camera_front/img_out", "/depth_camera_front_upper/point_cloud_self_filtered"])
+    wvn_bags: List[str] = field(default_factory=lambda: ["/home/rschmid/RosBags/6_proc/images.bag",
+               "/home/rschmid/RosBags/6_proc/2023-03-02-11-13-08_anymal-d020-lpc_mission_0.bag",
+               "/home/rschmid/RosBags/6_proc/2023-03-02-11-13-08_anymal-d020-lpc_mission_1.bag"])
+
+data: ExtractionParams = ExtractionParams()
