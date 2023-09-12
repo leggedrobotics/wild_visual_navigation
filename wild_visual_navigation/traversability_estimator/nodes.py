@@ -113,6 +113,7 @@ class MissionNode(BaseNode):
         pose_cam_in_base: torch.tensor = torch.eye(4),
         pose_cam_in_world: torch.tensor = None,
         image: torch.tensor = None,
+        point_cloud: torch.tensor = None,
         image_projector: ImageProjector = None,
         camera_name="cam",
         use_for_training=True,
@@ -124,6 +125,7 @@ class MissionNode(BaseNode):
             self._pose_base_in_world @ self._pose_cam_in_base if pose_cam_in_world is None else pose_cam_in_world
         )
         self._image = image
+        self._point_cloud = point_cloud
         self._image_projector = image_projector
         self._camera_name = camera_name
         self._use_for_training = use_for_training
@@ -263,6 +265,10 @@ class MissionNode(BaseNode):
     @property
     def image(self):
         return self._image
+
+    @property
+    def point_cloud(self):
+        return self._point_cloud
 
     @property
     def image_projector(self):

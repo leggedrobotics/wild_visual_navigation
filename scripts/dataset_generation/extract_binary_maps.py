@@ -70,12 +70,6 @@ def do(n, dry_run):
     valid_topics = extraction_cfg.wvn_topics
     rosbags = extraction_cfg.wvn_bags
 
-    # valid_topics = ["/state_estimator/anymal_state", "/wide_angle_camera_front/img_out", "/depth_camera_front_upper/point_cloud_self_filtered"]
-    #
-    # rosbags = ["/home/rschmid/RosBags/6_proc/images.bag",
-    #            "/home/rschmid/RosBags/6_proc/2023-03-02-11-13-08_anymal-d020-lpc_mission_0.bag",
-    #            "/home/rschmid/RosBags/6_proc/2023-03-02-11-13-08_anymal-d020-lpc_mission_1.bag"]
-
     output_bag_wvn = s + "_wvn.bag"
     output_bag_tf = s + "_tf.bag"
 
@@ -154,6 +148,9 @@ def do(n, dry_run):
                     state_msg = anymal_msg_callback(msg, return_msg=True)
                     state_msg_valid = True
 
+                if topic == "/depth_camera_front_upper/point_cloud_self_filtered":
+                    point_cloud_msg = msg
+
                 elif topic == "/wide_angle_camera_front/img_out":
                     image_msg = msg
                     # print("Received /wide_angle_camera_front/img_out")
@@ -165,7 +162,7 @@ def do(n, dry_run):
 
                     info_msg.header = msg.header
                     try:
-                        wvn_ros_interface.image_callback(image_msg, info_msg, camera_options)
+                        wvn_ros_interface.image_callback(image_msg, point_cloud_msg, info_msg, camera_options)
                     except Exception as e:
                         print("Bad image_callback", e)
 

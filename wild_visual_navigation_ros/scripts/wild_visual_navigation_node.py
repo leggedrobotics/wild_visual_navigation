@@ -21,7 +21,7 @@ from pytictac import ClassTimer, ClassContextTimer, accumulate_time
 
 from geometry_msgs.msg import PoseStamped, Point, TwistStamped
 from nav_msgs.msg import Path
-from sensor_msgs.msg import Image, CameraInfo, CompressedImage
+from sensor_msgs.msg import Image, CameraInfo, CompressedImage, PointCloud2
 from std_msgs.msg import ColorRGBA, Float32, Float32MultiArray
 from threading import Thread, Event
 from visualization_msgs.msg import Marker
@@ -648,7 +648,7 @@ class WvnRosInterface:
             raise Exception("Error in robot state callback")
 
     @accumulate_time
-    def image_callback(self, image_msg: Image, info_msg: CameraInfo, camera_options: dict):
+    def image_callback(self, image_msg: Image, point_cloud: PointCloud2, info_msg: CameraInfo, camera_options: dict):
         """Main callback to process incoming images
 
         Args:
@@ -708,6 +708,7 @@ class WvnRosInterface:
                 pose_base_in_world=pose_base_in_world,
                 pose_cam_in_base=pose_cam_in_base,
                 image=torch_image,
+                point_cloud=point_cloud,
                 image_projector=image_projector,
                 camera_name=camera_options["name"],
                 use_for_training=camera_options["use_for_training"],
