@@ -420,6 +420,14 @@ class TraversabilityEstimator:
                     )
                     torch.save(mnode.image, p)
 
+                if self._mode == WVNMode.EXTRACT_LABELS:
+                    p = os.path.join(
+                        self._extraction_store_folder,
+                        "data_pc",
+                        str(mnode.timestamp).replace(".", "_") + ".pt",
+                    )
+                    torch.save(mnode.point_cloud, p)
+
                 # if self._anomaly_detection:
                 #     # Visualize supervision mask
                 #     store = torch.nan_to_num(mnode.supervision_mask.nanmean(axis=0)) != 0

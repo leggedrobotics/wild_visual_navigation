@@ -21,6 +21,7 @@ from pytictac import ClassTimer, ClassContextTimer, accumulate_time
 
 from geometry_msgs.msg import PoseStamped, Point, TwistStamped
 from nav_msgs.msg import Path
+from sensor_msgs import point_cloud2
 from sensor_msgs.msg import Image, CameraInfo, CompressedImage, PointCloud2
 from std_msgs.msg import ColorRGBA, Float32, Float32MultiArray
 from threading import Thread, Event
@@ -648,7 +649,7 @@ class WvnRosInterface:
             raise Exception("Error in robot state callback")
 
     @accumulate_time
-    def image_callback(self, image_msg: Image, point_cloud: PointCloud2, info_msg: CameraInfo, camera_options: dict):
+    def image_callback(self, image_msg: Image, point_cloud_msg: PointCloud2, info_msg: CameraInfo, camera_options: dict):
         """Main callback to process incoming images
 
         Args:
@@ -702,13 +703,15 @@ class WvnRosInterface:
             torch_image = rc.ros_image_to_torch(image_msg, device=self.device)
             torch_image = image_projector.resize_image(torch_image)
 
+            torch_pc = self.rospcmsg_to_pctorch(point_cloud_msg)
+
             # Create mission node for the graph
             mission_node = MissionNode(
                 timestamp=ts,
                 pose_base_in_world=pose_base_in_world,
                 pose_cam_in_base=pose_cam_in_base,
                 image=torch_image,
-                point_cloud=point_cloud,
+                point_cloud=torch_pc,
                 image_projector=image_projector,
                 camera_name=camera_options["name"],
                 use_for_training=camera_options["use_for_training"],
@@ -983,6 +986,16 @@ class WvnRosInterface:
                 return
             self.camera_handler[cam]["debug"]["image_labeled"].publish(rc.numpy_to_ros_image(np_labeled_image))
             self.camera_handler[cam]["debug"]["image_mask"].publish(rc.numpy_to_ros_image(np_mask_image))
+
+    def rospcmsg_to_pctorch(self, ros_cloud):
+        points_list = []
+
+        for data in point_cloud2.read_points(ros_cloud, skip_nans=True):
+            data_p = data[:3]
+            # Convert data to torch tensor
+            points_list.append(torch.tensor(data_p, dtype=torch.float32))
+
+        return torch.stack(points_list)
 
 
 if __name__ == "__main__":
