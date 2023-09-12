@@ -1,6 +1,7 @@
 from wild_visual_navigation.utils import KalmanFilter
 import torch
 import os
+from collections import deque
 
 
 class ConfidenceGenerator(torch.nn.Module):
@@ -10,6 +11,7 @@ class ConfidenceGenerator(torch.nn.Module):
         method: str = "running_mean",
         log_enabled: bool = False,
         log_folder: str = "/tmp",
+        anomaly_detection: bool = False,
     ):
         """Returns a confidence value for each number
 
@@ -22,6 +24,7 @@ class ConfidenceGenerator(torch.nn.Module):
 
         self.log_enabled = log_enabled
         self.log_folder = log_folder
+        self.anomaly_detection = anomaly_detection
 
         mean = torch.zeros(1, dtype=torch.float32)
         var = torch.ones((1, 1), dtype=torch.float32)
@@ -48,14 +51,24 @@ class ConfidenceGenerator(torch.nn.Module):
             running_sum = torch.zeros(1, dtype=torch.float64)
             running_sum_of_squares = torch.zeros(1, dtype=torch.float64)
 
-            self.running_n = torch.nn.Parameter(running_n, requires_grad=False)
-            self.running_sum = torch.nn.Parameter(running_sum, requires_grad=False)
-            self.running_sum_of_squares = torch.nn.Parameter(running_sum_of_squares, requires_grad=False)
+            # self.running_n = torch.nn.Parameter(running_n, requires_grad=False)
+            # self.running_sum = torch.nn.Parameter(running_sum, requires_grad=False)
+            # self.running_sum_of_squares = torch.nn.Parameter(running_sum_of_squares, requires_grad=False)
+
+            self.running_n = running_n.to("cuda")
+            self.running_sum = running_sum.to("cuda")
+            self.running_sum_of_squares = running_sum_of_squares.to("cuda")
+
             self._update = self.update_running_mean
             self._reset = self.reset_running_mean
         elif method == "latest_measurment":
             self._update = self.update_latest_measurment
             self._reset = self.reset_latest_measurment
+        elif method == "moving_average":
+            window_size = 5
+            self.data_window = deque(maxlen=window_size)
+            self._update = self.update_moving_average
+            self._reset = self.reset_moving_average
         else:
             raise ValueError("Unknown method")
 
@@ -66,6 +79,11 @@ class ConfidenceGenerator(torch.nn.Module):
         return self.inference_without_update(x)
 
     def reset_latest_measurment(self, x: torch.Tensor, x_positive: torch.Tensor):
+        self.mean[0] = 0
+        self.var[0] = 1
+        self.std[0] = 1
+
+    def reset_moving_average(self, x: torch.Tensor, x_positive: torch.Tensor):
         self.mean[0] = 0
         self.var[0] = 1
         self.std[0] = 1
@@ -81,9 +99,30 @@ class ConfidenceGenerator(torch.nn.Module):
         self.var[0] = self.running_sum_of_squares / self.running_n - self.mean**2
         self.std[0] = torch.sqrt(self.var)
 
-        # Then the confidence is computed as the distance to the center of the Gaussian given factor*sigma
-        confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
-        confidence[x < self.mean] = 1.0
+        if x.device != self.mean.device:
+            return torch.zeros_like(x)
+
+        if self.anomaly_detection:
+            x = torch.clip(x, self.mean - 2 * self.std, self.mean + 2 * self.std)
+            confidence = (x - torch.min(x)) / (torch.max(x) - torch.min(x))
+        else:
+            # Then the confidence is computed as the distance to the center of the Gaussian given factor*sigma
+            confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
+            confidence[x < self.mean] = 1.0
+
+        return confidence.type(torch.float32)
+
+    def update_moving_average(self, x: torch.tensor, x_positive: torch.tensor):
+        self.data_window.append(x_positive)
+
+        data_window_tensor = list(self.data_window)
+        data_window_tensor = torch.cat(data_window_tensor, dim=0)
+
+        self.mean[0] = data_window_tensor.mean()
+        self.std[0] = data_window_tensor.std()
+
+        x = torch.clip(x, self.mean - 2 * self.std, self.mean + 2 * self.std)
+        confidence = (x - torch.min(x)) / (torch.max(x) - torch.min(x))
 
         return confidence.type(torch.float32)
 
@@ -131,7 +170,12 @@ class ConfidenceGenerator(torch.nn.Module):
         if x.device != self.mean.device:
             return torch.zeros_like(x)
 
-        confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
+        if self.anomaly_detection:
+            x = torch.clip(x, self.mean - 2 * self.std, self.mean + 2 * self.std)
+            confidence = (x - torch.min(x)) / (torch.max(x) - torch.min(x))
+        else:
+            confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
+
         return confidence.type(torch.float32)
 
     def forward(self, x: torch.tensor):

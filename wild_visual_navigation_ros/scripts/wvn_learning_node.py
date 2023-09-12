@@ -5,6 +5,7 @@ from wild_visual_navigation.traversability_estimator import TraversabilityEstima
 from wild_visual_navigation.traversability_estimator import MissionNode, ProprioceptionNode
 import wild_visual_navigation_ros.ros_converter as rc
 from wild_visual_navigation_msgs.msg import RobotState, SystemState, ImageFeatures
+from wild_visual_navigation.visu import LearningVisualizer
 from wild_visual_navigation_msgs.srv import (
     LoadCheckpoint,
     SaveCheckpoint,
@@ -32,6 +33,7 @@ from threading import Thread, Event
 import os
 import seaborn as sns
 import torch
+import dataclasses
 import numpy as np
 from typing import Optional
 import traceback
@@ -51,6 +53,7 @@ class WvnLearning:
 
         # Read params
         self.read_params()
+        self.anomaly_detection = self.exp_cfg["model"]["name"] == "LinearRnvp"
 
         # Visualization
         self.color_palette = sns.color_palette(self.colormap, as_cmap=True)
@@ -68,13 +71,13 @@ class WvnLearning:
             max_distance=self.traversability_radius,
             image_distance_thr=self.image_graph_dist_thr,
             proprio_distance_thr=self.proprio_graph_dist_thr,
-            optical_flow_estimator_type=self.optical_flow_estimator_type,
             min_samples_for_training=self.min_samples_for_training,
             vis_node_index=self.vis_node_index,
             mode=self.mode,
             extraction_store_folder=self.extraction_store_folder,
             patch_size=self.dino_patch_size,
             scale_traversability=self.scale_traversability,
+            anomaly_detection=self.anomaly_detection,
         )
 
         # Initialize traversability generator to process velocity commands
@@ -112,7 +115,7 @@ class WvnLearning:
         signal.signal(signal.SIGTERM, self.shutdown_callback)
 
         # Launch processes
-        print("─" * 80)
+        print("-" * 80)
         print("Launching [learning] thread")
         if self.mode != WVNMode.EXTRACT_LABELS:
             self.learning_thread_stop_event = Event()
@@ -192,19 +195,21 @@ class WvnLearning:
                 res = self.traversability_estimator._model.state_dict()
 
                 # Compute ROC Threshold
-                if self.traversability_estimator._auxiliary_training_roc._update_count != 0:
-                    try:
-                        fpr, tpr, thresholds = self.traversability_estimator._auxiliary_training_roc.compute()
-                        index = torch.where(fpr > self.scale_traversability_max_fpr)[0][0]
-                        traversability_thershold = thresholds[index]
-                    except:
-                        traversability_thershold = 0.5
-                else:
-                    traversability_thershold = 0.5
+                if self.scale_traversability:
+                    if self.traversability_estimator._auxiliary_training_roc._update_count != 0:
+                        try:
+                            fpr, tpr, thresholds = self.traversability_estimator._auxiliary_training_roc.compute()
+                            index = torch.where(fpr > self.scale_traversability_max_fpr)[0][0]
+                            traversability_threshold = thresholds[index]
+                        except:
+                            traversability_threshold = 0.5
+                    else:
+                        traversability_threshold = 0.5
 
-                res["traversability_thershold"] = traversability_thershold
-                cg = self.traversability_estimator._traversability_loss._confidence_generator
-                res["confidence_generator"] = cg.get_dict()
+                    res["traversability_threshold"] = traversability_threshold
+                    cg = self.traversability_estimator._traversability_loss._confidence_generator
+                    res["confidence_generator"] = cg.get_dict()
+
                 os.system(f"rm {WVN_ROOT_DIR}/tmp_state_dict2.pt")
                 torch.save(res, f"{WVN_ROOT_DIR}/tmp_state_dict2.pt")
             i += 1
@@ -273,9 +278,6 @@ class WvnLearning:
         self.robot_max_velocity = rospy.get_param("~robot_max_velocity")
         self.untraversable_thr = rospy.get_param("~untraversable_thr")
 
-        # Optical flow params
-        self.optical_flow_estimator_type = rospy.get_param("~optical_flow_estimator_type")
-
         # Threads
         self.image_callback_rate = rospy.get_param("~image_callback_rate")  # hertz
         self.proprio_callback_rate = rospy.get_param("~proprio_callback_rate")  # hertz
@@ -304,7 +306,6 @@ class WvnLearning:
         elif self.mode == WVNMode.EXTRACT_LABELS:
             self.image_callback_rate = 3
             self.proprio_callback_rate = 4
-            self.optical_flow_estimator_type = False
             self.image_graph_dist_thr = 0.2
             self.proprio_graph_dist_thr = 0.1
 
@@ -326,6 +327,8 @@ class WvnLearning:
             exp_override = load_yaml(os.path.join(WVN_ROOT_DIR, "cfg/exp", exp_file))
             self.params = override_params(self.params, exp_override)
 
+        self.exp_cfg = dataclasses.asdict(self.params)
+
         self.params.general.name = self.mission_name
         self.params.general.timestamp = self.mission_timestamp
         self.params.general.log_confidence = self.log_confidence
@@ -333,8 +336,6 @@ class WvnLearning:
         self.params.loss.w_temp = 0
         self.step = -1
         self.step_time = rospy.get_time()
-
-        assert self.optical_flow_estimator_type == "none", "Optical flow estimator not tested due to changes"
 
     def setup_ros(self, setup_fully=True):
         """Main function to setup ROS-related stuff: publishers, subscribers and services"""
@@ -368,14 +369,31 @@ class WvnLearning:
                 self.camera_topics[cam]["name"] = cam
 
                 # Set subscribers
-                imagefeat_sub = message_filters.Subscriber(f"/wild_visual_navigation_node/{cam}/feat", ImageFeatures)
-                info_sub = message_filters.Subscriber(f"/wild_visual_navigation_node/{cam}/camera_info", CameraInfo)
-                sync = message_filters.ApproximateTimeSynchronizer([imagefeat_sub, info_sub], queue_size=4, slop=0.5)
-                sync.registerCallback(self.imagefeat_callback, self.camera_topics[cam])
+                if self.mode == WVNMode.DEBUG:
+                    # In debug mode additionally send the image to the callback function
+                    self._visualizer = LearningVisualizer()
 
-                self.camera_handler[cam]["image_sub"] = imagefeat_sub
-                self.camera_handler[cam]["info_sub"] = info_sub
-                self.camera_handler[cam]["sync"] = sync
+                    imagefeat_sub = message_filters.Subscriber(f"/wild_visual_navigation_node/{cam}/feat",
+                                                               ImageFeatures)
+                    info_sub = message_filters.Subscriber(f"/wild_visual_navigation_node/{cam}/camera_info", CameraInfo)
+                    image_sub = message_filters.Subscriber(f"/wild_visual_navigation_node/{cam}/image_input",
+                                                               Image)
+                    sync = message_filters.ApproximateTimeSynchronizer([imagefeat_sub, info_sub, image_sub], queue_size=4,
+                                                                       slop=0.5)
+                    sync.registerCallback(self.imagefeat_callback, self.camera_topics[cam])
+
+                    last_image_overlay_pub = rospy.Publisher(
+                        f"/wild_visual_navigation_node/{cam}/debug/last_node_image_overlay", Image, queue_size=10
+                    )
+
+                    self.camera_handler[cam]["debug"] = {}
+                    self.camera_handler[cam]["debug"]["image_overlay"] = last_image_overlay_pub
+
+                else:
+                    imagefeat_sub = message_filters.Subscriber(f"/wild_visual_navigation_node/{cam}/feat", ImageFeatures)
+                    info_sub = message_filters.Subscriber(f"/wild_visual_navigation_node/{cam}/camera_info", CameraInfo)
+                    sync = message_filters.ApproximateTimeSynchronizer([imagefeat_sub, info_sub], queue_size=4, slop=0.5)
+                    sync.registerCallback(self.imagefeat_callback, self.camera_topics[cam])
 
         # 3D outputs
         self.pub_debug_proprio_graph = rospy.Publisher(
@@ -591,13 +609,20 @@ class WvnLearning:
             raise Exception("Error in robot state callback")
 
     @accumulate_time
-    def imagefeat_callback(self, imagefeat_msg: ImageFeatures, info_msg: CameraInfo, camera_options: dict):
+    def imagefeat_callback(self, *args):
         """Main callback to process incoming images
 
         Args:
             imagefeat_msg (wild_visual_navigation_msg/ImageFeatures): Incoming imagefeatures
             info_msg (sensor_msgs/CameraInfo): Camera info message associated to the image
         """
+        if self.mode == WVNMode.DEBUG:
+            assert len(args) == 4
+            imagefeat_msg, info_msg, image_msg, camera_options = tuple(args)
+        else:
+            assert len(args) == 3
+            imagefeat_msg, info_msg, camera_options = tuple(args)
+
         self.system_events["image_callback_received"] = {"time": rospy.get_time(), "value": "message received"}
         if self.verbose:
             print(f"\nImage callback: {camera_options['name']}... ", end="")
@@ -647,14 +672,22 @@ class WvnLearning:
                 imagefeat_msg.feature_segments, desired_encoding="passthrough", device=self.device
             ).clone()
             h_small, w_small = feature_segments.shape[1:3]
+
+            torch_image = torch.zeros((3, h_small, w_small), device=self.device, dtype=torch.float32)
+
+            # convert image message to torch image
+            if self.mode == WVNMode.DEBUG:
+                torch_image = rc.ros_image_to_torch(
+                    image_msg, desired_encoding="passthrough", device=self.device
+                ).clone()
+
             # Create mission node for the graph
             mission_node = MissionNode(
                 timestamp=ts,
                 pose_base_in_world=pose_base_in_world,
                 pose_cam_in_base=pose_cam_in_base,
-                image=torch.zeros((3, h_small, w_small), device=self.device, dtype=torch.float32),
+                image=torch_image,
                 image_projector=image_projector,
-                correspondence=torch.zeros((1,)),
                 camera_name=camera_options["name"],
                 use_for_training=camera_options["use_for_training"],
             )
@@ -672,7 +705,10 @@ class WvnLearning:
                 # Publish current predictions
                 self.visualize_mission_graph()
                 # Publish supervision data depending on the mode
-                self.visualize_debug()
+                self.visualize_image_overlay()
+
+                if added_new_node:
+                    self.traversability_estimator.update_visualization_node()
 
             # Print callback time if required
             if self.print_image_callback_time:
@@ -810,9 +846,37 @@ class WvnLearning:
 
         self.pub_mission_graph.publish(mission_graph_msg)
 
+    @accumulate_time
+    def visualize_image_overlay(self):
+        """Publishes all the debugging, slow visualizations"""
+
+        # Get visualization node
+        vis_node = self.traversability_estimator.get_mission_node_for_visualization()
+
+        # Publish reprojections of last node in graph
+        if vis_node is not None:
+            cam = vis_node.camera_name
+            torch_image = vis_node._image
+            torch_mask = vis_node._supervision_mask
+            torch_mask = torch.nan_to_num(torch_mask.nanmean(axis=0)) != 0
+            torch_mask = torch_mask.float()
+
+            image_out = self._visualizer.plot_detectron_classification(torch_image, torch_mask, cmap="Greens")
+            self.camera_handler[cam]["debug"]["image_overlay"].publish(rc.numpy_to_ros_image(image_out))
+
 
 if __name__ == "__main__":
     node_name = "wvn_learning_node"
     rospy.init_node(node_name)
+    if rospy.get_param("~reload_default_params", True):
+        import rospkg
+
+        rospack = rospkg.RosPack()
+        wvn_path = rospack.get_path("wild_visual_navigation_ros")
+        os.system(f"rosparam load {wvn_path}/config/wild_visual_navigation/default.yaml wvn_learning_node")
+        os.system(
+            f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/wide_angle_front_compressed.yaml wvn_learning_node"
+        )
+
     wvn = WvnLearning()
     rospy.spin()

@@ -114,7 +114,6 @@ class MissionNode(BaseNode):
         pose_cam_in_world: torch.tensor = None,
         image: torch.tensor = None,
         image_projector: ImageProjector = None,
-        correspondence=None,
         camera_name="cam",
         use_for_training=True,
     ):
@@ -139,7 +138,6 @@ class MissionNode(BaseNode):
         self._supervision_mask = None
         self._supervision_signal = None
         self._supervision_signal_valid = None
-        self._correspondence = correspondence
         self._confidence = None
 
     def clear_debug_data(self):
@@ -181,38 +179,53 @@ class MissionNode(BaseNode):
             self._supervision_signal = self._supervision_signal.to(device)
         if self._supervision_signal_valid is not None:
             self._supervision_signal_valid = self._supervision_signal_valid.to(device)
-        if self._correspondence is not None:
-            self._correspondence = self._correspondence.to(device)
         if self._confidence is not None:
             self._confidence = self._confidence.to(device)
 
-    def as_pyg_data(self, previous_node: Optional[BaseNode] = None, aux: bool = False):
+    def as_pyg_data(self, previous_node: Optional[BaseNode] = None, anomaly_detection: bool = False, aux: bool = False):
         if aux:
             return Data(x=self.features, edge_index=self._feature_edges)
         if previous_node is None:
-            return Data(
-                x=self.features,
-                edge_index=self._feature_edges,
-                y=self._supervision_signal,
-                y_valid=self._supervision_signal_valid,
-            )
+            if anomaly_detection:
+                return Data(
+                    x=self.features[self._supervision_signal_valid],
+                    edge_index=self._feature_edges,
+                    y=self._supervision_signal[self._supervision_signal_valid],
+                    y_valid=self._supervision_signal_valid[self._supervision_signal_valid],
+                )
+            else:
+                return Data(
+                    x=self.features,
+                    edge_index=self._feature_edges,
+                    y=self._supervision_signal,
+                    y_valid=self._supervision_signal_valid,
+                )
+
         else:
-            return Data(
-                x=self.features,
-                edge_index=self._feature_edges,
-                y=self._supervision_signal,
-                y_valid=self._supervision_signal_valid,
-                x_previous=previous_node.features,
-                edge_index_previous=previous_node._feature_edges,
-                correspondence=self._correspondence,
-            )
+            if anomaly_detection:
+                return Data(
+                    x=self.features[self._supervision_signal_valid],
+                    edge_index=self._feature_edges,
+                    y=self._supervision_signal[self._supervision_signal_valid],
+                    y_valid=self._supervision_signal_valid[self._supervision_signal_valid],
+                    x_previous=previous_node.features,
+                    edge_index_previous=previous_node._feature_edges,
+                )
+            else:
+                return Data(
+                    x=self.features,
+                    edge_index=self._feature_edges,
+                    y=self._supervision_signal,
+                    y_valid=self._supervision_signal_valid,
+                    x_previous=previous_node.features,
+                    edge_index_previous=previous_node._feature_edges,
+                )
 
     def is_valid(self):
 
         valid_members = (
             isinstance(self._features, torch.Tensor)
             and isinstance(self._supervision_signal, torch.Tensor)
-            and isinstance(self._correspondence, torch.Tensor)
             and isinstance(self._supervision_signal_valid, torch.Tensor)
         )
         valid_signals = self._supervision_signal_valid.any() if valid_members else False
@@ -226,10 +239,6 @@ class MissionNode(BaseNode):
     @property
     def confidence(self):
         return self._confidence
-
-    @property
-    def correspondence(self):
-        return self._correspondence
 
     @property
     def features(self):
@@ -290,10 +299,6 @@ class MissionNode(BaseNode):
     @confidence.setter
     def confidence(self, confidence):
         self._confidence = confidence
-
-    @correspondence.setter
-    def correspondence(self, correspondence):
-        self._correspondence = correspondence
 
     @features.setter
     def features(self, features):

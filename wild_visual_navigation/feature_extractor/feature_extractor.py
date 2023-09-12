@@ -17,8 +17,7 @@ from PIL import Image, ImageDraw
 
 class FeatureExtractor:
     def __init__(
-        self, device: str, segmentation_type: str = "slic", feature_type: str = "dino", input_size: int = 448, **kwargs
-    ):
+        self, device: str, segmentation_type: str = "slic", feature_type: str = "dino", input_size: int = 448, **kwargs):
         """Feature extraction from image
 
         Args:
@@ -40,7 +39,7 @@ class FeatureExtractor:
         elif self._feature_type == "dino":
             self._feature_dim = 90
 
-            self.extractor = DinoInterface(device=device, input_size=input_size, patch_size=kwargs.get("patch_size", 8))
+            self.extractor = DinoInterface(device=device, input_size=input_size, patch_size=kwargs.get("patch_size", 8), dim=kwargs.get("dino_dim", 384))
         elif self._feature_type == "sift":
             self._feature_dim = 128
             self.extractor = DenseSIFTDescriptor().to(device)
@@ -66,7 +65,7 @@ class FeatureExtractor:
             pass
 
     def extract(self, img, **kwargs):
-        if kwargs.get("fast_random", False):
+        if self._segmentation_type == "random":
             dense_feat = self.compute_features(img, None, None, **kwargs)
 
             H, W = img.shape[2:]
@@ -83,16 +82,16 @@ class FeatureExtractor:
             return None, feat, seg, None
 
         # Compute segments, their centers, and edges connecting them (graph structure)
-        with Timer("feature_extractor - compute_segments"):
-            edges, seg, center = self.compute_segments(img, **kwargs)
+        # with Timer("feature_extractor - compute_segments"):
+        edges, seg, center = self.compute_segments(img, **kwargs)
 
         # Compute features
-        with Timer("feature_extractor - compute_features"):
-            dense_feat = self.compute_features(img, seg, center, **kwargs)
+        # with Timer("feature_extractor - compute_features"):
+        dense_feat = self.compute_features(img, seg, center, **kwargs)
 
-        with Timer("feature_extractor - compute_features"):
-            # Sparsify features to match the centers if required
-            feat = self.sparsify_features(dense_feat, seg)
+        # with Timer("feature_extractor - compute_features"):
+        # Sparsify features to match the centers if required
+        feat = self.sparsify_features(dense_feat, seg)
 
         if kwargs.get("return_dense_features", False):
             return edges, feat, seg, center, dense_feat

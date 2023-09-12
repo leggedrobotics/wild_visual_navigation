@@ -2,18 +2,21 @@
   <!-- Arguments -->
   <arg name="name"              default="wild_visual_navigation_node"/>
   <arg name="params_file"       default="$(find wild_visual_navigation_ros)/config/wild_visual_navigation/default.yaml"/>
-  <arg name="rviz_config"       default="anymal.rviz" />
-  <arg name="anymal_config"     default="/media/Data/Datasets/2022_Hoeng_High_Grass/cerberus.yaml" />
+  <arg name="rviz_config"       default="anymal_dodo.rviz" />
+  <arg name="anymal_config"     default="/home/rschmid/RosBags/6/2023-03-02-11-13-08_anymal-d020-lpc_mission.yaml" />
 
-  <arg name="anymal_converter"  default="False"/>
-  <arg name="anymal_rsl_launch" default="False"/>
+  <arg name="anymal_converter"  default="True"/>
+  <arg name="anymal_rsl_launch" default="True"/>
   <arg name="debayer"           default="False"/>
-  <arg name="rviz"              default="False"/>
+  <arg name="rviz"              default="True"/>
   <arg name="elevation_mapping" default="False"/>
   <arg name="local_planner"     default="False"/>
-  <arg name="uncompress_alphasense_cam3"     default="True"/>
-  <arg name="uncompress_alphasense_cam4"     default="True"/>
-  <arg name="uncompress_alphasense_cam5"     default="True"/>
+  <arg name="uncompress_alphasense_cam3"     default="False"/>
+  <arg name="uncompress_alphasense_cam4"     default="False"/>
+  <arg name="uncompress_alphasense_cam5"     default="False"/>
+  <arg name="uncompress_wide_angle_front"     default="True"/>
+  <arg name="resize_images_wide_angle_front"     default="True"/>
+
 
   <!-- Set sim time to true -->
   <param name="/use_sim_time" type="bool" value="True" />
@@ -26,7 +29,7 @@
   <node if="$(arg anymal_converter)" name="anymal_msg_converter_node" pkg="wild_visual_navigation_anymal" type="anymal_msg_converter_node.py"/>
 
   <!-- Launch ANYmal message converter node -->
-  <node if="$(arg anymal_rsl_launch)" name="anymal_rsl_launch" pkg="anymal_rsl_launch" type="replay.py" args="c $(arg anymal_config)"/>
+  <node if="$(arg anymal_rsl_launch)" name="anymal_rsl_launch" pkg="anymal_rsl_launch" type="replay.py" args="d $(arg anymal_config)"/>
 
   <include if="$(arg debayer)" file="$(find image_proc_cuda_ros)/launch/image_proc_cuda_node.launch">
     <arg name="cam0"                      value="False" /> 
@@ -73,5 +76,8 @@
   <node if="$(arg uncompress_alphasense_cam4)" name="uncompress_cam4" pkg="image_transport" type="republish" args="compressed in:=/alphasense_driver_ros/cam4/debayered raw out:=/alphasense_driver_ros/cam4/debayered" />
   <node if="$(arg uncompress_alphasense_cam5)" name="uncompress_cam5" pkg="image_transport" type="republish" args="compressed in:=/alphasense_driver_ros/cam5/debayered raw out:=/alphasense_driver_ros/cam5/debayered" />
 
-  
+  <node if="$(arg uncompress_wide_angle_front)" name="uncompress_wide_angle_front" pkg="image_transport" type="republish" args="compressed in:=/wide_angle_camera_front/image_color raw out:=/wide_angle_camera_front/image_color" />
+  <include if="$(arg resize_images_wide_angle_front)" file="$(find wild_visual_navigation_ros)/launch/resize_images_wide_angle_front.launch"/>
+
+
 </launch>

@@ -1,7 +1,7 @@
 <launch>
   <!-- Arguments -->
   <arg name="elevation_mapping" default="False"/>
-  <arg name="camera"            default="alphasense_resize"/> <!-- alphasense, wide_angle_front, realsense_front, realsense_rear -->
+  <arg name="camera"            default="wide_angle_front_resize"/> <!-- alphasense, wide_angle_front, realsense_front, realsense_rear -->
   <arg name="stack"             default="anybotics"/> <!-- rsl or anybotics -->
 
   <!-- Use Elevation Mapping-->
@@ -9,7 +9,8 @@
 
   <!-- Launch node -->
   <include file="$(find wild_visual_navigation_ros)/launch/wild_visual_navigation.launch">
-    <arg name="camera" value="$(arg camera)"/>
-    <arg name="stack"  value="$(arg stack)"/>
+    <arg name="camera"                   value="$(arg camera)"/>
+    <arg name="stack"                    value="$(arg stack)"/>
+    <arg name="reload_default_params"    value="False"/>
   </include>
 </launch>

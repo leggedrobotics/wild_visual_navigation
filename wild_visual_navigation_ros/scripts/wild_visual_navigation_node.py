@@ -71,7 +71,6 @@ class WvnRosInterface:
             map_size=self.map_size,
             image_distance_thr=self.image_graph_dist_thr,
             proprio_distance_thr=self.proprio_graph_dist_thr,
-            optical_flow_estimator_type=self.optical_flow_estimator_type,
             min_samples_for_training=self.min_samples_for_training,
             vis_node_index=self.vis_node_index,
             mode=self.mode,
@@ -262,9 +261,6 @@ class WvnRosInterface:
         self.robot_max_velocity = rospy.get_param("~robot_max_velocity")
         self.untraversable_thr = rospy.get_param("~untraversable_thr")
 
-        # Optical flow params
-        self.optical_flow_estimator_type = rospy.get_param("~optical_flow_estimator_type")
-
         # Threads
         self.image_callback_rate = rospy.get_param("~image_callback_rate")  # hertz
         self.proprio_callback_rate = rospy.get_param("~proprio_callback_rate")  # hertz
@@ -296,7 +292,6 @@ class WvnRosInterface:
         elif self.mode == WVNMode.EXTRACT_LABELS:
             self.image_callback_rate = 3
             self.proprio_callback_rate = 4
-            self.optical_flow_estimator_type = False
             self.image_graph_dist_thr = 0.2
             self.proprio_graph_dist_thr = 0.1
 
@@ -325,9 +320,6 @@ class WvnRosInterface:
         self.params.loss.w_temp = 0
         self.step = -1
         self.step_time = rospy.get_time()
-
-        if self.mode != WVNMode.EXTRACT_LABELS:
-            assert self.optical_flow_estimator_type == "none", "Optical flow estimator not tested due to changes"
 
     def setup_rosbag_replay(self, tf_listener):
         self.tf_listener = tf_listener
@@ -519,7 +511,12 @@ class WvnRosInterface:
                 res = self.tf_buffer.lookup_transform(parent_frame, child_frame, stamp)
                 trans = (res.transform.translation.x, res.transform.translation.y, res.transform.translation.z)
                 rot = np.array(
-                    [res.transform.rotation.x, res.transform.rotation.y, res.transform.rotation.z, res.transform.rotation.w]
+                    [
+                        res.transform.rotation.x,
+                        res.transform.rotation.y,
+                        res.transform.rotation.z,
+                        res.transform.rotation.w,
+                    ]
                 )
                 rot /= np.linalg.norm(rot)
                 return (trans, tuple(rot))
@@ -601,10 +598,14 @@ class WvnRosInterface:
                 current_twist_tensor = rc.twist_stamped_to_torch(state_msg.twist, device=self.device)
                 desired_twist_tensor = rc.twist_stamped_to_torch(desired_twist_msg, device=self.device)
 
-            # Update traversability
-            traversability, traversability_var, is_untraversable = self.supervision_generator.update_velocity_tracking(
-                current_twist_tensor, desired_twist_tensor, velocities=["vx", "vy"]
-            )
+                # Update traversability
+                (
+                    traversability,
+                    traversability_var,
+                    is_untraversable,
+                ) = self.supervision_generator.update_velocity_tracking(
+                    current_twist_tensor, desired_twist_tensor, velocities=["vx", "vy"]
+                )
 
             # Create proprioceptive node for the graph
             proprio_node = ProprioceptionNode(
@@ -708,14 +709,13 @@ class WvnRosInterface:
                 pose_cam_in_base=pose_cam_in_base,
                 image=torch_image,
                 image_projector=image_projector,
-                correspondence=torch.zeros((1,)) if self.optical_flow_estimator_type != "sparse" else None,
                 camera_name=camera_options["name"],
                 use_for_training=camera_options["use_for_training"],
             )
 
             # Add node to graph
             added_new_node = self.traversability_estimator.add_mission_node(mission_node)
-            
+
             if not self.use_binary_only:
                 with SystemLevelContextGpuMonitor(self, "update_prediction"):
                     with SystemLevelContextTimer(self, "update_prediction"):

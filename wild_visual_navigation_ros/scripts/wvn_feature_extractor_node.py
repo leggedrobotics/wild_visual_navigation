@@ -8,44 +8,114 @@ from wild_visual_navigation_msgs.msg import ImageFeatures
 import wild_visual_navigation_ros.ros_converter as rc
 from wild_visual_navigation.learning.model import get_model
 from wild_visual_navigation.utils import ConfidenceGenerator
+from wild_visual_navigation.learning.utils import AnomalyLoss
 
 import rospy
 from sensor_msgs.msg import Image, CameraInfo, CompressedImage
-from std_msgs.msg import Float32, MultiArrayDimension
-from rospy.numpy_msg import numpy_msg
-import message_filters
+from std_msgs.msg import MultiArrayDimension
 
-from pytictac import Timer, CpuTimer
 import os
 import torch
 import numpy as np
 import dataclasses
 from torch_geometric.data import Data
 import torch.nn.functional as F
+from threading import Thread, Event
+from prettytable import PrettyTable
+from termcolor import colored
+import signal
+import sys
 
 
 class WvnFeatureExtractor:
     def __init__(self):
         # Read params
         self.read_params()
+        self.anomaly_detection = self.exp_cfg["model"]["name"] == "LinearRnvp"
+
         self.feature_extractor = FeatureExtractor(
             self.device,
             segmentation_type=self.segmentation_type,
             feature_type=self.feature_type,
             input_size=self.network_input_image_height,
+            slic_num_components=self.slic_num_components,
+            dino_dim=self.dino_dim,
         )
-        self.setup_ros()
+        self.i = 0        
+        
 
         self.model = get_model(self.exp_cfg["model"]).to(self.device)
         self.model.eval()
+        
+        
 
-        self.confidence_generator = ConfidenceGenerator(
-            method=self.exp_cfg["loss"]["method"], std_factor=self.exp_cfg["loss"]["confidence_std_factor"]
-        )
-        self.scale_traversability = True
-        self.traversability_thershold = 0.5
+        if not self.anomaly_detection:
+            self.confidence_generator = ConfidenceGenerator(
+                method=self.exp_cfg["loss"]["method"], std_factor=self.exp_cfg["loss"]["confidence_std_factor"], anomaly_detection=self.anomaly_detection
+            )
+            self.scale_traversability = True
+        else:
+            self.traversability_loss = AnomalyLoss(**self.exp_cfg["loss_anomaly"], log_enabled=self.exp_cfg["general"]["log_confidence"], log_folder=self.exp_cfg["general"]["model_path"])
+            self.traversability_loss.to(self.device)
+            self.scale_traversability = False
 
-        self.i = 0
+        if self.verbose:
+            self.log_data = {}
+            self.status_thread_stop_event = Event()
+            self.status_thread = Thread(target=self.status_thread_loop, name="status")
+            self.run_status_thread = True
+            self.status_thread.start()
+
+        self.setup_ros()
+
+        rospy.on_shutdown(self.shutdown_callback)
+        signal.signal(signal.SIGINT, self.shutdown_callback)
+        signal.signal(signal.SIGTERM, self.shutdown_callback)
+
+    def shutdown_callback(self, *args, **kwargs):
+        self.run_status_thread = False
+        self.status_thread_stop_event.set()
+        self.status_thread.join()
+
+        rospy.signal_shutdown(f"Wild Visual Navigation Feature Extraction killed {args}")
+        sys.exit(0)
+
+    def status_thread_loop(self):
+        rate = rospy.Rate(self.status_thread_rate)
+        # Learning loop
+        while self.run_status_thread:
+
+            self.status_thread_stop_event.wait(timeout=0.01)
+            if self.status_thread_stop_event.is_set():
+                rospy.logwarn("Stopped learning thread")
+                break
+
+            t = rospy.get_time()
+            x = PrettyTable()
+            x.field_names = ["Key", "Value"]
+
+            for k, v in self.log_data.items():
+                if "time" in k:
+                    d = t - v
+                    if d < 0:
+                        c = "red"
+                    if d < 0.2:
+                        c = "green"
+                    elif d < 1.0:
+                        c = "yellow"
+                    else:
+                        c = "red"
+                    x.add_row([k, colored(round(d, 2), c)])
+                else:
+                    x.add_row([k, v])
+            print(x)
+            # try:
+            #    rate.sleep()
+            # except Exception as e:
+            #    rate = rospy.Rate(self.status_thread_rate)
+            #    print("Ignored jump pack in time!")
+        self.status_thread_stop_event.clear()
+
 
     def read_params(self):
         """Reads all the parameters from the parameter server"""
@@ -61,11 +131,16 @@ class WvnFeatureExtractor:
         self.segmentation_type = rospy.get_param("~segmentation_type")
         self.feature_type = rospy.get_param("~feature_type")
         self.dino_patch_size = rospy.get_param("~dino_patch_size")
+        self.dino_dim = rospy.get_param("~dino_dim")
+        self.slic_num_components = rospy.get_param("~slic_num_components")
+        self.traversability_threshold = rospy.get_param("~traversability_threshold")
+        self.clip_to_binary = rospy.get_param("~clip_to_binary")
 
         self.confidence_std_factor = rospy.get_param("~confidence_std_factor")
         self.scale_traversability = rospy.get_param("~scale_traversability")
         self.scale_traversability_max_fpr = rospy.get_param("~scale_traversability_max_fpr")
-
+        self.status_thread_rate = rospy.get_param("~status_thread_rate")
+        self.prediction_per_pixel = rospy.get_param("~prediction_per_pixel")
         # Initialize traversability estimator parameters
         # Experiment file
         exp_file = rospy.get_param("~exp")
@@ -80,8 +155,20 @@ class WvnFeatureExtractor:
     def setup_ros(self, setup_fully=True):
         """Main function to setup ROS-related stuff: publishers, subscribers and services"""
         # Image callback
+
         self.camera_handler = {}
+
+        if self.verbose:
+            # DEBUG Logging
+            self.log_data[f"time_last_model"] = -1
+            self.log_data[f"nr_model_updates"] = -1
+
         for cam in self.camera_topics:
+            if self.verbose:
+                # DEBUG Logging
+                self.log_data[f"nr_images_{cam}"] = 0
+                self.log_data[f"time_last_image_{cam}"] = -1
+
             # Initialize camera handler for given cam
             self.camera_handler[cam] = {}
             # Store camera name
@@ -135,6 +222,9 @@ class WvnFeatureExtractor:
             info_pub = rospy.Publisher(f"/wild_visual_navigation_node/{cam}/camera_info", CameraInfo, queue_size=10)
             self.camera_handler[cam]["trav_pub"] = trav_pub
             self.camera_handler[cam]["info_pub"] = info_pub
+            if self.anomaly_detection and self.camera_topics[cam]["publish_confidence"]:
+                print(colored("Warning force set public confidence to false", "red"))
+                self.camera_topics[cam]["publish_confidence"] = False
 
             if self.camera_topics[cam]["publish_input_image"]:
                 input_pub = rospy.Publisher(f"/wild_visual_navigation_node/{cam}/image_input", Image, queue_size=10)
@@ -160,7 +250,9 @@ class WvnFeatureExtractor:
             cam (str): Camera name
         """
         if self.verbose:
-            print("Processing Camera: ", cam)
+            # DEBUG Logging
+            self.log_data[f"nr_images_{cam}"] += 1
+            self.log_data[f"time_last_image_{cam}"] = rospy.get_time()
 
         # Update model from file if possible
         self.load_model()
@@ -174,26 +266,45 @@ class WvnFeatureExtractor:
             return_centers=False,
             return_dense_features=True,
             n_random_pixels=100,
-            fast_random=True,
         )
 
-        # Evaluate traversability
-        data = Data(x=dense_feat[0].permute(1, 2, 0).reshape(-1, dense_feat.shape[1]))
-        prediction = self.model.forward(data)
-        out_trav = prediction.reshape(H, W, -1)[:, :, 0]
+        if self.prediction_per_pixel:
+            # Evaluate traversability
+            data = Data(x=dense_feat[0].permute(1, 2, 0).reshape(-1, dense_feat.shape[1]))
+        else:
+            # input_feat = dense_feat[0].permute(1, 2, 0).reshape(-1, dense_feat.shape[1])
+            input_feat = feat[seg.reshape(-1)]
+            data = Data(x=input_feat)
 
-        # Publish traversability
-        if self.scale_traversability:
-            # Apply piecewise linear scaling 0->0; threshold->0.5; 1->1
-            traversability = out_trav.clone()
-            m = traversability < self.traversability_thershold
-            # Scale untraversable
-            traversability[m] *= 0.5 / self.traversability_thershold
-            # Scale traversable
-            traversability[~m] -= self.traversability_thershold
-            traversability[~m] *= 0.5 / (1 - self.traversability_thershold)
-            traversability[~m] += 0.5
-            traversability = traversability.clip(0, 1)
+        # Evaluate traversability
+        prediction = self.model.forward(data)
+
+        if not self.anomaly_detection:
+
+            out_trav = prediction.reshape(H, W, -1)[:, :, 0]
+
+            # Publish traversability
+            if self.scale_traversability:
+                # Apply piecewise linear scaling 0->0; threshold->0.5; 1->1
+                traversability = out_trav.clone()
+                m = traversability < self.traversability_threshold
+                # Scale untraversable
+                traversability[m] *= 0.5 / self.traversability_threshold
+                # Scale traversable
+                traversability[~m] -= self.traversability_threshold
+                traversability[~m] *= 0.5 / (1 - self.traversability_threshold)
+                traversability[~m] += 0.5
+                traversability = traversability.clip(0, 1)
+                # TODO Check if this was a bug
+                out_trav = traversability
+        else:
+            loss, loss_aux, trav = self.traversability_loss(None, prediction)
+
+            out_trav = trav.reshape(H, W, -1)[:, :, 0]
+
+            # Clip to binary output
+            if self.clip_to_binary:
+                out_trav = torch.where(out_trav.squeeze() <= self.traversability_threshold, 0.0, 1.0)
 
         msg = rc.numpy_to_ros_image(out_trav.cpu().numpy(), "passthrough")
         msg.header = image_msg.header
@@ -252,19 +363,28 @@ class WvnFeatureExtractor:
             self.i += 1
             if self.i % 100 == 0:
                 res = torch.load(f"{WVN_ROOT_DIR}/tmp_state_dict2.pt")
-                if (self.model.state_dict()["layers.0.weight"] != res["layers.0.weight"]).any():
-                    if self.verbose:
-                        print("Model updated.")
-                    self.model.load_state_dict(res, strict=False)
-                    self.traversability_thershold = res["traversability_thershold"]
-                    self.confidence_generator_state = res["confidence_generator"]
+                k = list(self.model.state_dict().keys())[-1]
 
+                if (self.model.state_dict()[k] != res[k]).any():
+                    if self.verbose:
+                        self.log_data[f"time_last_model"] = rospy.get_time()
+                        self.log_data[f"nr_model_updates"] += 1
+
+                self.model.load_state_dict(res, strict=False)
+
+                try:
+                    if res["traversability_threshold"] is not None:
+                        self.traversability_threshold = res["traversability_threshold"]
+                    if res["confidence_generator"] is not None:
+                        self.confidence_generator_state = res["confidence_generator"]
+
+                    self.confidence_generator_state = res["confidence_generator"]
                     self.confidence_generator.var = self.confidence_generator_state["var"]
                     self.confidence_generator.mean = self.confidence_generator_state["mean"]
                     self.confidence_generator.std = self.confidence_generator_state["std"]
-                else:
-                    if self.verbose:
-                        print("Model did not change.")
+                except:
+                    pass
+
         except Exception as e:
             if self.verbose:
                 print(f"Model Loading Failed: {e}")
@@ -273,5 +393,19 @@ class WvnFeatureExtractor:
 if __name__ == "__main__":
     node_name = "wvn_feature_extractor_node"
     rospy.init_node(node_name)
+
+    if rospy.get_param("~reload_default_params", True):
+        import rospkg
+
+        rospack = rospkg.RosPack()
+        wvn_path = rospack.get_path("wild_visual_navigation_ros")
+        os.system(f"rosparam load {wvn_path}/config/wild_visual_navigation/default.yaml wvn_feature_extractor_node")
+        os.system(
+            f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/wide_angle_front_compressed.yaml wvn_feature_extractor_node"
+        )
+        print(
+            f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/wide_angle_front_compressed.yaml wvn_feature_extractor_node"
+        )
+
     wvn = WvnFeatureExtractor()
     rospy.spin()

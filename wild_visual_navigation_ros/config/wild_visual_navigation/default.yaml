@@ -24,8 +24,8 @@ base_frame: base
 footprint_frame: footprint
 
 # Robot size
-robot_length: 1.0
-robot_width: 0.6
+robot_length: 0.8
+robot_width: 0.4
 robot_height: 0.3
 
 # Robot specs
@@ -39,18 +39,19 @@ network_input_image_height: 128 # 448
 network_input_image_width: 128 # 448
 segmentation_type: "slic"
 feature_type: "dino"
-dino_patch_size: 16 # DINO only
-confidence_std_factor: 1.0
-scale_traversability: True
-scale_traversability_max_fpr: 0.15
+dino_patch_size: 8 # 8 or 16; 8 is finer
+slic_num_components: 100
+dino_dim: 384 # 90 or 384; 384 is better
+confidence_std_factor: 4.0
+scale_traversability: False  # This parameter needs to be false when using the anomaly detection model
+scale_traversability_max_fpr: 0.25
 min_samples_for_training: 5
-
+prediction_per_pixel: True
+traversability_threshold: 0.55
+clip_to_binary: False
 # Map params
 map_resolution: 0.1 # meters
 map_size: 128 # centimeters
-
-# Optical flow params
-optical_flow_estimator_type: "none"
 
 # Supervision Generator
 untraversable_thr: 0.01
@@ -63,10 +64,11 @@ image_callback_rate: 10 # hertz
 proprio_callback_rate: 4 # hertz
 learning_thread_rate: 10 # hertz
 logging_thread_rate: 2 # hertz
+status_thread_rate: 0.5 # hertz
 
 # Runtime options
 device: "cuda"
-mode: "online" # check out comments in the class WVNMode
+mode: "debug" # check out comments in the class WVNMode
 colormap: "RdYlBu"
 
 print_image_callback_time: false
@@ -76,6 +78,7 @@ log_memory: false
 log_confidence: true
 verbose: false
 debug_supervision_node_index_from_last: 10
+use_debug_for_desired: false
 
 use_debug_for_desired: true
 extraction_store_folder:  /home/rschmid/RosBags/output/6

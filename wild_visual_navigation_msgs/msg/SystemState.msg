@@ -1,5 +1,7 @@
 # Pipeline operation mode
 uint32 mode
+# Current valid samples
+uint32 mission_graph_num_valid_node
 # Training loss
 float32 loss_total
 # Training loss

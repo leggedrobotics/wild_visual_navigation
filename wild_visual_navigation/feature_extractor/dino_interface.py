@@ -6,6 +6,7 @@ import torch
 from omegaconf import DictConfig
 from torchvision import transforms as T
 from stego.src.train_segmentation import DinoFeaturizer
+from kornia.filters import filter2d
 
 
 class DinoInterface:
@@ -16,16 +17,19 @@ class DinoInterface:
         input_interp: str = "bilinear",
         model_type: str = "vit_small",
         patch_size: int = 8,
+        dim: int = 384,
+        projection_type: str = None,  # nonlinear or None
+        dropout: bool = False,  # True or False
     ):
-        self.dim = 90
+        self.dim = dim
         self.cfg = DictConfig(
             {
                 "dino_patch_size": patch_size,
                 "dino_feat_type": "feat",
                 "model_type": model_type,
-                "projection_type": "nonlinear",
+                "projection_type": projection_type,
                 "pretrained_weights": None,
-                "dropout": True,
+                "dropout": dropout,
             }
         )
 
@@ -136,7 +140,6 @@ class DinoInterface:
         pad = int((W - H) / 2)
         features = F.interpolate(features, new_size, mode="bilinear", align_corners=True)
         features = F.pad(features, pad=[pad, pad, 0, 0])
-
         return features
 
     @property
