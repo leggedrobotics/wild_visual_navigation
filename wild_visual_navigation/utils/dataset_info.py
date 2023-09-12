@@ -39,7 +39,7 @@ python3 /media/Data/Datasets/2022_Perugia/dataset_info.py
 #         "stop": 500,
 #         "comment": "",
 #     },
-ROOT_DIR = "/home/rschmid/RosBags/6"
+ROOT_DIR = "/home/rschmid/RosBags/6_proc"
 perugia_dataset = [
     {
         "name": "6",

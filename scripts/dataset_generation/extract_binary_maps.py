@@ -66,9 +66,9 @@ def do(n, dry_run):
 
     valid_topics = ["/state_estimator/anymal_state", "/wide_angle_camera_front/img_out"]
 
-    rosbags = ["/home/rschmid/RosBags/6/images.bag",
-               "/home/rschmid/RosBags/6/2023-03-02-11-13-08_anymal-d020-lpc_mission_0.bag",
-               "/home/rschmid/RosBags/6/2023-03-02-11-13-08_anymal-d020-lpc_mission_1.bag"]
+    rosbags = ["/home/rschmid/RosBags/6_proc/images.bag",
+               "/home/rschmid/RosBags/6_proc/2023-03-02-11-13-08_anymal-d020-lpc_mission_0.bag",
+               "/home/rschmid/RosBags/6_proc/2023-03-02-11-13-08_anymal-d020-lpc_mission_1.bag"]
 
     output_bag_wvn = s + "_wvn.bag"
     output_bag_tf = s + "_tf.bag"
