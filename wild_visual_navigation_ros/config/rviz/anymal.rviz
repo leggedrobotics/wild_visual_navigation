@@ -480,7 +480,7 @@ Visualization Manager:
               Marker Topic: /wild_visual_navigation_node/graph_footprints
               Name: Footprint
               Namespaces:
-                footprints: true
+                {}
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -636,7 +636,7 @@ Visualization Manager:
               Unreliable: false
               Value: false
             - Class: rviz/Image
-              Enabled: true
+              Enabled: false
               Image Topic: /wide_angle_camera_front/image_color
               Max Value: 1
               Median window: 5
@@ -646,7 +646,7 @@ Visualization Manager:
               Queue Size: 2
               Transport Hint: raw
               Unreliable: false
-              Value: true
+              Value: false
             - Class: rviz/Image
               Enabled: false
               Image Topic: ""
@@ -898,7 +898,7 @@ Visualization Manager:
               Queue Size: 2
               Transport Hint: raw
               Unreliable: false
-              Value: true
+              Value: false
             - Class: rviz/Image
               Enabled: false
               Image Topic: /wild_visual_navigation_visu_traversability/traversability_overlayed
@@ -1067,7 +1067,7 @@ Visualization Manager:
               Unreliable: false
               Value: false
             - Class: rviz/Image
-              Enabled: false
+              Enabled: true
               Image Topic: /wild_visual_navigation_node/right/traversability
               Max Value: 1
               Median window: 5
@@ -1077,9 +1077,9 @@ Visualization Manager:
               Queue Size: 2
               Transport Hint: raw
               Unreliable: false
-              Value: false
+              Value: true
             - Class: rviz/Image
-              Enabled: false
+              Enabled: true
               Image Topic: /wild_visual_navigation_node/right/confidence
               Max Value: 1
               Median window: 5
@@ -1462,9 +1462,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.8738794326782227
-        Y: 1.1860613822937012
-        Z: -5.593326091766357
+        X: -3.0532710552215576
+        Y: 0.17962050437927246
+        Z: -5.593326568603516
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

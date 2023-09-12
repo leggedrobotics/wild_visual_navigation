@@ -41,6 +41,8 @@ import tf2_ros
 if torch.cuda.is_available():
     torch.cuda.empty_cache()
 
+torch.set_printoptions(edgeitems=200)
+
 
 class WvnRosInterface:
     def __init__(self):
@@ -65,6 +67,8 @@ class WvnRosInterface:
             segmentation_type=self.segmentation_type,
             feature_type=self.feature_type,
             max_distance=self.traversability_radius,
+            map_resolution=self.map_resolution,
+            map_size=self.map_size,
             image_distance_thr=self.image_graph_dist_thr,
             proprio_distance_thr=self.proprio_graph_dist_thr,
             min_samples_for_training=self.min_samples_for_training,
@@ -249,6 +253,10 @@ class WvnRosInterface:
         self.min_samples_for_training = rospy.get_param("~min_samples_for_training")
         self.vis_node_index = rospy.get_param("~debug_supervision_node_index_from_last")
 
+        # Map params
+        self.map_resolution = rospy.get_param("~map_resolution")
+        self.map_size = rospy.get_param("~map_size")
+
         # Supervision Generator
         self.robot_max_velocity = rospy.get_param("~robot_max_velocity")
         self.untraversable_thr = rospy.get_param("~untraversable_thr")
@@ -272,9 +280,8 @@ class WvnRosInterface:
 
         # Select mode: # debug, online, extract_labels
         self.use_debug_for_desired = rospy.get_param("~use_debug_for_desired")  # Note: Unused parameter
-        self.use_binary_only = rospy.get_param(
-            "~use_binary_only"
-        )  # Only extract binary labels, do not update traversability
+        self.use_binary_only = rospy.get_param("~use_binary_only") # Only extract binary labels, do not update traversability
+        self.supervision_projection_mode = rospy.get_param("~supervision_projection_mode")
         self.mode = WVNMode.from_string(rospy.get_param("~mode", "debug"))
         self.extraction_store_folder = rospy.get_param("~extraction_store_folder")
 
@@ -617,10 +624,10 @@ class WvnRosInterface:
             )
 
             # Add node to the graph
-            self.traversability_estimator.add_proprio_node(proprio_node)
+            self.traversability_estimator.add_proprio_node(proprio_node, projection_mode=self.supervision_projection_mode)
 
-            if self.mode == WVNMode.DEBUG or self.mode == WVNMode.ONLINE:
-                self.visualize_proprioception()
+            # if self.mode == WVNMode.DEBUG or self.mode == WVNMode.ONLINE:
+            # self.visualize_proprioception()
 
             if self.print_proprio_callback_time:
                 print(self.timer)
@@ -723,6 +730,8 @@ class WvnRosInterface:
                 self.visualize_mission()
                 # Publish supervision data depending on the mode
                 self.visualize_debug()
+
+            # self.visualize_proprioception()
 
             # If a new node was added, update the node is used to visualize the supervision signals
             if added_new_node:
@@ -916,6 +925,7 @@ class WvnRosInterface:
             if self.verbose:
                 print(f"number of points for footprint is {len(footprints_marker.points)}")
             return
+
         self.pub_graph_footprints.publish(footprints_marker)
         self.pub_debug_proprio_graph.publish(proprio_graph_msg)
 

@@ -1,0 +1,18 @@
+<launch>
+  <!-- Arguments -->
+  <arg name="name"              default="wild_visual_navigation_node"/>
+  <arg name="params_file"       default="$(find wild_visual_navigation_ros)/config/wild_visual_navigation/default.yaml"/>
+  <arg name="anymal_config"     default="/home/rschmid/RosBags/6_raw/2023-03-02-11-13-08_anymal-d020-lpc_mission.yaml" />
+
+  <arg name="anymal_rsl_launch" default="True"/>
+
+  <!-- Set sim time to true -->
+  <param name="/use_sim_time" type="bool" value="True" />
+
+  <!-- Load parameters -->
+  <rosparam command="load" file="$(arg params_file)" ns="$(arg name)"/>
+
+  <!-- Launch ANYmal message converter node -->
+  <node if="$(arg anymal_rsl_launch)" name="anymal_rsl_launch" pkg="anymal_rsl_launch" type="replay.py" args="d $(arg anymal_config)"/>
+
+</launch>
