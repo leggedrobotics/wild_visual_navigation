@@ -403,6 +403,8 @@ class TraversabilityEstimator:
                 mnode.supervision_mask = supervision_masks[i]
                 # mnode.update_supervision_signal()   # Accumulate supervision signal, check if features are there
 
+                # print("Save data...")
+
                 if self._mode == WVNMode.EXTRACT_LABELS:
                     p = os.path.join(
                         self._extraction_store_folder,
