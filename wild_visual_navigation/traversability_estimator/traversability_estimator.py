@@ -30,6 +30,8 @@ import torch.nn.functional as F
 import torchvision.transforms as transforms
 from torchmetrics import ROC
 import random
+import numpy as np
+import cv2
 
 to_tensor = transforms.ToTensor()
 
@@ -300,9 +302,9 @@ class TraversabilityEstimator:
             node.supervision_mask = supervision_mask
             node.update_supervision_signal()
 
-            if self._mode == WVNMode.EXTRACT_LABELS:
-                p = os.path.join(self._extraction_store_folder, "image", str(node.timestamp).replace(".", "_") + ".pt")
-                torch.save(node.image, p)
+            # if self._mode == WVNMode.EXTRACT_LABELS:
+            #     p = os.path.join(self._extraction_store_folder, "image", str(node.timestamp).replace(".", "_") + ".pt")
+            #     torch.save(node.image, p)
 
             return True
         else:
@@ -406,34 +408,46 @@ class TraversabilityEstimator:
                 # print("Save data...")
 
                 if self._mode == WVNMode.EXTRACT_LABELS:
-                    p = os.path.join(
+                    # Save mask as torch file
+                    mask = torch.nan_to_num(mnode.supervision_mask.nanmean(axis=0)) != 0
+                    torch.save(mask, os.path.join(
                         self._extraction_store_folder,
-                        "data_mask",
+                        "mask",
                         str(mnode.timestamp).replace(".", "_") + ".pt",
-                    )
-                    store = torch.nan_to_num(mnode.supervision_mask.nanmean(axis=0)) != 0
-                    torch.save(store, p)
+                    ))
 
-                if self._mode == WVNMode.EXTRACT_LABELS:
-                    p = os.path.join(
+                    # Save mask as jpg
+                    mask = mask.cpu().numpy().astype(np.uint8) * 255
+                    cv2.imwrite(os.path.join(
                         self._extraction_store_folder,
-                        "data_image",
-                        str(mnode.timestamp).replace(".", "_") + ".pt",
-                    )
-                    torch.save(mnode.image, p)
+                        "mask_jpg",
+                        str(mnode.timestamp).replace(".", "_") + ".jpg",
+                    ), mask)
 
-                if self._mode == WVNMode.EXTRACT_LABELS:
-                    p = os.path.join(
+                    # Save image as torch file
+                    torch.save(mnode.image, os.path.join(
                         self._extraction_store_folder,
-                        "data_pc",
+                        "image",
                         str(mnode.timestamp).replace(".", "_") + ".pt",
-                    )
-                    torch.save(mnode.point_cloud, p)
+                    ))
 
-                # if self._anomaly_detection:
-                #     # Visualize supervision mask
-                #     store = torch.nan_to_num(mnode.supervision_mask.nanmean(axis=0)) != 0
-                #     self._last_image_mask_pub.publish(self._bridge.cv2_to_imgmsg(store.cpu().numpy().astype(np.uint8) * 255, "mono8"))
+                    # Save image as jpg
+                    img = mnode.image.permute(1, 2, 0).cpu().numpy()
+                    img = cv2.convertScaleAbs(img, alpha=(255.0))
+                    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+                    cv2.imwrite(os.path.join(
+                        self._extraction_store_folder,
+                        "image_jpg",
+                        str(mnode.timestamp).replace(".", "_") + ".jpg",
+                    ), img)
+
+                    # Save point cloud as torch file
+                    torch.save(mnode.point_cloud, os.path.join(
+                        self._extraction_store_folder,
+                        "point_cloud",
+                        str(mnode.timestamp).replace(".", "_") + ".pt",
+                    ))
 
             return True
 
