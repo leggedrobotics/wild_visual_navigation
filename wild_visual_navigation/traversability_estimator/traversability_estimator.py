@@ -59,7 +59,6 @@ class TraversabilityEstimator:
         mode: bool = False,
         extraction_store_folder=None,
         anomaly_detection: bool = False,
-        vis_training_samples: bool = False,
         **kwargs,
     ):
         self._device = device
@@ -141,7 +140,7 @@ class TraversabilityEstimator:
         self._loss = torch.tensor([torch.inf])
         self._step = 0
 
-        self.pub_clock = rospy.Publisher('clock', Clock, queue_size=1)
+        self.pub_clock = rospy.Publisher("clock", Clock, queue_size=1)
         self.pub_grid_map = rospy.Publisher("target", GridMap, queue_size=1)
 
         torch.set_grad_enabled(True)
@@ -429,6 +428,7 @@ class TraversabilityEstimator:
                                                             timestamp=rospy.Time.from_sec(mnode.timestamp),
                                                             reference_frame="odom", x=0, y=0)
                     # Hack to also publish a clock and record a new bag
+                    # print(rospy.Time.from_sec(mnode.timestamp))
                     self.pub_clock.publish(rospy.Time.from_sec(mnode.timestamp))
                     self.pub_grid_map.publish(mask_msg)
 
