@@ -23,6 +23,7 @@ from geometry_msgs.msg import PoseStamped, Point, TwistStamped
 from nav_msgs.msg import Path
 from sensor_msgs import point_cloud2
 from sensor_msgs.msg import Image, CameraInfo, CompressedImage, PointCloud2
+from grid_map_msgs.msg import GridMap, GridMapInfo
 from std_msgs.msg import ColorRGBA, Float32, Float32MultiArray
 from threading import Thread, Event
 from visualization_msgs.msg import Marker
@@ -649,7 +650,7 @@ class WvnRosInterface:
             raise Exception("Error in robot state callback")
 
     @accumulate_time
-    def image_callback(self, image_msg: Image, point_cloud_msg: PointCloud2, info_msg: CameraInfo, camera_options: dict):
+    def image_callback(self, image_msg: Image, point_cloud_msg: PointCloud2, grid_map_msg: GridMap, info_msg: CameraInfo, camera_options: dict):
         """Main callback to process incoming images
 
         Args:
@@ -712,6 +713,7 @@ class WvnRosInterface:
                 pose_cam_in_base=pose_cam_in_base,
                 image=torch_image,
                 point_cloud=torch_pc,
+                grid_map=grid_map_msg,
                 image_projector=image_projector,
                 camera_name=camera_options["name"],
                 use_for_training=camera_options["use_for_training"],

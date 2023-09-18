@@ -152,6 +152,9 @@ def do(n, dry_run):
                     point_cloud_msg = msg
                     # print("point_cloud_msg", msg.header.stamp.to_sec())
 
+                if topic == "/elevation_mapping/elevation_map_raw":
+                    elevation_map_msg = msg
+
                 elif topic == "/wide_angle_camera_front/img_out":
                     image_msg = msg
                     # print("Received /wide_angle_camera_front/img_out")
@@ -164,7 +167,7 @@ def do(n, dry_run):
 
                     info_msg.header = msg.header
                     try:
-                        wvn_ros_interface.image_callback(image_msg, point_cloud_msg, info_msg, camera_options)
+                        wvn_ros_interface.image_callback(image_msg, point_cloud_msg, elevation_map_msg, info_msg, camera_options)
                         print("Time diff", abs(point_cloud_msg.header.stamp.to_sec() - image_msg.header.stamp.to_sec()))
                     except Exception as e:
                         print("Bad image_callback", e)

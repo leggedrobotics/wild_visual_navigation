@@ -6,6 +6,7 @@ import os
 import torch
 import torch.nn.functional as F
 from typing import Optional
+from grid_map_msgs.msg import GridMap, GridMapInfo
 
 
 class BaseNode:
@@ -114,6 +115,7 @@ class MissionNode(BaseNode):
         pose_cam_in_world: torch.tensor = None,
         image: torch.tensor = None,
         point_cloud: torch.tensor = None,
+        grid_map: GridMap = None,
         image_projector: ImageProjector = None,
         camera_name="cam",
         use_for_training=True,
@@ -126,6 +128,7 @@ class MissionNode(BaseNode):
         )
         self._image = image
         self._point_cloud = point_cloud
+        self._grid_map = grid_map
         self._image_projector = image_projector
         self._camera_name = camera_name
         self._use_for_training = use_for_training
@@ -269,6 +272,10 @@ class MissionNode(BaseNode):
     @property
     def point_cloud(self):
         return self._point_cloud
+
+    @property
+    def grid_map(self):
+        return self._grid_map
 
     @property
     def image_projector(self):
