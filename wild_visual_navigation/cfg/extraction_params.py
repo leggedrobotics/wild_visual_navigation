@@ -8,9 +8,12 @@ class ExtractionParams:
                                                            "/depth_camera_front_upper/point_cloud_self_filtered",
                                                            "/elevation_mapping/elevation_map_raw"])
     wvn_bags: List[str] = field(default_factory=lambda: ["/home/rschmid/RosBags/6_proc/images.bag",
+                                                         "/home/rschmid/RosBags/6_proc/2023-03-02-11-13-08_anymal-d020-jetson_mission_0.bag",
+                                                         "/home/rschmid/RosBags/6_proc/2023-03-02-11-13-08_anymal-d020-jetson_mission_1.bag",
                "/home/rschmid/RosBags/6_proc/2023-03-02-11-13-08_anymal-d020-lpc_mission_0.bag",
                "/home/rschmid/RosBags/6_proc/2023-03-02-11-13-08_anymal-d020-lpc_mission_1.bag",
                 "/home/rschmid/RosBags/6_proc/2023-03-02-11-13-08_anymal-d020-npc_mission_0.bag",
                 "/home/rschmid/RosBags/6_proc/2023-03-02-11-13-08_anymal-d020-npc_mission_1.bag"])
+
 
 data: ExtractionParams = ExtractionParams()

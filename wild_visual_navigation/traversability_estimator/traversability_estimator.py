@@ -16,7 +16,11 @@ from wild_visual_navigation.utils import make_polygon_from_points
 from wild_visual_navigation.visu import LearningVisualizer
 from wild_visual_navigation.utils import KLTTracker, KLTTrackerOpenCV
 
-
+from std_msgs.msg import Float32MultiArray, MultiArrayDimension
+from grid_map_msgs.msg import GridMap, GridMapInfo
+from rosgraph_msgs.msg import Clock
+import rosbag
+import rospy
 from wild_visual_navigation import WVN_ROOT_DIR
 from pytorch_lightning import seed_everything
 from torch_geometric.data import Data, Batch
@@ -136,6 +140,9 @@ class TraversabilityEstimator:
         self._optimizer = torch.optim.Adam(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
         self._loss = torch.tensor([torch.inf])
         self._step = 0
+
+        self.pub_clock = rospy.Publisher('clock', Clock, queue_size=1)
+        self.pub_grid_map = rospy.Publisher("target", GridMap, queue_size=1)
 
         torch.set_grad_enabled(True)
 
@@ -416,13 +423,22 @@ class TraversabilityEstimator:
                         str(mnode.timestamp).replace(".", "_") + ".pt",
                     ))
 
+                    # Write as grid map msg and save as rosbag
+                    mask_torch = mask.cpu().numpy()[np.newaxis, ...].astype(np.uint8)
+                    mask_msg = self.torch_array_to_grid_map(mask_torch, res=0.1, layers=["target"],
+                                                            timestamp=rospy.Time.from_sec(mnode.timestamp),
+                                                            reference_frame="odom", x=0, y=0)
+                    # Hack to also publish a clock and record a new bag
+                    self.pub_clock.publish(rospy.Time.from_sec(mnode.timestamp))
+                    self.pub_grid_map.publish(mask_msg)
+
                     # Save mask as jpg
-                    mask = mask.cpu().numpy().astype(np.uint8) * 255
+                    mask_jpg = mask.cpu().numpy().astype(np.uint8) * 255
                     cv2.imwrite(os.path.join(
                         self._extraction_store_folder,
                         "mask_jpg",
                         str(mnode.timestamp).replace(".", "_") + ".jpg",
-                    ), mask)
+                    ), mask_jpg)
 
                     # Save image as torch file
                     torch.save(mnode.image, os.path.join(
@@ -445,7 +461,7 @@ class TraversabilityEstimator:
                     # Save point cloud as torch file
                     torch.save(mnode.point_cloud, os.path.join(
                         self._extraction_store_folder,
-                        "point_cloud",
+                        "pcd",
                         str(mnode.timestamp).replace(".", "_") + ".pt",
                     ))
 
@@ -485,6 +501,41 @@ class TraversabilityEstimator:
         self._learning_lock = None
         pickle.dump(self, open(output_file, "wb"))
         self._pause_training = False
+
+    def torch_array_to_grid_map(self, arr, res, layers, timestamp, reference_frame="odom", x=0, y=0):
+        size_x = arr.shape[1]
+        size_y = arr.shape[2]
+
+        data_dim_0 = MultiArrayDimension()
+        data_dim_0.label = "column_index"  # y dimension
+        data_dim_0.size = size_y  # number of columns which is y
+        data_dim_0.stride = size_y * size_x  # rows*cols
+        data_dim_1 = MultiArrayDimension()
+        data_dim_1.label = "row_index"  # x dimension
+        data_dim_1.size = size_x  # number of rows which is x
+        data_dim_1.stride = size_x  # number of rows
+        data = []
+
+        for i in range(arr.shape[0]):
+            data_tmp = Float32MultiArray()
+            data_tmp.layout.dim.append(data_dim_0)
+            data_tmp.layout.dim.append(data_dim_1)
+            data_tmp.data = arr[i, ::-1, ::-1].transpose().ravel()
+            data.append(data_tmp)
+
+        info = GridMapInfo()
+        info.pose.orientation.w = 1
+        info.header.seq = 0
+        info.header.stamp = timestamp
+        info.resolution = res
+        info.length_x = size_x * res
+        info.length_y = size_y * res
+        info.header.frame_id = reference_frame
+        info.pose.position.x = x
+        info.pose.position.y = y
+        gm_msg = GridMap(info=info, layers=layers, basic_layers=[], data=data)
+
+        return gm_msg
 
     @classmethod
     def load(cls, file_path: str, device="cpu"):
