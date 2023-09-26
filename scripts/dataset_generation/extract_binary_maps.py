@@ -124,6 +124,8 @@ def do(n, dry_run):
     total_time_state = 0
     n = 0
 
+    point_clouds = {}
+
     with rosbag.Bag(output_bag_wvn, "r") as bag:
         if rospy.is_shutdown():
             return
@@ -149,16 +151,19 @@ def do(n, dry_run):
                     state_msg_valid = True
 
                 if topic == "/depth_camera_front_upper/point_cloud_self_filtered":
-                    point_cloud_msg = msg
-                    # print("point_cloud_msg", msg.header.stamp.to_sec())
+                    point_clouds["depth_camera_front_upper"] = msg
 
-                if topic == "/elevation_mapping/elevation_map_raw":
-                    elevation_map_msg = msg
+                if topic == "/depth_camera_rear_upper/point_cloud_self_filtered":
+                    point_clouds["depth_camera_rear_upper"] = msg
+
+                if topic == "/depth_camera_left/point_cloud_self_filtered":
+                    point_clouds["depth_camera_left"] = msg
+
+                if topic == "/depth_camera_right/point_cloud_self_filtered":
+                    point_clouds["depth_camera_right"] = msg
 
                 elif topic == "/wide_angle_camera_front/img_out":
                     image_msg = msg
-                    # print("Received /wide_angle_camera_front/img_out")
-                    # print("image_msg", msg.header.stamp.to_sec())
 
                     info_msg.header = msg.header
                     camera_options = {}
@@ -167,7 +172,7 @@ def do(n, dry_run):
 
                     info_msg.header = msg.header
                     try:
-                        wvn_ros_interface.image_callback(image_msg, point_cloud_msg, elevation_map_msg, info_msg, camera_options)
+                        wvn_ros_interface.image_callback(image_msg, point_clouds, info_msg, camera_options)
                         # print("Time diff", abs(point_cloud_msg.header.stamp.to_sec() - image_msg.header.stamp.to_sec()))
                     except Exception as e:
                         print("Bad image_callback", e)

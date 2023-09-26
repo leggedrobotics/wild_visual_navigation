@@ -377,8 +377,10 @@ class TraversabilityEstimator:
             )
             pose_camera_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
             pose_base_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
-            pose_pc_in_base = torch.eye(4, device=self._device).repeat(B, 1, 1)
-            pose_pc_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
+            # pose_pc_in_base = torch.eye(4, device=self._device).repeat(B, 1, 1)
+            # pose_pc_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
+            pose_pc_in_base = {}
+            pose_pc_in_world = {}
 
             H = last_mission_node.image_projector.camera.height
             W = last_mission_node.image_projector.camera.width
@@ -388,8 +390,6 @@ class TraversabilityEstimator:
                 K[i] = mnode.image_projector.camera.intrinsics
                 pose_camera_in_world[i] = mnode.pose_cam_in_world
                 pose_base_in_world[i] = mnode.pose_base_in_world
-                pose_pc_in_base[i] = mnode.pose_pc_in_base
-                pose_pc_in_world[i] = mnode.pose_pc_in_world
 
                 if (not hasattr(mnode, "supervision_mask")) or (mnode.supervision_mask is None):
                     continue
@@ -462,8 +462,12 @@ class TraversabilityEstimator:
                         str(mnode.timestamp).replace(".", "_") + ".jpg",
                     ), img)
 
-                    # Project point cloud to world frame
-                    point_cloud = self.project_pc(mnode.point_cloud, pose_pc_in_base[i])
+                    # Project point cloud to world frame, concatenate all points
+                    point_cloud = []
+                    for key in mnode.point_clouds:
+                        # print(key)
+                        point_cloud.append(self.project_pc(mnode.point_clouds[key], mnode.pose_pc_in_base[key]))
+                    point_cloud = torch.cat(point_cloud, dim=0)
 
                     # Save point cloud as torch file
                     torch.save(point_cloud, os.path.join(

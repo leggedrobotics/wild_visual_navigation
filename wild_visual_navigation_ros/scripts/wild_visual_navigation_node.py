@@ -298,7 +298,10 @@ class WvnRosInterface:
             self.proprio_graph_dist_thr = 0.1
 
             os.makedirs(os.path.join(self.extraction_store_folder, "image"), exist_ok=True)
-            os.makedirs(os.path.join(self.extraction_store_folder, "supervision_mask"), exist_ok=True)
+            os.makedirs(os.path.join(self.extraction_store_folder, "image_jpg"), exist_ok=True)
+            os.makedirs(os.path.join(self.extraction_store_folder, "mask"), exist_ok=True)
+            os.makedirs(os.path.join(self.extraction_store_folder, "mask_jpg"), exist_ok=True)
+            os.makedirs(os.path.join(self.extraction_store_folder, "pcd"), exist_ok=True)
 
         # Experiment file
         exp_file = rospy.get_param("~exp")
@@ -650,7 +653,7 @@ class WvnRosInterface:
             raise Exception("Error in robot state callback")
 
     @accumulate_time
-    def image_callback(self, image_msg: Image, point_cloud_msg: PointCloud2, grid_map_msg: GridMap, info_msg: CameraInfo, camera_options: dict):
+    def image_callback(self, image_msg: Image, point_clouds: dict, info_msg: CameraInfo, camera_options: dict):
         """Main callback to process incoming images
 
         Args:
@@ -692,15 +695,18 @@ class WvnRosInterface:
                     "value": "canceled due to pose_cam_in_base",
                 }
                 return
-            suc, pose_pc_in_base = rc.ros_tf_to_torch(
-                self.query_tf(self.base_frame, point_cloud_msg.header.frame_id, point_cloud_msg.header.stamp), device=self.device
-            )
-            if not suc:
-                self.system_events["image_callback_canceled"] = {
-                    "time": rospy.get_time(),
-                    "value": "canceled due to pose_pc_in_base",
-                }
-                return
+
+            pose_pc_in_base = {}
+            for key in point_clouds.keys():
+                suc, pose_pc_in_base[key] = rc.ros_tf_to_torch(
+                    self.query_tf(self.base_frame, point_clouds[key].header.frame_id, point_clouds[key].header.stamp), device=self.device
+                )
+                if not suc:
+                    self.system_events["image_callback_canceled"] = {
+                        "time": rospy.get_time(),
+                        "value": "canceled due to pose_pc_in_base",
+                    }
+                    return
 
             # Prepare image projector
             K, H, W = rc.ros_cam_info_to_tensors(info_msg, device=self.device)
@@ -713,7 +719,9 @@ class WvnRosInterface:
             torch_image = rc.ros_image_to_torch(image_msg, device=self.device)
             torch_image = image_projector.resize_image(torch_image)
 
-            torch_pc = self.rospcmsg_to_pctorch(point_cloud_msg)
+            torch_pc = {}
+            for key in point_clouds.keys():
+                torch_pc[key] = self.rospcmsg_to_pctorch(point_clouds[key])
 
             # Create mission node for the graph
             mission_node = MissionNode(
@@ -722,8 +730,7 @@ class WvnRosInterface:
                 pose_cam_in_base=pose_cam_in_base,
                 pose_pc_in_base=pose_pc_in_base,
                 image=torch_image,
-                point_cloud=torch_pc,
-                grid_map=grid_map_msg,
+                point_clouds=torch_pc,
                 image_projector=image_projector,
                 camera_name=camera_options["name"],
                 use_for_training=camera_options["use_for_training"],

@@ -6,7 +6,6 @@ import os
 import torch
 import torch.nn.functional as F
 from typing import Optional
-from grid_map_msgs.msg import GridMap, GridMapInfo
 
 
 class BaseNode:
@@ -113,11 +112,10 @@ class MissionNode(BaseNode):
         pose_base_in_world: torch.tensor = torch.eye(4),
         pose_cam_in_base: torch.tensor = torch.eye(4),
         pose_cam_in_world: torch.tensor = None,
-        pose_pc_in_base: torch.tensor = torch.eye(4),
-        pose_pc_in_world: torch.tensor = None,
+        pose_pc_in_base: dict = None,
+        pose_pc_in_world: dict = None,
         image: torch.tensor = None,
-        point_cloud: torch.tensor = None,
-        grid_map: GridMap = None,
+        point_clouds: dict = None,
         image_projector: ImageProjector = None,
         camera_name="cam",
         use_for_training=True,
@@ -129,12 +127,14 @@ class MissionNode(BaseNode):
             self._pose_base_in_world @ self._pose_cam_in_base if pose_cam_in_world is None else pose_cam_in_world
         )
         self._pose_pc_in_base = pose_pc_in_base
-        self._pose_pc_in_world = (
-            self._pose_base_in_world @ self._pose_pc_in_base if pose_pc_in_world is None else pose_pc_in_world
-        )
+        self._pose_pc_in_world = {}
+        for key in self._pose_pc_in_base:
+            self._pose_pc_in_world[key] = (
+                self._pose_base_in_world @ self._pose_pc_in_base[key] if pose_pc_in_world is None else pose_pc_in_world
+            )
+
         self._image = image
-        self._point_cloud = point_cloud
-        self._grid_map = grid_map
+        self._point_clouds = point_clouds
         self._image_projector = image_projector
         self._camera_name = camera_name
         self._use_for_training = use_for_training
@@ -276,12 +276,8 @@ class MissionNode(BaseNode):
         return self._image
 
     @property
-    def point_cloud(self):
-        return self._point_cloud
-
-    @property
-    def grid_map(self):
-        return self._grid_map
+    def point_clouds(self):
+        return self._point_clouds
 
     @property
     def image_projector(self):
