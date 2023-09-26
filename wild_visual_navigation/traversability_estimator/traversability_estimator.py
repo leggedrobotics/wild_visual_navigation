@@ -358,7 +358,7 @@ class TraversabilityEstimator:
 
             # Get all mission nodes within a range
             mission_nodes = self._mission_graph.get_nodes_within_radius_range(
-                last_mission_node, 0, self._proprio_graph.max_distance
+                last_mission_node, 0, self._proprio_graph.max_distance, metric="pose"
             )
 
             if len(mission_nodes) < 1:
@@ -462,7 +462,7 @@ class TraversabilityEstimator:
                         str(mnode.timestamp).replace(".", "_") + ".jpg",
                     ), img)
 
-                    # Project point cloud to world frame, concatenate all points
+                    # Project point cloud to world frame, then concatenate all points
                     point_cloud = []
                     for key in mnode.point_clouds:
                         # print(key)
