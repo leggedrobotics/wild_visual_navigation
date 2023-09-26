@@ -678,18 +678,27 @@ class WvnRosInterface:
                 self.query_tf(self.fixed_frame, self.base_frame, image_msg.header.stamp), device=self.device
             )
             if not suc:
-                self.system_events["image_callback_cancled"] = {
+                self.system_events["image_callback_canceled"] = {
                     "time": rospy.get_time(),
-                    "value": "cancled due to pose_base_in_world",
+                    "value": "canceled due to pose_base_in_world",
                 }
                 return
             suc, pose_cam_in_base = rc.ros_tf_to_torch(
                 self.query_tf(self.base_frame, image_msg.header.frame_id, image_msg.header.stamp), device=self.device
             )
             if not suc:
-                self.system_events["image_callback_cancled"] = {
+                self.system_events["image_callback_canceled"] = {
                     "time": rospy.get_time(),
-                    "value": "cancled due to pose_cam_in_base",
+                    "value": "canceled due to pose_cam_in_base",
+                }
+                return
+            suc, pose_pc_in_base = rc.ros_tf_to_torch(
+                self.query_tf(self.base_frame, point_cloud_msg.header.frame_id, point_cloud_msg.header.stamp), device=self.device
+            )
+            if not suc:
+                self.system_events["image_callback_canceled"] = {
+                    "time": rospy.get_time(),
+                    "value": "canceled due to pose_pc_in_base",
                 }
                 return
 
@@ -711,6 +720,7 @@ class WvnRosInterface:
                 timestamp=ts,
                 pose_base_in_world=pose_base_in_world,
                 pose_cam_in_base=pose_cam_in_base,
+                pose_pc_in_base=pose_pc_in_base,
                 image=torch_image,
                 point_cloud=torch_pc,
                 grid_map=grid_map_msg,

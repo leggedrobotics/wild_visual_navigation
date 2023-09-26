@@ -113,6 +113,8 @@ class MissionNode(BaseNode):
         pose_base_in_world: torch.tensor = torch.eye(4),
         pose_cam_in_base: torch.tensor = torch.eye(4),
         pose_cam_in_world: torch.tensor = None,
+        pose_pc_in_base: torch.tensor = torch.eye(4),
+        pose_pc_in_world: torch.tensor = None,
         image: torch.tensor = None,
         point_cloud: torch.tensor = None,
         grid_map: GridMap = None,
@@ -125,6 +127,10 @@ class MissionNode(BaseNode):
         self._pose_cam_in_base = pose_cam_in_base
         self._pose_cam_in_world = (
             self._pose_base_in_world @ self._pose_cam_in_base if pose_cam_in_world is None else pose_cam_in_world
+        )
+        self._pose_pc_in_base = pose_pc_in_base
+        self._pose_pc_in_world = (
+            self._pose_base_in_world @ self._pose_pc_in_base if pose_pc_in_world is None else pose_pc_in_world
         )
         self._image = image
         self._point_cloud = point_cloud
@@ -286,6 +292,18 @@ class MissionNode(BaseNode):
         return self._pose_cam_in_world
 
     @property
+    def pose_cam_in_base(self):
+        return self._pose_cam_in_base
+
+    @property
+    def pose_pc_in_world(self):
+        return self._pose_pc_in_world
+
+    @property
+    def pose_pc_in_base(self):
+        return self._pose_pc_in_base
+
+    @property
     def prediction(self):
         return self._prediction
 
@@ -344,6 +362,18 @@ class MissionNode(BaseNode):
     @pose_cam_in_world.setter
     def pose_cam_in_world(self, pose_cam_in_world):
         self._pose_cam_in_world = pose_cam_in_world
+
+    @pose_cam_in_base.setter
+    def pose_cam_in_base(self, pose_cam_in_base):
+        self._pose_cam_in_base = pose_cam_in_base
+
+    @pose_pc_in_world.setter
+    def pose_pc_in_world(self, pose_pc_in_world):
+        self._pose_pc_in_world = pose_pc_in_world
+
+    @pose_pc_in_base.setter
+    def pose_pc_in_base(self, pose_pc_in_base):
+        self._pose_pc_in_base = pose_pc_in_base
 
     @prediction.setter
     def prediction(self, prediction):

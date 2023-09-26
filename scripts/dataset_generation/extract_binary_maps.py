@@ -168,7 +168,7 @@ def do(n, dry_run):
                     info_msg.header = msg.header
                     try:
                         wvn_ros_interface.image_callback(image_msg, point_cloud_msg, elevation_map_msg, info_msg, camera_options)
-                        print("Time diff", abs(point_cloud_msg.header.stamp.to_sec() - image_msg.header.stamp.to_sec()))
+                        # print("Time diff", abs(point_cloud_msg.header.stamp.to_sec() - image_msg.header.stamp.to_sec()))
                     except Exception as e:
                         print("Bad image_callback", e)
 

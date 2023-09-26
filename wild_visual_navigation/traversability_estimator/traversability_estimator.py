@@ -377,6 +377,8 @@ class TraversabilityEstimator:
             )
             pose_camera_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
             pose_base_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
+            pose_pc_in_base = torch.eye(4, device=self._device).repeat(B, 1, 1)
+            pose_pc_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
 
             H = last_mission_node.image_projector.camera.height
             W = last_mission_node.image_projector.camera.width
@@ -386,6 +388,8 @@ class TraversabilityEstimator:
                 K[i] = mnode.image_projector.camera.intrinsics
                 pose_camera_in_world[i] = mnode.pose_cam_in_world
                 pose_base_in_world[i] = mnode.pose_base_in_world
+                pose_pc_in_base[i] = mnode.pose_pc_in_base
+                pose_pc_in_world[i] = mnode.pose_pc_in_world
 
                 if (not hasattr(mnode, "supervision_mask")) or (mnode.supervision_mask is None):
                     continue
@@ -458,8 +462,11 @@ class TraversabilityEstimator:
                         str(mnode.timestamp).replace(".", "_") + ".jpg",
                     ), img)
 
+                    # Project point cloud to world frame
+                    point_cloud = self.project_pc(mnode.point_cloud, pose_pc_in_base[i])
+
                     # Save point cloud as torch file
-                    torch.save(mnode.point_cloud, os.path.join(
+                    torch.save(point_cloud, os.path.join(
                         self._extraction_store_folder,
                         "pcd",
                         str(mnode.timestamp).replace(".", "_") + ".pt",
@@ -536,6 +543,19 @@ class TraversabilityEstimator:
         gm_msg = GridMap(info=info, layers=layers, basic_layers=[], data=data)
 
         return gm_msg
+
+    def project_pc(self, pc, tf):
+
+        tf = tf.cpu()
+        position = np.array(tf[:3, -1])
+        R = np.array(tf[:3, :3])
+
+        # Transform points to frame
+        points_list = []
+        for p in pc:
+            p = np.matmul(R, np.array(p)) + position
+            points_list.append(tuple(p))
+        return torch.tensor(points_list, dtype=torch.float32)
 
     @classmethod
     def load(cls, file_path: str, device="cpu"):
