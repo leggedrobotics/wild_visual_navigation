@@ -35,8 +35,8 @@ robot_max_velocity: 0.8
 traversability_radius: 10.0 # meters
 image_graph_dist_thr: 0.2 # meters
 proprio_graph_dist_thr: 0.1 # meters
-network_input_image_height: 540
-network_input_image_width: 720
+network_input_image_height: 480
+network_input_image_width: 640
 segmentation_type: "slic"
 feature_type: "dino"
 dino_patch_size: 8 # 8 or 16; 8 is finer
