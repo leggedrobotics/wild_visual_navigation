@@ -74,6 +74,9 @@ class ImageProjector:
         sw = torch.IntTensor([sw]).to(device)
         self.camera = PinholeCamera(sK, E, sh, sw)
 
+        # Print camera intrinsics matrix
+        # print("\n" + str(self.camera.camera_matrix) + "\n")
+
         # Preallocate masks
         B = self.camera.batch_size
         C = 3  # RGB channel output
