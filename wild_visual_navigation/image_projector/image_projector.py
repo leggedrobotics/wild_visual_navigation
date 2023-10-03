@@ -205,8 +205,11 @@ class ImageProjector:
         # self.masks = self.masks * 0.0
         B = self.camera.batch_size
         C = 3  # RGB channel output
-        H = self.camera.height.item()
-        W = self.camera.width.item()
+        # H = self.camera.height.item()
+        # W = self.camera.width.item()
+        # Camera height and width are identical here
+        H = map_size
+        W = map_size
         self.masks = torch.zeros((B, C, H, W), dtype=torch.float32, device=self.camera.camera_matrix.device)
         image_overlay = image
 

@@ -302,7 +302,8 @@ class TraversabilityEstimator:
                 print(s)
 
             # Project past footprints on current image
-            supervision_mask = torch.ones(node.image.shape).to(self._device) * torch.nan
+            # supervision_mask = torch.ones(node.image.shape).to(self._device) * torch.nan
+            supervision_mask = torch.ones((3, self._map_size, self._map_size)).to(self._device) * torch.nan
 
             # Finally overwrite the current mask
             node.supervision_mask = supervision_mask
@@ -427,14 +428,14 @@ class TraversabilityEstimator:
                     ))
 
                     # Write as grid map msg and save as rosbag
-                    mask_torch = mask.cpu().numpy()[np.newaxis, ...].astype(np.uint8)
-                    mask_msg = self.torch_array_to_grid_map(mask_torch, res=0.1, layers=["target"],
-                                                            timestamp=rospy.Time.from_sec(mnode.timestamp),
-                                                            reference_frame="odom", x=0, y=0)
-                    # Hack to also publish a clock and record a new bag
-                    # print(rospy.Time.from_sec(mnode.timestamp))
-                    self.pub_clock.publish(rospy.Time.from_sec(mnode.timestamp))
-                    self.pub_grid_map.publish(mask_msg)
+                    # mask_torch = mask.cpu().numpy()[np.newaxis, ...].astype(np.uint8)
+                    # mask_msg = self.torch_array_to_grid_map(mask_torch, res=0.1, layers=["target"],
+                    #                                         timestamp=rospy.Time.from_sec(mnode.timestamp),
+                    #                                         reference_frame="odom", x=0, y=0)
+                    # # Hack to also publish a clock and record a new bag
+                    # # print(rospy.Time.from_sec(mnode.timestamp))
+                    # self.pub_clock.publish(rospy.Time.from_sec(mnode.timestamp))
+                    # self.pub_grid_map.publish(mask_msg)
 
                     # Save mask as jpg
                     mask_jpg = mask.cpu().numpy().astype(np.uint8) * 255
