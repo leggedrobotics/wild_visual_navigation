@@ -74,6 +74,7 @@ lpc:
   - /resource_database/reports
   - /sensors/battery_voltage
   - /soft_emcy_stop
+  - /clock
 npc:
   ###########################################################
   - /lidar/packets
@@ -123,7 +124,8 @@ jetson:
   - /elevation_mapping/elevation_map_recordable
   - /elevation_mapping/statistics
   - /elevation_mapping/elevation_map_raw
-  #############################################################################
+  # - /elevation_mapping/semantic_map_raw
+  ############################################################################
   - /chrony_monitor_jetson/status
   - /cpu_loupe_jetson/cpu_loupe
   - /disk_monitor_jetson/status
@@ -136,6 +138,8 @@ jetson:
   - /pinger_jetson_to_lpc/ping
   - /pinger_jetson_to_npc/ping
   - /pinger_jetson_to_apc/ping
-  - /wild_visual_navigation_node/front/image_input
-  - /wild_visual_navigation_node/front/debug/last_node_image_overlay
-  - /wild_visual_navigation_visu_traversability/traversability_overlayed
+  - /hdr_camera/image_raw/compressed
+  - /hdr_camera/camera_info
+  # - /wild_visual_navigation_node/front/image_input
+  # - /wild_visual_navigation_node/front/debug/last_node_image_overlay
+  # - /wild_visual_navigation_visu_traversability/traversability_overlayed

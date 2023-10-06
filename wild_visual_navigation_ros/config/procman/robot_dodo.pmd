@@ -42,6 +42,10 @@ group "02.start" {
         exec = "rosrun anymal_d_rsl opc.py";
         host = "localhost";
     }
+    cmd "9.1.elevation_mapping_cupy" {
+        exec = "roslaunch elevation_mapping_cupy elevation_mapping_cupy.launch";
+        host = "jetson";
+    }
 }
 
 group "03.recording" {
@@ -175,6 +179,10 @@ group "08.npc" {
 
 
 group "09.orin" {
+    cmd "9.1.wild_visual_navigation" {
+        exec = "roslaunch wild_visual_navigation_ros robot.launch";
+        host = "jetson";
+    }
     cmd "9.1.wild_visual_navigation" {
         exec = "roslaunch wild_visual_navigation_ros robot.launch";
         host = "jetson";
