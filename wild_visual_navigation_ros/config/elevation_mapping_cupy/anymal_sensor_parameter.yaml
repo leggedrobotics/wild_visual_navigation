@@ -80,17 +80,30 @@ subscribers:
   #   channels: ["visual_confidence"]
   #   data_type: image
 
+  # For Anymal C
+#  front_depth:
+#    channels: []
+#    fusion: []
+#    topic_name: /depth_camera_front/point_cloud_self_filtered
+#    data_type: pointcloud
+#
+#  rear_depth:
+#    channels: []
+#    fusion: []
+#    topic_name: /depth_camera_rear/point_cloud_self_filtered
+#    data_type: pointcloud
 
+  # For Anymal D
   front_depth:
-    channels: []
-    fusion: []
-    topic_name: /depth_camera_front/point_cloud_self_filtered
+    channels: [ ]
+    fusion: [ ]
+    topic_name: /depth_camera_front_upper/point_cloud_self_filtered
     data_type: pointcloud
 
   rear_depth:
-    channels: []
-    fusion: []
-    topic_name: /depth_camera_rear/point_cloud_self_filtered
+    channels: [ ]
+    fusion: [ ]
+    topic_name: /depth_camera_rear_upper/point_cloud_self_filtered
     data_type: pointcloud
 
   left_depth:

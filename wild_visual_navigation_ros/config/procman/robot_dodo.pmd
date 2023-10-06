@@ -1,44 +1,44 @@
-group "01.startup" {
-    cmd "1.1.chrony" {
+group "01 - startup" {
+    cmd "01 - power jetson" {
+            exec = "/home/jonfrey/powerline.sh";
+            host = "lpc";
+        }
+    cmd "02 - ping jetson" {
+        exec = "ping anymal-dodo-jetson";
+        host = "localhost";
+    }
+    cmd "03 - chrony" {
         exec = "rosrun anymal_rsl_chrony reset_chrony.sh jonfrey dodo d020 false";
         host = "localhost";
     }
-    cmd "1.2.depth" {
+    cmd "04 - depth" {
         exec = "rosservice call /depth_cameras/enable 'data: true' ";
         host = "localhost";
     }
-    cmd "1.3.lidar" {
+    cmd "05 - lidar" {
         exec = "rosservice call /lidar/enable 'data: true' ";
         host = "localhost";
     }
-    cmd "1.4.wide angle" {
+    cmd "06 - wide angle" {
         exec = "rosservice call /wide_angle_cameras/enable 'data: true' ";
-        host = "localhost";
-    }
-    cmd "1.5.power jetson" {
-        exec = "/home/jonfrey/powerline.sh";
-        host = "lpc";
-    }
-    cmd "1.6.ping jetson" {
-        exec = "ping anymal-dodo-jetson";
         host = "localhost";
     }
 }
 
-group "02.start" {
-    cmd "2.1.lpc" {
+group "02 - start" {
+    cmd "01 - lpc" {
         exec = "rosrun anymal_dodo_rsl lpc.py";
         host = "lpc";
     }
-    cmd "2.2.npc" {
+    cmd "02 - npc" {
         exec = "rosrun anymal_d_rsl npc.py";
         host = "npc";
     }
-    cmd "2.3.jetson" {
+    cmd "03 - jetson" {
         exec = "rosrun anymal_d_rsl jetson.py";
         host = "jetson";
     }
-    cmd "2.4.opc" {
+    cmd "04 - opc" {
         exec = "rosrun anymal_d_rsl opc.py";
         host = "localhost";
     }
@@ -48,135 +48,159 @@ group "02.start" {
     }
 }
 
-group "03.recording" {
-    cmd "3.1.rosbag_record" {
+group "09 - wvn" {
+    cmd "01 - anymal_msg_converter" {
+        exec = "rosrun wild_visual_navigation_anymal anymal_msg_converter_node.py";
+        host = "lpc";
+    }
+    cmd "02 - rviz" {
+        exec = "roslaunch wild_visual_navigation_ros view.launch";
+        host = "localhost";
+    }
+    cmd "03 - wild_visual_navigation" {
+        exec = "roslaunch wild_visual_navigation_ros robot.launch";
+        host = "jetson";
+    }
+    cmd "04 - rqt learning graph" {
+        exec = "rosrun rqt_multiplot rqt_multiplot";
+        host = "localhost";
+    }
+    cmd "04 - kill_wvn" {
+        exec = "rosnode kill /wild_visual_navigation_node";
+        host = "localhost";
+    }
+}
+
+group "03 - recording" {
+    cmd "01 - rosbag_record" {
         exec = "rosservice call /rosbag_record_robot_coordinator/record_bag 'yaml_file: /home/jonfrey/git/diffusion_navigation/diffusion_navigation_ros/config/recording/dodo.yaml' ";
         host = "localhost";
     }
-    cmd "3.2.rosbag_record_state" {
+    cmd "02 - rosbag_record_state" {
         exec = "rosnode list | grep record";
         host = "localhost";
     }
-    cmd "3.3.rosbag_stop" {
+    cmd "03 - rosbag_stop" {
         exec = "rosservice call /rosbag_record_robot_coordinator/stop_bag 'verbose: false' ";
         host = "localhost";
     }
-    cmd "3.4.fetch_bags" {
+    cmd "04 - fetch_bags" {
         exec = "/home/jonfrey/git/anymal_rsl/anymal_rsl/anymal_rsl_utils/anymal_rsl_recording/anymal_rsl_recording/bin/copy_mission_data_from_robot.sh jonfrey dodo /home/jonfrey/mission_data";
         host = "localhost";
     }
-    cmd "3.5.delete_bags" {
+    cmd "05 - delete_bags" {
         exec = "/home/jonfrey/git/anymal_rsl/anymal_rsl/anymal_rsl_utils/anymal_rsl_recording/anymal_rsl_recording/bin/remove_mission_data_from_robot.sh jonfrey dodo";
         host = "localhost";
     }
-    cmd "3.6.reset_recording" {
+    cmd "06 - reset_recording" {
         exec = "rosnode kill rosbag_record_coordinator rosbag_record_robot_jetson rosbag_record_robot_npc rosbag_record_robot_lpc";
         host = "localhost";
     }
 }
 
-group "04.monitoring" {
-    cmd "4.1.lpc_disk" {
+group "04 - monitoring" {
+    cmd "01 - lpc_disk" {
         exec = "rostopic echo /disk_monitor_lpc/status/disks[1]";
         host = "localhost";
     }
-    cmd "4.2.npc_disk" {
+    cmd "02 - npc_disk" {
         exec = "rostopic echo /disk_monitor_npc/status/disks[1]";
         host = "localhost";
     }
-    cmd "4.3.jetson_disk" {
+    cmd "03 - jetson_disk" {
         exec = "rostopic echo /disk_monitor_jetson/status/disks[1]";
         host = "localhost";
     }
 }
 
-group "05.network" {
-    cmd "5.1.switch_to_access_point" {
+group "05 - network" {
+    cmd "01 - switch_to_access_point" {
         exec = "rosrun anymal_router_utils router_utils.bash -i 192.168.0.173 -p d020 -m 1";
         host = "localhost";
     }
-    cmd "5.2.switch_to_client_mode" {
+    cmd "02 - switch_to_client_mode" {
         exec = "rosrun anymal_router_utils router_utils.bash -i 192.168.0.173 -p d020 -m 3";
         host = "localhost";
     }
 }
 
 
-group "06.disk_free" {
-    cmd "6.1.lpc" {
+group "06 - disk_free" {
+    cmd "01 - lpc" {
         exec = "df -h /dev/sda4";
         host = "lpc";
     }
-    cmd "6.2.npc" {
+    cmd "02 - npc" {
         exec = " df -h /dev/sda4";
         host = "npc";
     }
-    cmd "6.3.jetson" {
+    cmd "03 - jetson" {
         exec = "df -h /dev/nvme0n1p1";
         host = "jetson";
     }
-    cmd "6.3.opc" {
+    cmd "04 - opc" {
         exec = "df -h /dev/nvme0n1p5";
         host = "localhost";
     }
     
 }
 
-group "07.tools for bags" {
-    cmd "7.1.collect_lpc" {
+group "07 - tools for bags" {
+    cmd "01 - collect_lpc" {
         exec = " rsync -rzPav anymal-dodo-lpc:/home/jonfrey/catkin_ws/src/anymal_rsl/anymal_rsl/anymal_rsl_utils/anymal_rsl_recording/anymal_rsl_recording/data /home/jonfrey/mission_data/lpc";
         host = "jetson";
     }
-    cmd "7.2.collect_npc" {
+    cmd "02 - collect_npc" {
         exec = " rsync -rzPav anymal-dodo-npc:/home/jonfrey/catkin_ws/src/anymal_rsl/anymal_rsl/anymal_rsl_utils/anymal_rsl_recording/anymal_rsl_recording/data /home/jonfrey/mission_data/npc";
         host = "jetson";
     }
-    cmd "7.3.delete lpc" {
+    cmd "03 - delete lpc" {
         exec = "rm -r -f /home/jonfrey/catkin_ws/src/anymal_rsl/anymal_rsl/anymal_rsl_utils/anymal_rsl_recording/anymal_rsl_recording/data/*.bag";
         host = "lpc";
     }
-    cmd "7.4.delete npc" {
+    cmd "04 - delete npc" {
         exec = "rm -r -f /home/jonfrey/catkin_ws/src/anymal_rsl/anymal_rsl/anymal_rsl_utils/anymal_rsl_recording/anymal_rsl_recording/data/*.bag";
         host = "npc";
     }
 }
 
 
-group "08.npc" {
-    cmd "8.1.alphasense_ptp" {
+group "08 - npc" {
+    cmd "01 - alphasense_ptp" {
         exec = "sudo service phc2sys restart";
         host = "npc";
     }
-    cmd "8.2.anymal_msg_converter" {
+    cmd "02 - anymal_msg_converter" {
         exec = "rosrun wild_visual_navigation_anymal anymal_msg_converter_node.py";
         host = "npc";
     }
-    cmd "8.3.local_planner_visual" {
+    cmd "03 - local_planner_visual" {
         exec = "roslaunch wild_visual_navigation_ros field_local_planner.launch traversability:=visual base_inverted:=false";
         host = "npc";
     }
-    cmd "8.4.local_planner_visual_inverted" {
+    cmd "04 - local_planner_visual_inverted" {
         exec = "roslaunch wild_visual_navigation_ros field_local_planner.launch traversability:=visual base_inverted:=true";
         host = "npc";
     }
-    cmd "8.5.local_planner_geometric" {
+    cmd "05 - local_planner_geometric" {
         exec = "roslaunch wild_visual_navigation_ros field_local_planner.launch traversability:=geometric base_inverted:=false";
         host = "npc";
     }
-    cmd "8.6.local_planner_geometric_inverted" {
+    cmd "06 - local_planner_geometric_inverted" {
         exec = "roslaunch wild_visual_navigation_ros field_local_planner.launch traversability:=geometric base_inverted:=true";
         host = "npc";
     }
-    cmd "8.7.local_planner_debug_on_robot" {
+    cmd "07 - local_planner_debug_on_robot" {
         exec = "roslaunch wild_visual_navigation_ros field_local_planner.launch traversability:=geometric base_inverted:=true output_twist_topic:=/dummy_twist";
         host = "npc";
     }
-    cmd "8.8.smart_carrot" {
+    cmd "08 - smart_carrot" {
         exec = "rosrun wild_visual_navigation_ros smart_carrot.py";
         host = "npc";
     }
 }
 
+<<<<<<< HEAD
 
 group "09.orin" {
     cmd "9.1.wild_visual_navigation" {
@@ -203,47 +227,44 @@ group "10.visualization" {
 
 group "11.configuration" {
     cmd "11.1.dynamic_reconfigure" {
+=======
+group "10 - configuration" {
+    cmd "01 - dynamic_reconfigure" {
+>>>>>>> e7e5e69fe0f36deb7d7c2b13891e2dc70d829649
         exec = "rosrun rqt_reconfigure rqt_reconfigure";
         host = "localhost";
     }
 }
 
-group "12.white_balance" {
-    cmd "12.1.white_balance_front_reset" {
+group "11 - white_balance" {
+    cmd "01 - white_balance_front_reset" {
         exec = "rosservice call /alphasense_raw_image_pipeline_front/reset_white_balance";
         host = "localhost";
     }
-    cmd "12.2.white_balance_left_reset" {
+    cmd "02 - white_balance_left_reset" {
         exec = "rosservice call /alphasense_raw_image_pipeline_left/reset_white_balance";
         host = "localhost";
     }
-    cmd "12.3.white_balance_right_reset" {
+    cmd "03 - white_balance_right_reset" {
         exec = "rosservice call /alphasense_raw_image_pipeline_right/reset_white_balance";
         host = "localhost";
     }
 }
 
-group "13.lpc" {
-    cmd "13.1.anymal_msg_converter" {
-        exec = "rosrun wild_visual_navigation_anymal anymal_msg_converter_node.py";
-        host = "lpc";
-    }
-}
-
-group "x.learning_utils" {
-    cmd "x.1.pause_training" {
+group "x - learning_utils" {
+    cmd "01 - pause_training" {
         exec = "rosservice call /wild_visual_navigation_node/pause_learning 'data: true'";
         host = "npc";
     }
-    cmd "x.2.resume_training" {
+    cmd "02 - resume_training" {
         exec = "rosservice call /wild_visual_navigation_node/pause_learning 'data: false'";
         host = "npc";
     }
-    cmd "x.3.save_checkpoint" {
+    cmd "03 - save_checkpoint" {
         exec = "rosservice call /wild_visual_navigation_node/save_checkpoint ''";
         host = "anymal_coyote_orin";
     }
-    cmd "x.4.load_checkpoint" {
+    cmd "04 - load_checkpoint" {
         exec = "rosservice call /wild_visual_navigation_node/load_checkpoint 'path: 'absolute_path_in_robot_filesystem'";
         host = "npc";
     }

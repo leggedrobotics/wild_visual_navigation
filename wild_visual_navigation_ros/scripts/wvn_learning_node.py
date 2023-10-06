@@ -78,7 +78,6 @@ class WvnLearning:
             patch_size=self.dino_patch_size,
             scale_traversability=self.scale_traversability,
             anomaly_detection=self.anomaly_detection,
-            vis_training_samples=self.vis_training_samples,
         )
 
         # Initialize traversability generator to process velocity commands
@@ -299,7 +298,6 @@ class WvnLearning:
         # Select mode: # debug, online, extract_labels
         self.mode = WVNMode.from_string(rospy.get_param("~mode", "debug"))
         self.extraction_store_folder = rospy.get_param("~extraction_store_folder")
-        self.vis_training_samples = rospy.get_param("~vis_training_samples")
 
         # Parse operation modes
         if self.mode == WVNMode.ONLINE:

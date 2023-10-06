@@ -15,6 +15,7 @@ class AnomalyLoss(nn.Module):
             method=method,
             log_enabled=log_enabled,
             log_folder=log_folder,
+            anomaly_detection=True,
         )
 
     def forward(
@@ -75,6 +76,7 @@ class TraversabilityLoss(nn.Module):
             method=method,
             log_enabled=log_enabled,
             log_folder=log_folder,
+            anomaly_detection=False,
         )
 
     def reset(self):

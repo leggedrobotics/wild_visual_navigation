@@ -358,14 +358,25 @@ class LearningVisualizer:
         if kwargs.get("cmap", None):
             cmap = kwargs["cmap"]
         else:
-            cmap = cm.get_cmap("RdYlBu", 256)
-            cmap = np.concatenate([cmap(np.linspace(0, 0.3, 128)), cmap(np.linspace(0.7, 1.0, 128))])
+            s = 0.3 # If bigger, get more fine-grained green, if smaller get more fine-grained red
+            cmap = cm.get_cmap("RdYlBu", 256) # or RdYlGn
+            cmap = np.concatenate([cmap(np.linspace(0, s, 128)), cmap(np.linspace(1 - s, 1.0, 128))])   # Stretch the colormap
             cmap = torch.from_numpy(cmap).to(seg)[:, :3]
 
         img = self.plot_image(img, not_log=True)
         seg_img = self.plot_segmentation(
             (seg * 255).type(torch.long).clip(0, 255), max_seg=256, colormap=cmap, store=False, not_log=True
         )
+
+        # plt.hist(seg_img.ravel(), bins=500)
+        # # Get current ros time
+        # now = rospy.Time.now()
+        # # Create a unique filename
+        # filename = f"{now.secs}_{now.nsecs}.png"
+        # # Save the figure
+        # plt.savefig(f"/home/rschmid/overlays/{filename}")
+        # # Close the figure
+        # plt.close()
 
         H, W = img.shape[:2]
         back = np.zeros((H, W, 4))
