@@ -463,7 +463,7 @@ class TraversabilityEstimator:
                         str(mnode.timestamp).replace(".", "_") + ".jpg",
                     ), img)
 
-                    # Project point cloud to world frame, then concatenate all points
+                    # Project point cloud to base frame, then concatenate all points
                     point_cloud = []
                     for key in mnode.point_clouds:
                         # print(key)

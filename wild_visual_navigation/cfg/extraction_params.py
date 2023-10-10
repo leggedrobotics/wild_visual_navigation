@@ -5,6 +5,7 @@ from typing import Tuple, Dict, List, Optional, Any
 class ExtractionParams:
     wvn_topics: List[str] = field(default_factory=lambda: ["/state_estimator/anymal_state",
                                                            # "/wide_angle_camera_front/img_out",
+                                                           "/wide_angle_camera_rear/image_color_rect/compressed",
                                                            "/v4l2_camera/image_raw_throttle/compressed",
                                                            "/depth_camera_front_upper/point_cloud_self_filtered",
                                                            "/depth_camera_rear_upper/point_cloud_self_filtered",
