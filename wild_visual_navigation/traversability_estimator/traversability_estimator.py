@@ -359,7 +359,7 @@ class TraversabilityEstimator:
 
             # Get all mission nodes within a range
             mission_nodes = self._mission_graph.get_nodes_within_radius_range(
-                last_mission_node, 0, self._proprio_graph.max_distance, metric="pose"
+                last_mission_node, 0, self._proprio_graph.max_distance, metric="dijkstra"   # pose or dijkstra
             )
 
             if len(mission_nodes) < 1:

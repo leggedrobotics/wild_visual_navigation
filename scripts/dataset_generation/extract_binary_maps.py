@@ -51,6 +51,7 @@ class ImageConverter:
         np_arr = np.frombuffer(compressed_msg.data, np.uint8)
         return cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
+
 def get_bag_info(rosbag_path: str) -> dict:
     # This queries rosbag info using subprocess and get the YAML output to parse the topics
     info_dict = yaml.safe_load(
@@ -126,26 +127,26 @@ def do(n, dry_run):
     print("done loading tf")
 
     # Höngg new
-    # info_msg = CameraInfo()
-    # info_msg.height = 1080
-    # info_msg.width = 1440
-    # info_msg.distortion_model = "equidistant"
-    # info_msg.D = [0.4316922809468283, 0.09279900476637248, -0.4010909691803734, 0.4756163338479413]
-    # info_msg.K = [575.6050407221768, 0.0, 745.7312198525915, 0.0, 578.564849365178, 519.5207040671075, 0.0, 0.0, 1.0]
-    # info_msg.P = [575.6050407221768, 0.0, 745.7312198525915, 0.0, 0.0, 578.564849365178, 519.5207040671075, 0.0, 0.0, 0.0, 1.0, 0.0]
-    # info_msg.R = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+    info_msg = CameraInfo()
+    info_msg.height = 1080
+    info_msg.width = 1440
+    info_msg.distortion_model = "equidistant"
+    info_msg.D = [0.4316922809468283, 0.09279900476637248, -0.4010909691803734, 0.4756163338479413]
+    info_msg.K = [575.6050407221768, 0.0, 745.7312198525915, 0.0, 578.564849365178, 519.5207040671075, 0.0, 0.0, 1.0]
+    info_msg.P = [575.6050407221768, 0.0, 745.7312198525915, 0.0, 0.0, 578.564849365178, 519.5207040671075, 0.0, 0.0, 0.0, 1.0, 0.0]
+    info_msg.R = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
 
     # Uetliberg
-    info_msg = CameraInfo()
-    info_msg.height = 1280
-    info_msg.width = 1920
-    info_msg.distortion_model = "equidistant"
-    info_msg.D = [0.19914192674701608, -0.020078443246059546, 0.048455803906031096, -0.014677774207959215]
-    info_msg.K = [848.9418272387715, 0.0, 986.9463702587907, 0.0, 903.3719349707209, 660.4955552848438, 0.0,
-                          0.0, 1.0]
-    info_msg.P = [848.9418272387715, 0.0, 986.9463702587907, 0.0, 0.0, 903.3719349707209, 660.4955552848438,
-                          0.0, 0.0, 0.0, 1.0, 0.0]
-    info_msg.R = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+    # info_msg = CameraInfo()
+    # info_msg.height = 1280
+    # info_msg.width = 1920
+    # info_msg.distortion_model = "equidistant"
+    # info_msg.D = [0.19914192674701608, -0.020078443246059546, 0.048455803906031096, -0.014677774207959215]
+    # info_msg.K = [848.9418272387715, 0.0, 986.9463702587907, 0.0, 903.3719349707209, 660.4955552848438, 0.0,
+    #                       0.0, 1.0]
+    # info_msg.P = [848.9418272387715, 0.0, 986.9463702587907, 0.0, 0.0, 903.3719349707209, 660.4955552848438,
+    #                       0.0, 0.0, 0.0, 1.0, 0.0]
+    # info_msg.R = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
 
     rosbag_info_dict = get_bag_info(output_bag_wvn)
     total_msgs = sum([x["messages"] for x in rosbag_info_dict["topics"] if x["topic"] in valid_topics])
@@ -191,23 +192,24 @@ def do(n, dry_run):
                 if topic == "/depth_camera_right/point_cloud_self_filtered":
                     point_clouds["depth_camera_right"] = msg
 
-                # elif topic == "/wide_angle_camera_front/img_out":
-                elif topic == "/v4l2_camera/image_raw_throttle/compressed":
-                    # image_msg = msg
-                    image_msg = ic.convert_ros_compressed_msg_to_ros_msg(msg)
+                elif topic == "/wide_angle_camera_front/image_color/compressed":
+                # elif topic == "/v4l2_camera/image_raw_throttle/compressed":
+
+                    if type(msg).__name__ == "_sensor_msgs__CompressedImage" or isinstance(msg, CompressedImage):
+                        msg = ic.convert_ros_compressed_msg_to_ros_msg(msg)
 
                     # print(image_msg.header)
 
                     info_msg.header = msg.header
                     camera_options = {}
-                    # camera_options['name'] = "wide_angle_camera_front"
-                    camera_options['name'] = "/v4l2_camera/image_raw_throttle"
+                    camera_options['name'] = "wide_angle_camera_front"
+                    # camera_options['name'] = "/v4l2_camera/image_raw_throttle"
                     camera_options["use_for_training"] = True
 
-                    info_msg.header.frame_id = "hdr_camera"
+                    # info_msg.header.frame_id = "hdr_camera"
 
                     try:
-                        wvn_ros_interface.image_callback(image_msg, point_clouds, info_msg, camera_options)
+                        wvn_ros_interface.image_callback(msg, point_clouds, info_msg, camera_options)
                         # print("Time diff", abs(point_cloud_msg.header.stamp.to_sec() - image_msg.header.stamp.to_sec()))
                     except Exception as e:
                         print("Bad image_callback", e)

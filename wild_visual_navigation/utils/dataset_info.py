@@ -5,32 +5,30 @@ import os
 python3 /media/Data/Datasets/2022_Perugia/dataset_info.py
 """
 
-# ROOT_DIR = "/media/Data/Datasets/2022_Perugia"
-# ROOT_DIR = "/home/rschmid/RosBags/South_Africa2"
-# ROOT_DIR = "/home/rschmid/RosBags/6_proc"
-# perugia_dataset = [
-#     {
-#         "name": "6",
-#         "env": "hilly",
-#         "mode": "test",
-#         "nr": 0,
-#         "start": 0,  # Start and stop time is in seconds
-#         "stop": 500,
-#         "comment": "",
-#     },
-
-ROOT_DIR = "/home/rschmid/RosBags/uetliberg_small"
+ROOT_DIR = "/home/rschmid/RosBags/6_proc"
 perugia_dataset = [
     {
-        "name": "uetliberg_small",
+        "name": "6",
         "env": "hilly",
         "mode": "test",
         "nr": 0,
         "start": 0,  # Start and stop time is in seconds
-        "stop": 700,
+        "stop": 500,
         "comment": "",
     },
 ]
+# ROOT_DIR = "/home/rschmid/RosBags/uetliberg_small"
+# perugia_dataset = [
+#     {
+#         "name": "uetliberg_small",
+#         "env": "hilly",
+#         "mode": "test",
+#         "nr": 0,
+#         "start": 0,  # Start and stop time is in seconds
+#         "stop": 700,
+#         "comment": "",
+#     },
+# ]
 
 
 def dataset_play(env="forest", mode="train", nr=0, rate=1.0, ignore_tf=False, other_args=""):
