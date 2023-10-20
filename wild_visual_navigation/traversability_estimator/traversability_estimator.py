@@ -464,11 +464,20 @@ class TraversabilityEstimator:
                     ), img)
 
                     # Project point cloud to base frame, then concatenate all points
+                    # point_cloud = []
+                    # if "depth_camera_front_upper" in mnode.point_clouds:
+                    #     key = "depth_camera_front_upper"
+                    #     point_cloud.append(self.project_pc(mnode.point_clouds[key], mnode.pose_pc_in_base[key]))
+                    #     point_cloud = torch.cat(point_cloud, dim=0)
+                    # else:
+                    #     point_cloud = torch.tensor([0, 0, 0]).unsqueeze(0)
+
                     point_cloud = []
                     for key in mnode.point_clouds:
-                        # print(key)
                         point_cloud.append(self.project_pc(mnode.point_clouds[key], mnode.pose_pc_in_base[key]))
                     point_cloud = torch.cat(point_cloud, dim=0)
+
+                    # print(point_cloud.shape)
 
                     # Save point cloud as torch file
                     torch.save(point_cloud, os.path.join(
