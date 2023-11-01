@@ -1,1 +1,2 @@
 from .experiment_params import ExperimentParams
+from .ros_params import RosLearningNodeParams, RosFeatureExtractorNodeParams

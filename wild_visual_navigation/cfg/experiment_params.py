@@ -1,10 +1,9 @@
 from dataclasses import dataclass, field
 from typing import Tuple, Dict, List, Optional
-from simple_parsing.helpers import Serializable
 
 
 @dataclass
-class ExperimentParams(Serializable):
+class ExperimentParams:
     @dataclass
     class GeneralParams:
         name: str = "debug/debug"

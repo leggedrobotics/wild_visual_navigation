@@ -1,3 +1,5 @@
+# TODO split into three configuration files - shared - learning - feature_extractor
+
 # Input topics
 robot_state_topic: "/wild_visual_navigation_node/robot_state"
 desired_twist_topic: "/motion_reference/command_twist"
