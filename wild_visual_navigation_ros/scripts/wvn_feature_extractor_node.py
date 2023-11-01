@@ -360,6 +360,7 @@ class WvnFeatureExtractor:
 
                 try:
                     if res["traversability_threshold"] is not None:
+                        # TODO Verify if this works or the writing is need
                         self.ros_params.traversability_threshold = res["traversability_threshold"]
                     if res["confidence_generator"] is not None:
                         self.confidence_generator_state = res["confidence_generator"]
