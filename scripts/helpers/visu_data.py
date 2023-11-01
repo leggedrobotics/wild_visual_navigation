@@ -1,6 +1,6 @@
 # Use the same config to load the data using the dataloader
-from wild_visual_navigation.learning.dataset import get_ablation_module
-from wild_visual_navigation.learning.utils import load_env
+from wild_visual_navigation.dataset import get_ablation_module
+from wild_visual_navigation.utils import load_env
 from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.visu import LearningVisualizer
 import torch

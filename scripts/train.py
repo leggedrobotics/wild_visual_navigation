@@ -1,7 +1,7 @@
 from simple_parsing import ArgumentParser
 from wild_visual_navigation.cfg import ExperimentParams
-from wild_visual_navigation.learning.general import training_routine
-from wild_visual_navigation.learning.utils import load_yaml
+from wild_visual_navigation.general import training_routine
+from wild_visual_navigation.utils import load_yaml
 from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.utils import override_params
 import os

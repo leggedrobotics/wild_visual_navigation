@@ -185,7 +185,7 @@ class SupervisionGenerator:
 def run_supervision_generator():
     """Projects 3D points to example images and returns an image with the projection"""
 
-    from wild_visual_navigation.learning.dataset import TwistDataset
+    from wild_visual_navigation.dataset import TwistDataset
     import matplotlib.pyplot as plt
     import numpy as np
     import pandas as pd

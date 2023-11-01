@@ -8,9 +8,9 @@ import copy
 import argparse
 import shutil
 from wild_visual_navigation import WVN_ROOT_DIR
-from wild_visual_navigation.learning.utils import load_yaml, load_env
+from wild_visual_navigation.utils import load_yaml, load_env
 from wild_visual_navigation.cfg import ExperimentParams
-from wild_visual_navigation.learning.general import training_routine
+from wild_visual_navigation.general import training_routine
 
 if __name__ == "__main__":
     """Test how much time and data it takes for a model to convergee on a scene.

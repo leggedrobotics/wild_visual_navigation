@@ -1,4 +1,4 @@
-from wild_visual_navigation.learning.model import *
+from wild_visual_navigation.model import *
 import inspect
 import torch
 
@@ -52,7 +52,7 @@ def get_model(model_cfg: dict) -> torch.nn.Module:
 
 if __name__ == "__main__":
     from wild_visual_navigation import WVN_ROOT_DIR
-    from wild_visual_navigation.learning.utils import load_yaml
+    from wild_visual_navigation.utils import load_yaml
     from os.path import join
 
     exp = load_yaml(join(WVN_ROOT_DIR, "cfg/exp/exp.yaml"))

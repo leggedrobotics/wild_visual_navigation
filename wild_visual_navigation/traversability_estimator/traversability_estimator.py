@@ -1,6 +1,6 @@
 from wild_visual_navigation.feature_extractor import FeatureExtractor
 from wild_visual_navigation.image_projector import ImageProjector
-from wild_visual_navigation.learning.model import get_model
+from wild_visual_navigation.model import get_model
 from wild_visual_navigation.cfg import ExperimentParams
 from pytictac import Timer, accumulate_time
 from wild_visual_navigation.traversability_estimator import (
@@ -11,7 +11,7 @@ from wild_visual_navigation.traversability_estimator import (
     MaxElementsGraph,
 )
 from wild_visual_navigation.utils import WVNMode
-from wild_visual_navigation.learning.utils import TraversabilityLoss, AnomalyLoss
+from wild_visual_navigation.utils import TraversabilityLoss, AnomalyLoss
 from wild_visual_navigation.utils import make_polygon_from_points
 from wild_visual_navigation.visu import LearningVisualizer
 from wild_visual_navigation.utils import KLTTracker, KLTTrackerOpenCV

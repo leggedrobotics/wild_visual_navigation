@@ -1,4 +1,4 @@
-from wild_visual_navigation.learning.model import get_model
+from wild_visual_navigation.model import get_model
 import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
@@ -8,7 +8,7 @@ from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 from torch_geometric.data import Data
 from torchmetrics import ROC
 
-from wild_visual_navigation.learning.utils import TraversabilityLoss, MetricLogger
+from wild_visual_navigation.utils import TraversabilityLoss, MetricLogger
 import os
 import pickle
 

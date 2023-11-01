@@ -17,7 +17,8 @@ from PIL import Image, ImageDraw
 
 class FeatureExtractor:
     def __init__(
-        self, device: str, segmentation_type: str = "slic", feature_type: str = "dino", input_size: int = 448, **kwargs):
+        self, device: str, segmentation_type: str = "slic", feature_type: str = "dino", input_size: int = 448, **kwargs
+    ):
         """Feature extraction from image
 
         Args:
@@ -39,7 +40,12 @@ class FeatureExtractor:
         elif self._feature_type == "dino":
             self._feature_dim = 90
 
-            self.extractor = DinoInterface(device=device, input_size=input_size, patch_size=kwargs.get("patch_size", 8), dim=kwargs.get("dino_dim", 384))
+            self.extractor = DinoInterface(
+                device=device,
+                input_size=input_size,
+                patch_size=kwargs.get("patch_size", 8),
+                dim=kwargs.get("dino_dim", 384),
+            )
         elif self._feature_type == "sift":
             self._feature_dim = 128
             self.extractor = DenseSIFTDescriptor().to(device)

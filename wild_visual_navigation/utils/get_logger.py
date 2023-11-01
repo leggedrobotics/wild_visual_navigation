@@ -1,6 +1,6 @@
 from pytorch_lightning.loggers.neptune import NeptuneLogger
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
-from wild_visual_navigation.learning.utils import flatten_dict
+from wild_visual_navigation.utils import flatten_dict
 import inspect
 import os
 import neptune.new as neptune

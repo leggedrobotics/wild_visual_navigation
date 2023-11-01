@@ -15,7 +15,7 @@ from wild_visual_navigation_msgs.srv import (
 from wild_visual_navigation.utils import WVNMode
 from wild_visual_navigation.cfg import ExperimentParams
 from wild_visual_navigation.utils import override_params
-from wild_visual_navigation.learning.utils import load_yaml, load_env, create_experiment_folder
+from wild_visual_navigation.utils import load_yaml, load_env, create_experiment_folder
 
 
 from std_srvs.srv import SetBool, Trigger, TriggerResponse
@@ -373,13 +373,14 @@ class WvnLearning:
                     # In debug mode additionally send the image to the callback function
                     self._visualizer = LearningVisualizer()
 
-                    imagefeat_sub = message_filters.Subscriber(f"/wild_visual_navigation_node/{cam}/feat",
-                                                               ImageFeatures)
+                    imagefeat_sub = message_filters.Subscriber(
+                        f"/wild_visual_navigation_node/{cam}/feat", ImageFeatures
+                    )
                     info_sub = message_filters.Subscriber(f"/wild_visual_navigation_node/{cam}/camera_info", CameraInfo)
-                    image_sub = message_filters.Subscriber(f"/wild_visual_navigation_node/{cam}/image_input",
-                                                               Image)
-                    sync = message_filters.ApproximateTimeSynchronizer([imagefeat_sub, info_sub, image_sub], queue_size=4,
-                                                                       slop=0.5)
+                    image_sub = message_filters.Subscriber(f"/wild_visual_navigation_node/{cam}/image_input", Image)
+                    sync = message_filters.ApproximateTimeSynchronizer(
+                        [imagefeat_sub, info_sub, image_sub], queue_size=4, slop=0.5
+                    )
                     sync.registerCallback(self.imagefeat_callback, self.camera_topics[cam])
 
                     last_image_overlay_pub = rospy.Publisher(
@@ -390,9 +391,13 @@ class WvnLearning:
                     self.camera_handler[cam]["debug"]["image_overlay"] = last_image_overlay_pub
 
                 else:
-                    imagefeat_sub = message_filters.Subscriber(f"/wild_visual_navigation_node/{cam}/feat", ImageFeatures)
+                    imagefeat_sub = message_filters.Subscriber(
+                        f"/wild_visual_navigation_node/{cam}/feat", ImageFeatures
+                    )
                     info_sub = message_filters.Subscriber(f"/wild_visual_navigation_node/{cam}/camera_info", CameraInfo)
-                    sync = message_filters.ApproximateTimeSynchronizer([imagefeat_sub, info_sub], queue_size=4, slop=0.5)
+                    sync = message_filters.ApproximateTimeSynchronizer(
+                        [imagefeat_sub, info_sub], queue_size=4, slop=0.5
+                    )
                     sync.registerCallback(self.imagefeat_callback, self.camera_topics[cam])
 
         # 3D outputs

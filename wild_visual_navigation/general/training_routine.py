@@ -18,10 +18,10 @@ from pytorch_lightning.utilities import rank_zero_warn, rank_zero_only
 from pytorch_lightning.plugins import DDP2Plugin, DDPPlugin, DDPSpawnPlugin
 
 # Costume Modules
-from wild_visual_navigation.learning.utils import get_logger
-from wild_visual_navigation.learning.lightning import LightningTrav
-from wild_visual_navigation.learning.utils import load_yaml, load_env, create_experiment_folder
-from wild_visual_navigation.learning.dataset import get_ablation_module
+from wild_visual_navigation.utils import get_logger
+from wild_visual_navigation.lightning import LightningTrav
+from wild_visual_navigation.utils import load_yaml, load_env, create_experiment_folder
+from wild_visual_navigation.dataset import get_ablation_module
 from wild_visual_navigation.cfg import ExperimentParams
 
 __all__ = ["training_routine"]

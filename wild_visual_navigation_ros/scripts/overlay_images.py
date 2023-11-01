@@ -34,7 +34,7 @@ if __name__ == "__main__":
             nr_index = args.index("--nr")
             nr = args[nr_index + 1]
         else:
-            nr = "0"             # Handle case when no arg is set
+            nr = "0"  # Handle case when no arg is set
         rospy.init_node(f"wild_visual_navigation_visu_{nr}")
     except:
         rospy.init_node("wild_visual_navigation_visu")

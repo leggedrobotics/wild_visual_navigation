@@ -1,5 +1,5 @@
 from pathlib import Path
-from wild_visual_navigation.learning.utils import load_env
+from wild_visual_navigation.utils import load_env
 import os
 
 perugia_root = os.path.join(load_env()["perugia_root"], "wvn_output/split")

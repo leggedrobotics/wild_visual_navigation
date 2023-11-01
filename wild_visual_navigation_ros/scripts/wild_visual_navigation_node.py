@@ -7,7 +7,7 @@ import wild_visual_navigation_ros.ros_converter as rc
 from wild_visual_navigation.utils import WVNMode
 from wild_visual_navigation.cfg import ExperimentParams
 from wild_visual_navigation.utils import override_params
-from wild_visual_navigation.learning.utils import load_yaml, load_env, create_experiment_folder
+from wild_visual_navigation.utils import load_yaml, load_env, create_experiment_folder
 from wild_visual_navigation_msgs.msg import RobotState, SystemState
 from wild_visual_navigation_msgs.srv import (
     LoadCheckpoint,

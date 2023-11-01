@@ -15,7 +15,7 @@ import matplotlib
 matplotlib.use("Agg")
 
 from wild_visual_navigation.visu import image_functionality
-from wild_visual_navigation.learning.utils import get_confidence
+from wild_visual_navigation.utils import get_confidence
 from wild_visual_navigation.visu import get_img_from_fig
 from wild_visual_navigation.visu import paper_colors_rgb_u8, paper_colors_rgba_u8
 from wild_visual_navigation.visu import paper_colors_rgb_f, paper_colors_rgba_f
@@ -358,9 +358,11 @@ class LearningVisualizer:
         if kwargs.get("cmap", None):
             cmap = kwargs["cmap"]
         else:
-            s = 0.3 # If bigger, get more fine-grained green, if smaller get more fine-grained red
-            cmap = cm.get_cmap("RdYlBu", 256) # or RdYlGn
-            cmap = np.concatenate([cmap(np.linspace(0, s, 128)), cmap(np.linspace(1 - s, 1.0, 128))])   # Stretch the colormap
+            s = 0.3  # If bigger, get more fine-grained green, if smaller get more fine-grained red
+            cmap = cm.get_cmap("RdYlBu", 256)  # or RdYlGn
+            cmap = np.concatenate(
+                [cmap(np.linspace(0, s, 128)), cmap(np.linspace(1 - s, 1.0, 128))]
+            )  # Stretch the colormap
             cmap = torch.from_numpy(cmap).to(seg)[:, :3]
 
         img = self.plot_image(img, not_log=True)

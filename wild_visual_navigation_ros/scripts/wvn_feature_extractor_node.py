@@ -1,14 +1,14 @@
 from wild_visual_navigation import WVN_ROOT_DIR
-from wild_visual_navigation.learning.utils import load_yaml, load_env, create_experiment_folder
+from wild_visual_navigation.utils import load_yaml, load_env, create_experiment_folder
 from wild_visual_navigation.feature_extractor import FeatureExtractor
 from wild_visual_navigation.cfg import ExperimentParams
 from wild_visual_navigation.utils import override_params
 from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation_msgs.msg import ImageFeatures
 import wild_visual_navigation_ros.ros_converter as rc
-from wild_visual_navigation.learning.model import get_model
+from wild_visual_navigation.model import get_model
 from wild_visual_navigation.utils import ConfidenceGenerator
-from wild_visual_navigation.learning.utils import AnomalyLoss
+from wild_visual_navigation.utils import AnomalyLoss
 
 import rospy
 from sensor_msgs.msg import Image, CameraInfo, CompressedImage
@@ -41,21 +41,24 @@ class WvnFeatureExtractor:
             slic_num_components=self.slic_num_components,
             dino_dim=self.dino_dim,
         )
-        self.i = 0        
-        
+        self.i = 0
 
         self.model = get_model(self.exp_cfg["model"]).to(self.device)
         self.model.eval()
-        
-        
 
         if not self.anomaly_detection:
             self.confidence_generator = ConfidenceGenerator(
-                method=self.exp_cfg["loss"]["method"], std_factor=self.exp_cfg["loss"]["confidence_std_factor"], anomaly_detection=self.anomaly_detection
+                method=self.exp_cfg["loss"]["method"],
+                std_factor=self.exp_cfg["loss"]["confidence_std_factor"],
+                anomaly_detection=self.anomaly_detection,
             )
             self.scale_traversability = True
         else:
-            self.traversability_loss = AnomalyLoss(**self.exp_cfg["loss_anomaly"], log_enabled=self.exp_cfg["general"]["log_confidence"], log_folder=self.exp_cfg["general"]["model_path"])
+            self.traversability_loss = AnomalyLoss(
+                **self.exp_cfg["loss_anomaly"],
+                log_enabled=self.exp_cfg["general"]["log_confidence"],
+                log_folder=self.exp_cfg["general"]["model_path"],
+            )
             self.traversability_loss.to(self.device)
             self.scale_traversability = False
 
@@ -115,7 +118,6 @@ class WvnFeatureExtractor:
             #    rate = rospy.Rate(self.status_thread_rate)
             #    print("Ignored jump pack in time!")
         self.status_thread_stop_event.clear()
-
 
     def read_params(self):
         """Reads all the parameters from the parameter server"""

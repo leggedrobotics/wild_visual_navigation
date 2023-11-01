@@ -6,10 +6,10 @@ import neptune.new.integrations.optuna as optuna_utils
 import torch
 
 from wild_visual_navigation.cfg import ExperimentParams
-from wild_visual_navigation.learning.general import training_routine
-from wild_visual_navigation.learning.utils import get_neptune_run
+from wild_visual_navigation.general import training_routine
+from wild_visual_navigation.utils import get_neptune_run
 from wild_visual_navigation.utils import override_params
-from wild_visual_navigation.learning.utils import load_yaml
+from wild_visual_navigation.utils import load_yaml
 from wild_visual_navigation import WVN_ROOT_DIR
 
 
