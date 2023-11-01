@@ -1,0 +1,10 @@
+{
+    "general": {
+        "name": "experiment1/run1",
+        "timestamp": true,
+        "tag_list": [
+            "run1",
+            "experiment1"
+        ]
+    }
+}
