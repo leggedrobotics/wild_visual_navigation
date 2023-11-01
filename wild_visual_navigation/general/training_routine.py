@@ -34,7 +34,7 @@ def training_routine(experiment: ExperimentParams, seed=42) -> torch.Tensor:
     env = load_env()
 
     if exp["general"]["log_to_disk"]:
-        model_path = create_experiment_folder(exp, env)
+        model_path = create_experiment_folder(exp)
         exp["general"]["name"] = os.path.relpath(model_path, env["base"])
 
         with open(os.path.join(model_path, "experiment_params.yaml"), "w") as f:

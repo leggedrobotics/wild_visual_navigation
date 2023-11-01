@@ -1,5 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Tuple, Dict, List, Optional
+from wild_visual_navigation import WVN_ROOT_DIR
+import os
 
 
 @dataclass
@@ -16,6 +18,7 @@ class ExperimentParams:
         model_path: Optional[str] = None
         log_confidence: bool = True
         use_threshold: bool = True
+        folder: str = os.path.join(WVN_ROOT_DIR, "results")
 
     general: GeneralParams = GeneralParams()
 

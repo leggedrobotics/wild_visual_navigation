@@ -106,28 +106,27 @@ class TraversabilityEstimator:
         # Lightning module
         seed_everything(42)
 
-        self._exp_cfg = dataclasses.asdict(self._params)
-        self._model = get_model(self._exp_cfg["model"]).to(self._device)
+        self._model = get_model(self._params.model).to(self._device)
         self._model.train()
 
-        if self._exp_cfg["model"]["name"] == "LinearRnvp":
+        if self._anomaly_detection:
             self._traversability_loss = AnomalyLoss(
-                **self._exp_cfg["loss_anomaly"],
-                log_enabled=self._exp_cfg["general"]["log_confidence"],
-                log_folder=self._exp_cfg["general"]["model_path"],
+                **self._params["loss_anomaly"],
+                log_enabled=self._params["general"]["log_confidence"],
+                log_folder=self._params["general"]["model_path"],
             )
             self._traversability_loss.to(self._device)
 
         else:
             self._traversability_loss = TraversabilityLoss(
-                **self._exp_cfg["loss"],
+                **self._params["loss"],
                 model=self._model,
-                log_enabled=self._exp_cfg["general"]["log_confidence"],
-                log_folder=self._exp_cfg["general"]["model_path"],
+                log_enabled=self._params["general"]["log_confidence"],
+                log_folder=self._params["general"]["model_path"],
             )
             self._traversability_loss.to(self._device)
 
-        self._optimizer = torch.optim.Adam(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
+        self._optimizer = torch.optim.Adam(self._model.parameters(), lr=self._params["optimizer"]["lr"])
         self._loss = torch.tensor([torch.inf])
         self._step = 0
 
@@ -162,19 +161,19 @@ class TraversabilityEstimator:
         #     self._loss = torch.tensor([torch.inf])
 
         #     # Re-create model
-        #     self._exp_cfg = dataclasses.asdict(self._params)
-        #     self._model = get_model(self._exp_cfg["model"]).to(self._device)
+        #     self._params = dataclasses.asdict(self._params)
+        #     self._model = get_model(self._params["model"]).to(self._device)
         #     self._model.train()
 
         #     # Re-create optimizer
-        #     self._optimizer = torch.optim.Adam(self._model.parameters(), lr=self._exp_cfg["optimizer"]["lr"])
+        #     self._optimizer = torch.optim.Adam(self._model.parameters(), lr=self._params["optimizer"]["lr"])
 
         #     # Re-create traversability loss
         #     self._traversability_loss = TraversabilityLoss(
-        #         **self._exp_cfg["loss"],
+        #         **self._params["loss"],
         #         model=self._model,
-        #         log_enabled=self._exp_cfg["general"]["log_confidence"],
-        #         log_folder=self._exp_cfg["general"]["model_path"],
+        #         log_enabled=self._params["general"]["log_confidence"],
+        #         log_folder=self._params["general"]["model_path"],
         #     )
         #     self._traversability_loss.to(self._device)
 
@@ -564,7 +563,7 @@ class TraversabilityEstimator:
         return_dict = {"mission_graph_num_valid_node": num_valid_nodes}
         if num_valid_nodes > self._min_samples_for_training:
             # Prepare new batch
-            graph = self.make_batch(self._exp_cfg["ablation_data_module"]["batch_size"])
+            graph = self.make_batch(self._params["ablation_data_module"]["batch_size"])
             if graph is not None:
 
                 with self._learning_lock:

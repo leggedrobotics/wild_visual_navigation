@@ -21,9 +21,6 @@ class RosLearningNodeParams:
     robot_width: float
     robot_height: float
 
-    # Robot specs
-    robot_max_velocity: float
-
     # Traversability estimation params
     traversability_radius: float  # meters
     image_graph_dist_thr: float  # meters
@@ -42,6 +39,7 @@ class RosLearningNodeParams:
     prediction_per_pixel: bool
     traversability_threshold: float
     clip_to_binary: bool
+    vis_node_index: int
 
     # Supervision Generator
     untraversable_thr: float
@@ -58,7 +56,7 @@ class RosLearningNodeParams:
 
     # Runtime options
     device: str
-    mode: str  # check out comments in the class WVNMode
+    mode: Any  # check out comments in the class WVNMode
     colormap: str
 
     print_image_callback_time: bool
@@ -72,6 +70,7 @@ class RosLearningNodeParams:
     extraction_store_folder: str
     exp: str
     use_binary_only: bool
+    camera_topics: Dict[str, Any]
 
 
 @dataclass
@@ -91,9 +90,6 @@ class RosFeatureExtractorNodeParams:
     robot_width: float
     robot_height: float
 
-    # Robot specs
-    robot_max_velocity: float
-
     # Traversability estimation params
     traversability_radius: float  # meters
     image_graph_dist_thr: float  # meters
@@ -128,7 +124,7 @@ class RosFeatureExtractorNodeParams:
 
     # Runtime options
     device: str
-    mode: str  # check out comments in the class WVNMode
+    mode: Any  # check out comments in the class WVNMode
     colormap: str
 
     print_image_callback_time: bool
