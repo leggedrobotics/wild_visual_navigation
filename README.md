@@ -40,7 +40,7 @@ mkdir ~/git && cd ~/git
 git clone git@github.com:leggedrobotics/wild_visual_navigation.git
 ```
 
-2. Install the conda environment.
+2. Install the conda environment. (Currently the conda environment file is not tested and most likely outdated)
 ```shell
 # Make sure to be in the base conda environment
 cd ~/git/wild_visual_navigation
@@ -57,10 +57,10 @@ pip3 install -e ./wild_visual_navigation
 ### Configuration Overview
 - The general configuration files can be found under: `wild_visual_navigation/cfg/experiment_params.py`
 - This configuration is used in the `offline-model-training` and in the `online-ros` mode.
-- When running the `online-ros` mode additional confiugration for the individual nodes are defined in `wild_visual_navigation/cfg/ros_params.py`.
+- When running the `online-ros` mode additional configurations for the individual nodes are defined in `wild_visual_navigation/cfg/ros_params.py`.
 - These configuration file is filled based on the rosparameter-server during runtime.
-- The default values for this configuration are given in `wild_visual_navigation/wild_visual_navigation_ros/config/wild_visual_navigation` folder.
-- We set an environment variable to automaticially load the correct gloabl paths and trigger some special behavior e.g. when training on a cluster.
+- The default values for this configuration can be found under `wild_visual_navigation/wild_visual_navigation_ros/config/wild_visual_navigation`.
+- We set an environment variable to automatically load the correct global paths and trigger some special behavior e.g. when training on a cluster.
 
 #### [Optionally] Configure custom paths 
 Set your custom global paths by defining the ENV_WORKSTATION_NAME and exporting the variable in your `~/.bashrc`.
@@ -68,8 +68,9 @@ Set your custom global paths by defining the ENV_WORKSTATION_NAME and exporting 
   ```shell
   export ENV_WORKSTATION_NAME=your_workstation_name
   ```  
-The paths can be specified by modify `wild_visual_navigation/wild_visual_navigation/cfg/gloabl_params.py` to contain your desired gloabl paths. 
-Per default all results are written to `wild_visual_navigation/results`.
+The paths can be specified by modifying `wild_visual_navigation/wild_visual_navigation/cfg/gloabl_params.py`. 
+Add your desired global paths. 
+Per default, all results are stored in `wild_visual_navigation/results`.
 
 <img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
@@ -83,7 +84,7 @@ Per default all results are written to `wild_visual_navigation/results`.
 ## Experiments
 ### [Online] Ros-Mode
 #### Setup
-Setup the catkin_ws
+Let`s set up a new catkin_ws:
 ```shell
 # Create Workspace
 source /opt/ros/noetic/setup.bash
@@ -115,8 +116,9 @@ source /opt/ros/noetic/setup.bash
 source ~/catkin_ws/devel/setup.bash
 ```
 
+After successfully building the ros workspace you can run the full pipeline by either using the launch file (this requires all packages to be installed into your system python installation), or by running the nodes from the conda environment as plain python scripts.
+We are currently working on the instructions using a `virtualenv` which eases this process.
 
-Mode to run the pipeline either fully online on the robot or to simply replay rosbags on your system.
 - Run WVN Nodes:
 ```shell
 python wild_visual_navigation_ros/scripts/wvn_feature_extractor_node.py
@@ -136,7 +138,7 @@ rosrun  play --clock path_to_mission/*.bag
 ```
 
 
-### [Offline] Model Training
+### [Offline] Model Training (Currently not tested)
 
 #### Additional Dependencies
 TODO
