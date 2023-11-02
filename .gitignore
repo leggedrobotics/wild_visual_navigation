@@ -48,3 +48,10 @@ Thumbs.db
 *.mov
 *.wmv
 
+.git/
+.vscode/
+build/
+devel/
+logs/
+.catkin_tools/
+BaseWVN.egg-info/

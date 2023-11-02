@@ -27,6 +27,8 @@ class ParamCollection(Serializable):
         camera_bag_name: str='jetson'
         camera_topic: str='/v4l2_camera/image_raw_throttle/compressed'
         camera_info_topic: str='/v4l2_camera/camera_info_throttle'
+
+        robot_length: float=0.8
         pass
     roscfg: RosParams=RosParams()
     

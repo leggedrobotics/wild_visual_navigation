@@ -1,3 +1,13 @@
 {
-    "ros.distro": "noetic"
+    "ros.distro": "noetic",
+    "python.autoComplete.extraPaths": [
+        "/opt/ros/noetic/lib/python3/dist-packages",
+        "",
+        "/pth/to/xdecoder_data/coco_caption"
+    ],
+    "python.analysis.extraPaths": [
+        "/opt/ros/noetic/lib/python3/dist-packages",
+        "",
+        "/pth/to/xdecoder_data/coco_caption"
+    ]
 }
