@@ -22,15 +22,43 @@ class ParamCollection(Serializable):
 
         anymal_bag_name: str='lpc'
         anymal_state_topic: str='/state_estimator/anymal_state'
+        feet_list: List[str]=field(default_factory=lambda: ['LF_FOOT', 'RF_FOOT', 'LH_FOOT', 'RH_FOOT'])
         phy_decoder_input_topic: str='/debug_info'
 
         camera_bag_name: str='jetson'
         camera_topic: str='/v4l2_camera/image_raw_throttle/compressed'
         camera_info_topic: str='/v4l2_camera/camera_info_throttle'
 
-        robot_length: float=0.8
+        fixed_frame: str='odom'
+        base_frame: str='base'
+        footprint_frame: str='footprint'
+
+        robot_length: float=0.930
+        robot_height: float=0.890
+        robot_width: float=0.530
+        robot_max_velocity: float=1.2
         pass
     roscfg: RosParams=RosParams()
+    
+    @dataclass
+    class ThreadParams:
+        """Parameters for the threads."""
+        image_callback_rate: float=10.0
+        proprio_callback_rate: float=4.0
+        learning_rate: float=1.0
+        logging_rate: float=2.0
+    
+    thread: ThreadParams=ThreadParams()
+
+    @dataclass
+    class RunParams:
+        """Parameters for the run."""
+        device: str='cuda:0'
+        mode: str='debug'
+        palette: str='husl'
+        print_time: bool=True
+        pass
+    run: RunParams=RunParams()
     
     @dataclass
     class LoggerParams:
