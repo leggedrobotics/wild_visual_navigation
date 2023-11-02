@@ -12,7 +12,7 @@ from sensor_msgs.msg import Image, CameraInfo, CompressedImage
 from std_msgs.msg import ColorRGBA, Float32, Float32MultiArray,Header
 from threading import Thread, Event
 from visualization_msgs.msg import Marker
-# from wild_visual_navigation_msgs.msg import StampedFloat32MultiArray
+from wild_visual_navigation_msgs.msg import StampedFloat32MultiArray
 import message_filters
 import os
 import rospy
@@ -40,12 +40,15 @@ class WvnRosInterface:
         self.timers=ClassTimer(objects=[self],names=['WvnRosInterface'],enabled=self.print_time)
         
         self.step=0
-        
+        self.sum_time_state=0.0
+        # Add a variable to store the latest clock time
+        self.latest_clock_time = None
+
         # Init Camera handler
         self.camera_handler = {}
         self.system_events = {}
-
         # Initialize ROS nodes
+        
         self.ros_init()
 
         
@@ -90,7 +93,9 @@ class WvnRosInterface:
         """ 
         start ros subscribers and publishers and filter/process topics
         """
-        
+        # Clock subscriber
+        clock_sub = message_filters.Subscriber("/clock", Clock)
+
         # Anymal state subscriber
         print("Start waiting for AnymalState topic being published!")
         rospy.wait_for_message(self.anymal_state_topic, AnymalState)
@@ -99,10 +104,12 @@ class WvnRosInterface:
         
         print("Start waiting for Phy_decoder_input topic being published!")
         rospy.wait_for_message(self.phy_decoder_input_topic, Float32MultiArray)
-        phy_decoder_input_sub = message_filters.Subscriber(self.phy_decoder_input_topic, Float32MultiArray)  
+        phy_decoder_input_sub = message_filters.Subscriber(self.phy_decoder_input_topic, Float32MultiArray)
+        self.stamp_sub=message_filters.ApproximateTimeSynchronizer([clock_sub, phy_decoder_input_sub], queue_size=1,slop=0.01,allow_headerless=True)
+        self.stamp_sub.registerCallback(self.stamp_callback)
         cache_phy_decoder_input = message_filters.Cache(phy_decoder_input_sub, 200,allow_headerless=True)
 
-        self.state_sub=message_filters.ApproximateTimeSynchronizer([anymal_state_sub, phy_decoder_input_sub], queue_size=100,slop=0.1,allow_headerless=True)
+        self.state_sub=message_filters.ApproximateTimeSynchronizer([anymal_state_sub, phy_decoder_input_sub], queue_size=100,slop=0.01,allow_headerless=True)
         
         print("Current ros time is: ",rospy.get_time())
         # Timers to control the rate of the publishers
@@ -131,16 +138,15 @@ class WvnRosInterface:
         stiff_pub=rospy.Publisher('/vd_pipeline/stiffness', Image, queue_size=10)
         conf_pub=rospy.Publisher('/vd_pipeline/confidence', Image, queue_size=10)
         info_pub=rospy.Publisher('/vd_pipeline/camera_info', CameraInfo, queue_size=10)
-        freq_pub=rospy.Publisher('/test', Float32, queue_size=10)
-        # stamped_debug_info_pub=rospy.Publisher('/stamped_debug_info', StampedFloat32MultiArray, queue_size=10)
+        stamped_debug_info_pub=rospy.Publisher('/stamped_debug_info', StampedFloat32MultiArray, queue_size=10)
         # Fill in handler
         self.camera_handler['input_pub']=input_pub
         self.camera_handler['fric_pub']=fric_pub
         self.camera_handler['stiff_pub']=stiff_pub
         self.camera_handler['conf_pub']=conf_pub
         self.camera_handler['info_pub']=info_pub
-        # self.camera_handler['stamped_debug_info_pub']=stamped_debug_info_pub
-        self.camera_handler['freq_pub']=freq_pub
+        self.camera_handler['stamped_debug_info_pub']=stamped_debug_info_pub
+
         # TODO: Add the publisher for the two graphs and services (save/load checkpoint) maybe
         pass
     
@@ -214,15 +220,13 @@ class WvnRosInterface:
         """
         self.step+=1
         self.system_events["state_callback_received"] = {"time": rospy.get_time(), "value": "message received"}
-        
+
         try:
             ts = anymal_state_msg.header.stamp.to_sec()
             if self.mode == "debug":
-                # pub for testing frequency
-                freq_pub = self.camera_handler['freq_pub']
-                msg=Float32()
-                msg.data=1.0
-                freq_pub.publish(msg)
+                self.sum_time_state += abs(ts - self.last_proprio_ts)
+                print("Current state_cb freq:", self.step / self.sum_time_state)
+                
             if abs(ts - self.last_proprio_ts) < 1.0 / self.proprio_callback_rate:
                 self.system_events["state_callback_canceled"] = {
                     "time": rospy.get_time(),
@@ -230,7 +234,23 @@ class WvnRosInterface:
                 }
                 return
             self.last_proprio_ts = ts
-        
+            """ 
+             TF-related topics
+            """
+            # # Query base transforms from TF
+            # suc, pose_base_in_world = rc.ros_tf_to_torch(
+            #     self.query_tf(self.fixed_frame, self.base_frame, anymal_state_msg.header.stamp), device=self.device
+            # )
+            # if not suc:
+            #     self.system_events["state_callback_cancled"] = {
+            #         "time": rospy.get_time(),
+            #         "value": "cancled due to pose_base_in_world",
+            #     }
+            #     return
+            # # Query footprint transform from TF
+            # suc, pose_footprint_in_world_ = rc.ros_tf_to_torch(
+            #     self.query_tf(self.fixed_frame, self.footprint_frame, anymal_state_msg.header.stamp), device=self.device
+            # )
             # Query footprint transform from AnymalState message
             suc, pose_footprint_in_world = rc.ros_tf_to_torch(
                 self.query_tf(self.fixed_frame, self.footprint_frame, from_message=anymal_state_msg), device=self.device
@@ -255,14 +275,19 @@ class WvnRosInterface:
                     }
                     return
                 pose_feet_in_world[foot] = pose_foot_in_world
-
+            # # Check whether the two channels agree
+            # if not torch.allclose(pose_footprint_in_base, pose_footprint_in_base_,0.01):
+            #     rospy.logwarn("Footprint transform from TF and AnymalState message disagree")
+            #     self.system_events["state_callback_cancled"] = {
+            #         "time": rospy.get_time(),
+            #         "value": "cancled due to inconsistent footprint transform",
+            #     }
+            #     return
             """ 
             Fric/Stiff-Decoder input topics
             """
             phy_decoder_input = torch.tensor(phy_decoder_input_msg.data, device=self.device).unsqueeze(0)
             obs, hidden = torch.split(phy_decoder_input, [341, 100], dim=1)
-            
-           
             pass
         
         except Exception as e:
@@ -273,11 +298,19 @@ class WvnRosInterface:
                 "value": f"failed to execute {e}",
             }
         pass
+    @accumulate_time
+    def stamp_callback(self, clock_msg:Clock, debug_info_msg:Float32MultiArray):
+        stamped_msg = StampedFloat32MultiArray()
+        stamped_msg.data = debug_info_msg
+        stamped_msg.header.stamp = clock_msg.clock
+        # Publish the message
+        self.camera_handler['stamped_debug_info_pub'].publish(stamped_msg)
 
- 
+
+            
+
 if __name__ == "__main__":
     node_name = "BaseWVN"
-    rospy.set_param("/use_sim_time", True)
     rospy.init_node("BaseWVN")
     wvn = WvnRosInterface()
     rospy.spin()
