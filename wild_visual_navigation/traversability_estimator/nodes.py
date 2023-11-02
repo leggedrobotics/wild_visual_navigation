@@ -222,7 +222,6 @@ class MissionNode(BaseNode):
                 )
 
     def is_valid(self):
-
         valid_members = (
             isinstance(self._features, torch.Tensor)
             and isinstance(self._supervision_signal, torch.Tensor)
@@ -417,11 +416,11 @@ class MissionNode(BaseNode):
         self._supervision_signal_valid = self._supervision_signal > 0
 
 
-class ProprioceptionNode(BaseNode):
+class SupervisionNode(BaseNode):
     """Local node stores all the information required for traversability estimation and debugging
     All the information matches a real frame that must be respected to keep consistency"""
 
-    _name = "proprioception_node"
+    _name = "supervision_node"
 
     def __init__(
         self,
@@ -434,7 +433,7 @@ class ProprioceptionNode(BaseNode):
         length: float = 0.1,
         width: float = 0.1,
         height: float = 0.1,
-        proprioception: torch.tensor = None,
+        supervision: torch.tensor = None,
         traversability: torch.tensor = torch.FloatTensor([0.0]),
         traversability_var: torch.tensor = torch.FloatTensor([1.0]),
         is_untraversable: bool = False,
@@ -454,7 +453,7 @@ class ProprioceptionNode(BaseNode):
         self._length = length
         self._width = width
         self._height = height
-        self._proprioceptive_state = proprioception
+        self._supervision_state = supervision
         self._traversability = traversability
         self._traversability_var = traversability_var
         self._is_untraversable = is_untraversable
@@ -470,7 +469,7 @@ class ProprioceptionNode(BaseNode):
         self._pose_footprint_in_world = self._pose_footprint_in_world.to(device)
         self._twist_in_base = self._twist_in_base.to(device)
         self._desired_twist_in_base = self._desired_twist_in_base.to(device)
-        self._proprioceptive_state = self._proprioceptive_state.to(device)
+        self._supervision_state = self._supervision_state.to(device)
 
     def get_bounding_box_points(self):
         return make_box(self._length, self._width, self._height, pose=self._pose_base_in_world, grid_size=5).to(
@@ -564,8 +563,8 @@ class ProprioceptionNode(BaseNode):
         return self._pose_footprint_in_world
 
     @property
-    def propropioceptive_state(self):
-        return self._proprioceptive_state
+    def supervision_state(self):
+        return self._supervision_state
 
     @traversability.setter
     def traversability(self, traversability):
@@ -576,7 +575,7 @@ class ProprioceptionNode(BaseNode):
         self._traversability_var = variance
 
     def is_valid(self):
-        return isinstance(self._proprioceptive_state, torch.Tensor)
+        return isinstance(self._supervision_state, torch.Tensor)
 
 
 class TwistNode(BaseNode):

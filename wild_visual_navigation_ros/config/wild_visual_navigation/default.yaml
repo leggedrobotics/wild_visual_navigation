@@ -19,7 +19,7 @@ robot_height: 0.3
 # Traversability estimation params
 traversability_radius: 3.0 # meters
 image_graph_dist_thr: 0.2 # meters
-proprio_graph_dist_thr: 0.1 # meters
+supervision_graph_dist_thr: 0.1 # meters
 network_input_image_height: 224 # 448
 network_input_image_width: 224 # 448
 segmentation_type: "slic"
@@ -43,7 +43,7 @@ mission_timestamp: True
 
 # Threads
 image_callback_rate: 10 # hertz
-proprio_callback_rate: 10 # hertz
+supervision_callback_rate: 10 # hertz
 learning_thread_rate: 10 # hertz
 logging_thread_rate: 2 # hertz
 status_thread_rate: 0.5 # hertz
@@ -54,7 +54,7 @@ mode: "online" # check out comments in the class WVNMode
 colormap: "RdYlBu"
 
 print_image_callback_time: false
-print_proprio_callback_time: false
+print_supervision_callback_time: false
 log_time: false
 log_confidence: false
 verbose: false

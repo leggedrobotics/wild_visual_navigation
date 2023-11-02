@@ -23,7 +23,7 @@ class RosLearningNodeParams:
     # Traversability estimation params
     traversability_radius: float  # meters
     image_graph_dist_thr: float  # meters
-    proprio_graph_dist_thr: float  # meters
+    supervision_graph_dist_thr: float  # meters
     network_input_image_height: int  # 448
     network_input_image_width: int  # 448
     segmentation_type: str
@@ -47,7 +47,7 @@ class RosLearningNodeParams:
 
     # Threads
     image_callback_rate: float  # hertz
-    proprio_callback_rate: float  # hertz
+    supervision_callback_rate: float  # hertz
     learning_thread_rate: float  # hertz
     logging_thread_rate: float  # hertz
 
@@ -57,7 +57,7 @@ class RosLearningNodeParams:
     colormap: str
 
     print_image_callback_time: bool
-    print_proprio_callback_time: bool
+    print_supervision_callback_time: bool
     log_time: bool
     log_confidence: bool
     verbose: bool

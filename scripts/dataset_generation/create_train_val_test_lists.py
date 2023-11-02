@@ -17,7 +17,6 @@ for d in perguia_dataset:
     scenes[d["env"]] = []
 
 for d in perguia_dataset:
-
     p = [
         str(s).replace(ROOT_DIR + "/", "")
         for s in Path(ROOT_DIR, "wvn_output", d["name"].replace("mission_data/", ""), "image").rglob("*.pt")

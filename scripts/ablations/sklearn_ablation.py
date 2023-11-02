@@ -83,7 +83,6 @@ for scene in ["forest", "hilly", "grassland"]:
     for model_name, v in models.items():
         run_results = {}
         for run in range(number_training_runs):
-
             test_auroc_gt_image = AUROC("binary")
             test_auroc_prop_image = AUROC("binary")
             test_acc_gt_image = Accuracy("binary")

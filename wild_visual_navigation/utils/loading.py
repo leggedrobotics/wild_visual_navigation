@@ -55,3 +55,13 @@ def load_env() -> dict:
             env[k] = os.path.join(WVN_ROOT_DIR, env[k])
 
     return env
+
+
+def save_omega_cfg(cfg, path):
+    """
+    Args:
+        cfg (omegaconf): Cfg file
+        path (str): File path
+    """
+    with open(path, "rb") as file:
+        OmegaConf.save(config=cfg, f=file)

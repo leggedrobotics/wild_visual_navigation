@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Tuple, Dict, List, Optional
 from wild_visual_navigation import WVN_ROOT_DIR
+from typing import Any
 import os
 
 
@@ -66,7 +67,7 @@ class ExperimentParams:
         limit_val_batches: float = 1.0
         limit_test_batches: float = 1.0
         max_epochs: Optional[int] = None
-        profiler: bool = False
+        profiler: Any = False
         num_sanity_val_steps: int = 0
         check_val_every_n_epoch: int = 1
         enable_checkpointing: bool = True
@@ -106,14 +107,14 @@ class ExperimentParams:
 
         @dataclass
         class DoubleMlpCfgParams:
-            input_size: int = 90
+            input_size: int = 384
             hidden_sizes: List[int] = field(default_factory=lambda: [64, 32, 1])
 
         double_mlp_cfg: DoubleMlpCfgParams = DoubleMlpCfgParams()
 
         @dataclass
         class SimpleGcnCfgParams:
-            input_size: int = 90
+            input_size: int = 384
             reconstruction: bool = True
             hidden_sizes: List[int] = field(default_factory=lambda: [256, 128, 1])
 
@@ -169,13 +170,3 @@ class ExperimentParams:
         learning_visu: LearningVisuParams = LearningVisuParams()
 
     visu: VisuParams = VisuParams()
-
-    def verify_params(self):
-        if not self.general.log_to_disk:
-            assert self.trainer.profiler != "advanced", "Should not be advanced if not logging to disk"
-            assert self.cb_checkpoint.active == False, "Should be False if not logging to disk"
-
-        if self.loss.trav_cross_entropy:
-            self.model.simple_mlp_cfg.hidden_sizes[-1] = 2
-            self.model.double_mlp_cfg.hidden_sizes[-1] = 2
-            self.model.simple_gcn_cfg.hidden_sizes[-1] = 2

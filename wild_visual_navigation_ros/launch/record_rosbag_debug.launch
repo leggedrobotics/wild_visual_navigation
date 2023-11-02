@@ -52,7 +52,7 @@
     /wild_visual_navigation_node/graph_footprints
     /wild_visual_navigation_node/instant_traversability
     /wild_visual_navigation_node/mission_graph
-    /wild_visual_navigation_node/proprioceptive_graph
+    /wild_visual_navigation_node/supervision_graph
     /wild_visual_navigation_node/robot_state
     /wild_visual_navigation_node/system_state
     /wild_visual_navigation_node/training_loss

@@ -151,7 +151,6 @@ if __name__ == "__main__":
                 key = image.split("/")[-1][:-3]  # remove .pt
                 img = torch.load(image)
                 for name, feature_extractor in fes.items():
-
                     edges, feat, seg, center = feature_extractor.extract(img.clone()[None], return_centers=True)
 
                     filename = os.path.join(mission, "features", name, "seg", key + ".pt")

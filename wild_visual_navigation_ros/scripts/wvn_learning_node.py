@@ -2,7 +2,7 @@ from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation.supervision_generator import SupervisionGenerator
 from wild_visual_navigation.traversability_estimator import TraversabilityEstimator
-from wild_visual_navigation.traversability_estimator import MissionNode, ProprioceptionNode
+from wild_visual_navigation.traversability_estimator import MissionNode, SupervisionNode
 import wild_visual_navigation_ros.ros_converter as rc
 from wild_visual_navigation_msgs.msg import RobotState, SystemState, ImageFeatures
 from wild_visual_navigation.visu import LearningVisualizer
@@ -47,7 +47,7 @@ class WvnLearning:
     def __init__(self):
         # Timers to control the rate of the publishers
         self.last_image_ts = rospy.get_time()
-        self.last_proprio_ts = rospy.get_time()
+        self.last_supervision_ts = rospy.get_time()
 
         # Read params
         self.read_params()
@@ -56,7 +56,10 @@ class WvnLearning:
         self.color_palette = sns.color_palette(self.ros_params.colormap, as_cmap=True)
 
         # Setup Mission Folder
-        create_experiment_folder(self.params)
+        model_path = create_experiment_folder(self.params)
+
+        with read_write(self.params):
+            self.params.general.model_path = model_path
 
         # Initialize traversability estimator
         self.traversability_estimator = TraversabilityEstimator(
@@ -67,7 +70,7 @@ class WvnLearning:
             feature_type=self.ros_params.feature_type,
             max_distance=self.ros_params.traversability_radius,
             image_distance_thr=self.ros_params.image_graph_dist_thr,
-            proprio_distance_thr=self.ros_params.proprio_graph_dist_thr,
+            supervision_distance_thr=self.ros_params.supervision_graph_dist_thr,
             min_samples_for_training=self.ros_params.min_samples_for_training,
             vis_node_index=self.ros_params.vis_node_index,
             mode=self.ros_params.mode,
@@ -105,7 +108,7 @@ class WvnLearning:
             names=["WVN", "TraversabilityEstimator", "Visualizer", "SupervisionGenerator"],
             enabled=(
                 self.ros_params.print_image_callback_time
-                or self.ros_params.print_proprio_callback_time
+                or self.ros_params.print_supervision_callback_time
                 or self.ros_params.log_time
             ),
         )
@@ -273,9 +276,9 @@ class WvnLearning:
             with read_write(self.ros_params):
                 # TODO verify if this is needed
                 self.ros_params.image_callback_rate = 3
-                self.ros_params.proprio_callback_rate = 4
+                self.ros_params.supervision_callback_rate = 4
                 self.ros_params.image_graph_dist_thr = 0.2
-                self.ros_params.proprio_graph_dist_thr = 0.1
+                self.ros_params.supervision_graph_dist_thr = 0.1
             os.makedirs(os.path.join(self.ros_params.extraction_store_folder, "image"), exist_ok=True)
             os.makedirs(os.path.join(self.ros_params.extraction_store_folder, "supervision_mask"), exist_ok=True)
 
@@ -347,8 +350,8 @@ class WvnLearning:
                     sync.registerCallback(self.imagefeat_callback, self.ros_params.camera_topics[cam])
 
         # 3D outputs
-        self.pub_debug_proprio_graph = rospy.Publisher(
-            "/wild_visual_navigation_node/proprioceptive_graph", Path, queue_size=10
+        self.pub_debug_supervision_graph = rospy.Publisher(
+            "/wild_visual_navigation_node/supervision_graph", Path, queue_size=10
         )
         self.pub_mission_graph = rospy.Publisher("/wild_visual_navigation_node/mission_graph", Path, queue_size=10)
         self.pub_graph_footprints = rospy.Publisher(
@@ -468,7 +471,7 @@ class WvnLearning:
 
     @accumulate_time
     def robot_state_callback(self, state_msg, desired_twist_msg: TwistStamped):
-        """Main callback to process proprioceptive info (robot state)
+        """Main callback to process supervision info (robot state)
 
         Args:
             state_msg (wild_visual_navigation_msgs/RobotState): Robot state message
@@ -477,7 +480,7 @@ class WvnLearning:
         self.system_events["robot_state_callback_received"] = {"time": rospy.get_time(), "value": "message received"}
         try:
             ts = state_msg.header.stamp.to_sec()
-            if abs(ts - self.last_proprio_ts) < 1.0 / self.ros_params.proprio_callback_rate:
+            if abs(ts - self.last_supervision_ts) < 1.0 / self.ros_params.supervision_callback_rate:
                 self.system_events["robot_state_callback_cancled"] = {
                     "time": rospy.get_time(),
                     "value": "cancled due to rate",
@@ -512,7 +515,9 @@ class WvnLearning:
             pose_footprint_in_base[:3, :3] = torch.eye(3, device=self.ros_params.device)
 
             # Convert state to tensor
-            proprio_tensor, proprio_labels = rc.wvn_robot_state_to_torch(state_msg, device=self.ros_params.device)
+            supervision_tensor, supervision_labels = rc.wvn_robot_state_to_torch(
+                state_msg, device=self.ros_params.device
+            )
             current_twist_tensor = rc.twist_stamped_to_torch(state_msg.twist, device=self.ros_params.device)
             desired_twist_tensor = rc.twist_stamped_to_torch(desired_twist_msg, device=self.ros_params.device)
 
@@ -521,8 +526,8 @@ class WvnLearning:
                 current_twist_tensor, desired_twist_tensor, velocities=["vx", "vy"]
             )
 
-            # Create proprioceptive node for the graph
-            proprio_node = ProprioceptionNode(
+            # Create supervision node for the graph
+            supervision_node = SupervisionNode(
                 timestamp=ts,
                 pose_base_in_world=pose_base_in_world,
                 pose_footprint_in_base=pose_footprint_in_base,
@@ -531,19 +536,19 @@ class WvnLearning:
                 width=self.ros_params.robot_width,
                 length=self.ros_params.robot_length,
                 height=self.ros_params.robot_height,
-                proprioception=proprio_tensor,
+                supervision=supervision_tensor,
                 traversability=traversability,
                 traversability_var=traversability_var,
                 is_untraversable=is_untraversable,
             )
 
             # Add node to the graph
-            self.traversability_estimator.add_proprio_node(proprio_node)
+            self.traversability_estimator.add_supervision_node(supervision_node)
 
             if self.ros_params.mode == WVNMode.DEBUG or self.ros_params.mode == WVNMode.ONLINE:
-                self.visualize_proprioception()
+                self.visualize_supervision()
 
-            if self.ros_params.print_proprio_callback_time:
+            if self.ros_params.print_supervision_callback_time:
                 print(self.timer)
 
             self.system_events["robot_state_callback_state"] = {
@@ -580,7 +585,6 @@ class WvnLearning:
         if self.ros_params.verbose:
             print(f"\nImage callback: {camera_options['name']}... ", end="")
         try:
-
             # Run the callback so as to match the desired rate
             ts = imagefeat_msg.header.stamp.to_sec()
             if abs(ts - self.last_image_ts) < 1.0 / self.ros_params.image_callback_rate:
@@ -680,16 +684,16 @@ class WvnLearning:
             raise Exception("Error in image callback")
 
     @accumulate_time
-    def visualize_proprioception(self):
-        """Publishes all the visualizations related to proprioceptive info,
+    def visualize_supervision(self):
+        """Publishes all the visualizations related to supervision info,
         like footprints and the sliding graph
         """
         # Get current time for later
         now = rospy.Time.now()
 
-        proprio_graph_msg = Path()
-        proprio_graph_msg.header.frame_id = self.ros_params.fixed_frame
-        proprio_graph_msg.header.stamp = now
+        supervision_graph_msg = Path()
+        supervision_graph_msg.header.frame_id = self.ros_params.fixed_frame
+        supervision_graph_msg.header.stamp = now
 
         # Footprints
         footprints_marker = Marker()
@@ -709,13 +713,13 @@ class WvnLearning:
         footprints_marker.pose.position.z = 0.0
 
         last_points = [None, None]
-        for node in self.traversability_estimator.get_proprio_nodes():
+        for node in self.traversability_estimator.get_supervision_nodes():
             # Path
             pose = PoseStamped()
             pose.header.stamp = now
             pose.header.frame_id = self.ros_params.fixed_frame
             pose.pose = rc.torch_to_ros_pose(node.pose_base_in_world)
-            proprio_graph_msg.poses.append(pose)
+            supervision_graph_msg.poses.append(pose)
 
             # Color for traversability
             r, g, b, _ = self.color_palette(node.traversability.item())
@@ -777,11 +781,11 @@ class WvnLearning:
                 print(f"number of points for footprint is {len(footprints_marker.points)}")
             return
         self.pub_graph_footprints.publish(footprints_marker)
-        self.pub_debug_proprio_graph.publish(proprio_graph_msg)
+        self.pub_debug_supervision_graph.publish(supervision_graph_msg)
 
         # Publish latest traversability
         self.pub_instant_traversability.publish(self.supervision_generator.traversability)
-        self.system_events["visualize_proprioception"] = {"time": rospy.get_time(), "value": f"executed successfully"}
+        self.system_events["visualize_supervision"] = {"time": rospy.get_time(), "value": f"executed successfully"}
 
     @accumulate_time
     def visualize_mission_graph(self):

@@ -46,7 +46,6 @@ class GraphTravAblationDataset(Dataset):
                     print("Not found path", img_p)
 
         if training_data_percentage < 100:
-
             if int(len(ls) * training_data_percentage / 100) == 0:
                 raise Exception("Defined Training Data Perentage to small !")
 

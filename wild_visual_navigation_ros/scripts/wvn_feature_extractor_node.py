@@ -84,7 +84,6 @@ class WvnFeatureExtractor:
         rate = rospy.Rate(self.ros_params.status_thread_rate)
         # Learning loop
         while self.run_status_thread:
-
             self.status_thread_stop_event.wait(timeout=0.01)
             if self.status_thread_stop_event.is_set():
                 rospy.logwarn("Stopped learning thread")
@@ -266,7 +265,6 @@ class WvnFeatureExtractor:
         prediction = self.model.forward(data)
 
         if not self.anomaly_detection:
-
             out_trav = prediction.reshape(H, W, -1)[:, :, 0]
 
             # Publish traversability

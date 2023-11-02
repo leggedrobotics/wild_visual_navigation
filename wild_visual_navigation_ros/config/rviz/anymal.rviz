@@ -493,7 +493,7 @@ Visualization Manager:
               Length: 0.30000001192092896
               Line Style: Billboards
               Line Width: 0.029999999329447746
-              Name: Proprio Graph
+              Name: Supervision Graph
               Offset:
                 X: 0
                 Y: 0
@@ -504,7 +504,7 @@ Visualization Manager:
               Radius: 0.029999999329447746
               Shaft Diameter: 0.10000000149011612
               Shaft Length: 0.10000000149011612
-              Topic: /wild_visual_navigation_node/proprioceptive_graph
+              Topic: /wild_visual_navigation_node/supervision_graph
               Unreliable: false
               Value: true
           Enabled: true

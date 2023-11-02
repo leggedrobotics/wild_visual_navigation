@@ -7,7 +7,7 @@ from wild_visual_navigation.traversability_estimator import (
     BaseGraph,
     DistanceWindowGraph,
     MissionNode,
-    ProprioceptionNode,
+    SupervisionNode,
     MaxElementsGraph,
 )
 from wild_visual_navigation.utils import WVNMode
@@ -43,7 +43,7 @@ class TraversabilityEstimator:
         max_distance: float = 3,
         image_size: int = 448,
         image_distance_thr: float = None,
-        proprio_distance_thr: float = None,
+        supervision_distance_thr: float = None,
         segmentation_type: str = "slic",
         feature_type: str = "dino",
         min_samples_for_training: int = 10,
@@ -70,7 +70,7 @@ class TraversabilityEstimator:
             self._auxiliary_training_roc.to(self._device)
 
         # Local graphs
-        self._proprio_graph = DistanceWindowGraph(max_distance=max_distance, edge_distance=proprio_distance_thr)
+        self._supervision_graph = DistanceWindowGraph(max_distance=max_distance, edge_distance=supervision_distance_thr)
 
         # Experience graph
         if mode == WVNMode.EXTRACT_LABELS:
@@ -98,7 +98,7 @@ class TraversabilityEstimator:
 
         self._pause_training = False
         self._pause_mission_graph = False
-        self._pause_proprio_graph = False
+        self._pause_supervision_graph = False
 
         # Visualization
         self._visualizer = LearningVisualizer()
@@ -150,10 +150,10 @@ class TraversabilityEstimator:
         # with self._learning_lock:
         #     self._pause_training = True
         #     self._pause_mission_graph = True
-        #     self._pause_proprio_graph = True
+        #     self._pause_supervision_graph = True
         #     time.sleep(2.0)
 
-        #     self._proprio_graph.clear()
+        #     self._supervision_graph.clear()
         #     self._mission_graph.clear()
 
         #     # Reset all the learning stuff
@@ -180,7 +180,7 @@ class TraversabilityEstimator:
         #     # Resume training
         #     self._pause_training = False
         #     self._pause_mission_graph = False
-        #     self._pause_proprio_graph = False
+        #     self._pause_supervision_graph = False
 
     @property
     def scale_traversability_threshold(self):
@@ -213,7 +213,7 @@ class TraversabilityEstimator:
         Args:
             device (str): new device
         """
-        self._proprio_graph.change_device(device)
+        self._supervision_graph.change_device(device)
         self._mission_graph.change_device(device)
         self._feature_extractor.change_device(device)
         self._model = self._model.to(device)
@@ -305,22 +305,22 @@ class TraversabilityEstimator:
 
     @accumulate_time
     @torch.no_grad()
-    def add_proprio_node(self, pnode: ProprioceptionNode):
-        """Adds a node to the proprioceptive graph to store proprioception
+    def add_supervision_node(self, pnode: SupervisionNode):
+        """Adds a node to the supervision graph to store supervision
 
         Args:
-            node (BaseNode): new node in the proprioceptive graph
+            node (BaseNode): new node in the supervision graph
         """
-        if self._pause_proprio_graph:
+        if self._pause_supervision_graph:
             return False
 
         # If the node is not valid, we do nothing
         if not pnode.is_valid():
             return False
 
-        # Get last added proprio node
-        last_pnode = self._proprio_graph.get_last_node()
-        success = self._proprio_graph.add_node(pnode)
+        # Get last added supervision node
+        last_pnode = self._supervision_graph.get_last_node()
+        success = self._supervision_graph.add_node(pnode)
 
         if not success:
             # Update traversability of latest node
@@ -345,7 +345,7 @@ class TraversabilityEstimator:
 
             # Get all mission nodes within a range
             mission_nodes = self._mission_graph.get_nodes_within_radius_range(
-                last_mission_node, 0, self._proprio_graph.max_distance
+                last_mission_node, 0, self._supervision_graph.max_distance
             )
 
             if len(mission_nodes) < 1:
@@ -407,8 +407,8 @@ class TraversabilityEstimator:
     def get_mission_nodes(self):
         return self._mission_graph.get_nodes()
 
-    def get_proprio_nodes(self):
-        return self._proprio_graph.get_nodes()
+    def get_supervision_nodes(self):
+        return self._supervision_graph.get_nodes()
 
     def get_last_valid_mission_node(self):
         last_valid_node = None
@@ -565,7 +565,6 @@ class TraversabilityEstimator:
             # Prepare new batch
             graph = self.make_batch(self._params["ablation_data_module"]["batch_size"])
             if graph is not None:
-
                 with self._learning_lock:
                     # Forward pass
 
@@ -580,11 +579,11 @@ class TraversabilityEstimator:
                     if self._scale_traversability:
                         # This mask should contain all the segments corrosponding to trees.
                         mask_anomaly = loss_aux["confidence"] < 0.5
-                        mask_proprioceptive = graph.y == 1
+                        mask_supervision = graph.y == 1
                         # Remove the segments that are for sure not an anomalies given that we have walked on them.
-                        mask_anomaly[mask_proprioceptive] = False
+                        mask_anomaly[mask_supervision] = False
                         # Elements are valid if they are either an anomaly or we have walked on them to fit the ROC
-                        mask_valid = mask_anomaly | mask_proprioceptive
+                        mask_valid = mask_anomaly | mask_supervision
                         self._auxiliary_training_roc(res[mask_valid, 0], graph.y[mask_valid].type(torch.long))
                         return_dict["scale_traversability_threshold"] = self._scale_traversability_threshold
 

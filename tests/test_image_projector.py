@@ -1,12 +1,12 @@
 from wild_visual_navigation.image_projector import run_image_projector
-from wild_visual_navigation.traversability_estimator import ProprioceptionNode
+from wild_visual_navigation.traversability_estimator import SupervisionNode
 
 
 def test_image_projector():
     run_image_projector()
 
 
-def test_proprioceptive_projection():
+def test_supervision_projection():
     from wild_visual_navigation import WVN_ROOT_DIR
     from wild_visual_navigation.image_projector import ImageProjector
     from wild_visual_navigation.visu import get_img_from_fig
@@ -73,12 +73,12 @@ def test_proprioceptive_projection():
         print(delta, pose_base_in_world)
 
         twist = torch.rand((3,))
-        proprioception = torch.rand((10,))
+        supervision = torch.rand((10,))
         traversability = torch.rand(1)
         traversability_var = torch.tensor([0.2])
         color = torch.rand((3,))[None]
 
-        proprio_node = ProprioceptionNode(
+        supervision_node = SupervisionNode(
             timestamp=i,
             pose_base_in_world=pose_base_in_world,
             pose_footprint_in_base=pose_footprint_in_base,
@@ -86,15 +86,15 @@ def test_proprioceptive_projection():
             width=0.5,
             length=0.8,
             height=0.1,
-            proprioception=proprioception,
+            supervision=supervision,
             traversability=traversability,
             traversability_var=traversability_var,
             is_untraversable=torch.BoolTensor([False]),
         )
-        nodes.append(proprio_node)
+        nodes.append(supervision_node)
 
         if i > 0:
-            footprint = proprio_node.make_footprint_with_node(nodes[i - 1])[None]
+            footprint = supervision_node.make_footprint_with_node(nodes[i - 1])[None]
 
             # project footprint
             k_mask, torch_image_overlay, k_points, k_valid = im.project_and_render(
@@ -115,8 +115,8 @@ def test_proprioceptive_projection():
 
     # Store results to test directory
     img = get_img_from_fig(fig)
-    img.save(join(WVN_ROOT_DIR, "results", "test_image_projector", "forest_clean_proprioceptive_projection.png"))
+    img.save(join(WVN_ROOT_DIR, "results", "test_image_projector", "forest_clean_supervision_projection.png"))
 
 
 if __name__ == "__main__":
-    test_proprioceptive_projection()
+    test_supervision_projection()

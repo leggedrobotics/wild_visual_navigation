@@ -98,7 +98,7 @@ def do(n, dry_run):
     rosparam.set_param("wild_visual_navigation_node/mode", "extract_labels")
     rosparam.set_param("wild_visual_navigation_node/running_store_folder", running_store_folder)
 
-    # for proprioceptive callback
+    # for supervision callback
     state_msg_valid = False
     desired_twist_msg_valid = False
 
@@ -149,8 +149,7 @@ def do(n, dry_run):
             position=1,
             bar_format="{desc:<13}{percentage:3.0f}%|{bar:20}{r_bar}",
         ) as pbar:
-            for (topic, msg, ts) in bag.read_messages(topics=None, start_time=start_time, end_time=end_time):
-
+            for topic, msg, ts in bag.read_messages(topics=None, start_time=start_time, end_time=end_time):
                 if rospy.is_shutdown():
                     return
                 pbar.update(1)

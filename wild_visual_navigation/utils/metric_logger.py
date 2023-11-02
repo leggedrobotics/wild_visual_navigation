@@ -154,7 +154,7 @@ class MetricLogger(torch.nn.Module):
             roc_gt_image = [None, None, None]
         auroc_gt_image = self.auroc_gt_image[mode].compute().item()
 
-        # generate proprioceptive label
+        # generate supervision label
         if self.log_roc_image:
             roc_self_image = [a.cpu().numpy() for a in self.roc_self_image[mode].compute()]
         else:

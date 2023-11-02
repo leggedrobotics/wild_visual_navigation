@@ -207,7 +207,7 @@ We provide the configurations for those experiments within the `cfg/exp/ablation
 python3 scripts/ablation/training_ablation.py --ablation_type=network
 ```
 After running the training the results are stored respectively in `scripts/ablations/<ablation_type>_ablation` as a pickle file. 
-For each training run the trained network is evaluate on all testing scenes and the AUROC and ROC values are stored with respect to the hand labeled gt-labels and self-supervised proprioceptive-labels. 
+For each training run the trained network is evaluate on all testing scenes and the AUROC and ROC values are stored with respect to the hand labeled gt-labels and self-supervised supervision-labels. 
 We provide a jupyter notebook to interpret the training results. 
 ```
 python3 scripts/ablation/training_ablation_visu.ipynb

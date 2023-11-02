@@ -1,6 +1,7 @@
 from wild_visual_navigation.cfg import RosLearningNodeParams
 from omegaconf import OmegaConf
 from omegaconf import read_write
+from omegaconf.dictconfig import DictConfig
 
 
 def test_configuration():

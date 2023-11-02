@@ -78,11 +78,11 @@ class LightningTrav(pl.LightningModule):
 
         # This mask should contain all the segments corrosponding to trees.
         mask_anomaly = loss_aux["confidence"] < 0.5
-        mask_proprioceptive = graph.y == 1
+        mask_supervision = graph.y == 1
         # Remove the segments that are for sure not an anomalies given that we have walked on them.
-        mask_anomaly[mask_proprioceptive] = False
+        mask_anomaly[mask_supervision] = False
         # Elements are valid if they are either an anomaly or we have walked on them to fit the ROC
-        mask_valid = mask_anomaly | mask_proprioceptive
+        mask_valid = mask_anomaly | mask_supervision
         self._auxiliary_training_roc(res_updated[mask_valid, 0], graph.y[mask_valid].type(torch.long))
 
         return loss

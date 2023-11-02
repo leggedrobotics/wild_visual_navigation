@@ -211,7 +211,7 @@ class SystemLevelGpuMonitor:
             if hasattr(o, "slg_memory_samples"):
                 # Each object has a slg_memory_samples dict
                 # Each entry of the dict is a numpy array with samples
-                for (k, v) in o.slg_memory_samples.items():
+                for k, v in o.slg_memory_samples.items():
                     out_filename = f"{base_folder}/{n}_{k}.csv"
                     print(f"   {out_filename}")
                     df = pd.DataFrame(v)
@@ -219,7 +219,6 @@ class SystemLevelGpuMonitor:
 
 
 if __name__ == "__main__":
-
     print("GPU memory measuring using context manager")
 
     tensors = []

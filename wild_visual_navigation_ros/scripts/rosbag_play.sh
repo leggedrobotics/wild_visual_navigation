@@ -12,7 +12,7 @@ for option in "$@"; do
     /wild_visual_navigation_node/front/traversability:=/recorded/wild_visual_navigation_node/front/traversability \
     /wild_visual_navigation_node/graph_footprints:=/recorded/wild_visual_navigation_node/graph_footprints \
     /wild_visual_navigation_node/instant_traversability:=/recorded/wild_visual_navigation_node/instant_traversability \
-    /wild_visual_navigation_node/proprioceptive_graph:=/recorded/wild_visual_navigation_node/proprioceptive_graph \
+    /wild_visual_navigation_node/supervision_graph:=/recorded/wild_visual_navigation_node/supervision_graph \
     /wild_visual_navigation_node/robot_state:=/recorded/wild_visual_navigation_node/robot_state \
     /wild_visual_navigation_node/system_state:=/recorded/wild_visual_navigation_node/system_state \
     /wild_visual_navigation_visu_confidence/confidence_overlayed:=/recorded/wild_visual_navigation_visu_confidence/confidence_overlayed \
