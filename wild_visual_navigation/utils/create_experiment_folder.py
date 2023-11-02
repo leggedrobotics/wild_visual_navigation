@@ -8,6 +8,7 @@ from typing import Union
 from omegaconf import read_write
 from wild_visual_navigation import WVN_ROOT_DIR
 
+
 @rank_zero_only
 def create_experiment_folder(exp: ExperimentParams) -> str:
     """Creates an experiment folder if rank=0 with optional unique timestamp.
@@ -23,10 +24,9 @@ def create_experiment_folder(exp: ExperimentParams) -> str:
     name = exp.general.name
     timestamp = exp.general.timestamp
 
-    if not os.path.isabs( exp.env.results):
+    if not os.path.isabs(exp.env.results):
         with read_write(exp):
-            exp.env.results = os.path.join( WVN_ROOT_DIR,  exp.env.results)
-
+            exp.env.results = os.path.join(WVN_ROOT_DIR, exp.env.results)
 
     # Set in name the correct model path
     if timestamp:

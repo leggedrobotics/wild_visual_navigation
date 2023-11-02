@@ -59,6 +59,7 @@ for x in ["tx", "ty", "tz", "qx", "qy", "qz", "qw", "vx", "vy", "vz", "wx", "wy"
     robot_state_msg.states[4].labels[i] = x
     i += 1
 
+
 def anymal_state_callback(anymal_state_msg):
     global labels_initialized
 
@@ -83,8 +84,6 @@ def anymal_state_callback(anymal_state_msg):
 
     # Publish the TF transform
     tf_broadcaster.sendTransform(transform_stamped)
-    
-
 
     # WVN
 
@@ -112,13 +111,16 @@ def anymal_state_callback(anymal_state_msg):
     robot_state_msg.states[4].values[12] = anymal_state_msg.twist.twist.angular.z
     robot_state_pub.publish(robot_state_msg)
 
-if __name__ == '__main__':
-    rospy.init_node('anymal_state_republisher')
+
+if __name__ == "__main__":
+    rospy.init_node("anymal_state_republisher")
     tf_broadcaster = tf2_ros.TransformBroadcaster()
-    
+
     # Read parameters
     joint_states_topic = rospy.get_param("~joint_states")
-    anymal_state_topic = rospy.get_param("~anymal_state_topic", )
+    anymal_state_topic = rospy.get_param(
+        "~anymal_state_topic",
+    )
     output_topic = rospy.get_param("~output_topic")
     joint_state_publisher = rospy.Publisher(joint_states_topic, JointState, queue_size=10)
     robot_state_pub = rospy.Publisher(output_topic, RobotState, queue_size=10)

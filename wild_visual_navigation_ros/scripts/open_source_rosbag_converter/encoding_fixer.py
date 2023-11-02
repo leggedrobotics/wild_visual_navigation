@@ -12,8 +12,8 @@ from cv_bridge import CvBridge, CvBridgeError
 
 
 class image_converter:
-    def __init__(self,cam):
-        
+    def __init__(self, cam):
+
         self.image_pub = rospy.Publisher(f"/alphasense_driver_ros/{cam}_corrected", Image, queue_size=10)
 
         self.bridge = CvBridge()
@@ -22,6 +22,7 @@ class image_converter:
     def callback(self, msg):
         msg.encoding = "bayer_gbrg8"
         self.image_pub.publish(msg)
+
 
 def main(args):
     rospy.init_node("image_converter", anonymous=True)
