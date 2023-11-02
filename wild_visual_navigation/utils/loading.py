@@ -40,23 +40,6 @@ def load_yaml(path: str) -> dict:
     return res
 
 
-def load_env() -> dict:
-    """Uses ENV_WORKSTATION_NAME variable to load specified environment yaml file.
-
-    Returns:
-        (dict): Returns content of environment file
-    """
-    env_cfg_path = os.path.join(WVN_ROOT_DIR, "cfg/env", os.environ["ENV_WORKSTATION_NAME"] + ".yaml")
-    env = load_yaml(env_cfg_path)
-    for k in env.keys():
-        if k == "workstation":
-            continue
-        if not os.path.isabs(env[k]):
-            env[k] = os.path.join(WVN_ROOT_DIR, env[k])
-
-    return env
-
-
 def save_omega_cfg(cfg, path):
     """
     Args:

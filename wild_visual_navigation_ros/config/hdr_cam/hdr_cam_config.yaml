@@ -31,15 +31,6 @@ camera_info_url: ""                 # URI for camera calibration data (likely a 
 image_width: 1920                    # Frame dimensions, should be supported by camera hardware
 image_height: 1280
 framerate: 30                       # Camera polling frequency, Hz (integer)
-
-# Auxiliary camera parameters provided by libv4l2.
-    # Names for these parameters are generated automatically according to the intrinsic control names exported by the
-    # camera driver. The node queries camera's kernel controller module to determine the parameters that can be set up
-    # via ROS. For these parameters the corresponding ROS parameters with identical names are generated under this
-    # namespace.
-    # See also the comprehensive node output describing parameter names and feasible values for them to be set up here.
-    # It is also possible to have a list of the available control names using v4l2-ctl application from v4l2-util package:
-    # v4l2-ctl --device=/dev/video<ID> -L
 intrinsic_controls:                 
     focus_auto: true
     exposure_auto_priority: true
@@ -59,7 +50,4 @@ intrinsic_controls:
         tilt_absolute,
         focus_absolute,
         zoom_absolute
-    ]                               # Use this list to enumerate the control names that should be delisted from the camera setup
-                                    # NOTE: the ROS parameters for the V4L controls supported but listed here would be STILL
-                                    # generated, but the values WILL NOT BE USED to set up the camera. To affect these controls
-                                    # once you want to do that, their names should me REMOVED from this list!
+    ]

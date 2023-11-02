@@ -18,13 +18,13 @@ def get_neptune_run(neptune_project_name: str, tags: [str]) -> any:
         tags (list of str): Tags to identify the project
     """
     proxies = None
-    if os.environ["ENV_WORKSTATION_NAME"] == "euler":
+    if os.environ.get("ENV_WORKSTATION_NAME", "default") == "euler":
         proxies = PROXIES
 
     run = neptune.init(
         api_token=os.environ["NEPTUNE_API_TOKEN"],
         project=neptune_project_name,
-        tags=[os.environ["ENV_WORKSTATION_NAME"]] + tags,
+        tags=[os.environ.get("ENV_WORKSTATION_NAME", "default")] + tags,
         proxies=proxies,
     )
     return run
@@ -46,14 +46,14 @@ def get_neptune_logger(exp: dict) -> NeptuneLogger:
     name_short = "__".join(name_full.split("/")[-2:])
 
     proxies = None
-    if os.environ["ENV_WORKSTATION_NAME"] == "euler":
+    if os.environ.get("ENV_WORKSTATION_NAME", "default") == "euler":
         proxies = PROXIES
 
     return NeptuneLogger(
         api_key=os.environ["NEPTUNE_API_TOKEN"],
         project=project_name,
         name=name_short,
-        tags=[os.environ["ENV_WORKSTATION_NAME"], name_full.split("/")[-2], name_full.split("/")[-1]],
+        tags=[os.environ.get("ENV_WORKSTATION_NAME", "default"), name_full.split("/")[-2], name_full.split("/")[-1]],
         proxies=proxies,
     )
 
@@ -104,6 +104,6 @@ def get_skip_logger(exp: dict) -> None:
 
 def get_logger(exp: dict) -> any:
     name = exp.logger.name
-    save_dir = os.path.join(exp.general.folder, exp.general.name)
+    save_dir = os.path.join(exp.env.folder, exp.general.name)
     register = {k: v for k, v in globals().items() if inspect.isfunction(v)}
     return register[f"get_{name}_logger"](exp)

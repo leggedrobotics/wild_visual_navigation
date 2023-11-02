@@ -1,3 +1,4 @@
+raise ValueError("TODO: Not tested with new configuration!")
 import os
 import torch
 from pathlib import Path
@@ -8,7 +9,7 @@ import copy
 import argparse
 import shutil
 from wild_visual_navigation import WVN_ROOT_DIR
-from wild_visual_navigation.utils import load_yaml, load_env
+from wild_visual_navigation.utils import load_yaml
 from wild_visual_navigation.cfg import ExperimentParams
 from wild_visual_navigation.general import training_routine
 
@@ -18,7 +19,6 @@ if __name__ == "__main__":
     After training we run for all model checkpoints the test routine.
     """
     exp = ExperimentParams()
-    env = load_env()
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--output_key", type=str, default="learning_curve", help="Name of the run.")
@@ -65,8 +65,8 @@ if __name__ == "__main__":
     exp.visu.val = 0
     exp.visu.test = 0
     exp.verify_params()
-    ws = os.environ["ENV_WORKSTATION_NAME"]
-    exp.general.model_path = os.path.join(env["base"], f"ablations/{output_key}_{ws}")
+    ws = os.environ.get("ENV_WORKSTATION_NAME", "default")
+    exp.general.model_path = os.path.join(exp.env.results, f"ablations/{output_key}_{ws}")
 
     # If check_val_every_n_epoch in the current setting the test dataloader is used for validation.
     # All results during validation are stored and returned by the training routine.

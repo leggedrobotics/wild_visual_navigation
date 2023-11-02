@@ -1,6 +1,6 @@
+raise ValueError("TODO: Not tested with new configuration!")
 # Use the same config to load the data using the dataloader
 from wild_visual_navigation.dataset import get_ablation_module
-from wild_visual_navigation.utils import load_env
 from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.cfg import ExperimentParams
 import torch
@@ -20,7 +20,6 @@ import os
 import pickle
 from pathlib import Path
 
-env = load_env()
 number_training_runs = 5
 test_all_datasets = False
 
@@ -45,7 +44,7 @@ for scene in ["forest", "hilly", "grassland"]:
         "training_in_memory": True,
     }
     train_dataset, val_dataset, test_datasets = get_ablation_module(
-        **ablation_data_module, perugia_root=env["perugia_root"]
+        **ablation_data_module, perugia_root=exp.env.perugia_root
     )
     test_scenes = [a.dataset.env for a in test_datasets]
 
@@ -144,10 +143,10 @@ for scene in ["forest", "hilly", "grassland"]:
         model_results[model_name] = copy.deepcopy(run_results)
     results_epoch[scene] = copy.deepcopy(model_results)
 
-    ws = os.environ["ENV_WORKSTATION_NAME"]
+    ws = os.environ.get("ENV_WORKSTATION_NAME", "default")
     # Store epoch output to disk.
     p = os.path.join(
-        env["base"], f"ablations/classicial_learning_ablation_{ws}/classicial_learning_ablation_test_results.pkl"
+        exp.env.results, f"ablations/classicial_learning_ablation_{ws}/classicial_learning_ablation_test_results.pkl"
     )
     print(results_epoch)
     Path(p).parent.mkdir(parents=True, exist_ok=True)

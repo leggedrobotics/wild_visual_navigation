@@ -36,7 +36,7 @@ def training_routine(exp: ExperimentParams, seed=42) -> torch.Tensor:
     with read_write(exp):
         # Update model paths
         exp.general.model_path = model_path
-        exp.general.name = os.path.relpath(model_path, exp.general.folder)
+        exp.general.name = os.path.relpath(model_path, exp.env.results)
         exp.trainer.default_root_dir = model_path
         exp.visu.learning_visu.p_visu = join(model_path, "visu")
 
@@ -88,7 +88,7 @@ def training_routine(exp: ExperimentParams, seed=42) -> torch.Tensor:
         save_omega_cfg(exp, os.path.join(model_path, "experiment_params.yaml"))
 
     # Model
-    model = LightningTrav(exp=exp, env=env)
+    model = LightningTrav(exp=exp)
     if type(exp.model.load_ckpt) == str:
         ckpt = torch.load(exp.model.load_ckpt)
         try:

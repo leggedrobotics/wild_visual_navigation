@@ -1,2 +1,3 @@
+from .global_params import get_gloabl_env_params, GloabalEnvironmentParams
 from .experiment_params import ExperimentParams
 from .ros_params import RosLearningNodeParams, RosFeatureExtractorNodeParams

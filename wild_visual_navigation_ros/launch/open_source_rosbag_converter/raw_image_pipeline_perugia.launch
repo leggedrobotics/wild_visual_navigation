@@ -1,0 +1,287 @@
+<launch>
+    <!-- General options-->
+    <arg name="input_type"                           default="color"/>
+    
+    <arg name="launch_prefix"                        default=""/>
+    
+    <arg name="output_encoding"                      default="BGR"/>   <!-- Format of the published image BGR and RGB supported-->
+    <arg name="skip_number_of_images_for_slow_topic" default="5"/>     <!-- To publish images at a slower rate -->
+    <arg name="use_gpu"                              default="true"/>     <!-- To publish images at a slower rate -->
+    <arg name="debug"                                default="false"/> <!-- to export debug data to /tmp -->  
+    <arg name="disable_compression_plugins"          default="true"/>     <!-- To avoid publication of theora or compressedDepth topics -->
+
+    <!-- Modules -->
+    <arg name="debayer/enabled"                      default="true"/>
+    <arg name="flip/enabled"                         default="true"/>
+    <arg name="white_balance/enabled"                default="true"/>
+    <arg name="color_calibration/enabled"            default="false"/>
+    <arg name="gamma_correction/enabled"             default="false"/>
+    <arg name="vignetting_correction/enabled"        default="false"/>
+    <arg name="color_enhancer/enabled"               default="false"/>
+    <arg name="undistortion/enabled"                 default="true"/>
+
+    <!-- Camera -->
+    <!-- Debayer  -->
+    <arg name="debayer_encoding"                     default="bayer_grbg8"/>  <!-- auto, bayer_bggr8, bayer_gbrg8, bayer_grbg8, bayer_rggb8-->
+    <!-- Flip  -->
+    <arg name="flip/angle"                           default="180"/>  <!-- 90 (clockwise), 180, 270 (counter-clockwise) -->
+    <!-- White balance options -->
+    <arg name="white_balance/method"                 default="ccc"/> <!-- simple, grey_world, learned, ccc, pca -->
+    <arg name="white_balance/clipping_percentile"    default="10"/>  <!-- simple WB, values [0-100]-->
+    <arg name="white_balance/saturation_bright_thr"  default="0.8"/> <!-- grey_world, learned, ccc: [0.0, 1.0] -->
+    <arg name="white_balance/saturation_dark_thr"    default="0.2"/> <!-- ccc-only: [0.0, 1.0] -->
+    <arg name="white_balance/temporal_consistency"   default="false"/>  <!-- ccc-only: uses a Kalman filter to track the illuminant estimate -->
+    <!-- Color calibration -->
+    <arg name="color_calibration/calibration_file"  default="$(find raw_image_pipeline)/config/alphasense_color_calib_example.yaml"/>
+    <!-- Gamma correction options -->
+    <arg name="gamma_correction/method"              default="custom"/> <!-- default, custom-->
+    <arg name="gamma_correction/k"                   default="0.9"/> <!-- k >= 1 -> forward gamma (darker); k < 1 -> inverse gamma (brighter)-->
+    <!-- Vignetting correction -->
+    <arg name="vignetting_correction/scale"          default="1.5"/> <!-- Linear term -->
+    <arg name="vignetting_correction/a2"             default="0.001"/> <!-- Quadratic term -->
+    <arg name="vignetting_correction/a4"             default="0.000001"/> <!-- Cubic term -->
+    <!-- HSV color enhancement -->
+    <arg name="color_enhancer/saturation_gain"       default="1.2"/> <!-- gain > 1.0 makes color more vibrant-->
+    <!-- Undistortion -->
+    <arg name="undistortion/balance"                 default="0.5"/> <!-- Balance [0,1] -->
+    <arg name="undistortion/fov_scale"               default="1.2"/> <!-- scale > 1.0 increases the FoV -->
+    
+    <!-- Disable Image Transport plugins -->
+    <group if="$(arg disable_compression_plugins)" ns="alphasense_driver_ros/cam3">
+        <rosparam param="debayered/image/disable_pub_plugins">
+        - 'image_transport/compressedDepth'
+        - 'image_transport/theora'
+        </rosparam>
+        <rosparam param="debayered/slow/disable_pub_plugins">
+        - 'image_transport/compressedDepth'
+        - 'image_transport/theora'
+        </rosparam>
+        <rosparam param="$(arg input_type)/image/disable_pub_plugins">
+        - 'image_transport/compressedDepth'
+        - 'image_transport/theora'
+        </rosparam>
+        <rosparam param="$(arg input_type)/slow/disable_pub_plugins">
+        - 'image_transport/compressedDepth'
+        - 'image_transport/theora'
+        </rosparam>
+        <rosparam param="$(arg input_type)_rect/image/disable_pub_plugins">
+        - 'image_transport/compressedDepth'
+        - 'image_transport/theora'
+        </rosparam>
+        <rosparam param="$(arg input_type)_rect/slow/disable_pub_plugins">
+        - 'image_transport/compressedDepth'
+        - 'image_transport/theora'
+        </rosparam>
+    </group>
+
+        <!-- Disable Image Transport plugins -->
+        <group if="$(arg disable_compression_plugins)" ns="alphasense_driver_ros/cam4">
+            <rosparam param="debayered/image/disable_pub_plugins">
+            - 'image_transport/compressedDepth'
+            - 'image_transport/theora'
+            </rosparam>
+            <rosparam param="debayered/slow/disable_pub_plugins">
+            - 'image_transport/compressedDepth'
+            - 'image_transport/theora'
+            </rosparam>
+            <rosparam param="$(arg input_type)/image/disable_pub_plugins">
+            - 'image_transport/compressedDepth'
+            - 'image_transport/theora'
+            </rosparam>
+            <rosparam param="$(arg input_type)/slow/disable_pub_plugins">
+            - 'image_transport/compressedDepth'
+            - 'image_transport/theora'
+            </rosparam>
+            <rosparam param="$(arg input_type)_rect/image/disable_pub_plugins">
+            - 'image_transport/compressedDepth'
+            - 'image_transport/theora'
+            </rosparam>
+            <rosparam param="$(arg input_type)_rect/slow/disable_pub_plugins">
+            - 'image_transport/compressedDepth'
+            - 'image_transport/theora'
+            </rosparam>
+        </group>
+
+
+            <!-- Disable Image Transport plugins -->
+    <group if="$(arg disable_compression_plugins)" ns="alphasense_driver_ros/cam5">
+        <rosparam param="debayered/image/disable_pub_plugins">
+        - 'image_transport/compressedDepth'
+        - 'image_transport/theora'
+        </rosparam>
+        <rosparam param="debayered/slow/disable_pub_plugins">
+        - 'image_transport/compressedDepth'
+        - 'image_transport/theora'
+        </rosparam>
+        <rosparam param="$(arg input_type)/image/disable_pub_plugins">
+        - 'image_transport/compressedDepth'
+        - 'image_transport/theora'
+        </rosparam>
+        <rosparam param="$(arg input_type)/slow/disable_pub_plugins">
+        - 'image_transport/compressedDepth'
+        - 'image_transport/theora'
+        </rosparam>
+        <rosparam param="$(arg input_type)_rect/image/disable_pub_plugins">
+        - 'image_transport/compressedDepth'
+        - 'image_transport/theora'
+        </rosparam>
+        <rosparam param="$(arg input_type)_rect/slow/disable_pub_plugins">
+        - 'image_transport/compressedDepth'
+        - 'image_transport/theora'
+        </rosparam>
+    </group>
+
+    <!-- Nodes -->
+    <node name="raw_image_pipeline_ros_node_cam3" type="raw_image_pipeline_ros_node" pkg="raw_image_pipeline_ros" output="screen" launch-prefix="$(arg launch_prefix)">
+        <param name="input_topic"                          value="alphasense_driver_ros/cam3_corrected"/>
+        <param name="input_type"                           value="$(arg input_type)"/>
+
+        <param name="output_prefix"                       value="alphasense_driver_ros/cam3"/>
+        <param name="output_encoding"                      value="$(arg output_encoding)"/>
+        <param name="output_frame"                         value="cam3_sensor_frame_helper"/>
+
+
+        <param name="skip_number_of_images_for_slow_topic" value="$(arg skip_number_of_images_for_slow_topic)"/>
+        <param name="use_gpu"                              value="$(arg use_gpu)"/>
+        <param name="debug"                                value="$(arg debug)"/>
+        
+        <param name="debayer/enabled"                      value="$(arg debayer/enabled)"/>
+        <param name="debayer/encoding"                     value="$(arg debayer_encoding)"/>
+
+        <param name="flip/enabled"                         value="$(arg flip/enabled)"/>
+        <param name="flip/angle"                           value="$(arg flip/angle)"/>
+        
+        <param name="white_balance/enabled"                value="$(arg white_balance/enabled)"/>
+        <param name="white_balance/method"                 value="$(arg white_balance/method)"/>
+        <param name="white_balance/clipping_percentile"    value="$(arg white_balance/clipping_percentile)"/>
+        <param name="white_balance/saturation_bright_thr"  value="$(arg white_balance/saturation_bright_thr)"/>
+        <param name="white_balance/saturation_dark_thr"    value="$(arg white_balance/saturation_dark_thr)"/>
+        <param name="white_balance/temporal_consistency"   value="$(arg white_balance/temporal_consistency)"/>
+        
+        <param name="color_calibration/enabled"            value="$(arg color_calibration/enabled)"/>
+        <param name="color_calibration/calibration_file"   value="$(arg color_calibration/calibration_file)"/>
+
+        <param name="gamma_correction/enabled"             value="$(arg gamma_correction/enabled)"/>
+        <param name="gamma_correction/method"              value="$(arg gamma_correction/method)"/>
+        <param name="gamma_correction/k"                   value="$(arg gamma_correction/k)"/>
+
+        <param name="vignetting_correction/enabled"        value="$(arg vignetting_correction/enabled)"/>
+        <param name="vignetting_correction/scale"          value="$(arg vignetting_correction/scale)"/>
+        <param name="vignetting_correction/a2"             value="$(arg vignetting_correction/a2)"/>
+        <param name="vignetting_correction/a4"             value="$(arg vignetting_correction/a4)"/>
+        
+        <param name="color_enhancer/enabled"               value="$(arg color_enhancer/enabled)"/>
+        <param name="color_enhancer/saturation_gain"       value="$(arg color_enhancer/saturation_gain)"/>
+        
+        <param name="undistortion/enabled"                 value="$(arg undistortion/enabled)"/>
+        <param name="undistortion/balance"                 value="$(arg undistortion/balance)"/>
+        <param name="undistortion/fov_scale"               value="$(arg undistortion/fov_scale)"/>
+        <param name="undistortion/calibration_file"        value="$(find anymal_camel_rsl)/calibration/alphasense/intrinsic/cam3.yaml"/>
+    </node>
+
+
+    <!-- Nodes -->
+    <node name="raw_image_pipeline_ros_node_cam4" type="raw_image_pipeline_ros_node" pkg="raw_image_pipeline_ros" output="screen" launch-prefix="$(arg launch_prefix)">
+        <param name="input_topic"                          value="alphasense_driver_ros/cam4_corrected"/>
+        <param name="input_type"                           value="$(arg input_type)"/>
+    
+        <param name="output_prefix"                       value="alphasense_driver_ros/cam4"/>
+        <param name="output_encoding"                      value="$(arg output_encoding)"/>
+        <param name="output_frame"                         value="cam4_sensor_frame_helper"/>
+        <param name="skip_number_of_images_for_slow_topic" value="$(arg skip_number_of_images_for_slow_topic)"/>
+        <param name="use_gpu"                              value="$(arg use_gpu)"/>
+        <param name="debug"                                value="$(arg debug)"/>
+        
+        <param name="debayer/enabled"                      value="$(arg debayer/enabled)"/>
+        <param name="debayer/encoding"                     value="$(arg debayer_encoding)"/>
+    
+        <param name="flip/enabled"                         value="$(arg flip/enabled)"/>
+        <param name="flip/angle"                           value="$(arg flip/angle)"/>
+        
+        <param name="white_balance/enabled"                value="$(arg white_balance/enabled)"/>
+        <param name="white_balance/method"                 value="$(arg white_balance/method)"/>
+        <param name="white_balance/clipping_percentile"    value="$(arg white_balance/clipping_percentile)"/>
+        <param name="white_balance/saturation_bright_thr"  value="$(arg white_balance/saturation_bright_thr)"/>
+        <param name="white_balance/saturation_dark_thr"    value="$(arg white_balance/saturation_dark_thr)"/>
+        <param name="white_balance/temporal_consistency"   value="$(arg white_balance/temporal_consistency)"/>
+        
+        <param name="color_calibration/enabled"            value="$(arg color_calibration/enabled)"/>
+        <param name="color_calibration/calibration_file"   value="$(arg color_calibration/calibration_file)"/>
+    
+        <param name="gamma_correction/enabled"             value="$(arg gamma_correction/enabled)"/>
+        <param name="gamma_correction/method"              value="$(arg gamma_correction/method)"/>
+        <param name="gamma_correction/k"                   value="$(arg gamma_correction/k)"/>
+    
+        <param name="vignetting_correction/enabled"        value="$(arg vignetting_correction/enabled)"/>
+        <param name="vignetting_correction/scale"          value="$(arg vignetting_correction/scale)"/>
+        <param name="vignetting_correction/a2"             value="$(arg vignetting_correction/a2)"/>
+        <param name="vignetting_correction/a4"             value="$(arg vignetting_correction/a4)"/>
+        
+        <param name="color_enhancer/enabled"               value="$(arg color_enhancer/enabled)"/>
+        <param name="color_enhancer/saturation_gain"       value="$(arg color_enhancer/saturation_gain)"/>
+        
+        <param name="undistortion/enabled"                 value="$(arg undistortion/enabled)"/>
+        <param name="undistortion/balance"                 value="$(arg undistortion/balance)"/>
+        <param name="undistortion/fov_scale"               value="$(arg undistortion/fov_scale)"/>
+        <param name="undistortion/calibration_file"        value="$(find anymal_camel_rsl)/calibration/alphasense/intrinsic/cam4.yaml"/>
+    </node>
+
+
+    <!-- Nodes -->
+    <node name="raw_image_pipeline_ros_node_cam5" type="raw_image_pipeline_ros_node" pkg="raw_image_pipeline_ros" output="screen" launch-prefix="$(arg launch_prefix)">
+        <param name="input_topic"                          value="alphasense_driver_ros/cam5_corrected"/>
+        <param name="input_type"                           value="$(arg input_type)"/>
+    
+        <param name="output_prefix"                       value="alphasense_driver_ros/cam5"/>
+        <param name="output_encoding"                      value="$(arg output_encoding)"/>
+        <param name="output_frame"                         value="cam5_sensor_frame_helper"/>
+        <param name="skip_number_of_images_for_slow_topic" value="$(arg skip_number_of_images_for_slow_topic)"/>
+        <param name="use_gpu"                              value="$(arg use_gpu)"/>
+        <param name="debug"                                value="$(arg debug)"/>
+        
+        <param name="debayer/enabled"                      value="$(arg debayer/enabled)"/>
+        <param name="debayer/encoding"                     value="$(arg debayer_encoding)"/>
+    
+        <param name="flip/enabled"                         value="False"/>
+        <param name="flip/angle"                           value="$(arg flip/angle)"/>
+        
+        <param name="white_balance/enabled"                value="$(arg white_balance/enabled)"/>
+        <param name="white_balance/method"                 value="$(arg white_balance/method)"/>
+        <param name="white_balance/clipping_percentile"    value="$(arg white_balance/clipping_percentile)"/>
+        <param name="white_balance/saturation_bright_thr"  value="$(arg white_balance/saturation_bright_thr)"/>
+        <param name="white_balance/saturation_dark_thr"    value="$(arg white_balance/saturation_dark_thr)"/>
+        <param name="white_balance/temporal_consistency"   value="$(arg white_balance/temporal_consistency)"/>
+        
+        <param name="color_calibration/enabled"            value="$(arg color_calibration/enabled)"/>
+        <param name="color_calibration/calibration_file"   value="$(arg color_calibration/calibration_file)"/>
+    
+        <param name="gamma_correction/enabled"             value="$(arg gamma_correction/enabled)"/>
+        <param name="gamma_correction/method"              value="$(arg gamma_correction/method)"/>
+        <param name="gamma_correction/k"                   value="$(arg gamma_correction/k)"/>
+    
+        <param name="vignetting_correction/enabled"        value="$(arg vignetting_correction/enabled)"/>
+        <param name="vignetting_correction/scale"          value="$(arg vignetting_correction/scale)"/>
+        <param name="vignetting_correction/a2"             value="$(arg vignetting_correction/a2)"/>
+        <param name="vignetting_correction/a4"             value="$(arg vignetting_correction/a4)"/>
+        
+        <param name="color_enhancer/enabled"               value="$(arg color_enhancer/enabled)"/>
+        <param name="color_enhancer/saturation_gain"       value="$(arg color_enhancer/saturation_gain)"/>
+        
+        <param name="undistortion/enabled"                 value="$(arg undistortion/enabled)"/>
+        <param name="undistortion/balance"                 value="$(arg undistortion/balance)"/>
+        <param name="undistortion/fov_scale"               value="$(arg undistortion/fov_scale)"/>
+        <param name="undistortion/calibration_file"        value="$(find anymal_camel_rsl)/calibration/alphasense/intrinsic/cam5.yaml"/>
+    </node>
+    
+
+    <node pkg="wild_visual_navigation_ros" type="encoding_fixer.py" name="encoding_fixer_cam3" output="screen">
+        <param name="cam"           value="cam3"/>
+    </node>
+    <node pkg="wild_visual_navigation_ros" type="encoding_fixer.py" name="encoding_fixer_cam4" output="screen">
+        <param name="cam"           value="cam4"/>
+    </node>
+    <node pkg="wild_visual_navigation_ros" type="encoding_fixer.py" name="encoding_fixer_cam5" output="screen">
+        <param name="cam"           value="cam5"/>
+    </node>
+
+</launch>
