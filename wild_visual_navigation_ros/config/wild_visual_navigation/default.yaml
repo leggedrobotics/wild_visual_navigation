@@ -7,7 +7,7 @@ desired_twist_topic: "/twist_mux/twist"
 # Relevant frames
 fixed_frame: odom
 base_frame: base
-footprint_frame: base # footprint
+footprint_frame: footprint
 
 # Robot size
 robot_length: 0.8
