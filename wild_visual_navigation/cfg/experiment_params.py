@@ -20,6 +20,7 @@ class ExperimentParams:
         log_confidence: bool = True
         use_threshold: bool = True
         folder: str = os.path.join(WVN_ROOT_DIR, "results")
+        perugia_root: str = "TBD"
 
     general: GeneralParams = GeneralParams()
 
@@ -60,6 +61,7 @@ class ExperimentParams:
 
     @dataclass
     class TrainerParams:
+        default_root_dir: Optional[str] = None
         precision: int = 32
         accumulate_grad_batches: int = 1
         fast_dev_run: bool = False
@@ -75,6 +77,7 @@ class ExperimentParams:
         enable_progress_bar: bool = True
         weights_summary: Optional[str] = "top"
         progress_bar_refresh_rate: Optional[int] = None
+        gpus: int = -1
 
     trainer: TrainerParams = TrainerParams()
 
@@ -163,7 +166,7 @@ class ExperimentParams:
 
         @dataclass
         class LearningVisuParams:
-            p_visu: Optional[bool] = None
+            p_visu: Optional[str] = None
             store: bool = True
             log: bool = True
 

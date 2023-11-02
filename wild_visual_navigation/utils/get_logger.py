@@ -30,20 +30,19 @@ def get_neptune_run(neptune_project_name: str, tags: [str]) -> any:
     return run
 
 
-def get_neptune_logger(exp: dict, env: dict) -> NeptuneLogger:
+def get_neptune_logger(exp: dict) -> NeptuneLogger:
     """Returns NeptuneLogger
 
     Args:
         exp (dict): Content of environment file
-        env (dict): Content of experiment file
     Returns:
         (logger): Logger
     """
-    project_name = exp["logger"]["neptune_project_name"]  # Neptune AI project_name "username/project"
+    project_name = exp.logger.neptune_project_name  # Neptune AI project_name "username/project"
 
     params = flatten_dict(exp)
 
-    name_full = exp["general"]["name"]
+    name_full = exp.general.name
     name_short = "__".join(name_full.split("/")[-2:])
 
     proxies = None
@@ -59,7 +58,7 @@ def get_neptune_logger(exp: dict, env: dict) -> NeptuneLogger:
     )
 
 
-def get_wandb_logger(exp: dict, env: dict) -> WandbLogger:
+def get_wandb_logger(exp: dict) -> WandbLogger:
     """Returns NeptuneLogger
 
     Args:
@@ -68,17 +67,17 @@ def get_wandb_logger(exp: dict, env: dict) -> WandbLogger:
     Returns:
         (logger): Logger
     """
-    project_name = exp["logger"]["wandb_project_name"]  # project_name (str): W&B project_name
-    save_dir = os.path.join(exp["general"]["model_path"])  # save_dir (str): File path to save directory
+    project_name = exp.logger.wandb_project_name  # project_name (str): W&B project_name
+    save_dir = os.path.join(exp.general.model_path)  # save_dir (str): File path to save directory
     params = flatten_dict(exp)
-    name_full = exp["general"]["name"]
+    name_full = exp.general.name
     name_short = "__".join(name_full.split("/")[-2:])
     return WandbLogger(
-        name=name_short, project=project_name, entity=exp["logger"]["wandb_entity"], save_dir=save_dir, offline=False
+        name=name_short, project=project_name, entity=exp.logger.wandb_entity, save_dir=save_dir, offline=False
     )
 
 
-def get_tensorboard_logger(exp: dict, env: dict) -> TensorBoardLogger:
+def get_tensorboard_logger(exp: dict) -> TensorBoardLogger:
     """Returns TensorboardLoggers
 
     Args:
@@ -88,10 +87,10 @@ def get_tensorboard_logger(exp: dict, env: dict) -> TensorBoardLogger:
         (logger): Logger
     """
     params = flatten_dict(exp)
-    return TensorBoardLogger(save_dir=exp["name"], name="tensorboard", default_hp_metric=params)
+    return TensorBoardLogger(save_dir=exp.name, name="tensorboard", default_hp_metric=params)
 
 
-def get_skip_logger(exp: dict, env: dict) -> None:
+def get_skip_logger(exp: dict) -> None:
     """Returns None
 
     Args:
@@ -103,8 +102,8 @@ def get_skip_logger(exp: dict, env: dict) -> None:
     return None
 
 
-def get_logger(exp: dict, env: dict) -> any:
-    name = exp["logger"]["name"]
-    save_dir = os.path.join(env["base"], exp["general"]["name"])
+def get_logger(exp: dict) -> any:
+    name = exp.logger.name
+    save_dir = os.path.join(exp.general.folder, exp.general.name)
     register = {k: v for k, v in globals().items() if inspect.isfunction(v)}
-    return register[f"get_{name}_logger"](exp, env)
+    return register[f"get_{name}_logger"](exp)

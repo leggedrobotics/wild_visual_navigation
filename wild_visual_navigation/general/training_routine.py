@@ -36,11 +36,11 @@ def training_routine(exp: ExperimentParams, seed=42) -> torch.Tensor:
     with read_write(exp):
         # Update model paths
         exp.general.model_path = model_path
-        exp.general.name = os.path.relpath(model_path, exp.folder)
+        exp.general.name = os.path.relpath(model_path, exp.general.folder)
         exp.trainer.default_root_dir = model_path
         exp.visu.learning_visu.p_visu = join(model_path, "visu")
 
-        logger = get_logger(exp, env)
+        logger = get_logger(exp)
 
         # Set gpus
         exp.trainer.gpus = 1 if torch.cuda.is_available() else None
@@ -66,7 +66,7 @@ def training_routine(exp: ExperimentParams, seed=42) -> torch.Tensor:
 
     train_dl, val_dl, test_dl = get_ablation_module(
         **exp.ablation_data_module,
-        perugia_root=env.perugia_root,
+        perugia_root=exp.general.perugia_root,
         get_train_val_dataset=not exp.general.skip_train,
         get_test_dataset=not exp.ablation_data_module.val_equals_test,
     )
