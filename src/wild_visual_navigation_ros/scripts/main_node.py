@@ -6,11 +6,13 @@ from pytictac import ClassTimer, ClassContextTimer, accumulate_time
 import ros_converter as rc
 from anymal_msgs.msg import AnymalState
 from geometry_msgs.msg import PoseStamped, Point, TwistStamped
+from rosgraph_msgs.msg import Clock
 from nav_msgs.msg import Path
 from sensor_msgs.msg import Image, CameraInfo, CompressedImage
-from std_msgs.msg import ColorRGBA, Float32, Float32MultiArray
+from std_msgs.msg import ColorRGBA, Float32, Float32MultiArray,Header
 from threading import Thread, Event
 from visualization_msgs.msg import Marker
+from wild_visual_navigation_msgs.msg import StampedFloat32MultiArray
 import message_filters
 import os
 import rospy
@@ -30,15 +32,17 @@ if torch.cuda.is_available():
 
 class WvnRosInterface:
     def __init__(self):
-        # Timers to control the rate of the publishers
-        self.last_image_ts = rospy.get_time()
-        self.last_proprio_ts = rospy.get_time()
         
         # Read the parameters from the config file
         self.param=ParamCollection()
         self.import_params()
         self.color_palette = sns.color_palette(self.palette,as_cmap=True)
         self.timers=ClassTimer(objects=[self],names=['WvnRosInterface'],enabled=self.print_time)
+        
+        self.step=0
+        self.sum_time_state=0.0
+        # Add a variable to store the latest clock time
+        self.latest_clock_time = None
 
         # Init Camera handler
         self.camera_handler = {}
@@ -89,23 +93,31 @@ class WvnRosInterface:
         """ 
         start ros subscribers and publishers and filter/process topics
         """
-        # Initialize TF listener (limited to odom-base/footprint/feetcenter transforms)
-        self.tf_buffer = tf2_ros.Buffer(cache_time=rospy.Duration(20.0))
-        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+        # Clock subscriber
+        clock_sub = message_filters.Subscriber("/clock", Clock)
+        clock_sub.registerCallback(self.clock_callback)
 
         # Anymal state subscriber
-        anymal_state_sub = message_filters.Subscriber(self.anymal_state_topic, AnymalState)
-        cache_anymal_state = message_filters.Cache(anymal_state_sub, 10,allow_headerless=True)
-        phy_decoder_input_sub = message_filters.Subscriber(self.phy_decoder_input_topic, Float32MultiArray)
-        cache_phy_decoder_input = message_filters.Cache(phy_decoder_input_sub, 200,allow_headerless=True)
-
-        self.state_sub=message_filters.ApproximateTimeSynchronizer([anymal_state_sub, phy_decoder_input_sub], queue_size=20,slop=0.1,allow_headerless=True)
-        
-        print("Current ros time is: ",rospy.get_time())
         print("Start waiting for AnymalState topic being published!")
         rospy.wait_for_message(self.anymal_state_topic, AnymalState)
+        anymal_state_sub = message_filters.Subscriber(self.anymal_state_topic, AnymalState)
+        cache_anymal_state = message_filters.Cache(anymal_state_sub, 10,allow_headerless=True)
+        
         print("Start waiting for Phy_decoder_input topic being published!")
         rospy.wait_for_message(self.phy_decoder_input_topic, Float32MultiArray)
+        phy_decoder_input_sub = message_filters.Subscriber(self.phy_decoder_input_topic, Float32MultiArray)
+        phy_decoder_input_sub.registerCallback(self.debug_info_callback)
+        
+        cache_phy_decoder_input = message_filters.Cache(phy_decoder_input_sub, 200,allow_headerless=True)
+
+        self.state_sub=message_filters.ApproximateTimeSynchronizer([anymal_state_sub, phy_decoder_input_sub], queue_size=100,slop=0.01,allow_headerless=True)
+        
+        print("Current ros time is: ",rospy.get_time())
+        # Timers to control the rate of the publishers
+        self.last_image_ts = rospy.get_time()
+        self.last_proprio_ts = rospy.get_time()
+        
+        
         
         self.state_sub.registerCallback(self.state_callback)
 
@@ -127,13 +139,14 @@ class WvnRosInterface:
         stiff_pub=rospy.Publisher('/vd_pipeline/stiffness', Image, queue_size=10)
         conf_pub=rospy.Publisher('/vd_pipeline/confidence', Image, queue_size=10)
         info_pub=rospy.Publisher('/vd_pipeline/camera_info', CameraInfo, queue_size=10)
-        
+        stamped_debug_info_pub=rospy.Publisher('/stamped_debug_info', StampedFloat32MultiArray, queue_size=10)
         # Fill in handler
         self.camera_handler['input_pub']=input_pub
         self.camera_handler['fric_pub']=fric_pub
         self.camera_handler['stiff_pub']=stiff_pub
         self.camera_handler['conf_pub']=conf_pub
         self.camera_handler['info_pub']=info_pub
+        self.camera_handler['stamped_debug_info_pub']=stamped_debug_info_pub
 
         # TODO: Add the publisher for the two graphs and services (save/load checkpoint) maybe
         pass
@@ -206,34 +219,39 @@ class WvnRosInterface:
         """ 
         callback function for the anymal state subscriber
         """
-        
+        self.step+=1
         self.system_events["state_callback_received"] = {"time": rospy.get_time(), "value": "message received"}
+
         try:
             ts = anymal_state_msg.header.stamp.to_sec()
+            if self.mode == "debug":
+                self.sum_time_state += abs(ts - self.last_proprio_ts)
+                print("Current state_cb freq:", self.step / self.sum_time_state)
+                
             if abs(ts - self.last_proprio_ts) < 1.0 / self.proprio_callback_rate:
                 self.system_events["state_callback_canceled"] = {
                     "time": rospy.get_time(),
                     "value": "cancled due to rate",
                 }
                 return
-            self.last_propio_ts = ts
+            self.last_proprio_ts = ts
             """ 
              TF-related topics
             """
-            # Query base transforms from TF
-            suc, pose_base_in_world = rc.ros_tf_to_torch(
-                self.query_tf(self.fixed_frame, self.base_frame, anymal_state_msg.header.stamp), device=self.device
-            )
-            if not suc:
-                self.system_events["state_callback_cancled"] = {
-                    "time": rospy.get_time(),
-                    "value": "cancled due to pose_base_in_world",
-                }
-                return
-            # Query footprint transform from TF
-            suc, pose_footprint_in_world_ = rc.ros_tf_to_torch(
-                self.query_tf(self.fixed_frame, self.footprint_frame, anymal_state_msg.header.stamp), device=self.device
-            )
+            # # Query base transforms from TF
+            # suc, pose_base_in_world = rc.ros_tf_to_torch(
+            #     self.query_tf(self.fixed_frame, self.base_frame, anymal_state_msg.header.stamp), device=self.device
+            # )
+            # if not suc:
+            #     self.system_events["state_callback_cancled"] = {
+            #         "time": rospy.get_time(),
+            #         "value": "cancled due to pose_base_in_world",
+            #     }
+            #     return
+            # # Query footprint transform from TF
+            # suc, pose_footprint_in_world_ = rc.ros_tf_to_torch(
+            #     self.query_tf(self.fixed_frame, self.footprint_frame, anymal_state_msg.header.stamp), device=self.device
+            # )
             # Query footprint transform from AnymalState message
             suc, pose_footprint_in_world = rc.ros_tf_to_torch(
                 self.query_tf(self.fixed_frame, self.footprint_frame, from_message=anymal_state_msg), device=self.device
@@ -281,7 +299,19 @@ class WvnRosInterface:
                 "value": f"failed to execute {e}",
             }
         pass
-
+    @accumulate_time
+    def clock_callback(self, clock_msg:Clock):
+        self.latest_clock_time = clock_msg.clock
+    @accumulate_time
+    def debug_info_callback(self, debug_info_msg:Float32MultiArray):
+        if self.latest_clock_time is not None:
+            # Create a new message with header
+            stamped_msg = StampedFloat32MultiArray()
+            stamped_msg.data = debug_info_msg
+            stamped_msg.header.stamp = self.latest_clock_time
+            # Publish the message
+            self.camera_handler['stamped_debug_info_pub'].publish(stamped_msg)
+            
 
 if __name__ == "__main__":
     node_name = "BaseWVN"

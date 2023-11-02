@@ -15,6 +15,7 @@ add_message_files(
   RobotState.msg
   SystemState.msg
   ImageFeatures.msg
+  StampedFloat32MultiArray.msg
 )
 
 add_service_files(

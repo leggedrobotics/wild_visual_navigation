@@ -44,7 +44,7 @@ class ParamCollection(Serializable):
     class ThreadParams:
         """Parameters for the threads."""
         image_callback_rate: float=10.0
-        proprio_callback_rate: float=4.0
+        proprio_callback_rate: float=100.0
         learning_rate: float=1.0
         logging_rate: float=2.0
     
