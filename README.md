@@ -34,13 +34,28 @@ Checkout out also our other works.
 ## Setup
 ### Installation and Dependencies
 
-1. Clone the repository.
+Clone the repository.
 ```shell
 mkdir ~/git && cd ~/git 
 git clone git@github.com:leggedrobotics/wild_visual_navigation.git
 ```
 
-2. Install the conda environment. (Currently the conda environment file is not tested and most likely outdated)
+#### Virutal Env Setup (Tested)
+```shell
+# Install virutal environment
+sudo apt -y install python3-venv 
+# Create vitual envrionment
+python -m venv ~/git/wild_visual_navigation/assets/virutal_env/wvn
+echo 'alias venv_wvn="source ~/git/wild_visual_navigation/assets/virutal_env/wvn/bin/activate"' >> ~/.bashrc
+source ~/.bashrc
+# Source virtual envrionment
+venv_wvn
+# Install wild_visual_navigation
+pip3 install -e ~/git/wild_visual_navigation
+```
+
+#### Conda Installation (Not tested)
+Install the conda environment. (Currently the conda environment file is not tested and most likely outdated)
 ```shell
 # Make sure to be in the base conda environment
 cd ~/git/wild_visual_navigation
@@ -53,6 +68,18 @@ conda activate wvn
 cd ~/git
 pip3 install -e ./wild_visual_navigation
 ```
+
+
+# Before running now the python ros nodes simply source correct envrionment
+```shell
+
+echo 'alias ros="source /opt/ros/noetic/setup.bash"' >> ~/.bashrc
+echo 'alias catkin_ws="ros; source $HOME/catkin_ws/devel/setup.bash"' >> ~/.bashrc
+source ~/.bashrc
+
+venv_wvn; catkin_ws
+```
+
 
 ### Configuration Overview
 - The general configuration files can be found under: `wild_visual_navigation/cfg/experiment_params.py`
