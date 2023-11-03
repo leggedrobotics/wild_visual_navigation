@@ -1,16 +1,16 @@
 version: "3.9"
 services:
-  wild_visual_navigation:
+  wvn:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    container_name: wvn
+    stdin_open: true
     tty: true
-    stdin_open: true # Equivalent to the Docker -i option
-    command: '/bin/bash'
+    network_mode: "host"
     environment:
      - NVIDIA_VISIBLE_DEVICES=all
      - NVIDIA_DRIVER_CAPABILITIES=all
     runtime: nvidia
     volumes:
       - ../../wild_visual_navigation:/root/catkin_ws/src/wild_visual_navigation
+    command: '/bin/bash'
