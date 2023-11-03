@@ -50,7 +50,8 @@ class TraversabilityEstimator:
         extraction_store_folder=None,
         anomaly_detection: bool = False,
         vis_training_samples: bool = False,
-        use_feature_extractor: bool = False**kwargs,
+        use_feature_extractor: bool = False,
+        **kwargs,
     ):
         self._device = device
         self._mode = mode

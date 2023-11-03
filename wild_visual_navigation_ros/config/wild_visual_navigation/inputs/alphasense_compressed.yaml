@@ -1,19 +1,19 @@
 camera_topics:
   front:
-    image_topic: "/alphasense_driver_ros/cam4/debayered/compressed"
-    info_topic: "/alphasense_driver_ros/cam4/camera_info"
+    image_topic: "/alphasense_driver_ros/cam4/color_rect/image/compressed"
+    info_topic: "/alphasense_driver_ros/cam4/color_rect/camera_info"
     use_for_training: true
     publish_confidence: true
     publish_input_image: true
   left:
-    image_topic: "/alphasense_driver_ros/cam3/debayered/compressed"
-    info_topic: "/alphasense_driver_ros/cam3/camera_info"
+    image_topic: "/alphasense_driver_ros/cam3/color_rect/image/compressed"
+    info_topic: "/alphasense_driver_ros/cam3/color_rect/camera_info"
     use_for_training: false
     publish_confidence: true
     publish_input_image: true
   right:
-    image_topic: "/alphasense_driver_ros/cam5/debayered/compressed"
-    info_topic: "/alphasense_driver_ros/cam5/camera_info"
+    image_topic: "/alphasense_driver_ros/cam5/color_rect/image/compressed"
+    info_topic: "/alphasense_driver_ros/cam5/color_rect/camera_info"
     use_for_training: false
     publish_confidence: true
     publish_input_image: true

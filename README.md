@@ -32,14 +32,43 @@ Checkout out also our other works.
 <img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
 ## Setup
+### Dependencies
 
-1. Clone the repository.
+The repository is tested with:
+- GPU Driver Version: `535.129.03`
+- Torch: `2.1.0+cu121`
+- GPUs: RTX3080 Laptop; RTX3090
+- ROS: Noetic (ROS1)
+- Ubuntu: 20.04.6 LTS (Focal Fossa) 
+- Kernel: 5.15.0-88-generic
+
+Generally the code should also work with older version of torch.
+
+### Installation
+
+Clone the repository.
 ```shell
 mkdir ~/git && cd ~/git 
 git clone git@github.com:leggedrobotics/wild_visual_navigation.git
 ```
 
-2. Install the conda environment.
+#### Virutal Env Setup (Tested)
+```shell
+# Install virutal environment
+sudo apt -y install python3-venv 
+# Create vitual envrionment
+python -m venv ~/git/wild_visual_navigation/assets/virutal_env/wvn
+echo 'alias venv_wvn="source ~/git/wild_visual_navigation/assets/virutal_env/wvn/bin/activate"' >> ~/.bashrc
+source ~/.bashrc
+# Source virtual envrionment
+venv_wvn
+# Install wild_visual_navigation
+pip3 install -e ~/git/wild_visual_navigation
+```
+
+
+#### Conda Installation (Not tested)
+Install the conda environment. (Currently the conda environment file is not tested and most likely outdated)
 ```shell
 # Make sure to be in the base conda environment
 cd ~/git/wild_visual_navigation
@@ -53,87 +82,106 @@ cd ~/git
 pip3 install -e ./wild_visual_navigation
 ```
 
-4. Configure global paths.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;All global paths are stored within a single yaml-file (`cfg\env\ge76.yaml`) for each machine.  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The correct yaml-file for a machine is identified based on the environment variable `ENV_WORKSTATION_NAME`.  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;You can generate a new configuration environment file in the same directory:  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Example: `cfg/env/your_workstation_name.yaml` 
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Content: 
-
-```yaml
-# If a relative path is given it is relative the the wild_visual_navigation project directory.
-base: results/learning
-perugia_root: /media/Data/Datasets/2022_Perugia
-```  
 
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;We recommend to directly set the environment variable in your `~/.bashrc` by adding the following:  
+### Configuration Overview
+- The general configuration files can be found under: `wild_visual_navigation/cfg/experiment_params.py`
+- This configuration is used in the `offline-model-training` and in the `online-ros` mode.
+- When running the `online-ros` mode additional configurations for the individual nodes are defined in `wild_visual_navigation/cfg/ros_params.py`.
+- These configuration file is filled based on the rosparameter-server during runtime.
+- The default values for this configuration can be found under `wild_visual_navigation/wild_visual_navigation_ros/config/wild_visual_navigation`.
+- We set an environment variable to automatically load the correct global paths and trigger some special behavior e.g. when training on a cluster.
+
+#### [Optionally] Configure custom paths 
+Set your custom global paths by defining the ENV_WORKSTATION_NAME and exporting the variable in your `~/.bashrc`.
   
   ```shell
   export ENV_WORKSTATION_NAME=your_workstation_name
   ```  
+The paths can be specified by modifying `wild_visual_navigation/wild_visual_navigation/cfg/gloabl_params.py`. 
+Add your desired global paths. 
+Per default, all results are stored in `wild_visual_navigation/results`.
+
+<img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
+
+
+## Software Architecture Overview
+![Overview](./assets/drawings/software_overview.jpg)
+
 
 <img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
 ## Experiments
-### Robot Usage [Online]
-Mode to run the pipeline either fully online on the robot or to simply replay rosbags on your system.
-
-- Launch ANYmal Converter:
+### [Online] Ros-Mode
+#### Setup
+Let`s set up a new catkin_ws:
 ```shell
-rosrun wild_visual_navigation_anymal anymal_msg_converter_node.py
+# Create Workspace
+source /opt/ros/noetic/setup.bash
+mkdir -r ~/catkin_ws/src && cd ~/catkin_ws/src
+catkin init
+catkin config --extend /opt/ros/noetic
+catkin config --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
+# Clone Repos
+git clone git@github.com:ANYbotics/anymal_c_simple_description.git
+git clone git@github.com:IFL-CAMP/tf_bag.git
+git clone git@github.com:ori-drs/procman_ros.git
+
+# Symlink WVN
+ln -s ~/git/wild_visual_navigation ~/catkin_ws/src
+
+# Dependencies
+rosdep install -ryi --from-paths . --ignore-src
+
+# Build
+cd ~/catkin_ws
+catkin build anymal_c_simple_description
+catkin build tf_bag
+catkin build procman_ros
+catkin build wild_visual_navigation_ros
+
+# Source
+echo 'alias ros="source /opt/ros/noetic/setup.bash"' >> ~/.bashrc
+echo 'alias catkin_ws="ros; source $HOME/catkin_ws/devel/setup.bash"' >> ~/.bashrc
+source ~/.bashrc
+source /opt/ros/noetic/setup.bash
+source ~/catkin_ws/devel/setup.bash
 ```
 
-- Run WVN Node:
+When using the virtual environment make sure that your shell correctly sources the virtual envrionment and then the catkin workspace.
 ```shell
-python wild_visual_navigation_ros/scripts/wild_visual_navigation_node.py _mode:=debug
+venv_wvn; catkin_ws
+... # Run the wild_visual_navigation code
 ```
-There are multiple parameters you can change via the ros-parameter server.
-Optionally the node offers services to store the created graph/trained network to the disk.
+
+After successfully building the ros workspace you can run the full pipeline by either using the launch file (this requires all packages to be installed into your system python installation), or by running the nodes from the conda environment as plain python scripts.
+We are currently working on the instructions using a `virtualenv` which eases this process.
+
+- Run WVN Nodes:
+```shell
+python wild_visual_navigation_ros/scripts/wvn_feature_extractor_node.py
+```
+```shell
+python wild_visual_navigation_ros/scripts/wvn_learning_node.py
+```
 
 - (optionally) RVIZ:
 ```shell
 roslaunch wild_visual_navigation_ros view.launch
 ```
 
-- (replay only) Run Debayer:
-```shell
-roslaunch image_proc_cuda_ros image_proc_cuda_node.launch cam0:=false cam1:=false cam2:=false cam3:=false cam4:=true cam5:=false cam6:=false run_gamma_correction:=false run_white_balance:=true run_vignetting_correction:=false run_color_enhancer:=false run_color_calibration:=false run_undistortion:=true run_clahe:=false dump_images:=false needs_rotation_cam4:=true debayer_option:=bayer_gbrg8
-```
-
 - (replay only) Replay Rosbag:
 ```shell
-rosbag play --clock path_to_mission/*.bag
+rosrun  play --clock path_to_mission/*.bag
 ```
 
-### Replay Usage [Online]
-We provide a launch file to start all required nodes for close-loop integration.
-```shell
-roslaunch wild_visual_navigation_ros replay_launch.launch
-```
-The launch file allows to toggle the individual modules on and off.
-```xml
-  <arg name="anymal_converter"  default="True"/>
-  <arg name="anymal_rsl_launch" default="True"/>
-  <arg name="debayer"           default="True"/>
-  <arg name="rviz"              default="True"/>
-  <arg name="elevation_mapping" default="True"/>
-  <arg name="local_planner"     default="True"/>
-```
 
-- Run WVN Node:
-```shell
-python wild_visual_navigation_ros/scripts/wild_visual_navigation_node.py _mode:=default
-```
+### [Offline] Model Training (Currently not tested)
 
-- Replay Rosbag:
-```shell
-rosbag play --clock path_to_mission/*.bag
-```
+#### Additional Dependencies
+TODO
 
-### Learning Usage [Offline]
 #### Dataset Generation
 
 Sometimes it`s useful to just analyze the network training therefore we provide the tools to extract a dataset useful for learning from a given rosbag. 
@@ -226,7 +274,33 @@ done.
 
 <img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
-## Contributing
+
+## Development and Deprecated Information 
+
+### Replay Usage [Online]
+We provide a launch file to start all required nodes for close-loop integration.
+```shell
+roslaunch wild_visual_navigation_ros replay_launch.launch
+```
+The launch file allows to toggle the individual modules on and off.
+```xml
+  <arg name="anymal_converter"  default="True"/>
+  <arg name="anymal_rsl_launch" default="True"/>
+  <arg name="debayer"           default="True"/>
+  <arg name="rviz"              default="True"/>
+  <arg name="elevation_mapping" default="True"/>
+  <arg name="local_planner"     default="True"/>
+```
+
+- Run WVN Node:
+```shell
+python wild_visual_navigation_ros/scripts/wild_visual_navigation_node.py _mode:=default
+```
+
+- Replay Rosbag:
+```shell
+rosbag play --clock path_to_mission/*.bag
+```
 
 The code on main should be always stable and capable to run on a robot.
 The code on develop should be used for development code and then tested on the robot and merged into main. 
@@ -244,12 +318,6 @@ Code format is checked on push.
 
 ### Testing
 Introduction to [pytest](https://github.com/pluralsight/intro-to-pytest).
-
 ```shell
 pytest
 ```
-Pytest is not checked on push.
-
-<img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
-
-## Credits

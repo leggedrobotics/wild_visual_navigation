@@ -1,5 +1,5 @@
 import optuna
-from simple_parsing import ArgumentParser
+from argparse import ArgumentParser
 import copy
 import os
 import neptune.new.integrations.optuna as optuna_utils

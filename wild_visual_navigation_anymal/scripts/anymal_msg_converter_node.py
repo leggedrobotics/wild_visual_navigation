@@ -132,8 +132,8 @@ if __name__ == "__main__":
     output_topic = rospy.get_param("~output_topic", "/wild_visual_navigation_node/robot_state")
 
     # Set publishers and subscribers
-    anymal_state_sub = rospy.Subscriber(anymal_state_topic, AnymalState, anymal_msg_callback, queue_size=20)
     robot_state_pub = rospy.Publisher(output_topic, RobotState, queue_size=20)
+    anymal_state_sub = rospy.Subscriber(anymal_state_topic, AnymalState, anymal_msg_callback, queue_size=20)
 
     rospy.loginfo("[anymal_msg_converter_node] ready")
     rospy.spin()

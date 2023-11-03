@@ -29,23 +29,15 @@ lpc:
     # Front Upper
     - /depth_camera_front_upper/depth/camera_info
     - /depth_camera_front_upper/depth/image_rect_raw
-    # - /depth_camera_front_upper/infra1/image_rect_raw
-    - /depth_camera_front_upper/point_cloud_self_filtered
     # Front Lower
     - /depth_camera_front_lower/depth/camera_info
     - /depth_camera_front_lower/depth/image_rect_raw
-    # - /depth_camera_front_lower/infra1/image_rect_raw
-    - /depth_camera_front_lower/point_cloud_self_filtered
     # Rear Lower
     - /depth_camera_rear_lower/depth/camera_info
     - /depth_camera_rear_lower/depth/image_rect_raw
-    # - /depth_camera_rear_lower/infra1/image_rect_raw
-    - /depth_camera_rear_lower/point_cloud_self_filtered
     # Rear Upper
     - /depth_camera_rear_upper/depth/camera_info
     - /depth_camera_rear_upper/depth/image_rect_raw
-    # - /depth_camera_rear_upper/infra1/image_rect_raw
-    - /depth_camera_rear_upper/point_cloud_self_filtered 
   imu:
     - /sensors/imu
   state_estimator:
@@ -77,28 +69,18 @@ lpc:
 npc:
   lidar:
     - /lidar/packets
-  # - /point_cloud_filter/lidar/point_cloud_filtered
   wide_angle_camera:
     - /wide_angle_camera_front/image_color_rect/compressed
     - /wide_angle_camera_front/camera_info
     - /wide_angle_camera_rear/image_color_rect/compressed
     - /wide_angle_camera_rear/camera_info
-  compslam:
-    - /compslam_lio/full_path
-    - /compslam_lio/odometry
-    - /compslam_lio/map
-    - /compslam_lio/map_optimized
   depth_cameras:
     # Right
     - /depth_camera_right/depth/camera_info
     - /depth_camera_right/depth/image_rect_raw
-    #- /depth_camera_right/infra1/image_rect_raw
-    - /depth_camera_right/point_cloud_self_filtered
     # Left
     - /depth_camera_left/depth/camera_info
     - /depth_camera_left/depth/image_rect_raw
-    # - /depth_camera_left/infra1/image_rect_raw
-    - /depth_camera_left/point_cloud_self_filtered
   generic:
     - /anymal/absolute_reference
     - /behavior_engine/status
@@ -119,10 +101,6 @@ npc:
     - /cpu_loupe_npc/cpu_loupe
     - /resource_database/reports
 jetson:
-  elevation_mapping:
-    - /elevation_mapping/elevation_map_recordable
-    - /elevation_mapping/statistics
-    - /elevation_mapping/elevation_map_raw
   generic:
     - /chrony_monitor_jetson/status
     - /cpu_loupe_jetson/cpu_loupe

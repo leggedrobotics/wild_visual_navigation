@@ -3,10 +3,14 @@ from typing import Tuple, Dict, List, Optional
 from wild_visual_navigation import WVN_ROOT_DIR
 from typing import Any
 import os
+from wild_visual_navigation.cfg import get_gloabl_env_params, GloabalEnvironmentParams
 
 
 @dataclass
 class ExperimentParams:
+
+    env: GloabalEnvironmentParams = get_gloabl_env_params(os.environ.get("ENV_WORKSTATIO_NAME", "default"))
+
     @dataclass
     class GeneralParams:
         name: str = "debug/debug"
@@ -19,8 +23,6 @@ class ExperimentParams:
         model_path: Optional[str] = None
         log_confidence: bool = True
         use_threshold: bool = True
-        folder: str = os.path.join(WVN_ROOT_DIR, "results")
-        perugia_root: str = "TBD"
 
     general: GeneralParams = GeneralParams()
 

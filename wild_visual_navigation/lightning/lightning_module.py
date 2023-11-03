@@ -14,14 +14,13 @@ import pickle
 
 
 class LightningTrav(pl.LightningModule):
-    def __init__(self, exp: dict, env: dict, log: bool = False):
+    def __init__(self, exp: dict, log: bool = False):
         super().__init__()
         self._model = get_model(exp["model"])
 
         self._visu_count = {"val": 0, "test": 0, "train": 0}
         self._visualizer = LearningVisualizer(**exp["visu"]["learning_visu"], pl_model=self)
         self._exp = exp
-        self._env = env
         self._mode = "train"
         self._log = log
 

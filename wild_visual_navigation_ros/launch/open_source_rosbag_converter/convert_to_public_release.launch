@@ -1,0 +1,39 @@
+<launch>
+
+    
+
+    <!-- Name of the robot description parameter -->
+    <arg name="description_name"         default="anymal_description"/>
+    <!-- Set robot description path -->
+    <arg name="description_file"         default="$(find anymal_c_simple_description)/urdf/anymal.urdf"/>
+    <!-- Joint state topic name -->
+    <arg name="joint_states_topic"       default="/joint_states"/>
+    
+    <include file="$(find wild_visual_navigation_ros)/launch/open_source/raw_image_pipeline_perugia.launch"/>
+
+    <include file="$(find anymal_c_simple_description)/launch/load.launch">
+    <arg name="description_name" value="$(arg description_name)"/>
+    <arg name="description_file" value="$(arg description_file)"/>
+    </include>
+
+    <node pkg="wild_visual_navigation_ros" type="convert_to_public_format.py" name="convert_to_public_format" output="screen"> 
+        <param name="anymal_state_topic"      value="/state_estimator/anymal_state"/>
+        <param name="joint_states"      value="$(arg joint_states_topic)"/>
+        <param name="output_topic"      value="/wild_visual_navigation_node/robot_state"/>
+    </node>
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen">
+        <param name="publish_frequency" value="100"/>
+        <param name="use_tf_static"     value="true"/>
+        <remap from="robot_description" to="$(arg description_name)"/>
+        <remap from="joint_states"      to="$(arg joint_states_topic)"/>
+    </node>
+
+    <node name="rosbag_record_node_GE76" pkg="anymal_rsl_recording" type="rosbag_record_node.py" output="screen"></node>
+
+
+    <node name="rosbag_record_coordinator" pkg="anymal_rsl_recording" type="rosbag_record_coordinator.py" output="screen">
+        <param name="auto_start_cfg" value="$(find wild_visual_navigation_ros)/config/recording/open_source.yaml"/>
+    </node>
+
+    
+</launch>

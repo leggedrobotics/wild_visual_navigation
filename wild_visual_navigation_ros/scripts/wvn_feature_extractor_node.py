@@ -386,7 +386,7 @@ if __name__ == "__main__":
         wvn_path = rospack.get_path("wild_visual_navigation_ros")
         os.system(f"rosparam load {wvn_path}/config/wild_visual_navigation/default.yaml wvn_feature_extractor_node")
         os.system(
-            f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/wide_angle_front_compressed.yaml wvn_feature_extractor_node"
+            f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/alphasense_compressed_front.yaml wvn_feature_extractor_node"
         )
 
     wvn = WvnFeatureExtractor()

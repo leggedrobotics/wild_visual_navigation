@@ -1,3 +1,4 @@
+raise ValueError("TODO: Not tested with new configuration!")
 import os
 import torch
 from pathlib import Path
@@ -80,7 +81,7 @@ if __name__ == "__main__":
     number_training_runs = args.number_training_runs
     folder = args.ablation_type
     special_key = args.special_key
-    ws = os.environ["ENV_WORKSTATION_NAME"]
+    ws = os.environ.get("ENV_WORKSTATION_NAME", "default")
     model_path = os.path.join(WVN_ROOT_DIR, f"results/ablations/{folder}_ablation_{ws}")
     shutil.rmtree(model_path, ignore_errors=True)
     Path(model_path).mkdir(parents=True, exist_ok=True)

@@ -1,5 +1,5 @@
 <launch>
-  <arg name="rviz_config"       default="anymal_dodo.rviz" />
+  <arg name="rviz_config"       default="open_source.rviz" />
   <arg name="name"              default="wild_visual_navigation_rviz" />
 
   <!-- Use RViz-->
