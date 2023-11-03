@@ -32,7 +32,19 @@ Checkout out also our other works.
 <img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
 ## Setup
-### Installation and Dependencies
+### Dependencies
+
+The repository is tested with:
+- GPU Driver Version: `535.129.03`
+- Torch: `2.1.0+cu121`
+- GPUs: RTX3080 Laptop; RTX3090
+- ROS: Noetic (ROS1)
+- Ubuntu: 20.04.6 LTS (Focal Fossa) 
+- Kernel: 5.15.0-88-generic
+
+Generally the code should also work with older version of torch.
+
+### Installation
 
 Clone the repository.
 ```shell
@@ -54,6 +66,7 @@ venv_wvn
 pip3 install -e ~/git/wild_visual_navigation
 ```
 
+
 #### Conda Installation (Not tested)
 Install the conda environment. (Currently the conda environment file is not tested and most likely outdated)
 ```shell
@@ -69,16 +82,6 @@ cd ~/git
 pip3 install -e ./wild_visual_navigation
 ```
 
-
-# Before running now the python ros nodes simply source correct envrionment
-```shell
-
-echo 'alias ros="source /opt/ros/noetic/setup.bash"' >> ~/.bashrc
-echo 'alias catkin_ws="ros; source $HOME/catkin_ws/devel/setup.bash"' >> ~/.bashrc
-source ~/.bashrc
-
-venv_wvn; catkin_ws
-```
 
 
 ### Configuration Overview
@@ -139,8 +142,17 @@ catkin build procman_ros
 catkin build wild_visual_navigation_ros
 
 # Source
+echo 'alias ros="source /opt/ros/noetic/setup.bash"' >> ~/.bashrc
+echo 'alias catkin_ws="ros; source $HOME/catkin_ws/devel/setup.bash"' >> ~/.bashrc
+source ~/.bashrc
 source /opt/ros/noetic/setup.bash
 source ~/catkin_ws/devel/setup.bash
+```
+
+When using the virtual environment make sure that your shell correctly sources the virtual envrionment and then the catkin workspace.
+```shell
+venv_wvn; catkin_ws
+... # Run the wild_visual_navigation code
 ```
 
 After successfully building the ros workspace you can run the full pipeline by either using the launch file (this requires all packages to be installed into your system python installation), or by running the nodes from the conda environment as plain python scripts.
