@@ -2,6 +2,8 @@
 Main node to process ros messages, publish the relevant topics, train the model...
  """
 from BaseWVN import ParamCollection
+from Phy_Decoder import initialize_models,prepare_padded_input,RNNInputBuffer
+
 from pytictac import ClassTimer, ClassContextTimer, accumulate_time
 import ros_converter as rc
 from anymal_msgs.msg import AnymalState
@@ -39,8 +41,14 @@ class WvnRosInterface:
         self.color_palette = sns.color_palette(self.palette,as_cmap=True)
         self.timers=ClassTimer(objects=[self],names=['WvnRosInterface'],enabled=self.print_time)
         
+        # Init for PHYSICS DECODERs
         self.step=0
-        
+        self.env_num=1
+        self.fric_predictor,self.stiff_predictor,self.predictor_cfg=initialize_models()
+        self.fric_hidden = self.fric_predictor.init_hidden(self.env_num)
+        self.stiff_hidden = self.stiff_predictor.init_hidden(self.env_num)
+        self.input_buffers = {0: RNNInputBuffer()}
+
         # Init Camera handler
         self.camera_handler = {}
         self.system_events = {}
@@ -132,6 +140,7 @@ class WvnRosInterface:
         conf_pub=rospy.Publisher('/vd_pipeline/confidence', Image, queue_size=10)
         info_pub=rospy.Publisher('/vd_pipeline/camera_info', CameraInfo, queue_size=10)
         freq_pub=rospy.Publisher('/test', Float32, queue_size=10)
+        phy_val_pub=rospy.Publisher('/vd_pipeline/phy_val_pred', Float32MultiArray, queue_size=10)
         # stamped_debug_info_pub=rospy.Publisher('/stamped_debug_info', StampedFloat32MultiArray, queue_size=10)
         # Fill in handler
         self.camera_handler['input_pub']=input_pub
@@ -141,6 +150,7 @@ class WvnRosInterface:
         self.camera_handler['info_pub']=info_pub
         # self.camera_handler['stamped_debug_info_pub']=stamped_debug_info_pub
         self.camera_handler['freq_pub']=freq_pub
+        self.camera_handler['phy_val_pub']=phy_val_pub
         # TODO: Add the publisher for the two graphs and services (save/load checkpoint) maybe
         pass
     
@@ -216,21 +226,13 @@ class WvnRosInterface:
         self.system_events["state_callback_received"] = {"time": rospy.get_time(), "value": "message received"}
         
         try:
-            ts = anymal_state_msg.header.stamp.to_sec()
+
             if self.mode == "debug":
-                # pub for testing frequency
-                freq_pub = self.camera_handler['freq_pub']
-                msg=Float32()
-                msg.data=1.0
-                freq_pub.publish(msg)
-            if abs(ts - self.last_proprio_ts) < 1.0 / self.proprio_callback_rate:
-                self.system_events["state_callback_canceled"] = {
-                    "time": rospy.get_time(),
-                    "value": "cancled due to rate",
-                }
-                return
-            self.last_proprio_ts = ts
-        
+                    # pub for testing frequency
+                    freq_pub = self.camera_handler['freq_pub']
+                    msg=Float32()
+                    msg.data=1.0
+                    freq_pub.publish(msg)
             # Query footprint transform from AnymalState message
             suc, pose_footprint_in_world = rc.ros_tf_to_torch(
                 self.query_tf(self.fixed_frame, self.footprint_frame, from_message=anymal_state_msg), device=self.device
@@ -257,12 +259,29 @@ class WvnRosInterface:
                 pose_feet_in_world[foot] = pose_foot_in_world
 
             """ 
-            Fric/Stiff-Decoder input topics
+            Fric/Stiff-Decoder input topics & prediction
             """
             phy_decoder_input = torch.tensor(phy_decoder_input_msg.data, device=self.device).unsqueeze(0)
             obs, hidden = torch.split(phy_decoder_input, [341, 100], dim=1)
-            
-           
+            input_data=obs[:,:341]
+            padded_inputs = prepare_padded_input(input_data, self.input_buffers, self.step, self.env_num)    
+            padded_input = torch.stack(padded_inputs, dim=0)
+            if self.predictor_cfg['reset_hidden_each_epoch']:
+                self.fric_hidden = self.fric_predictor.init_hidden(self.env_num)
+                self.stiff_hidden = self.stiff_predictor.init_hidden(self.env_num)
+            with torch.no_grad():
+                # Predict using the friction predictor
+                fric_pred, self.fric_hidden = self.fric_predictor.get_unnormalized_recon(padded_input, self.fric_hidden)           
+                # Predict using the stiffness predictor
+                stiff_pred, self.stiff_hidden = self.stiff_predictor.get_unnormalized_recon(padded_input, self.stiff_hidden)
+            self.input_buffers[0].add(input_data[0].unsqueeze(0))
+            if self.mode == "debug":
+            # pub fric and stiff together
+                new_priv=torch.cat([fric_pred,stiff_pred],dim=-1)
+                new_priv=new_priv[:,-1,:].squeeze(0).cpu().numpy()
+                self.camera_handler['phy_val_pub'].publish(Float32MultiArray(data=new_priv))
+
+
             pass
         
         except Exception as e:
