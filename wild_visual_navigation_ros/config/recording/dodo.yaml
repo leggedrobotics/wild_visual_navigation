@@ -76,7 +76,7 @@ lpc:
     - /clock
 npc:
   lidar:
-  - /lidar/packets
+    - /lidar/packets
   # - /point_cloud_filter/lidar/point_cloud_filtered
   wide_angle_camera:
     - /wide_angle_camera_front/image_color_rect/compressed
