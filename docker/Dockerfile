@@ -1,4 +1,7 @@
-FROM nvidia/cuda:11.8.0-runtime-ubuntu20.04
+#####################
+# Base image #
+#####################
+FROM nvidia/cuda:11.8.0-runtime-ubuntu20.04 as base
 
 # Labels
 LABEL maintainer="Matias Mattamala;Jonas Frey"
@@ -89,3 +92,22 @@ ARG DEBIAN_FRONTEND=dialog
 # ==
 CMD ["/bin/bash"]
 WORKDIR /root
+
+
+#####################
+# Development image #
+#####################
+
+FROM base as dev
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+    && apt-get install -y \
+        ros-noetic-jackal-simulator \
+        ros-noetic-jackal-desktop \
+        ros-noetic-teleop-twist-keyboard \
+        ros-noetic-rqt-robot-steering \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV DEBIAN_FRONTEND=dialog

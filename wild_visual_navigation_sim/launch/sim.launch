@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+    <!-- Extras to add required sensors -->
+    <!-- <arg name="extras_file"          default="$(find wild_visual_navigation_sim)/urdf/extras.xacro"/>
+    <env name="JACKAL_URDF_EXTRAS"   value="$(arg extras_file)"/> -->
+
+    <!-- Default simulation args -->
+    <arg name="use_sim_time" default="true" />
+    <arg name="gui" default="true" />
+    <arg name="headless" default="false" />
+    <arg name="world_name" default="$(find jackal_gazebo)/worlds/scenario1.world" />
+    <arg name="jackal_config" value="front_flea3" /> <!-- add camera -->
+
+    <!-- Optionally enable teleop for the simulation -->
+    <arg name="joystick" default="false" />
+  
+    <!-- Launch Gazebo with the specified world -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+      <arg name="debug" value="0" />
+      <arg name="gui" value="$(arg gui)" />
+      <arg name="use_sim_time" value="$(arg use_sim_time)" />
+      <arg name="headless" value="$(arg headless)" />
+      <arg name="world_name" value="$(arg world_name)" />
+    </include>
+  
+    <!-- Spawn Jackal -->
+    <include file="$(find jackal_gazebo)/launch/spawn_jackal.launch">
+      <arg name="x" value="0" />
+      <arg name="y" value="0" />
+      <arg name="z" value="1.0" />
+      <arg name="yaw" value="0" />
+      <arg name="config" value="$(arg jackal_config)" />
+      <arg name="joystick" value="$(arg joystick)" />
+    </include>
+</launch>
