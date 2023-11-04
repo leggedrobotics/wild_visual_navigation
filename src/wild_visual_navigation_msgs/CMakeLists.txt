@@ -16,6 +16,8 @@ add_message_files(
   SystemState.msg
   ImageFeatures.msg
   StampedFloat32MultiArray.msg
+  PlaneEdge.msg
+  PhyDecoderOutput.msg
 )
 
 add_service_files(

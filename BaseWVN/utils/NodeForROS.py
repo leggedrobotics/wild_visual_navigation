@@ -115,7 +115,7 @@ class NodeForROS:
             raise ValueError(f"Couldn't find tf between {parent_frame} and {child_frame} in the provided message")
 
     def shutdown_callback(self, *args, **kwargs):
-
+        print(f"Node killed {args}")
         rospy.signal_shutdown(f"Node killed {args}")
         sys.exit(0)
     
