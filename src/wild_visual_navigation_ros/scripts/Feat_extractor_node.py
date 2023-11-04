@@ -19,20 +19,16 @@ import message_filters
 import os
 import rospy
 import seaborn as sns
-import tf
+
 import torch
 import numpy as np
 from typing import Optional
 import traceback
 import signal
 import sys
-import tf2_ros
 
 
-if torch.cuda.is_available():
-    torch.cuda.empty_cache()
-
-class WvnRosInterface:
+class FeatExtractor:
     def __init__(self):
         
         # Read the parameters from the config file
