@@ -5,6 +5,7 @@ from sensor_msgs.msg import Image, CompressedImage
 from cv_bridge import CvBridge
 
 from liegroups.torch import SO3, SE3
+from numba import jit
 import numpy as np
 import torch
 import torchvision.transforms as transforms
@@ -22,7 +23,7 @@ def ros_tf_to_torch(tf_pose, device="cpu"):
     t = torch.FloatTensor(tf_pose[0])
     q = torch.FloatTensor(tf_pose[1])
     return True, SE3(SO3.from_quaternion(q, ordering="xyzw"), t).as_matrix().to(device)
-
+@jit(nopython=True)
 def quaternion_to_rotation_matrix(quaternion):
     # Normalize the quaternion
     quaternion = quaternion / np.linalg.norm(quaternion)
@@ -35,7 +36,7 @@ def quaternion_to_rotation_matrix(quaternion):
         [2*x*z - 2*y*w, 2*y*z + 2*x*w, 1 - 2*x**2 - 2*y**2]
     ], dtype=np.float32)
     return R
-
+@jit(nopython=True)
 def ros_tf_to_numpy(tf_pose):
     assert len(tf_pose) == 2
     assert isinstance(tf_pose, tuple)

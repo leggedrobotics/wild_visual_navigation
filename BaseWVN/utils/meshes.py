@@ -1,5 +1,6 @@
 import torch
 from kornia.geometry.linalg import transform_points
+from numba import jit
 import numpy as np
 
 # def make_superquadric(A, B, C, r, s, t, pose=torch.eye(4), grid_size=10):
@@ -78,11 +79,10 @@ import numpy as np
 #     s = 1
 #     t = 1
 #     return make_superquadric(length / 2, width / 2, height / 2, r, s, t, pose=pose, grid_size=grid_size)
-
-def make_superquadric(A, B, C, r, s, t, pose=np.eye(4), grid_size=10):
+@jit(nopython=True)
+def make_superquadric(A, B, C, r, s, t, pose, grid_size=10):
     if pose is None:
-        pose = np.eye(4)
-
+        pose = np.eye(4, dtype=np.float32)
     if C == 0:
         # Generating a 2D ellipse on the x-y plane
         w_s = np.linspace(-np.pi, np.pi, grid_size)
@@ -98,8 +98,8 @@ def make_superquadric(A, B, C, r, s, t, pose=np.eye(4), grid_size=10):
         # Prepare meshgrid
         eta_s = np.linspace(-np.pi / 2, np.pi / 2, grid_size)
         w_s = np.linspace(-np.pi, np.pi, grid_size)
-        eta, w = np.meshgrid(eta_s, w_s, indexing="xy")
-
+        # eta, w = np.meshgrid(eta_s, w_s, indexing="xy")
+        eta, w = custom_meshgrid(eta_s, w_s)
         # Compute coordinates
         cos_eta = np.cos(eta)
         sin_eta = np.sin(eta)
@@ -115,28 +115,40 @@ def make_superquadric(A, B, C, r, s, t, pose=np.eye(4), grid_size=10):
         y = y.ravel()[:, None]
         z = z.ravel()[:, None]
         points = np.concatenate((x, y, z), axis=1)
-
+        
     # Apply pose transformation
     # Assuming 'transform_points' is a function that takes numpy arrays as well
     return np_transform_points(pose, points)
+@jit(nopython=True)
+def custom_meshgrid(x, y):
+    m, n = len(x), len(y)
+    xx = np.empty((m, n), dtype=x.dtype)
+    yy = np.empty((m, n), dtype=y.dtype)
 
-def make_box(length, width, height, pose=np.eye(4), grid_size=11):
+    for i in range(m):
+        for j in range(n):
+            xx[i, j] = x[i]
+            yy[i, j] = y[j]
+    
+    return xx, yy
+def make_box(length, width, height, pose, grid_size=11):
     r = 0.01
     s = 0.01
     t = 0.01
     return make_superquadric(length / 2, width / 2, height / 2, r, s, t, pose=pose, grid_size=grid_size)
 
-def make_rounded_box(length, width, height, pose=np.eye(4), grid_size=11):
+def make_rounded_box(length, width, height, pose, grid_size=11):
     r = 0.2
     s = 0.2
     t = 0.2
     return make_superquadric(length / 2, width / 2, height / 2, r, s, t, pose=pose, grid_size=grid_size)
 
-def make_ellipsoid(length, width, height, pose=np.eye(4), grid_size=11):
+def make_ellipsoid(length, width, height, pose, grid_size=11):
     r = 1
     s = 1
     t = 1
     return make_superquadric(length / 2, width / 2, height / 2, r, s, t, pose=pose, grid_size=grid_size)
+
 
 def make_plane(x=None, y=None, z=None, pose=np.eye(4), grid_size=10):
     simple = True
@@ -178,18 +190,39 @@ def make_plane(x=None, y=None, z=None, pose=np.eye(4), grid_size=10):
 
     return np_transform_points(pose, finer_points)
 
+
+# def np_transform_points(pose, points):
+#     # Assuming the transform_points function is for applying a transformation matrix to a set of points
+#     # Here's a simple version that applies a transformation matrix to each point
+#     transformed_points = []
+#     for point in points:
+#         # Homogeneous coordinates
+#         homogeneous_point = np.append(point, 1)
+#         transformed_point = pose @ homogeneous_point
+#         # transformed_point=np.matmul(pose,homogeneous_point)
+#         # Discard the homogeneous coordinate before appending
+#         transformed_points.append(transformed_point[:-1])
+#     return np.array(transformed_points)
+@jit(nopython=True)
 def np_transform_points(pose, points):
-    # Assuming the transform_points function is for applying a transformation matrix to a set of points
-    # Here's a simple version that applies a transformation matrix to each point
-    transformed_points = []
-    for point in points:
-        # Homogeneous coordinates
-        homogeneous_point = np.append(point, 1)
-        # transformed_point = pose @ homogeneous_point
-        transformed_point=np.matmul(pose,homogeneous_point)
-        # Discard the homogeneous coordinate before appending
-        transformed_points.append(transformed_point[:-1])
-    return np.array(transformed_points)
+    # Ensure the data types are consistent
+    pose = np.asarray(pose, dtype=np.float32)
+    points = np.asarray(points, dtype=np.float32)
+
+    # Preallocate the array with the appropriate size
+    transformed_points = np.empty((points.shape[0], pose.shape[1] - 1), dtype=np.float32)
+
+    for i in range(points.shape[0]):
+        homogeneous_point = np.ones(pose.shape[0], dtype=np.float32)
+        homogeneous_point[:-1] = points[i]
+
+        # Perform matrix multiplication
+        transformed_point = np.dot(pose, homogeneous_point)
+
+        # Assign the result to the preallocated array
+        transformed_points[i, :] = transformed_point[:-1]
+
+    return transformed_points
 
 def make_dense_plane(x=None, y=None, z=None, pose=torch.eye(4), grid_size=5):
     if x is None:
