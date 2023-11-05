@@ -1,5 +1,5 @@
 import unittest
-import torch
+import numpy as np
 from .meshes import make_ellipsoid
 
 class TestSuperquadricCircle(unittest.TestCase):
@@ -23,7 +23,7 @@ class TestSuperquadricCircle(unittest.TestCase):
             self.assertAlmostEqual(point[2].item(), 0, places=4, msg="Point is not in the x-y plane.")
             
             # Check the radius is approximately equal to the specified radius within some tolerance
-            distance_from_origin = torch.sqrt(point[0]**2 + point[1]**2)
+            distance_from_origin = np.sqrt(point[0]**2 + point[1]**2)
             self.assertAlmostEqual(distance_from_origin.item(), radius, places=4, msg="Point is not at the correct radius.")
 
 # This allows the test to be run from the command line

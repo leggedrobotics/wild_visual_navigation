@@ -97,8 +97,8 @@ class PhyDecoder(NodeForROS):
         try:
 
             # Query footprint transform from AnymalState message
-            suc, pose_footprint_in_world = rc.ros_tf_to_torch(
-                self.query_tf(self.fixed_frame, self.footprint_frame, from_message=anymal_state_msg), device=self.device
+            suc, pose_footprint_in_world = rc.ros_tf_to_numpy(
+                self.query_tf(self.fixed_frame, self.footprint_frame, from_message=anymal_state_msg)
             )
             if not suc:
                 self.system_events["state_callback_cancled"] = {
@@ -106,7 +106,7 @@ class PhyDecoder(NodeForROS):
                     "value": "cancled due to pose_footprint_in_base",
                 }
                 return
-            msg.footprint=self.matrix_to_pose(pose_footprint_in_world.cpu().numpy())
+            msg.footprint=self.matrix_to_pose(pose_footprint_in_world)
             self.current_footprint_pose = pose_footprint_in_world
             if self.last_footprint_pose is None:
                 self.last_footprint_pose = self.current_footprint_pose
@@ -115,7 +115,7 @@ class PhyDecoder(NodeForROS):
                 footprint_plane = self.make_footprint_with_node(grid_size=10)
                 # transform it to geometry_msgs/Point[] format
                 msg.footprint_plane.name = "footprint"
-                msg.footprint_plane.edge_points = rc.torch_tensor_to_geometry_msgs_PointArray(footprint_plane)
+                msg.footprint_plane.edge_points = rc.np_to_geometry_msgs_PointArray(footprint_plane)
             self.last_footprint_pose=self.current_footprint_pose
             # Query 4 feet transforms from AnymalState message
             pose_feet_in_world = {}
@@ -123,8 +123,8 @@ class PhyDecoder(NodeForROS):
             foot_contacts=[]
             foot_planes=[]
             for foot in self.feet_list:
-                suc, pose_foot_in_world = rc.ros_tf_to_torch(
-                    self.query_tf(self.fixed_frame, foot, from_message=anymal_state_msg), device=self.device
+                suc, pose_foot_in_world = rc.ros_tf_to_numpy(
+                    self.query_tf(self.fixed_frame, foot, from_message=anymal_state_msg)
                 )
                 if not suc:
                     self.system_events["state_callback_cancled"] = {
@@ -133,13 +133,13 @@ class PhyDecoder(NodeForROS):
                     }
                     return
                 pose_feet_in_world[foot] = pose_foot_in_world
-                foot_pose=self.matrix_to_pose(pose_foot_in_world.cpu().numpy())
+                foot_pose=self.matrix_to_pose(pose_foot_in_world)
                 foot_poses.append(foot_pose)
                 with ClassContextTimer(parent_obj=self, block_name="state_callback.circle", parent_method_name="state_callback"):
                     # Make feet circle planes
                     d=2*self.foot_radius
                     foot_plane_points=make_ellipsoid(d,d,0,pose_foot_in_world,grid_size=24)
-                    foot_plane_points=rc.torch_tensor_to_geometry_msgs_PointArray(foot_plane_points)
+                    foot_plane_points=rc.np_to_geometry_msgs_PointArray(foot_plane_points)
                 foot_plane=PlaneEdge()
                 foot_plane.edge_points=foot_plane_points
                 foot_plane.name=foot
@@ -226,15 +226,13 @@ class PhyDecoder(NodeForROS):
         # osp[0] ---- osp[1]
         # with 'tsp': this_side_points and 'osp': other_side_points
         # Concat points to define the polygon
-            points = torch.cat((this_side_points, other_side_points), dim=0)
+            points = np.concatenate((this_side_points, other_side_points), axis=0)
         # Make footprint
         # footprint = make_polygon_from_points(points, grid_size=grid_size)
         return points
     @accumulate_time
-    def get_side_points(self,pose_footprint_in_world=torch.eye(4)):
-        return make_plane(x=0.0, y=self.robot_width, pose=pose_footprint_in_world, grid_size=2).to(
-            pose_footprint_in_world.device
-        )
+    def get_side_points(self,pose_footprint_in_world=np.eye(4)):
+        return make_plane(x=0.0, y=self.robot_width, pose=pose_footprint_in_world, grid_size=2)
     @accumulate_time
     def visualize_plane(self,msg:PhyDecoderOutput):
         # color.a will be set to 1.0 for foot plane if its contact is true
