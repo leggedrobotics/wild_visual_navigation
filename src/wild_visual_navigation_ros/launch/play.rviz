@@ -1,0 +1,771 @@
+Panels:
+  - Class: rviz/Displays
+    Help Height: 70
+    Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /Global Options1
+        - /Status1
+        - /RobotModel1
+        - /Camera1
+        - /Camera1/Status1
+      Splitter Ratio: 0.5
+    Tree Height: 140
+  - Class: rviz/Selection
+    Name: Selection
+  - Class: rviz/Tool Properties
+    Expanded:
+      - /2D Pose Estimate1
+      - /2D Nav Goal1
+      - /Publish Point1
+    Name: Tool Properties
+    Splitter Ratio: 0.5886790156364441
+  - Class: rviz/Views
+    Expanded:
+      - /Current View1
+    Name: Views
+    Splitter Ratio: 0.5
+  - Class: rviz/Time
+    Name: Time
+    SyncMode: 0
+    SyncSource: PointCloud2
+Preferences:
+  PromptSaveOnExit: true
+Toolbars:
+  toolButtonStyle: 2
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Alpha: 0.5
+      Cell Size: 1
+      Class: rviz/Grid
+      Color: 160; 160; 164
+      Enabled: true
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 10
+      Reference Frame: <Fixed Frame>
+      Value: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        LF_FOOT:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LF_HAA_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LF_HFE_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LF_HFE_output:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        LF_HIP:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        LF_KFE_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LF_SHANK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        LF_THIGH:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        LF_hip_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LF_shank_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LF_thigh_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LH_FOOT:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LH_HAA_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LH_HFE_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LH_HFE_output:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        LH_HIP:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        LH_KFE_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LH_SHANK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        LH_THIGH:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        LH_hip_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LH_shank_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LH_thigh_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        Link Tree Style: Links in Alphabetic Order
+        RF_FOOT:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RF_HAA_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RF_HFE_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RF_HFE_output:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        RF_HIP:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        RF_KFE_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RF_SHANK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        RF_THIGH:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        RF_hip_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RF_shank_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RF_thigh_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RH_FOOT:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RH_HAA_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RH_HFE_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RH_HFE_output:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        RH_HIP:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        RH_KFE_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RH_SHANK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        RH_THIGH:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        RH_hip_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RH_shank_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RH_thigh_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        base:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        base_inertia:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        battery:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        body_top:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        bottom_shell:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        depth_camera_front_lower_camera:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        depth_camera_front_lower_camera_parent:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        depth_camera_front_upper_camera:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        depth_camera_front_upper_camera_parent:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        depth_camera_left_camera:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        depth_camera_left_camera_parent:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        depth_camera_rear_lower_camera:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        depth_camera_rear_lower_camera_parent:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        depth_camera_rear_upper_camera:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        depth_camera_rear_upper_camera_parent:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        depth_camera_right_camera:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        depth_camera_right_camera_parent:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        docking_socket:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        face_front:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        face_rear:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        face_shell_front:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        face_shell_rear:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        hatch_shell:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        hbc_receiver:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        imu_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        lidar:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        lidar_parent:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        top_shell:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        wide_angle_camera_front_camera:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        wide_angle_camera_front_camera_parent:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        wide_angle_camera_rear_camera:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        wide_angle_camera_rear_camera_parent:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+      Name: RobotModel
+      Robot Description: anymal_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Class: rviz/Camera
+      Enabled: false
+      Image Rendering: background and overlay
+      Image Topic: /v4l2_camera/image_raw_throttle
+      Name: Camera
+      Overlay Alpha: 0.5
+      Queue Size: 2
+      Transport Hint: compressed
+      Unreliable: false
+      Value: false
+      Visibility:
+        "": true
+        Grid: true
+        Image: true
+        Marker: true
+        Path: true
+        PointCloud2: true
+        RobotModel: true
+        Value: true
+        WrenchStamped: true
+      Zoom Factor: 1
+    - Class: rviz/Image
+      Enabled: true
+      Image Topic: /v4l2_camera/image_raw_throttle
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: Image
+      Normalize Range: true
+      Queue Size: 2
+      Transport Hint: compressed
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 25; 255; 0
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Queue Size: 10
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /compslam_lio/full_path
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Flat Squares
+      Topic: /depth_camera_front_lower/point_cloud_self_filtered
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Flat Squares
+      Topic: /depth_camera_front_upper/point_cloud_self_filtered
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Flat Squares
+      Topic: /depth_camera_rear_upper/point_cloud_self_filtered
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Flat Squares
+      Topic: /depth_camera_rear_lower/point_cloud_self_filtered
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Flat Squares
+      Topic: /depth_camera_right/point_cloud_self_filtered
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Flat Squares
+      Topic: /depth_camera_left/point_cloud_self_filtered
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /foot_scan
+      Name: Marker
+      Namespaces:
+        anymal_perceptive_ctrl_deep_learning: true
+      Queue Size: 100
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Flat Squares
+      Topic: /point_cloud_filter/lidar/point_cloud_filtered
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Arrow Width: 0.5
+      Class: rviz/WrenchStamped
+      Enabled: true
+      Force Arrow Scale: 2
+      Force Color: 204; 51; 51
+      Hide Small Values: true
+      History Length: 1
+      Name: WrenchStamped
+      Queue Size: 10
+      Topic: /state_estimator/contact_force_lf_foot
+      Torque Arrow Scale: 2
+      Torque Color: 204; 204; 51
+      Unreliable: false
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /vd_pipeline/visualization_planes
+      Name: MarkerArray
+      Namespaces:
+        LF_FOOT: true
+        LH_FOOT: true
+        RF_FOOT: true
+        RH_FOOT: true
+        footprint: true
+      Queue Size: 100
+      Value: true
+  Enabled: true
+  Global Options:
+    Background Color: 48; 48; 48
+    Default Light: true
+    Fixed Frame: base
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz/Interact
+      Hide Inactive Objects: true
+    - Class: rviz/MoveCamera
+    - Class: rviz/Select
+    - Class: rviz/FocusCamera
+    - Class: rviz/Measure
+    - Class: rviz/SetInitialPose
+      Theta std deviation: 0.2617993950843811
+      Topic: /initialpose
+      X std deviation: 0.5
+      Y std deviation: 0.5
+    - Class: rviz/SetGoal
+      Topic: /move_base_simple/goal
+    - Class: rviz/PublishPoint
+      Single click: true
+      Topic: /clicked_point
+  Value: true
+  Views:
+    Current:
+      Class: rviz/Orbit
+      Distance: 2.927764415740967
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
+      Field of View: 0.7853981852531433
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
+      Name: Current View
+      Near Clip Distance: 0.009999999776482582
+      Pitch: 0.3597974479198456
+      Target Frame: <Fixed Frame>
+      Yaw: 4.5636305809021
+    Saved: ~
+Window Geometry:
+  Camera:
+    collapsed: false
+  Displays:
+    collapsed: false
+  Height: 981
+  Hide Left Dock: false
+  Hide Right Dock: false
+  Image:
+    collapsed: false
+  QMainWindow State: 000000ff00000000fd0000000400000000000001c700000337fc020000000afb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d0000010f000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000c00430061006d0065007200610000000231000000bc0000001600fffffffb0000000a0049006d0061006700650100000152000002220000001600ffffff000000010000010f00000337fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000003d00000337000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004d50000003efc0100000002fb0000000800540069006d00650100000000000004d5000003bc00fffffffb0000000800540069006d00650100000000000004500000000000000000000001f30000033700000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Selection:
+    collapsed: false
+  Time:
+    collapsed: false
+  Tool Properties:
+    collapsed: false
+  Views:
+    collapsed: false
+  Width: 1237
+  X: 640
+  Y: 93

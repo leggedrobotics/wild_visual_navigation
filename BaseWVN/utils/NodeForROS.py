@@ -23,7 +23,7 @@ class NodeForROS:
         # Read the parameters from the config file
         self.param=ParamCollection()
         self.import_params()
-        self.color_palette = sns.color_palette(self.palette,as_cmap=True)
+        self.color_palette = sns.color_palette(self.palette,as_cmap=False)
         # Dynamically set the class name for the timer
         self.timers = ClassTimer(objects=[self], names=[self.__class__.__name__], enabled=self.print_time)
 

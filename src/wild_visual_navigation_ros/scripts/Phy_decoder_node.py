@@ -77,9 +77,11 @@ class PhyDecoder(NodeForROS):
 
         # Results publisher
         phy_decoder_pub=rospy.Publisher('/vd_pipeline/phy_decoder_out', PhyDecoderOutput, queue_size=10)
+        marker_array_pub = rospy.Publisher('/vd_pipeline/visualization_planes', MarkerArray, queue_size=10)
         # stamped_debug_info_pub=rospy.Publisher('/stamped_debug_info', StampedFloat32MultiArray, queue_size=10)
         # Fill in handler
         self.decoder_handler['phy_decoder_pub']=phy_decoder_pub
+        self.decoder_handler['marker_planes_pub']=marker_array_pub
 
     
         
@@ -113,7 +115,7 @@ class PhyDecoder(NodeForROS):
             # transform it to geometry_msgs/Point[] format
             msg.footprint_plane.name = "footprint"
             msg.footprint_plane.edge_points = rc.torch_tensor_to_geometry_msgs_PointArray(footprint_plane)
-            
+            self.last_footprint_pose=self.current_footprint_pose
             # Query 4 feet transforms from AnymalState message
             pose_feet_in_world = {}
             foot_poses=[]
@@ -131,6 +133,7 @@ class PhyDecoder(NodeForROS):
                 pose_feet_in_world[foot] = pose_foot_in_world
                 foot_pose=self.matrix_to_pose(pose_foot_in_world.cpu().numpy())
                 foot_poses.append(foot_pose)
+                # Make feet circle planes
                 d=2*self.foot_radius
                 foot_plane_points=make_ellipsoid(d,d,0,pose_foot_in_world,grid_size=100)
                 foot_plane_points=rc.torch_tensor_to_geometry_msgs_PointArray(foot_plane_points)
@@ -140,7 +143,7 @@ class PhyDecoder(NodeForROS):
                 foot_planes.append(foot_plane)
             msg.feet_poses=foot_poses
             msg.feet_planes=foot_planes
-            # Make feet circle planes
+            
 
 
             """ 
@@ -169,7 +172,9 @@ class PhyDecoder(NodeForROS):
 
             # Publish results
             self.decoder_handler['phy_decoder_pub'].publish(msg)
-            pass
+            if self.mode == "debug":
+                self.visualize_plane(msg)
+            
         
         except Exception as e:
             traceback.print_exc()
@@ -217,15 +222,22 @@ class PhyDecoder(NodeForROS):
         return make_plane(x=0.0, y=self.robot_width, pose=pose_footprint_in_world, grid_size=2).to(
             pose_footprint_in_world.device
         )
-    def visualize_plane(self,planes,header,names):
+    def visualize_plane(self,msg:PhyDecoderOutput):
+        suc=False
+        header=msg.header
+        planes=[x.edge_points for x in msg.feet_planes]
+        planes.append(msg.footprint_plane.edge_points)
+        names=[x.name for x in msg.feet_planes]
+        names.append(msg.footprint_plane.name)
         marker_array = MarkerArray()
         for i, plane in enumerate(planes):
             marker=Marker()
             marker.header=header
             marker.ns=names[i]
             marker.type=Marker.LINE_STRIP
+            marker.lifetime = rospy.Duration(1)
             marker.action=Marker.ADD
-            marker.scale.x = 0.05
+            marker.scale.x = 0.02
             rgb_color = self.color_palette[i % len(self.color_palette)]
             rgba_color = (rgb_color[0], rgb_color[1], rgb_color[2], 1.0)  # Add alpha value
 
@@ -237,7 +249,9 @@ class PhyDecoder(NodeForROS):
             marker.points=plane
 
             marker_array.markers.append(marker)
-        return marker
+        self.decoder_handler['marker_planes_pub'].publish(marker_array)
+        suc=True
+        return suc
  
 if __name__ == "__main__":
     node_name = "Phy_decoder_node"
