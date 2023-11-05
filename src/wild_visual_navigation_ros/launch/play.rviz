@@ -8,7 +8,9 @@ Panels:
         - /Status1
         - /RobotModel1
         - /Camera1
-        - /Camera1/Status1
+        - /Marker1/Status1
+        - /MarkerArray1
+        - /MarkerArray1/Status1
       Splitter Ratio: 0.5
     Tree Height: 140
   - Class: rviz/Selection
@@ -422,10 +424,10 @@ Visualization Manager:
       Unreliable: false
       Value: false
       Visibility:
-        "": true
         Grid: true
         Image: true
         Marker: true
+        MarkerArray: true
         Path: true
         PointCloud2: true
         RobotModel: true
@@ -656,7 +658,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: Intensity
       Decay Time: 0
-      Enabled: true
+      Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Min Color: 0; 0; 0
@@ -671,11 +673,11 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
+      Value: false
     - Alpha: 1
       Arrow Width: 0.5
       Class: rviz/WrenchStamped
-      Enabled: true
+      Enabled: false
       Force Arrow Scale: 2
       Force Color: 204; 51; 51
       Hide Small Values: true
@@ -686,7 +688,7 @@ Visualization Manager:
       Torque Arrow Scale: 2
       Torque Color: 204; 204; 51
       Unreliable: false
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /vd_pipeline/visualization_planes
@@ -743,9 +745,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.3597974479198456
+      Pitch: 0.6097971796989441
       Target Frame: <Fixed Frame>
-      Yaw: 4.5636305809021
+      Yaw: 4.238610744476318
     Saved: ~
 Window Geometry:
   Camera:
@@ -767,5 +769,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1237
-  X: 640
-  Y: 93
+  X: 210
+  Y: 77

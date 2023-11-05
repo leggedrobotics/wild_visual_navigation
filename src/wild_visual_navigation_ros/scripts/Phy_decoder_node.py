@@ -241,6 +241,11 @@ class PhyDecoder(NodeForROS):
             rgb_color = self.color_palette[i % len(self.color_palette)]
             rgba_color = (rgb_color[0], rgb_color[1], rgb_color[2], 1.0)  # Add alpha value
 
+            marker.pose.orientation.w = 1.0
+            marker.pose.position.x = 0.0
+            marker.pose.position.y = 0.0
+            marker.pose.position.z = 0.0
+
             # Set the color of the marker
             marker.color.r = rgba_color[0]
             marker.color.g = rgba_color[1]

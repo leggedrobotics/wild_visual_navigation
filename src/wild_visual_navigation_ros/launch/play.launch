@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
-    <!-- Play rosbag -->
-    <node name="rosbag_play" pkg="rosbag" type="play" args="--clock /media/chen/新加卷/vis_rosbag/2023-09-20-09-43-57_anymal-d020-lpc_0-001.bag" />
+    
+    <node name="rosbag_merge_play" pkg="wild_visual_navigation_ros" type="play_rosbags.sh" output="screen" />
 
     <!-- Run RViz with specified configuration -->
     <node name="rviz" pkg="rviz" type="rviz" args="-d /home/chen/BaseWVN/src/wild_visual_navigation_ros/launch/play.rviz" />
-
+	
+	<!-- Include another launch file -->
+    <include file="$(find footcontact_history)/launch/all_feet.launch"/>
+    
     <!-- Run anymal description node with a delay -->
-    <node name="load_config_node" pkg="anymal_d" type="load_config.py" output="screen" 
-          />
+    <node name="load_config_node" pkg="anymal_d" type="load_config.py" output="screen" />
 
 </launch>
 
