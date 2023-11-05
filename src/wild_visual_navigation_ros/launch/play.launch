@@ -7,7 +7,7 @@
     <node name="rviz" pkg="rviz" type="rviz" args="-d /home/chen/BaseWVN/src/wild_visual_navigation_ros/launch/play.rviz" />
 	
 	<!-- Include another launch file -->
-    <include file="$(find footcontact_history)/launch/all_feet.launch"/>
+    <!--<include file="$(find footcontact_history)/launch/all_feet.launch"/>-->
     
     <!-- Run anymal description node with a delay -->
     <node name="load_config_node" pkg="anymal_d" type="load_config.py" output="screen" />

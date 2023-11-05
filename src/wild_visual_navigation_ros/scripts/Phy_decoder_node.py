@@ -82,7 +82,6 @@ class PhyDecoder(NodeForROS):
         # Fill in handler
         self.decoder_handler['phy_decoder_pub']=phy_decoder_pub
         self.decoder_handler['marker_planes_pub']=marker_array_pub
-
     
         
     @accumulate_time
@@ -90,6 +89,7 @@ class PhyDecoder(NodeForROS):
         """ 
         callback function for the anymal state subscriber
         """
+        
         self.step+=1
         self.system_events["state_callback_received"] = {"time": rospy.get_time(), "value": "message received"}
         msg=PhyDecoderOutput()
@@ -110,15 +110,17 @@ class PhyDecoder(NodeForROS):
             self.current_footprint_pose = pose_footprint_in_world
             if self.last_footprint_pose is None:
                 self.last_footprint_pose = self.current_footprint_pose
-            # Make footprint plane
-            footprint_plane = self.make_footprint_with_node(grid_size=10)
-            # transform it to geometry_msgs/Point[] format
-            msg.footprint_plane.name = "footprint"
-            msg.footprint_plane.edge_points = rc.torch_tensor_to_geometry_msgs_PointArray(footprint_plane)
+            with ClassContextTimer(parent_obj=self, block_name="state_callback.footprint", parent_method_name="state_callback"):
+                # Make footprint plane
+                footprint_plane = self.make_footprint_with_node(grid_size=10)
+                # transform it to geometry_msgs/Point[] format
+                msg.footprint_plane.name = "footprint"
+                msg.footprint_plane.edge_points = rc.torch_tensor_to_geometry_msgs_PointArray(footprint_plane)
             self.last_footprint_pose=self.current_footprint_pose
             # Query 4 feet transforms from AnymalState message
             pose_feet_in_world = {}
             foot_poses=[]
+            foot_contacts=[]
             foot_planes=[]
             for foot in self.feet_list:
                 suc, pose_foot_in_world = rc.ros_tf_to_torch(
@@ -133,16 +135,25 @@ class PhyDecoder(NodeForROS):
                 pose_feet_in_world[foot] = pose_foot_in_world
                 foot_pose=self.matrix_to_pose(pose_foot_in_world.cpu().numpy())
                 foot_poses.append(foot_pose)
-                # Make feet circle planes
-                d=2*self.foot_radius
-                foot_plane_points=make_ellipsoid(d,d,0,pose_foot_in_world,grid_size=100)
-                foot_plane_points=rc.torch_tensor_to_geometry_msgs_PointArray(foot_plane_points)
+                with ClassContextTimer(parent_obj=self, block_name="state_callback.circle", parent_method_name="state_callback"):
+                    # Make feet circle planes
+                    d=2*self.foot_radius
+                    foot_plane_points=make_ellipsoid(d,d,0,pose_foot_in_world,grid_size=24)
+                    foot_plane_points=rc.torch_tensor_to_geometry_msgs_PointArray(foot_plane_points)
                 foot_plane=PlaneEdge()
                 foot_plane.edge_points=foot_plane_points
                 foot_plane.name=foot
                 foot_planes.append(foot_plane)
+
+                # Query each feet contacts from AnymalState message
+                for foot_transform in anymal_state_msg.contacts:
+                    if foot_transform.name == foot and foot_transform.header.frame_id==self.fixed_frame:
+                        foot_contacts.append(foot_transform.state)
+                        break
+            
             msg.feet_poses=foot_poses
             msg.feet_planes=foot_planes
+            msg.feet_contact=foot_contacts
             
 
 
@@ -163,7 +174,8 @@ class PhyDecoder(NodeForROS):
                 # Predict using the stiffness predictor
                 stiff_pred, self.stiff_hidden = self.stiff_predictor.get_unnormalized_recon(padded_input, self.stiff_hidden)
             self.input_buffers[0].add(input_data[0].unsqueeze(0))
-            if self.mode == "debug":
+            with ClassContextTimer(parent_obj=self, block_name="torchcatgpu", parent_method_name="state_callback"):
+
             # pub fric and stiff together
                 new_priv=torch.cat([fric_pred,stiff_pred],dim=-1)
                 new_priv=new_priv[:,-1,:].squeeze(0).cpu().numpy()
@@ -199,30 +211,33 @@ class PhyDecoder(NodeForROS):
         pose_msg.orientation = quaternion
 
         return pose_msg
-
+    @accumulate_time
     def make_footprint_with_node(self, grid_size: int = 10):
      
         # Get side points
         other_side_points = self.get_side_points(self.last_footprint_pose)
         this_side_points = self.get_side_points(self.current_footprint_pose)
         # swap points to make them counterclockwise
-        this_side_points[[0, 1]] = this_side_points[[1, 0]]
+        with ClassContextTimer(parent_obj=self, block_name="make_footprint_with_node.1", parent_method_name="make_footprint_with_node"):
+            this_side_points[[0, 1]] = this_side_points[[1, 0]]
         # The idea is to make a polygon like:
         # tsp[1] ---- tsp[0]
         #  |            |
         # osp[0] ---- osp[1]
         # with 'tsp': this_side_points and 'osp': other_side_points
-
         # Concat points to define the polygon
-        points = torch.concat((this_side_points, other_side_points), dim=0)
+            points = torch.cat((this_side_points, other_side_points), dim=0)
         # Make footprint
-        footprint = make_polygon_from_points(points, grid_size=grid_size)
-        return footprint
+        # footprint = make_polygon_from_points(points, grid_size=grid_size)
+        return points
+    @accumulate_time
     def get_side_points(self,pose_footprint_in_world=torch.eye(4)):
         return make_plane(x=0.0, y=self.robot_width, pose=pose_footprint_in_world, grid_size=2).to(
             pose_footprint_in_world.device
         )
+    @accumulate_time
     def visualize_plane(self,msg:PhyDecoderOutput):
+        # color.a will be set to 1.0 for foot plane if its contact is true
         suc=False
         header=msg.header
         planes=[x.edge_points for x in msg.feet_planes]
@@ -251,6 +266,9 @@ class PhyDecoder(NodeForROS):
             marker.color.g = rgba_color[1]
             marker.color.b = rgba_color[2]
             marker.color.a = rgba_color[3]
+            if names[i] in self.feet_list and msg.feet_contact[i] ==0:
+                marker.color.a = 0.1
+
             marker.points=plane
 
             marker_array.markers.append(marker)

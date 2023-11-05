@@ -1,13 +1,39 @@
 import rospy
 import math
 import tf2_ros
-
+from anymal_msgs.msg import AnymalState
 from sensor_msgs.msg import PointCloud2
 import ros_numpy
 import numpy as np
 import time
 from matplotlib import pyplot as plt
+from typing import Optional
 
+def query_tf(parent_frame: str, child_frame: str, stamp: Optional[rospy.Time] = None, from_message: Optional[AnymalState] = None):
+    """Helper function to query TFs
+
+    Args:
+        parent_frame (str): Frame of the parent TF
+        child_frame (str): Frame of the child
+        from_message (AnymalState, optional): AnymalState message containing the TFs
+    """
+    if from_message is None:
+        # error, must have from_message
+        raise ValueError("Must provide from_message")
+    else:
+        
+        for foot_transform in from_message.contacts:
+            if foot_transform.name == child_frame and foot_transform.header.frame_id==parent_frame:
+                trans=(foot_transform.position.x,
+                        foot_transform.position.y,
+                        foot_transform.position.z)
+                # FOOT is merely a point, no rotation
+                rot=np.array([0,0,0,1])
+                return (trans,tuple(rot))
+
+        # If the requested TF is not found in the message
+        # rospy.logwarn(f"Couldn't find tf between {parent_frame} and {child_frame} in the provided message")
+        raise ValueError(f"Couldn't find tf between {parent_frame} and {child_frame} in the provided message")
 
 class Visualizer:
     def __init__(self):
@@ -46,22 +72,23 @@ class FootTracer:
 
         self.poses = []
         self.footholds = []
-        self.tfBuffer = tf2_ros.Buffer()
-        self.listener = tf2_ros.TransformListener(self.tfBuffer)
+        # self.tfBuffer = tf2_ros.Buffer()
+        # self.listener = tf2_ros.TransformListener(self.tfBuffer)
+        # subscribe to anymal_state and get the transform from there
+        self.publish = rospy.get_param("/footcontact_history/publish",True)
+        self.visu = rospy.get_param("/footcontact_history/visu",False)
+        self.reference_frame = rospy.get_param("/footcontact_history/reference_frame","odom")
 
-        self.publish = rospy.get_param("/footcontact_history/publish")
-        self.visu = rospy.get_param("/footcontact_history/visu")
-        self.reference_frame = rospy.get_param("/footcontact_history/reference_frame")
-
-        self.max_poses_window = rospy.get_param("/footcontact_history/max_poses_window")
-        self.nr_of_contacts_per_feet = rospy.get_param("/footcontact_history/nr_of_contacts_per_feet")
-        self.evaluate_every = rospy.get_param("/footcontact_history/evaluate_every")
-        self.air_time_foot = rospy.get_param("/footcontact_history/air_time_foot")
-        self.local_minima_window = rospy.get_param("/footcontact_history/local_minima_window")
-        self.border_reject = rospy.get_param("/footcontact_history/border_reject")
-        self.distance_threshold_buffer = rospy.get_param("/footcontact_history/distance_threshold_buffer")
+        self.max_poses_window = rospy.get_param("/footcontact_history/max_poses_window",100)
+        self.nr_of_contacts_per_feet = rospy.get_param("/footcontact_history/nr_of_contacts_per_feet",100)
+        self.evaluate_every = rospy.get_param("/footcontact_history/evaluate_every",10)
+        self.air_time_foot = rospy.get_param("/footcontact_history/air_time_foot",20)
+        self.local_minima_window = rospy.get_param("/footcontact_history/local_minima_window",3)
+        self.border_reject = rospy.get_param("/footcontact_history/border_reject",20)
+        self.distance_threshold_buffer = rospy.get_param("/footcontact_history/distance_threshold_buffer",0.05)
 
         self.step = 0
+        self.state_sub = rospy.Subscriber("/state_estimator/anymal_state", AnymalState, self.state_callback)
 
         if self.publish:
             self.pub = rospy.Publisher("footcontact_history/" + name, PointCloud2, queue_size=10)
@@ -69,15 +96,15 @@ class FootTracer:
         if self.visu:
             self.visualizer = Visualizer()
 
-    def update(self):
-        try:
-            trans = self.tfBuffer.lookup_transform(self.reference_frame, self.name, rospy.Time())
-            t = trans.transform.translation
-            r = trans.transform.rotation
-            pose = np.array([t.x, t.y, t.z, r.x, r.y, r.z, r.w])
-
-        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-            return
+    def state_callback(self,msg:AnymalState):
+    
+        # trans = self.tfBuffer.lookup_transform(self.reference_frame, self.name, rospy.Time())
+        pose_foot_in_world =query_tf(self.reference_frame, self.name, from_message=msg)
+            
+        t = pose_foot_in_world[0]
+        r = pose_foot_in_world[1]
+        # pose = np.array([t.x, t.y, t.z, r.x, r.y, r.z, r.w])
+        pose=np.array(t+r)
 
         self.poses.append(pose)
         if len(self.poses) > self.max_poses_window:
@@ -132,7 +159,7 @@ class FootTracer:
         self.publish_footholds()
 
         if self.visu:
-            self.visualizer(ana, keep)
+            self.visualizer.plot(ana, keep)
 
     def publish_footholds(self):
         if len(self.footholds) == 0:
@@ -163,15 +190,15 @@ class FootTracer:
 if __name__ == "__main__":
     rospy.init_node("footcontact_history")
 
-    feet = rospy.get_param("/footcontact_history/feet_frames")
+    feet = rospy.get_param("/footcontact_history/feet_frames",["LF_FOOT", "RF_FOOT", "LH_FOOT", "RH_FOOT"])
     print("Started footcontact_history node!")
     print("Tracking the feet: ", feet)
     fts = [FootTracer(n) for n in feet]
-
-    rate = rospy.Rate(50)
-    ma = 0
-    while not rospy.is_shutdown():
-        for foot in fts:
-            foot.update()
-        rate.sleep()
+    rospy.spin()
+    # rate = rospy.Rate(50)
+    # ma = 0
+    # while not rospy.is_shutdown():
+    #     for foot in fts:
+    #         pass
+    #     rate.sleep()
     print("Exited footcontact_history node!")

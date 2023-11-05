@@ -1,11 +1,11 @@
 footcontact_history:
-  visu: False # Visu feet height as matplotlib plot
+  visu: True # Visu feet height as matplotlib plot
   publish: True # Publish footpositions as pointcloud for each feet
   max_poses_window: 100 # Window size to analyze foot trajectory (50 = 1s)
   nr_of_contacts_per_feet: 100 # Maximum points to publish
   min_distance_between_contacts: 0.1 # Should be ~ swing-height of the feet.
   reference_frame: odom
-  feet_frames: ["RF_FOOT", "LF_FOOT", "LH_FOOT", "RH_FOOT"]
+  feet_frames: ["LF_FOOT", "RF_FOOT", "LH_FOOT", "RH_FOOT"]
   evaluate_every: 10 # Evaluate the running window only every n steps to save compute
   air_time_foot: 20 # Minimal time interval between footholds (50 = 1s)
   local_minima_window: 3 # Refine param

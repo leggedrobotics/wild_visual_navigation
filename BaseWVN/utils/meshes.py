@@ -81,6 +81,7 @@ def make_ellipsoid(length, width, height, pose=torch.eye(4), grid_size=11):
 
 
 def make_plane(x=None, y=None, z=None, pose=torch.eye(4), grid_size=10):
+    simple=True
     if x is None:
         points = torch.FloatTensor(
             [[0.0, y / 2, z / 2], [0.0, -y / 2, z / 2], [0.0, -y / 2, -z / 2], [0.0, y / 2, -z / 2]]
@@ -90,24 +91,31 @@ def make_plane(x=None, y=None, z=None, pose=torch.eye(4), grid_size=10):
             [[x / 2, 0.0, z / 2], [x / 2, 0.0, -z / 2], [-x / 2, 0.0, -z / 2], [-x / 2, 0.0, z / 2]]
         ).to(pose.device)
     elif z is None:
-        points = torch.FloatTensor(
-            [[x / 2, y / 2, 0.0], [x / 2, -y / 2, 0.0], [-x / 2, -y / 2, 0.0], [-x / 2, y / 2, 0.0]]
-        ).to(pose.device)
+        if x!=0:
+            points = torch.FloatTensor(
+                [[x / 2, y / 2, 0.0], [x / 2, -y / 2, 0.0], [-x / 2, -y / 2, 0.0], [-x / 2, y / 2, 0.0]]
+            ).to(pose.device)
+        else:
+            points = torch.FloatTensor(
+                [[x / 2, y / 2, 0.0], [x / 2, -y / 2, 0.0]]
+            ).to(pose.device)
     else:
         raise "make_plane requires just 2 inputs to be set"
+    if not simple:
+        # Interpolate according to the gridsize
+        finer_points = [points]
+        if grid_size > 0:
+            w_steps = torch.linspace(0, 1, steps=grid_size).to(pose.device)
+            for i in range(4):
+                for w in w_steps:
+                    interp = torch.lerp(points[i], points[(i + 1) % 4], w)[None]
+                    finer_points.append(interp)
 
-    # Interpolate according to the gridsize
-    finer_points = [points]
-    if grid_size > 0:
-        w_steps = torch.linspace(0, 1, steps=grid_size).to(pose.device)
-        for i in range(4):
-            for w in w_steps:
-                interp = torch.lerp(points[i], points[(i + 1) % 4], w)[None]
-                finer_points.append(interp)
-
-    # To torch
-    finer_points = torch.cat(finer_points)
-    finer_points = torch.unique(finer_points, dim=0)
+        # To torch
+        finer_points = torch.cat(finer_points)
+        finer_points = torch.unique(finer_points, dim=0)
+    else:
+        finer_points=points
 
     if len(pose.shape) == 2:
         pose = pose[None]
