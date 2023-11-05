@@ -37,6 +37,7 @@ class ParamCollection(Serializable):
         robot_height: float=0.890
         robot_width: float=0.530
         robot_max_velocity: float=1.2
+        foot_radius: float=0.03269
         pass
     roscfg: RosParams=RosParams()
     

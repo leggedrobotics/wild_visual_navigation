@@ -56,7 +56,8 @@ class NodeForROS:
         self.robot_height = self.param.roscfg.robot_height
         self.robot_width = self.param.roscfg.robot_width
         self.robot_max_velocity = self.param.roscfg.robot_max_velocity
-
+        self.foot_radius = self.param.roscfg.foot_radius
+        
         # THREAD PARAMETERS
         self.image_callback_rate = self.param.thread.image_callback_rate
         self.proprio_callback_rate = self.param.thread.proprio_callback_rate

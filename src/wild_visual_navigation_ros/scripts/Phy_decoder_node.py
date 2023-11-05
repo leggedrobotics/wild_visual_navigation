@@ -2,7 +2,7 @@
 Main node to process ros messages, publish the relevant topics, train the model...
  """
 from BaseWVN import ParamCollection
-from BaseWVN.utils import NodeForROS
+from BaseWVN.utils import *
 from Phy_Decoder import initialize_models,prepare_padded_input,RNNInputBuffer
 
 from pytictac import ClassTimer, ClassContextTimer, accumulate_time
@@ -14,8 +14,8 @@ from nav_msgs.msg import Path
 from sensor_msgs.msg import Image, CameraInfo, CompressedImage
 from std_msgs.msg import ColorRGBA, Float32, Float32MultiArray,Header
 from threading import Thread, Event
-from visualization_msgs.msg import Marker
-from wild_visual_navigation_msgs.msg import PhyDecoderOutput
+from visualization_msgs.msg import Marker,MarkerArray
+from wild_visual_navigation_msgs.msg import PhyDecoderOutput,PlaneEdge
 import message_filters
 import os
 import rospy
@@ -40,6 +40,10 @@ class PhyDecoder(NodeForROS):
         self.fric_hidden = self.fric_predictor.init_hidden(self.env_num)
         self.stiff_hidden = self.stiff_predictor.init_hidden(self.env_num)
         self.input_buffers = {0: RNNInputBuffer()}
+
+        # Init for storing last footprint pose
+        self.last_footprint_pose = None
+        self.current_footprint_pose = None
 
         # Init Camera handler
         self.decoder_handler = {}
@@ -100,10 +104,20 @@ class PhyDecoder(NodeForROS):
                     "value": "cancled due to pose_footprint_in_base",
                 }
                 return
+            msg.footprint=self.matrix_to_pose(pose_footprint_in_world.cpu().numpy())
+            self.current_footprint_pose = pose_footprint_in_world
+            if self.last_footprint_pose is None:
+                self.last_footprint_pose = self.current_footprint_pose
+            # Make footprint plane
+            footprint_plane = self.make_footprint_with_node(grid_size=10)
+            # transform it to geometry_msgs/Point[] format
+            msg.footprint_plane.name = "footprint"
+            msg.footprint_plane.edge_points = rc.torch_tensor_to_geometry_msgs_PointArray(footprint_plane)
             
             # Query 4 feet transforms from AnymalState message
             pose_feet_in_world = {}
             foot_poses=[]
+            foot_planes=[]
             for foot in self.feet_list:
                 suc, pose_foot_in_world = rc.ros_tf_to_torch(
                     self.query_tf(self.fixed_frame, foot, from_message=anymal_state_msg), device=self.device
@@ -117,7 +131,17 @@ class PhyDecoder(NodeForROS):
                 pose_feet_in_world[foot] = pose_foot_in_world
                 foot_pose=self.matrix_to_pose(pose_foot_in_world.cpu().numpy())
                 foot_poses.append(foot_pose)
+                d=2*self.foot_radius
+                foot_plane_points=make_ellipsoid(d,d,0,pose_foot_in_world,grid_size=100)
+                foot_plane_points=rc.torch_tensor_to_geometry_msgs_PointArray(foot_plane_points)
+                foot_plane=PlaneEdge()
+                foot_plane.edge_points=foot_plane_points
+                foot_plane.name=foot
+                foot_planes.append(foot_plane)
             msg.feet_poses=foot_poses
+            msg.feet_planes=foot_planes
+            # Make feet circle planes
+
 
             """ 
             Fric/Stiff-Decoder input topics & prediction
@@ -141,9 +165,10 @@ class PhyDecoder(NodeForROS):
                 new_priv=torch.cat([fric_pred,stiff_pred],dim=-1)
                 new_priv=new_priv[:,-1,:].squeeze(0).cpu().numpy()
                 msg.prediction=new_priv
-                # self.decoder_handler['phy_decoder_pub'].publish(Float32MultiArray(data=new_priv))
 
 
+            # Publish results
+            self.decoder_handler['phy_decoder_pub'].publish(msg)
             pass
         
         except Exception as e:
@@ -170,6 +195,49 @@ class PhyDecoder(NodeForROS):
 
         return pose_msg
 
+    def make_footprint_with_node(self, grid_size: int = 10):
+     
+        # Get side points
+        other_side_points = self.get_side_points(self.last_footprint_pose)
+        this_side_points = self.get_side_points(self.current_footprint_pose)
+        # swap points to make them counterclockwise
+        this_side_points[[0, 1]] = this_side_points[[1, 0]]
+        # The idea is to make a polygon like:
+        # tsp[1] ---- tsp[0]
+        #  |            |
+        # osp[0] ---- osp[1]
+        # with 'tsp': this_side_points and 'osp': other_side_points
+
+        # Concat points to define the polygon
+        points = torch.concat((this_side_points, other_side_points), dim=0)
+        # Make footprint
+        footprint = make_polygon_from_points(points, grid_size=grid_size)
+        return footprint
+    def get_side_points(self,pose_footprint_in_world=torch.eye(4)):
+        return make_plane(x=0.0, y=self.robot_width, pose=pose_footprint_in_world, grid_size=2).to(
+            pose_footprint_in_world.device
+        )
+    def visualize_plane(self,planes,header,names):
+        marker_array = MarkerArray()
+        for i, plane in enumerate(planes):
+            marker=Marker()
+            marker.header=header
+            marker.ns=names[i]
+            marker.type=Marker.LINE_STRIP
+            marker.action=Marker.ADD
+            marker.scale.x = 0.05
+            rgb_color = self.color_palette[i % len(self.color_palette)]
+            rgba_color = (rgb_color[0], rgb_color[1], rgb_color[2], 1.0)  # Add alpha value
+
+            # Set the color of the marker
+            marker.color.r = rgba_color[0]
+            marker.color.g = rgba_color[1]
+            marker.color.b = rgba_color[2]
+            marker.color.a = rgba_color[3]
+            marker.points=plane
+
+            marker_array.markers.append(marker)
+        return marker
  
 if __name__ == "__main__":
     node_name = "Phy_decoder_node"
