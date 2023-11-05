@@ -80,7 +80,7 @@ import numpy as np
 #     t = 1
 #     return make_superquadric(length / 2, width / 2, height / 2, r, s, t, pose=pose, grid_size=grid_size)
 @jit(nopython=True)
-def make_superquadric(A, B, C, r, s, t, pose, grid_size=10):
+def make_superquadric(A, B, C, r, s, t, pose=np.eye(4, dtype=np.float32), grid_size=10):
     if pose is None:
         pose = np.eye(4, dtype=np.float32)
     if C == 0:
@@ -131,19 +131,19 @@ def custom_meshgrid(x, y):
             yy[i, j] = y[j]
     
     return xx, yy
-def make_box(length, width, height, pose, grid_size=11):
+def make_box(length, width, height, pose=np.eye(4, dtype=np.float32), grid_size=11):
     r = 0.01
     s = 0.01
     t = 0.01
     return make_superquadric(length / 2, width / 2, height / 2, r, s, t, pose=pose, grid_size=grid_size)
 
-def make_rounded_box(length, width, height, pose, grid_size=11):
+def make_rounded_box(length, width, height, pose=np.eye(4, dtype=np.float32), grid_size=11):
     r = 0.2
     s = 0.2
     t = 0.2
     return make_superquadric(length / 2, width / 2, height / 2, r, s, t, pose=pose, grid_size=grid_size)
 
-def make_ellipsoid(length, width, height, pose, grid_size=11):
+def make_ellipsoid(length, width, height, pose=np.eye(4, dtype=np.float32), grid_size=11):
     r = 1
     s = 1
     t = 1
