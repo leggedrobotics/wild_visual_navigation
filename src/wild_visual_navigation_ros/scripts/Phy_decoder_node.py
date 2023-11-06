@@ -1,7 +1,6 @@
 """ 
 Main node to process ros messages, publish the relevant topics, train the model...
  """
-from BaseWVN import ParamCollection
 from BaseWVN.utils import *
 from Phy_Decoder import initialize_models,prepare_padded_input,RNNInputBuffer
 
@@ -15,14 +14,12 @@ from wild_visual_navigation_msgs.msg import PhyDecoderOutput,PlaneEdge
 import message_filters
 import os
 import rospy
-import seaborn as sns
 import tf.transformations as tft
 import torch
 import numpy as np
 from typing import Optional
 import traceback
-import signal
-import sys
+
 
 
 class PhyDecoder(NodeForROS):
@@ -148,8 +145,6 @@ class PhyDecoder(NodeForROS):
             msg.feet_planes=foot_planes
             msg.feet_contact=foot_contacts
             
-
-
             """ 
             Fric/Stiff-Decoder input topics & prediction
             """

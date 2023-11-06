@@ -37,7 +37,7 @@ PhyDecoder                            total [ms]    count [n]        std [ms]   
   +------  torchcatgpu:               145.48        1782             0.146          0.082           
   +-  state_callback:                 25407.33      1782             6.067          14.258 
   
-  numba w. polygon make 47.2hz
+  numba w. polygon make 47.5hz
   PhyDecoder                            total [ms]    count [n]        std [ms]       mean [ms]
   +-  query_tf:                       2137.67       30440            0.585          0.07            
   +-  matrix_to_pose:                 2649.1        30440            0.581          0.087           
@@ -49,3 +49,15 @@ PhyDecoder                            total [ms]    count [n]        std [ms]   
   +------  state_callback.circle:     5831.79       24352            17.936         0.239           
   +------  torchcatgpu:               539.87        6087             0.269          0.089           
   +-  state_callback:                 60046.56      6087             99.403         9.865
+  
+  PhyDecoder                            total [ms]    count [n]        std [ms]       mean [ms]
+  +-  query_tf:                       1235.93       19475            0.106          0.063           
+  +-  matrix_to_pose:                 1564.55       19475            0.091          0.08            
+  +-  get_side_points:                1741.34       7790             14.263         0.224           
+  +-  make_footprint_with_node:       3546.92       3895             20.182         0.911           
+  +-  visualize_plane:                1462.22       3895             0.065          0.375           
+  +------  state_callback.footprint:  4214.32       3895             20.189         1.082           
+  +------  make_footprint_with_node.1:537.66        3895             0.279          0.138           
+  +------  state_callback.circle:     4844.28       15580            23.543         0.311           
+  +------  torchcatgpu:               449.69        3895             1.571          0.115           
+  +-  state_callback:                 38629.5       3895             113.656        9.918  
