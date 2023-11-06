@@ -5,13 +5,9 @@ from BaseWVN import ParamCollection
 from BaseWVN.utils import *
 from Phy_Decoder import initialize_models,prepare_padded_input,RNNInputBuffer
 
-from pytictac import ClassTimer, ClassContextTimer, accumulate_time
 import ros_converter as rc
 from anymal_msgs.msg import AnymalState
 from geometry_msgs.msg import Pose, Point, Quaternion
-from rosgraph_msgs.msg import Clock
-from nav_msgs.msg import Path
-from sensor_msgs.msg import Image, CameraInfo, CompressedImage
 from std_msgs.msg import ColorRGBA, Float32, Float32MultiArray,Header
 from threading import Thread, Event
 from visualization_msgs.msg import Marker,MarkerArray
@@ -68,7 +64,7 @@ class PhyDecoder(NodeForROS):
         phy_decoder_input_sub = message_filters.Subscriber(self.phy_decoder_input_topic, Float32MultiArray)  
         cache_phy_decoder_input = message_filters.Cache(phy_decoder_input_sub, 200,allow_headerless=True)
 
-        self.state_sub=message_filters.ApproximateTimeSynchronizer([anymal_state_sub, phy_decoder_input_sub], queue_size=100,slop=0.1,allow_headerless=True)
+        self.state_sub=message_filters.ApproximateTimeSynchronizer([anymal_state_sub, phy_decoder_input_sub], queue_size=100,slop=0.2,allow_headerless=True)
         
         print("Current ros time is: ",rospy.get_time())
         
@@ -84,7 +80,6 @@ class PhyDecoder(NodeForROS):
         self.decoder_handler['marker_planes_pub']=marker_array_pub
     
         
-    @accumulate_time
     def state_callback(self, anymal_state_msg:AnymalState, phy_decoder_input_msg:Float32MultiArray):
         """ 
         callback function for the anymal state subscriber
@@ -110,12 +105,11 @@ class PhyDecoder(NodeForROS):
             self.current_footprint_pose = pose_footprint_in_world
             if self.last_footprint_pose is None:
                 self.last_footprint_pose = self.current_footprint_pose
-            with ClassContextTimer(parent_obj=self, block_name="state_callback.footprint", parent_method_name="state_callback"):
-                # Make footprint plane
-                footprint_plane = self.make_footprint_with_node(grid_size=10)
-                # transform it to geometry_msgs/Point[] format
-                msg.footprint_plane.name = "footprint"
-                msg.footprint_plane.edge_points = rc.np_to_geometry_msgs_PointArray(footprint_plane)
+            # Make footprint plane
+            footprint_plane = self.make_footprint_with_node(grid_size=10)
+            # transform it to geometry_msgs/Point[] format
+            msg.footprint_plane.name = "footprint"
+            msg.footprint_plane.edge_points = rc.np_to_geometry_msgs_PointArray(footprint_plane)
             self.last_footprint_pose=self.current_footprint_pose
             # Query 4 feet transforms from AnymalState message
             pose_feet_in_world = {}
@@ -135,11 +129,10 @@ class PhyDecoder(NodeForROS):
                 pose_feet_in_world[foot] = pose_foot_in_world
                 foot_pose=self.matrix_to_pose(pose_foot_in_world)
                 foot_poses.append(foot_pose)
-                with ClassContextTimer(parent_obj=self, block_name="state_callback.circle", parent_method_name="state_callback"):
-                    # Make feet circle planes
-                    d=2*self.foot_radius
-                    foot_plane_points=make_ellipsoid(d,d,0,pose_foot_in_world,grid_size=24)
-                    foot_plane_points=rc.np_to_geometry_msgs_PointArray(foot_plane_points)
+                # Make feet circle planes
+                d=2*self.foot_radius
+                foot_plane_points=make_ellipsoid(d,d,0,pose_foot_in_world,grid_size=24)
+                foot_plane_points=rc.np_to_geometry_msgs_PointArray(foot_plane_points)
                 foot_plane=PlaneEdge()
                 foot_plane.edge_points=foot_plane_points
                 foot_plane.name=foot
@@ -174,13 +167,10 @@ class PhyDecoder(NodeForROS):
                 # Predict using the stiffness predictor
                 stiff_pred, self.stiff_hidden = self.stiff_predictor.get_unnormalized_recon(padded_input, self.stiff_hidden)
             self.input_buffers[0].add(input_data[0].unsqueeze(0))
-            with ClassContextTimer(parent_obj=self, block_name="torchcatgpu", parent_method_name="state_callback"):
-
             # pub fric and stiff together
-                new_priv=torch.cat([fric_pred,stiff_pred],dim=-1)
-                new_priv=new_priv[:,-1,:].squeeze(0).cpu().numpy()
-                msg.prediction=new_priv
-
+            new_priv=torch.cat([fric_pred,stiff_pred],dim=-1)
+            new_priv=new_priv[:,-1,:].squeeze(0).cpu().numpy()
+            msg.prediction=new_priv
 
             # Publish results
             self.decoder_handler['phy_decoder_pub'].publish(msg)
@@ -197,7 +187,7 @@ class PhyDecoder(NodeForROS):
             }
         pass
 
-    @accumulate_time
+
     def matrix_to_pose(self,matrix):
         # Extract the translation (last column of the matrix)
         position = Point(*matrix[:3, 3])
@@ -211,29 +201,28 @@ class PhyDecoder(NodeForROS):
         pose_msg.orientation = quaternion
 
         return pose_msg
-    @accumulate_time
+
     def make_footprint_with_node(self, grid_size: int = 10):
      
         # Get side points
         other_side_points = self.get_side_points(self.last_footprint_pose)
         this_side_points = self.get_side_points(self.current_footprint_pose)
         # swap points to make them counterclockwise
-        with ClassContextTimer(parent_obj=self, block_name="make_footprint_with_node.1", parent_method_name="make_footprint_with_node"):
-            this_side_points[[0, 1]] = this_side_points[[1, 0]]
+        this_side_points[[0, 1]] = this_side_points[[1, 0]]
         # The idea is to make a polygon like:
         # tsp[1] ---- tsp[0]
         #  |            |
         # osp[0] ---- osp[1]
         # with 'tsp': this_side_points and 'osp': other_side_points
         # Concat points to define the polygon
-            points = np.concatenate((this_side_points, other_side_points), axis=0)
+        points = np.concatenate((this_side_points, other_side_points), axis=0)
         # Make footprint
         # footprint = make_polygon_from_points(points, grid_size=grid_size)
         return points
-    @accumulate_time
+
     def get_side_points(self,pose_footprint_in_world=np.eye(4)):
         return make_plane(x=0.0, y=self.robot_width, pose=pose_footprint_in_world, grid_size=2)
-    @accumulate_time
+
     def visualize_plane(self,msg:PhyDecoderOutput):
         # color.a will be set to 1.0 for foot plane if its contact is true
         suc=False

@@ -25,14 +25,12 @@ class NodeForROS:
         self.import_params()
         self.color_palette = sns.color_palette(self.palette,as_cmap=False)
         # Dynamically set the class name for the timer
-        self.timers = ClassTimer(objects=[self], names=[self.__class__.__name__], enabled=self.print_time)
 
         # Register shotdown callbacks
         rospy.on_shutdown(self.shutdown_callback)
         signal.signal(signal.SIGINT, self.shutdown_callback)
         signal.signal(signal.SIGTERM, self.shutdown_callback)
 
-    @accumulate_time
     def import_params(self):
         """ 
         read cfg file and import the parameters 
@@ -71,7 +69,6 @@ class NodeForROS:
         self.print_time = self.param.run.print_time
     
     
-    @accumulate_time
     def query_tf(self, parent_frame: str, child_frame: str, stamp: Optional[rospy.Time] = None, from_message: Optional[AnymalState] = None):
         """Helper function to query TFs
 
@@ -117,7 +114,6 @@ class NodeForROS:
 
     def shutdown_callback(self, *args, **kwargs):
         print(f"Node killed {args}")
-        print(self.timers)
         rospy.signal_shutdown(f"Node killed {args}")
         sys.exit(0)
     

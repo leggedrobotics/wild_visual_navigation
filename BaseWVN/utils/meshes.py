@@ -1,6 +1,6 @@
 import torch
 from kornia.geometry.linalg import transform_points
-from numba import jit
+from numba import jit,njit
 import numpy as np
 
 # def make_superquadric(A, B, C, r, s, t, pose=torch.eye(4), grid_size=10):
@@ -253,21 +253,46 @@ def make_dense_plane(x=None, y=None, z=None, pose=torch.eye(4), grid_size=5):
     return transform_points(pose, points[None])[0]
 
 
-def make_polygon_from_points(points: torch.tensor, grid_size=10):
+# def make_polygon_from_points(points: torch.tensor, grid_size=10):
+#     B, D = points.shape
+#     finer_points = []
+#     w_steps = torch.linspace(0, 1, steps=grid_size).to(points.device)
+#     # assume the points are sorted
+#     for i in range(B):
+#         for w in w_steps:
+#             finer_points.append(torch.lerp(points[i], points[(i + 1) % B], w)[None])
+#     finer_points = torch.cat(finer_points, dim=0)
+#     return finer_points
+
+@njit
+def make_polygon_from_points(points, grid_size=10):
+    points = np.asarray(points, dtype=np.float32)
     B, D = points.shape
-    finer_points = []
-    w_steps = torch.linspace(0, 1, steps=grid_size).to(points.device)
-    # assume the points are sorted
+    # Calculate the number of finer points to be generated
+    total_finer_points = B * grid_size
+    
+    # Preallocate the finer_points array
+    finer_points = np.empty((total_finer_points, D), dtype=points.dtype)
+    # Generate the interpolated points
+    w_steps = np.linspace(0, 1, grid_size)
+    count = 0
     for i in range(B):
+        p0 = points[i]
+        p1 = points[(i + 1) % B]
         for w in w_steps:
-            finer_points.append(torch.lerp(points[i], points[(i + 1) % B], w)[None])
-    finer_points = torch.cat(finer_points, dim=0)
+            finer_points[count] = lerp(p0, p1, w)
+            count += 1
+            
     return finer_points
 
+@njit
+def lerp(v0, v1, t):
+    return (1 - t) * v0 + t * v1
 
 if __name__ == "__main__":
-    xy_plane = make_dense_plane(x=0.8, y=0.4, grid_size=3)
+    # xy_plane = make_dense_plane(x=0.8, y=0.4, grid_size=3)
     y_points = make_plane(x=0.0, y=0.4, grid_size=2)
 
     points = torch.FloatTensor([[1, 1, 0], [-1, 1, 0], [-1, -1, 0], [1, -1, 0]])
+    points=np.array([[1, 1, 0], [-1, 1, 0], [-1, -1, 0], [1, -1, 0]])
     polygon = make_polygon_from_points(points)

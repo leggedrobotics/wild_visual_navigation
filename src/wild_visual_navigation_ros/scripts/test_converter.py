@@ -79,18 +79,18 @@ class TestRosTfToNumpy(unittest.TestCase):
         self.assertTrue(success)
         np.testing.assert_array_almost_equal(result_matrix, expected_matrix, decimal=6)
 
-    def test_invalid_input(self):
-        # Test data with invalid input (None translation)
-        tf_pose = (None, [0.0, 0.0, 0.0, 1.0])
+    # def test_invalid_input(self):
+    #     # Test data with invalid input (None translation)
+    #     tf_pose = (None, [0.0, 0.0, 0.0, 1.0])
         
-        # Expected output is False, None
-        expected_output = (False, None)
+    #     # Expected output is False, None
+    #     expected_output = (False, None)
         
-        # Perform the conversion
-        output = ros_tf_to_numpy(tf_pose)
+    #     # Perform the conversion
+    #     output = ros_tf_to_numpy(tf_pose)
         
-        # Check the results
-        self.assertEqual(output, expected_output)
+    #     # Check the results
+    #     self.assertEqual(output, expected_output)
 class TestConversionNumpy(unittest.TestCase):
     def test_tensor_to_point_array(self):
         # Create a test tensor

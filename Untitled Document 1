@@ -1,0 +1,51 @@
+numpy
+PhyDecoder                            total [ms]    count [n]        std [ms]       mean [ms]
+  +-  query_tf:                       414.84        9853             0.03           0.042           
+  +-  matrix_to_pose:                 724.02        9852             0.016          0.073           
+  +-  get_side_points:                262.43        3942             0.097          0.067           
+  +-  make_footprint_with_node:       713.77        1971             0.159          0.362           
+  +-  visualize_plane:                673.41        1970             0.053          0.342           
+  +------  state_callback.footprint:  905.22        1971             0.173          0.459           
+  +------  make_footprint_with_node.1:94.37         1971             0.028          0.048           
+  +------  state_callback.circle:     4207.54       7881             0.98           0.534           
+  +------  torchcatgpu:               159.34        1970             0.364          0.081           
+  +-  state_callback:                 19115.32      1970             3.478          9.703 
+  
+  
+  torch:
+  PhyDecoder                            total [ms]    count [n]        std [ms]       mean [ms]
+  +-  query_tf:                       585.02        8913             0.095          0.066           
+  +-  matrix_to_pose:                 902.53        8912             0.059          0.101           
+  +-  get_side_points:                334.54        3566             0.094          0.094           
+  +-  make_footprint_with_node:       1051.46       1783             0.541          0.59            
+  +-  visualize_plane:                754.41        1782             0.071          0.423           
+  +------  state_callback.footprint:  1365.31       1783             0.666          0.766           
+  +------  make_footprint_with_node.1:143.19        1783             0.107          0.08            
+  +------  state_callback.circle:     7610.38       7129             1.462          1.068           
+  +------  torchcatgpu:               145.48        1782             0.146          0.082           
+  +-  state_callback:                 25407.33      1782             6.067          14.258          
+Node killed ()
+PhyDecoder                            total [ms]    count [n]        std [ms]       mean [ms]
+  +-  query_tf:                       585.02        8913             0.095          0.066           
+  +-  matrix_to_pose:                 902.53        8912             0.059          0.101           
+  +-  get_side_points:                334.54        3566             0.094          0.094           
+  +-  make_footprint_with_node:       1051.46       1783             0.541          0.59            
+  +-  visualize_plane:                754.41        1782             0.071          0.423           
+  +------  state_callback.footprint:  1365.31       1783             0.666          0.766           
+  +------  make_footprint_with_node.1:143.19        1783             0.107          0.08            
+  +------  state_callback.circle:     7610.38       7129             1.462          1.068           
+  +------  torchcatgpu:               145.48        1782             0.146          0.082           
+  +-  state_callback:                 25407.33      1782             6.067          14.258 
+  
+  numba w. polygon make 47.2hz
+  PhyDecoder                            total [ms]    count [n]        std [ms]       mean [ms]
+  +-  query_tf:                       2137.67       30440            0.585          0.07            
+  +-  matrix_to_pose:                 2649.1        30440            0.581          0.087           
+  +-  get_side_points:                2081.95       12176            11.661         0.171           
+  +-  make_footprint_with_node:       6111.67       6088             27.653         1.004           
+  +-  visualize_plane:                2515.85       6087             0.094          0.413           
+  +------  state_callback.footprint:  7833.94       6088             27.659         1.287           
+  +------  make_footprint_with_node.1:1861.95       6088             11.158         0.306           
+  +------  state_callback.circle:     5831.79       24352            17.936         0.239           
+  +------  torchcatgpu:               539.87        6087             0.269          0.089           
+  +-  state_callback:                 60046.56      6087             99.403         9.865

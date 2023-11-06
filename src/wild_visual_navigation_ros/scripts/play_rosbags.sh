@@ -2,7 +2,7 @@
 # play_rosbags.sh
 
 # Navigate to the directory containing the bag files
-cd /media/chen/UDisk/vis_rosbag
+cd /media/chen/UDisk/vis_rosbag/single_test
 
 # Find all bag files and play them
 
