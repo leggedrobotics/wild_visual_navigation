@@ -1,4 +1,3 @@
-from wild_visual_navigation import WVN_ROOT_DIR
 from pytictac import Timer
 import os
 from os.path import join

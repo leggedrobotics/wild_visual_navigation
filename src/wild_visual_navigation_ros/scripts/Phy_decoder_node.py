@@ -38,7 +38,7 @@ class PhyDecoder(NodeForROS):
         self.last_footprint_pose = None
         self.current_footprint_pose = None
 
-        # Init Camera handler
+        # Init Decoder handler
         self.decoder_handler = {}
         self.system_events = {}
 

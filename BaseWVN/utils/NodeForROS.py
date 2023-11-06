@@ -2,17 +2,13 @@
 Main node to process ros messages, publish the relevant topics, train the model...
  """
 from BaseWVN import ParamCollection
-from pytictac import ClassTimer, ClassContextTimer, accumulate_time
 from anymal_msgs.msg import AnymalState
 
-import os
 import rospy
 import seaborn as sns
 
-import torch
 import numpy as np
 from typing import Optional
-import traceback
 import signal
 import sys
 
