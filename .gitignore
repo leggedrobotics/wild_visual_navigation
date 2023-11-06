@@ -55,3 +55,4 @@ devel/
 logs/
 .catkin_tools/
 BaseWVN.egg-info/
+image/
