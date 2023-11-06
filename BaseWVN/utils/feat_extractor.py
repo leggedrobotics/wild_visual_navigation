@@ -25,7 +25,7 @@ class FeatureExtractor:
         self.interp=kwargs.get('interp', 'bilinear')
         # feature extractor
         if self._feature_type == "dinov2":
-            self.extractor=Dinov2Interface(device, input_size=self._input_size, original_width=self.original_width, original_height=self.original_height, input_interp=self.interp)
+            self.extractor=Dinov2Interface(device, input_size=self._input_size, original_size=(self.original_width,self.original_height), input_interp=self.interp)
         else:
             raise ValueError(f"Extractor[{self._feature_type}] not supported!")
         
@@ -39,10 +39,7 @@ class FeatureExtractor:
             )
         else:
             raise ValueError(f"Segmentation[{self._segmentation_type}] not supported!")
-        
-
-
-    
+         
     @property
     def feature_type(self):
         return self._feature_type
@@ -63,3 +60,23 @@ class FeatureExtractor:
         """
         self._device = device
         self.extractor.change_device(device)
+
+    def compute_segments(self, img: torch.tensor, **kwargs):
+        if self._segmentation_type=="pixel":
+            seg=self.segment_pixelwise(img, **kwargs)
+        elif self._segmentation_type=="slic":
+            seg=self.segment_slic(img, **kwargs)
+        return seg
+    
+    def segment_pixelwise(self, img: torch.tensor, **kwargs):
+        # Generate pixel-wise segmentation
+        B, C, H, W = img.shape
+        seg = torch.arange(0, H * W, 1).reshape(H, W).to(self._device)
+        return seg
+    
+    def segment_slic(self, img: torch.tensor, **kwargs):
+        # transform image to numpy
+        B, C, H, W = img.shape
+        img_np = img.cpu().numpy()
+        seg = self.slic.iterate(np.uint8(np.ascontiguousarray(img_np) * 255))
+        return torch.from_numpy(seg).to(self._device).type(torch.long)
