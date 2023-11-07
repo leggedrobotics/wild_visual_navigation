@@ -86,9 +86,9 @@ if __name__=="__main__":
     img = img.permute(2, 0, 1)
     img = (img.type(torch.float32) / 255)[None]
     
-    input_image = Image.open(image_path).convert('RGB')  # Convert to RGB if not already
-    input_tensor = T.ToTensor()(input_image)
-    img=input_tensor.unsqueeze(0)
+    # input_image = Image.open(image_path).convert('RGB')  # Convert to RGB if not already
+    # input_tensor = T.ToTensor()(input_image)
+    # img=input_tensor.unsqueeze(0)
     input_size = 1260
     # If you have a GPU with CUDA support, use 'cuda', otherwise 'cpu'
     device = 'cuda' if torch.cuda.is_available() else 'cpu'

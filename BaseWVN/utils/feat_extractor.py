@@ -20,9 +20,7 @@ class FeatureExtractor:
         self._segmentation_type = segmentation_type
         self._feature_type = feature_type
         self._input_size = input_size
-        # input size must be a multiple of 14
-        self.patch_size = 14
-        assert self._input_size % self.patch_size == 0, "Input size must be a multiple of patch_size"
+        
         # Extract original_width and original_height from kwargs if present
         self.original_width = kwargs.get('original_width', 1920)  # Default to 1920 if not provided
         self.original_height = kwargs.get('original_height', 1280)  # Default to 1080 if not provided
@@ -37,14 +35,18 @@ class FeatureExtractor:
         elif self._input_interp == "bicubic":
             self.interp = T.InterpolationMode.BICUBIC
 
-        self.transform=self._create_transform()
-
         # feature extractor
         if self._feature_type == "dinov2":
+            self.patch_size = 14
             self.extractor=Dinov2Interface(device, **kwargs)
         else:
             raise ValueError(f"Extractor[{self._feature_type}] not supported!")
         
+        assert self._input_size % self.patch_size == 0, "Input size must be a multiple of patch_size"
+        
+        # create transform
+        self.transform=self._create_transform()
+
         # segmentation
         if self._segmentation_type == "pixel":
             pass
@@ -82,6 +84,14 @@ class FeatureExtractor:
     @property
     def segmentation_type(self):
         return self._segmentation_type
+    
+    @property
+    def resize_ratio(self):
+        return self.resize_ratio_x, self.resize_ratio_y
+    
+    @property
+    def new_size(self):
+        return self.new_width, self.new_height
 
     def _create_transform(self):
         # Calculate aspect ratio preserving size
@@ -105,8 +115,15 @@ class FeatureExtractor:
             T.CenterCrop(self._input_size) if self.center_crop else T.CenterCrop((new_height, new_width)),
             T.ConvertImageDtype(torch.float),
         ])
-        self.new_height=new_height
-        self.new_width=new_width
+        if not self.center_crop:
+            self.new_height=new_height
+            self.new_width=new_width    
+        else:
+            self.new_height=self._input_size
+            self.new_width=self._input_size
+        # actual resize ratio along x and y
+        self.resize_ratio_x=self.new_width/self.original_width
+        self.resize_ratio_y=self.new_height/self.original_height
         return transform
 
     def change_device(self, device):
@@ -134,7 +151,8 @@ class FeatureExtractor:
     def segment_slic(self, img: torch.tensor, **kwargs):
         # transform image to numpy
         B, C, H, W = img.shape
-        img_np = img.cpu().numpy()
+        img=img.permute(0,2,3,1)
+        img_np = img[0].cpu().numpy()
         seg = self.slic.iterate(np.uint8(np.ascontiguousarray(img_np) * 255))
         return torch.from_numpy(seg).to(self._device).type(torch.long)
     
@@ -148,8 +166,12 @@ class FeatureExtractor:
     
     def sparsify_features(self, dense_features: Union[torch.Tensor, Dict[str, torch.Tensor]], seg: torch.tensor, cumsum_trick=False):
         """ Sparsify features
+        Input:
+            dense_features (B,C,H,W): dense features tensor or dict of dense features tensors
+            seg (H,W): segmentation map
          
-        return (H*W/segs_num,C)
+        Return:
+            sparse_features (B,H*W/segs_num,C)
           
             """
         if isinstance(dense_features, dict):
@@ -193,16 +215,17 @@ class FeatureExtractor:
                 dense_features=dense_features.permute(0,2,3,1)
                 sparse_features = dense_features.reshape(dense_features.shape[0],dense_features.shape[1]*dense_features.shape[2],-1)
                 return sparse_features
-        # Concatenate features
         
+        # Concatenate features
         sparse_features = torch.stack(sparse_features, dim=1)
         return sparse_features
 
 def test_extractor():
     import cv2
     import os
+    import time
     image_relative_path = 'image/hiking.png'  # Update to the relative path of your image
-    feat_relative_path = 'image/hiking_feat_low.png'
+    feat_relative_path = 'image/hiking_feat.png'
     # Use os.path.join to get the full path of the image
     image_path = os.path.join(WVN_ROOT_DIR, image_relative_path)
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -211,9 +234,19 @@ def test_extractor():
     img = img.permute(2, 0, 1)
     img = (img.type(torch.float32) / 255)[None]
     input_size=1260
-    extractor=FeatureExtractor(device, input_size=input_size, original_width=img.shape[-1], original_height=img.shape[-2], interp='bilinear')
-    features, seg=extractor.extract(img)
+    extractor=FeatureExtractor(device, segmentation_type="pixel",input_size=input_size, original_width=img.shape[-1], original_height=img.shape[-2], interp='bilinear')
+    start_time = time.time()
     
+    features, seg=extractor.extract(img)
+
+     # Stop the timer
+    end_time = time.time()
+    # Calculate the elapsed time
+    inference_time = end_time - start_time
+
+    # Print the resulting feature tensor and inference time
+    print("Feature shape:", features.shape)
+    print("Extract time: {:.3f} seconds".format(inference_time))
     
     import matplotlib.pyplot as plt
     import numpy as np
