@@ -3,6 +3,8 @@ import torch
 from torchvision import transforms as T
 import time
 from typing import Tuple
+from torch.cuda.amp import autocast
+
 class Dinov2Interface:
     def __init__(
         self,
@@ -51,7 +53,8 @@ class Dinov2Interface:
         img = img.to(self.device)
         # print("After transform shape is:",img.shape)
         # Inference
-        feat = self.model.forward_features(img)["x_norm_patchtokens"]
+        with autocast():
+            feat = self.model.forward_features(img)["x_norm_patchtokens"]
         B=feat.shape[0]
         C=feat.shape[2]
         H=int(img.shape[2]/self.patch_size)
@@ -69,67 +72,3 @@ class Dinov2Interface:
         self.model.to(device)
         self.device = device
     
-if __name__=="__main__":
-    import os
-    import cv2
-    from PIL import Image
-
-    # Initialize the interface with the desired device and parameters
-    # Load an image and convert it to a PyTorch tensor
-    image_relative_path = 'image/hiking.png'  # Update to the relative path of your image
-    feat_relative_path = 'image/hiking_feat.png'
-    # Use os.path.join to get the full path of the image
-    image_path = os.path.join(WVN_ROOT_DIR, image_relative_path)
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    np_img = cv2.imread(image_path)
-    img = torch.from_numpy(cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB)).to(device)
-    img = img.permute(2, 0, 1)
-    img = (img.type(torch.float32) / 255)[None]
-    
-    # input_image = Image.open(image_path).convert('RGB')  # Convert to RGB if not already
-    # input_tensor = T.ToTensor()(input_image)
-    # img=input_tensor.unsqueeze(0)
-    input_size = 1260
-    # If you have a GPU with CUDA support, use 'cuda', otherwise 'cpu'
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    # W,H for original image size input
-    dinov2_interface = Dinov2Interface(device=device, model_type="vit_small", input_size=input_size, original_size=(img.shape[-1], img.shape[-2]), input_interp="bilinear",center_crop=False)
-
- 
-    start_time = time.time()
-    # Perform inference
-    features = dinov2_interface.inference(img)
-
-    # Stop the timer
-    end_time = time.time()
-
-    # Calculate the elapsed time
-    inference_time = end_time - start_time
-
-    # Print the resulting feature tensor and inference time
-    print("Feature shape:", features.shape)
-    print("Inference time with transform: {:.3f} seconds".format(inference_time))
-
-    import matplotlib.pyplot as plt
-    import numpy as np
-    from sklearn.decomposition import PCA
-    B,C,H,W=features.shape
-    features=features.permute(0,2,3,1)
-    features=features.reshape(B,H*W,C)
-    features=features[0].cpu().numpy()
-    n=3
-    pca = PCA(n_components=n)
-    pca.fit(features)
-
-    pca_features = pca.transform(features)
-    for i in range(n):
-        pca_features[:, i] = (pca_features[:, i] - pca_features[:, i].min()) / (pca_features[:, i].max() - pca_features[:, i].min())
-    # pca_features = (pca_features - pca_features.min()) / (pca_features.max() - pca_features.min())
-    pca_features = pca_features * 255
-    feat_height = int(input_size / 14)
-    feat_width = int(input_size/img.shape[-2]*img.shape[-1] / 14) 
-    plt.imshow(pca_features.reshape(feat_height, feat_width, n).astype(np.uint8))
-    image_path = os.path.join(WVN_ROOT_DIR, feat_relative_path)
-    plt.savefig(image_path)
-
-        
