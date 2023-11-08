@@ -3,9 +3,10 @@ Main node to process ros messages, publish the relevant topics, train the model.
  """
 from BaseWVN.utils import NodeForROS,FeatureExtractor,ConfidenceGenerator
 import ros_converter as rc
-
+import message_filters
 from sensor_msgs.msg import Image, CameraInfo, CompressedImage
 from std_msgs.msg import ColorRGBA, Float32, Float32MultiArray,Header
+from anymal_msgs.msg import AnymalState
 from visualization_msgs.msg import Marker
 from wild_visual_navigation_msgs.msg import FeatExtractorOutput
 import os
@@ -21,7 +22,7 @@ from threading import Thread, Event
 from prettytable import PrettyTable
 from termcolor import colored
 
-class FeatExtractorN(NodeForROS):
+class MainProcess(NodeForROS):
     def __init__(self):
         super().__init__()
         self.step=0
@@ -136,8 +137,11 @@ class FeatExtractorN(NodeForROS):
         self.camera_handler["H_scaled"] = H_scaled
         self.camera_handler["W_scaled"] = W_scaled
 
-        # Camera subscriber
-        camera_sub = rospy.Subscriber(self.camera_topic, CompressedImage, self.camera_callback,callback_args=self.camera_topic, queue_size=20)
+        # Camera and anymal state subscriber
+        camera_sub=message_filters.Subscriber(self.camera_topic, CompressedImage)
+        anymal_state_sub = message_filters.Subscriber(self.anymal_state_topic, AnymalState)
+        sync= message_filters.ApproximateTimeSynchronizer([camera_sub,anymal_state_sub],queue_size=200,slop=0.2)
+        sync.registerCallback(self.camera_callback,self.camera_topic)
 
         # Fill in handler
         self.camera_handler['name'] = self.camera_topic
@@ -161,7 +165,7 @@ class FeatExtractorN(NodeForROS):
         pass
     
     
-    def camera_callback(self, img_msg:CompressedImage,cam:str):
+    def camera_callback(self, img_msg:CompressedImage,state_msg:AnymalState,cam:str):
         """ 
         callback function for the anymal state subscriber
         """
@@ -178,6 +182,28 @@ class FeatExtractorN(NodeForROS):
             
             # load MLP and confidence generator params if possible
             self.load_model()
+            
+            # prepare tf from base to camera
+            transform=state_msg.pose
+            trans=(transform.pose.position.x,
+                   transform.pose.position.y,
+                   transform.pose.position.z)
+            rot=(transform.pose.orientation.x,
+                 transform.pose.orientation.y,
+                 transform.pose.orientation.z,
+                 transform.pose.orientation.w)
+            suc, pose_base_in_world = rc.ros_tf_to_numpy((trans,rot))
+            if not suc:
+                self.system_events["camera_callback_cancled"] = {
+                    "time": rospy.get_time(),
+                    "value": "cancled due to pose_base_in_world",
+                }
+                return
+            
+            # transform the camera pose from base to world
+            pose_cam_in_base=self.param.roscfg.rear_camera_in_base
+            pose_cam_in_world=np.matmul(pose_base_in_world,pose_cam_in_base)
+
 
             # prepare image
             img_torch = rc.ros_image_to_torch(img_msg, device=self.device)
@@ -231,13 +257,14 @@ class FeatExtractorN(NodeForROS):
                 print(f"Loading model from checkpoint {self.step}")
                 pass
         except Exception as e:
-            if self.ros_params.verbose:
+            if self.verbose:
                 print(f"Model Loading Failed: {e}")
 
 
 if __name__ == "__main__":
-    node_name = "FeatExtractor_node"
+
+    node_name = "Main_node"
     rospy.set_param("/use_sim_time", True)
     rospy.init_node(node_name)
-    phy_node = FeatExtractorN()
+    phy_node = MainProcess()
     rospy.spin()

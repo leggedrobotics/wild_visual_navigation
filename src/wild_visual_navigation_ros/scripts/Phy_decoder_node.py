@@ -95,7 +95,7 @@ class PhyDecoder(NodeForROS):
             if not suc:
                 self.system_events["state_callback_cancled"] = {
                     "time": rospy.get_time(),
-                    "value": "cancled due to pose_footprint_in_base",
+                    "value": "cancled due to pose_footprint_in_world",
                 }
                 return
             msg.footprint=self.matrix_to_pose(pose_footprint_in_world)
@@ -120,7 +120,7 @@ class PhyDecoder(NodeForROS):
                 if not suc:
                     self.system_events["state_callback_cancled"] = {
                         "time": rospy.get_time(),
-                        "value": f"cancled due to pose_{foot}_in_base",
+                        "value": f"cancled due to pose_{foot}_in_world",
                     }
                     return
                 pose_feet_in_world[foot] = pose_foot_in_world

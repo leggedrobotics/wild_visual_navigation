@@ -18,6 +18,7 @@ add_message_files(
   StampedFloat32MultiArray.msg
   PlaneEdge.msg
   PhyDecoderOutput.msg
+  FeatExtractorOutput.msg
 )
 
 add_service_files(

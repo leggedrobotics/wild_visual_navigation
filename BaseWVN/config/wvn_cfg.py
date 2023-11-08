@@ -4,7 +4,7 @@ This file contains the all configurations for the Wild-Visual-Navigation project
 from dataclasses import dataclass, field
 from typing import Tuple, Dict, List, Optional
 from simple_parsing.helpers import Serializable
-
+import numpy as np
 @dataclass
 class ParamCollection(Serializable):
     """A collection of parameters."""
@@ -38,6 +38,10 @@ class ParamCollection(Serializable):
         robot_width: float=0.530
         robot_max_velocity: float=1.2
         foot_radius: float=0.03269
+        rear_camera_in_base= np.array([[-0.98962361  ,0.          ,0.14368394 ,-0.3537],
+                                        [ 0.          ,0.99999982 , 0.         , 0.    ],
+                                        [-0.14368394  ,0.         ,-0.98962343 , 0.1634],
+                                        [ 0.          ,0.         ,0.          ,1.      ]])
         pass
     roscfg: RosParams=RosParams()
     
