@@ -63,6 +63,21 @@ class NodeForROS:
         self.mode = self.param.run.mode
         self.palette = self.param.run.palette
         self.print_time = self.param.run.print_time
+
+        # Feature extractor parameters
+        self.segmentation_type=self.param.feat.segmentation_type
+        self.feature_type=self.param.feat.feature_type
+        self.input_size=self.param.feat.input_size
+        self.interp=self.param.feat.interp
+        self.center_crop=self.param.feat.center_crop
+
+        # Loss parameters
+        self.confidence_std_factor=self.param.loss.confidence_std_factor
+        self.method=self.param.loss.method
+        self.log_enabled=self.param.loss.log_enabled
+        self.log_folder=self.param.loss.log_folder
+        self.verbose=self.param.loss.verbose
+
     
     
     def query_tf(self, parent_frame: str, child_frame: str, stamp: Optional[rospy.Time] = None, from_message: Optional[AnymalState] = None):

@@ -76,13 +76,27 @@ class ParamCollection(Serializable):
     optimizer: OptimizerParams = OptimizerParams()
 
     @dataclass
+    class FeatParams:
+        """Parameters for the feature extractor."""
+        segmentation_type: str='pixel'
+        feature_type: str='dinov2'
+        input_size:int =1260
+        interp: str='bilinear'
+        center_crop: bool=False
+    
+    feat: FeatParams=FeatParams()
+
+    @dataclass
     class LossParams:
         anomaly_balanced: bool = True
         w_trav: float = 0.03
         w_reco: float = 0.5
         w_temp: float = 0.0  # 0.75
-        method: str = "latest_measurment"
-        confidence_std_factor: float = 0.5
+        method: str = "running_mean"
+        confidence_std_factor: float = 2
+        log_enabled: bool = False
+        log_folder: str = "/tmp"
+        verbose: bool = True
         trav_cross_entropy: bool = False
 
     loss: LossParams = LossParams()

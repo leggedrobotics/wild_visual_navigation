@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from dinov2_interface import Dinov2Interface
+from .dinov2_interface import Dinov2Interface
 import numpy as np
 from torchvision import transforms as T
 from typing import Union, Dict
@@ -62,20 +62,28 @@ class FeatureExtractor:
         """Extract features from image
 
         Args:
-            img (torch.tensor): Image tensor
+            img (torch.tensor): Image tensor (B,C,H,W)
 
         Returns:
             sparse_features (torch.tensor, shape:(num_segs or H*W,C)): Sparse features tensor
             seg (torch.tensor, shape:(H,W)): Segmentation map
+            transformed_img (torch.tensor, shape:(B,C,H,W)): Transformed image
         """
-        img=self.transform(img)
+        transformed_img=self.transform(img)
         # Compute segmentation
-        seg = self.compute_segments(img, **kwargs)
+        seg = self.compute_segments(transformed_img, **kwargs)
         # Compute features
-        dense_features = self.compute_features(img, **kwargs)
+        dense_features = self.compute_features(transformed_img, **kwargs)
         # Sparsify features
         sparse_features = self.sparsify_features(dense_features, seg)
-        return sparse_features, seg
+        return sparse_features, seg,transformed_img
+
+    
+    def set_original_size(self, original_width: int, original_height: int):
+        self.original_height = original_height
+        self.original_width = original_width
+        self.transform=self._create_transform()
+        return self.original_width, self.original_height
 
     @property
     def feature_type(self):
@@ -122,8 +130,8 @@ class FeatureExtractor:
             self.new_height=self._input_size
             self.new_width=self._input_size
         # actual resize ratio along x and y
-        self.resize_ratio_x=self.new_width/self.original_width
-        self.resize_ratio_y=self.new_height/self.original_height
+        self.resize_ratio_x = float(self.new_width) / float(self.original_width)
+        self.resize_ratio_y = float(self.new_height) / float(self.original_height)
         return transform
 
     def change_device(self, device):
@@ -237,7 +245,7 @@ def test_extractor():
     extractor=FeatureExtractor(device, segmentation_type="pixel",input_size=input_size, original_width=img.shape[-1], original_height=img.shape[-2], interp='bilinear')
     start_time = time.time()
     
-    features, seg=extractor.extract(img)
+    features, seg,_=extractor.extract(img)
 
      # Stop the timer
     end_time = time.time()
@@ -312,33 +320,5 @@ if __name__=="__main__":
 
     test_extractor()
 
-    # if isinstance(dense_features, dict):
-    #     # Multiscale feature pyramid extraction
-    #     scales_x = [  seg.shape[0]/feat.shape[2] for feat in dense_features.values()]
-    #     scales_y = [ seg.shape[1] /feat.shape[3] for feat in dense_features.values()]
-    #     # upsampling the feat of each scale
-    #     resized_feats = [
-    #         F.interpolate(
-    #             feat.type(torch.float32), scale_factor=(scale_x, scale_y)
-    #         )
-    #         for scale_x, scale_y,feat in zip(scales_x, scales_y,dense_features.values())
-    #     ]
-    #     sparse_features = []
-
-    #     for i in range(seg.max() + 1):
-    #         single_segment_feature = []
-    #         for resized_feat in resized_feats:
-    #             m=seg==i
-    #             x, y = torch.where(m)
-    #             avg_feat_per_seg = torch.mean(resized_feat[:, :, x, y], dim=-1)
-    #             single_segment_feature.append(avg_feat_per_seg)
-    #         single_segment_feature = torch.cat(single_segment_feature, dim=1)
-    #         sparse_features.append(single_segment_feature)
-    #     # check if feat dim is 4
-    #     if len(sparse_features[0].shape)==2:
-    #         sparse_features = torch.cat(sparse_features, dim=0)
-    #     else:
-    #         sparse_features = torch.stack(sparse_features, dim=0)
-    #     pass
-
+   
   

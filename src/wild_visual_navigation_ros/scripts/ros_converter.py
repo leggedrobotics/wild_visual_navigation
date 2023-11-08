@@ -1,7 +1,7 @@
 import cv2
 from geometry_msgs.msg import Pose,Point
 from nav_msgs.msg import Odometry
-from sensor_msgs.msg import Image, CompressedImage
+from sensor_msgs.msg import Image, CompressedImage, CameraInfo
 from cv_bridge import CvBridge
 
 from liegroups.torch import SO3, SE3
@@ -93,3 +93,26 @@ def np_to_geometry_msgs_PointArray(array):
         point_list.append(ros_point)
 
     return point_list
+
+def ros_cam_info_to_tensors(caminfo_msg:CameraInfo, device="cpu"):
+    K = torch.eye(3, dtype=torch.float32).to(device)
+    K[:3, :3] = torch.FloatTensor(caminfo_msg.K).reshape(3, 3)
+    H = caminfo_msg.height  # torch.IntTensor([caminfo_msg.height]).to(device)
+    W = caminfo_msg.width   # torch.IntTensor([caminfo_msg.width]).to(device)
+    return K, H, W
+
+
+def ros_image_to_torch(ros_img, desired_encoding="rgb8", device="cpu"):
+    if type(ros_img).__name__ == "_sensor_msgs__Image" or isinstance(ros_img, Image):
+        np_image = CV_BRIDGE.imgmsg_to_cv2(ros_img, desired_encoding=desired_encoding)
+
+    elif type(ros_img).__name__ == "_sensor_msgs__CompressedImage" or isinstance(ros_img, CompressedImage):
+        np_arr = np.fromstring(ros_img.data, np.uint8)
+        np_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+        if "bgr" in ros_img.format:
+            np_image = cv2.cvtColor(np_image, cv2.COLOR_BGR2RGB)
+
+    else:
+        raise ValueError("Image message type is not implemented.")
+        
+    return TO_TENSOR(np_image).to(device)
