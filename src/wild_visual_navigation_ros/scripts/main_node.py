@@ -203,7 +203,7 @@ class MainProcess(NodeForROS):
             # transform the camera pose from base to world
             pose_cam_in_base=self.param.roscfg.rear_camera_in_base
             pose_cam_in_world=np.matmul(pose_base_in_world,pose_cam_in_base)
-
+            self.camera_handler["pose_cam_in_world"]=pose_cam_in_world
 
             # prepare image
             img_torch = rc.ros_image_to_torch(img_msg, device=self.device)
@@ -211,15 +211,17 @@ class MainProcess(NodeForROS):
             features, seg,transformed_img=self.feat_extractor.extract(img_torch)
             
             # tolist is expensive
-            msg=FeatExtractorOutput()
-            msg.header=img_msg.header
-            msg.features=features.reshape(-1).cpu().numpy()
-            msg.segments=seg.cpu().numpy().flatten().tolist()
-            msg.resized_image=transformed_img.cpu().numpy().flatten().tolist()
-            msg.ori_camera_info=self.camera_handler["camera_info"]
-            msg.resized_K=self.camera_handler["K_scaled"].cpu().numpy().flatten().tolist()
-            msg.resized_height=self.camera_handler["H_scaled"]
-            msg.resized_width=self.camera_handler["W_scaled"]
+            # msg=FeatExtractorOutput()
+            # msg.header=img_msg.header
+            # msg.features=features.reshape(-1).cpu().numpy()
+            # msg.segments=seg.cpu().numpy().flatten().tolist()
+            # msg.resized_image=transformed_img.cpu().numpy().flatten().tolist()
+            # msg.ori_camera_info=self.camera_handler["camera_info"]
+            # msg.resized_K=self.camera_handler["K_scaled"].cpu().numpy().flatten().tolist()
+            # msg.resized_height=self.camera_handler["H_scaled"]
+            # msg.resized_width=self.camera_handler["W_scaled"]
+            
+            
 
             if self.verbose:
                 self.log_data[f"num_images_{cam}"]+=1
@@ -238,13 +240,13 @@ class MainProcess(NodeForROS):
         scale the intrinsic matrix
         """
         # dimension check of K
-        if K.shape[0]!=3 or K.shape[1]!=3:
-            raise ValueError("The dimension of the intrinsic matrix is not 3x3!")
+        if K.shape[2]!=3 or K.shape[1]!=3:
+            raise ValueError("The dimension of the intrinsic matrix is not 4x4!")
         K_scaled = K.clone()
-        K_scaled[0,0]=K[0,0]*ratio_x
-        K_scaled[0,2]=K[0,2]*ratio_x
-        K_scaled[1,1]=K[1,1]*ratio_y
-        K_scaled[1,2]=K[1,2]*ratio_y
+        K_scaled[:,0,0]=K[:,0,0]*ratio_x
+        K_scaled[:,0,2]=K[:,0,2]*ratio_x
+        K_scaled[:,1,1]=K[:,1,1]*ratio_y
+        K_scaled[:,1,2]=K[:,1,2]*ratio_y
         return K_scaled
     
     def load_model(self):

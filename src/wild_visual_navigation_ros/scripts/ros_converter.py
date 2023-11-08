@@ -95,8 +95,9 @@ def np_to_geometry_msgs_PointArray(array):
     return point_list
 
 def ros_cam_info_to_tensors(caminfo_msg:CameraInfo, device="cpu"):
-    K = torch.eye(3, dtype=torch.float32).to(device)
+    K = torch.eye(4, dtype=torch.float32).to(device)
     K[:3, :3] = torch.FloatTensor(caminfo_msg.K).reshape(3, 3)
+    K = K.unsqueeze(0)
     H = caminfo_msg.height  # torch.IntTensor([caminfo_msg.height]).to(device)
     W = caminfo_msg.width   # torch.IntTensor([caminfo_msg.width]).to(device)
     return K, H, W
