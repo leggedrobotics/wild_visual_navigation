@@ -136,8 +136,8 @@ class MainProcess(NodeForROS):
             self.log_data[f"time_last_model"] = -1
             self.log_data[f"num_model_updates"] = -1
             cam=self.camera_topic
-            self.log_data[f"num_images_{cam}"] = 0
-            self.log_data[f"time_last_image_{cam}"] = -1
+            self.log_data[f"num_images"] = 0
+            self.log_data[f"time_last_image"] = -1
             self.log_data[f"image_callback"] = "N/A"
 
         print("Start waiting for Camera topic being published!")
@@ -214,7 +214,7 @@ class MainProcess(NodeForROS):
                 if self.verbose:
                     self.log_data[f"image_callback"] = "processing"
             self.last_image_ts = ts
-            
+            self.log_data[f"ros_time_now"] = rospy.get_time()
             if self.mode == "debug":
                 # pub for testing frequency
                 freq_pub = self.camera_handler['freq_pub']
@@ -271,8 +271,8 @@ class MainProcess(NodeForROS):
             
             # TODO: the log maybe need to change
             if self.verbose:
-                self.log_data[f"num_images_{cam}"]+=1
-                self.log_data[f"time_last_image_{cam}"]=rospy.get_time()
+                self.log_data[f"num_images"]+=1
+                self.log_data[f"time_last_image"]=rospy.get_time()
                 
             main_node = MainNode(
                 timestamp=img_msg.header.stamp.to_sec(),
@@ -327,6 +327,17 @@ class MainProcess(NodeForROS):
             pose_base_in_world = rc.ros_pose_to_torch(phy_output.base_pose, device=self.device)
             fric=torch.tensor(phy_output.prediction[:4]).to(self.device)
             stiff=torch.tensor(phy_output.prediction[4:]).to(self.device)
+            phy_label=torch.stack([fric,stiff],dim=0)
+            feet_planes=[]
+            for i,plane in enumerate(phy_output.feet_planes) :
+                if self.feet_list[i]!=plane.name:
+                    raise ValueError("The order of the feet planes not match feet list!")
+                edge=rc.plane_edge_to_torch(plane,device=self.device)
+                feet_planes.append(edge)
+            feet_planes=torch.stack(feet_planes,dim=0)
+            pass
+            
+                
 
             
         
