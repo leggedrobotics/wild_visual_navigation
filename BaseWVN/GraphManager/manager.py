@@ -16,7 +16,7 @@ import random
 from BaseWVN.GraphManager import (
     BaseGraph,
     DistanceWindowGraph,
-    VisualNode,
+    MainNode,
     MaxElementsGraph,
 )
 
@@ -46,7 +46,7 @@ class Manager:
             self._main_graph = BaseGraph(edge_distance=edge_dist_thr_main_graph)
         
         # Visualization node
-        self._vis_mission_node = None
+        self._vis_main_node = None
         
         # Mutex
         self._learning_lock = Lock()
@@ -89,18 +89,18 @@ class Manager:
         self._main_graph.change_device(device)
         self._model = self._model.to(device)
     
-    def update_prediction(self, node: VisualNode):
+    def update_prediction(self, node: MainNode):
         # TODO:use MLP to predict here, update_node_confidence
         pass
     
     def update_visualization_node(self):
         # For the first nodes we choose the visualization node as the last node available
         if self._main_graph.get_num_nodes() <= self._vis_node_index:
-            self._vis_mission_node = self._main_graph.get_nodes()[0]
+            self._vis_main_node = self._main_graph.get_nodes()[0]
         else:
-            self._vis_mission_node = self._main_graph.get_nodes()[-self._vis_node_index]
+            self._vis_main_node = self._main_graph.get_nodes()[-self._vis_node_index]
     
-    def add_visual_node(self, node: VisualNode,verbose:bool=False):
+    def add_main_node(self, node: MainNode,verbose:bool=False):
         """ 
         Add new node to the main graph with img and supervision info
         supervision mask has 2 channels (2,H,W)
@@ -126,7 +126,56 @@ class Manager:
             return True
         else:   
             return False
+        
+    @torch.no_grad()
+    def add_supervision_node(self):
+        # TODO: add supervision node to sub_graph
+        pass
+    
+    def get_main_nodes(self):
+        return self._main_graph.get_nodes()
+    
+    def get_supervision_nodes(self):
+        return self._sub_graph.get_nodes()
+    
+    def get_last_valid_main_node(self):
+        last_valid_node = None
+        for node in self._main_graph.get_nodes():
+            if node.is_valid():
+                last_valid_node = node
+        return last_valid_node
+    
+    def get_main_node_for_visualization(self):
+        return self._vis_main_node
+    
+    def save(self, manager_path: str, filename: str):
+        """Saves a pickled file of the Manager class
 
+        Args:
+            mission_path (str): folder to store the mission
+            filename (str): name for the output file
+        """
+        self._pause_training = True
+        os.makedirs(manager_path, exist_ok=True)
+        output_file = os.path.join(manager_path, filename)
+        self.change_device("cpu")
+        self._learning_lock = None
+        pickle.dump(self, open(output_file, "wb"))
+        self._pause_training = False
+    
+    @classmethod
+    def load(cls, file_path: str, device="cpu"):
+        """Loads pickled file and creates an instance of Manager,
+        loading al the required objects to the given device
+
+        Args:
+            file_path (str): Full path of the pickle file
+            device (str): Device used to load the torch objects
+        """
+        # Load pickled object
+        obj = pickle.load(open(file_path, "rb"))
+        obj.change_device(device)
+        return obj
     
     
 

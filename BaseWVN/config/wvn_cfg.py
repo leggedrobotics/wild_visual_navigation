@@ -104,3 +104,17 @@ class ParamCollection(Serializable):
         trav_cross_entropy: bool = False
 
     loss: LossParams = LossParams()
+    
+    @dataclass
+    class GraphParams:
+        """Parameters for the graph."""
+        max_dist_sub_graph: float=3
+        edge_dist_thr_sub_graph: float=0.2
+        edge_dist_thr_main_graph: float=1
+        min_samples_for_training: int=10
+        vis_node_index: int=10
+        label_ext_mode: bool=False
+        extraction_store_folder: str='LabelExtraction'
+        use_for_training: bool=True
+        
+    graph: GraphParams=GraphParams()

@@ -2,12 +2,14 @@
 Main node to process ros messages, publish the relevant topics, train the model...
  """
 from BaseWVN.utils import NodeForROS,FeatureExtractor,ConfidenceGenerator,ImageProjector
-from BaseWVN.GraphManager import VisualNode
+from BaseWVN.GraphManager import Manager,MainNode
 import ros_converter as rc
 import message_filters
 from sensor_msgs.msg import Image, CameraInfo, CompressedImage
 from std_msgs.msg import ColorRGBA, Float32, Float32MultiArray,Header
+from nav_msgs.msg import Path
 from anymal_msgs.msg import AnymalState
+from geometry_msgs.msg import PoseStamped, Point
 from visualization_msgs.msg import Marker
 from wild_visual_navigation_msgs.msg import FeatExtractorOutput
 import os
@@ -45,6 +47,16 @@ class MainProcess(NodeForROS):
                                                         log_folder=self.log_folder,
                                                         device=self.device)
 
+        # Init graph manager
+        self.manager = Manager(device=self.device,
+                               max_dist_sub_graph=self.param.graph.max_dist_sub_graph,
+                               edge_dist_thr_sub_graph=self.param.graph.edge_dist_thr_sub_graph,
+                               edge_dist_thr_main_graph=self.param.graph.edge_dist_thr_main_graph,
+                               min_samples_for_training=self.param.graph.min_samples_for_training,
+                               vis_node_index=self.param.graph.vis_node_index,
+                               label_ext_mode=self.param.graph.label_ext_mode,
+                               extraction_store_folder=self.param.graph.extraction_store_folder)
+        
         # TODO:Load the visual decoder (to device, eval mode)
         self.visual_decoder = []
 
@@ -158,6 +170,7 @@ class MainProcess(NodeForROS):
         conf_pub=rospy.Publisher('/vd_pipeline/confidence', Image, queue_size=10)
         info_pub=rospy.Publisher('/vd_pipeline/camera_info', CameraInfo, queue_size=10)
         freq_pub=rospy.Publisher('/test', Float32, queue_size=10)
+        main_graph_pub=rospy.Publisher('/vd_pipeline/main_graph', Path, queue_size=10)
         # Fill in handler
         self.camera_handler['input_pub']=input_pub
         self.camera_handler['fric_pub']=fric_pub
@@ -165,6 +178,7 @@ class MainProcess(NodeForROS):
         self.camera_handler['conf_pub']=conf_pub
         self.camera_handler['info_pub']=info_pub
         self.camera_handler['freq_pub']=freq_pub
+        self.camera_handler['main_graph_pub']=main_graph_pub
         # TODO: Add the publisher for the two graphs and services (save/load checkpoint) maybe
         pass
     
@@ -246,15 +260,22 @@ class MainProcess(NodeForROS):
                 self.log_data[f"num_images_{cam}"]+=1
                 self.log_data[f"time_last_image_{cam}"]=rospy.get_time()
                 
-            visual_node = VisualNode(
+            main_node = MainNode(
                 timestamp=img_msg.header.stamp.to_sec(),
                 pose_base_in_world=torch.from_numpy(pose_base_in_world).to(self.device),
                 pose_cam_in_world=torch.from_numpy(pose_cam_in_world).to(self.device),
                 image=transformed_img,
+                features=features,
+                feature_type=self.feature_type,
+                segments=seg,
                 image_projector=image_projector,
                 camera_name=cam,
-                use_for_training=True,              
-            )    
+                use_for_training=self.param.graph.use_for_training,              
+            )
+            added_new_node=self.manager.add_main_node(main_node,verbose=self.verbose)
+            
+            # add to main graph
+             
         except Exception as e:
             traceback.print_exc()
             print("error camera callback", e)
@@ -290,11 +311,30 @@ class MainProcess(NodeForROS):
         except Exception as e:
             if self.verbose:
                 print(f"Model Loading Failed: {e}")
+    
+    def visualize_main_graph(self):
+        """Publishes all the visualizations related to the mission graph"""
+        now=rospy.Time.from_sec(self.last_image_ts)
+        
+        # publish main graph
+        main_graph_msg=Path()
+        main_graph_msg.header.frame_id=self.fixed_frame
+        main_graph_msg.header.stamp=now
+        
+        for node in self.manager.get_main_nodes():
+            pose = PoseStamped()
+            pose.header.frame_id = self.fixed_frame
+            pose.header.stamp = rospy.Time.from_sec(node.timestamp)
+            pose.pose=rc.torch_to_ros_pose(node.pose_cam_in_world)
+            main_graph_msg.poses.append(pose)
+        self.camera_handler["main_graph_pub"].publish(main_graph_msg)
+        
+        
 
 
 if __name__ == "__main__":
 
-    node_name = "Main_node"
+    node_name = "Main_process_node"
     rospy.set_param("/use_sim_time", True)
     rospy.init_node(node_name)
     phy_node = MainProcess()

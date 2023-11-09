@@ -65,7 +65,7 @@ class FeatureExtractor:
             img (torch.tensor): Image tensor (B,C,H,W)
 
         Returns:
-            sparse_features (torch.tensor, shape:(num_segs or H*W,C)): Sparse features tensor
+            sparse_features (torch.tensor, shape:(B,num_segs or H*W,C)): Sparse features tensor
             seg (torch.tensor, shape:(H,W)): Segmentation map
             transformed_img (torch.tensor, shape:(B,C,H,W)): Transformed image
         """

@@ -98,14 +98,16 @@ class BaseNode:
     def timestamp(self, timestamp: float):
         self._timestamp = timestamp
 
-class VisualNode(BaseNode):
-    """Visual node stores the minimum information required for visual decoder.
+class MainNode(BaseNode):
+    """Main node stores the minimum information required for visual decoder.
     All the information is stored on the image plane
     
-    image shape (B,C,H,W)
+    image shape (B,C,H,W):transformed image
+    feat shape (B,num_segs or H*W,C): Sparse features tensor
+    seg (H,W): Segmentation map
     """
 
-    _name = "visual_node"
+    _name = "main_node"
     
     def __init__(
         self,
@@ -114,6 +116,9 @@ class VisualNode(BaseNode):
         pose_cam_in_world: torch.tensor = None,
         image: torch.tensor = None,
         image_projector: ImageProjector = None,
+        features: torch.tensor = None,
+        feature_type: str = None,
+        segments: torch.tensor = None,
         camera_name="cam",
         use_for_training=True,
     ):
@@ -125,11 +130,11 @@ class VisualNode(BaseNode):
         self._image_projector = image_projector
         self._camera_name = camera_name
         self._use_for_training = use_for_training
+        self._features = features
+        self._feature_segments = segments
+        self._feature_type = feature_type
         
         # Uninitialized members
-        self._features = None
-        self._feature_type = None
-        self._feature_segments = None
         self._confidence = None
         self._prediction = None
         self._supervision_mask = None
@@ -145,21 +150,18 @@ class VisualNode(BaseNode):
         return self._confidence
 
     @property
-    def features(self):
-        return self._features
-
-    @property
     def feature_type(self):
         return self._feature_type
 
     @property
-    def feature_segments(self):
-        return self._feature_segments
-
-    @property
     def image(self):
         return self._image
-
+    @property
+    def features(self):
+        return self._features
+    @property
+    def feature_segments(self):
+        return self._feature_segments
     @property
     def image_projector(self):
         return self._image_projector
@@ -196,29 +198,13 @@ class VisualNode(BaseNode):
     def confidence(self, confidence):
         self._confidence = confidence
 
-    @features.setter
-    def features(self, features):
-        self._features = features
-
     @feature_type.setter
     def feature_type(self, feature_type):
         self._feature_type = feature_type
 
-    @feature_segments.setter
-    def feature_segments(self, feature_segments):
-        self._feature_segments = feature_segments
-
-    @image.setter
-    def image(self, image):
-        self._image = image
-
     @image_projector.setter
     def image_projector(self, image_projector):
         self._image_projector = image_projector
-
-    @pose_cam_in_world.setter
-    def pose_cam_in_world(self, pose_cam_in_world):
-        self._pose_cam_in_world = pose_cam_in_world
 
     @prediction.setter
     def prediction(self, prediction):

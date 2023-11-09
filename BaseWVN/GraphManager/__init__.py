@@ -5,4 +5,5 @@ from .graphs import (
     MaxElementsGraph,
 
 )
-from .nodes import BaseNode, VisualNode
+from .manager import Manager
+from .nodes import BaseNode, MainNode

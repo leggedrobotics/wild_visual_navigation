@@ -117,3 +117,46 @@ def ros_image_to_torch(ros_img, desired_encoding="rgb8", device="cpu"):
         raise ValueError("Image message type is not implemented.")
         
     return TO_TENSOR(np_image).to(device)
+
+def torch_to_ros_pose(torch_pose):
+    q = SO3.from_matrix(torch_pose[:3, :3].cpu(), normalize=True).to_quaternion(ordering="xyzw")
+    t = torch_pose[:3, 3].cpu()
+    pose = Pose()
+    pose.orientation.x = q[0]
+    pose.orientation.y = q[1]
+    pose.orientation.z = q[2]
+    pose.orientation.w = q[3]
+    pose.position.x = t[0]
+    pose.position.y = t[1]
+    pose.position.z = t[2]
+
+    return pose
+
+def torch_to_ros_image(torch_img, desired_encoding="rgb8"):
+    """
+
+    Args:
+        torch_img (torch.tensor, shape=(C,H,W)): Image to convert to ROS message
+        desired_encoding (str, optional): _description_. Defaults to "rgb8".
+
+    Returns:
+        _type_: _description_
+    """
+
+    np_img = np.array(TO_PIL_IMAGE(torch_img.cpu()))
+    ros_img = CV_BRIDGE.cv2_to_imgmsg(np_img, encoding=desired_encoding)
+    return ros_img
+
+
+def numpy_to_ros_image(np_img, desired_encoding="rgb8"):
+    """
+
+    Args:
+        np_img (np.array): Image to convert to ROS message
+        desired_encoding (str, optional): _description_. Defaults to "rgb8".
+
+    Returns:
+        _type_: _description_
+    """
+    ros_image = CV_BRIDGE.cv2_to_imgmsg(np_img, encoding=desired_encoding)
+    return ros_image
