@@ -58,7 +58,7 @@ class ParamCollection(Serializable):
     @dataclass
     class RunParams:
         """Parameters for the run."""
-        device: str='cuda:0'
+        device: str='cuda'
         mode: str='debug'
         palette: str='husl'
         print_time: bool=True

@@ -13,12 +13,13 @@ import torch.nn.functional as F
 import torchvision.transforms as transforms
 import random
 
-from BaseWVN.GraphManager import (
+from .graphs import (
     BaseGraph,
     DistanceWindowGraph,
-    MainNode,
     MaxElementsGraph,
 )
+from .nodes import MainNode
+
 
 to_tensor = transforms.ToTensor()
 
@@ -98,26 +99,30 @@ class Manager:
         if self._main_graph.get_num_nodes() <= self._vis_node_index:
             self._vis_main_node = self._main_graph.get_nodes()[0]
         else:
+
             self._vis_main_node = self._main_graph.get_nodes()[-self._vis_node_index]
     
-    def add_main_node(self, node: MainNode,verbose:bool=False):
+    def add_main_node(self, node: MainNode,verbose:bool=False,logger=None):
         """ 
         Add new node to the main graph with img and supervision info
         supervision mask has 2 channels (2,H,W)
         """
-        if self._pause_mission_graph:
+        if self._pause_main_graph:
             return False
         success=self._main_graph.add_node(node)
         if success and node.use_for_training:
             # Print some info
             total_nodes = self._main_graph.get_num_nodes()
-            s = f"adding node [{node}], "
-            s += " " * (48 - len(s)) + f"total nodes [{total_nodes}]"
-            if verbose:
-                print(s)
+            if logger is None:
+                s = f"adding node [{node}], "
+                s += " " * (48 - len(s)) + f"total nodes [{total_nodes}]"
+                if verbose:
+                    print(s)
+            else:
+                logger["total main nodes"]=f"{total_nodes}"
 
             # Init the supervision mask
-            H,W=node.img.shape[-2],node.img.shape[-1]
+            H,W=node.image.shape[-2],node.image.shape[-1]
             supervision_mask=torch.ones((2,H,W),dtype=torch.float32,device=self._device)*torch.nan
             node.supervision_mask = supervision_mask
             

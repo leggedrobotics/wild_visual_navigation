@@ -422,6 +422,7 @@ Visualization Manager:
       Unreliable: false
       Value: false
       Visibility:
+        "": true
         Grid: true
         Image: true
         Marker: true
@@ -448,7 +449,7 @@ Visualization Manager:
       Buffer Length: 1
       Class: rviz/Path
       Color: 25; 255; 0
-      Enabled: true
+      Enabled: false
       Head Diameter: 0.30000001192092896
       Head Length: 0.20000000298023224
       Length: 0.30000001192092896
@@ -467,7 +468,7 @@ Visualization Manager:
       Shaft Length: 0.10000000149011612
       Topic: /compslam_lio/full_path
       Unreliable: false
-      Value: true
+      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -692,12 +693,32 @@ Visualization Manager:
       Marker Topic: /vd_pipeline/visualization_planes
       Name: MarkerArray
       Namespaces:
-        LF_FOOT: true
-        LH_FOOT: true
-        RF_FOOT: true
-        RH_FOOT: true
-        footprint: true
+        {}
       Queue Size: 100
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 25; 255; 0
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Queue Size: 10
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /vd_pipeline/main_graph
+      Unreliable: false
       Value: true
   Enabled: true
   Global Options:
@@ -743,9 +764,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.2797974944114685
+      Pitch: 0.45979738235473633
       Target Frame: <Fixed Frame>
-      Yaw: 4.753623962402344
+      Yaw: 1.7335991859436035
     Saved: ~
 Window Geometry:
   Camera:
@@ -768,4 +789,4 @@ Window Geometry:
     collapsed: false
   Width: 1237
   X: 210
-  Y: 40
+  Y: 27

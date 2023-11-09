@@ -14,7 +14,7 @@ from visualization_msgs.msg import Marker
 from wild_visual_navigation_msgs.msg import FeatExtractorOutput
 import os
 import rospy
-
+import time
 import torch
 import numpy as np
 from typing import Optional
@@ -66,10 +66,10 @@ class MainProcess(NodeForROS):
 
         if self.verbose:
             self.log_data = {}
-            # self.status_thread_stop_event = Event()
-            # self.status_thread = Thread(target=self.status_thread_loop, name="status")
-            # self.run_status_thread = True
-            # self.status_thread.start()
+            self.status_thread_stop_event = Event()
+            self.status_thread = Thread(target=self.status_thread_loop, name="status")
+            self.run_status_thread = True
+            self.status_thread.start()
 
         # Initialize ROS nodes
         self.ros_init()
@@ -82,6 +82,14 @@ class MainProcess(NodeForROS):
         rospy.signal_shutdown(f"FeatExtractor Node killed {args}")
         sys.exit(0)
     
+    def clear_screen(self):
+        # For Windows
+        if os.name == 'nt':
+            _ = os.system('cls')
+        # For Linux and Mac
+        else:
+            _ = os.system('clear')
+        
     def status_thread_loop(self):
         # Learning loop
         while self.run_status_thread:
@@ -108,7 +116,9 @@ class MainProcess(NodeForROS):
                     x.add_row([k, colored(round(d, 2), c)])
                 else:
                     x.add_row([k, v])
+            # self.clear_screen()
             print(x)
+            time.sleep(0.1)
             # try:
             #    rate.sleep()
             # except Exception as e:
@@ -128,6 +138,7 @@ class MainProcess(NodeForROS):
             cam=self.camera_topic
             self.log_data[f"num_images_{cam}"] = 0
             self.log_data[f"time_last_image_{cam}"] = -1
+            self.log_data[f"image_callback"] = "N/A"
 
         print("Start waiting for Camera topic being published!")
         # Camera info
@@ -194,11 +205,11 @@ class MainProcess(NodeForROS):
             ts = img_msg.header.stamp.to_sec()
             if abs(ts - self.last_image_ts) < 1.0 / self.image_callback_rate:
                 if self.verbose:
-                    print("skip")
+                    self.log_data[f"image_callback"] = "skipping"
                 return
             else:
                 if self.verbose:
-                    print("process")
+                    self.log_data[f"image_callback"] = "processing"
             self.last_image_ts = ts
             
             if self.mode == "debug":
@@ -237,7 +248,7 @@ class MainProcess(NodeForROS):
             # prepare image
             img_torch = rc.ros_image_to_torch(img_msg, device=self.device)
             img_torch = img_torch[None]
-            features, seg,transformed_img=self.feat_extractor.extract(img_torch)
+            features, seg,transformed_img,compressed_feats=self.feat_extractor.extract(img_torch)
             
             image_projector=ImageProjector(
                 K=self.camera_handler["K_scaled"],
@@ -265,16 +276,24 @@ class MainProcess(NodeForROS):
                 pose_base_in_world=torch.from_numpy(pose_base_in_world).to(self.device),
                 pose_cam_in_world=torch.from_numpy(pose_cam_in_world).to(self.device),
                 image=transformed_img,
-                features=features,
+                features=features if self.segmentation_type!="pixel" else compressed_feats,
                 feature_type=self.feature_type,
                 segments=seg,
                 image_projector=image_projector,
                 camera_name=cam,
                 use_for_training=self.param.graph.use_for_training,              
             )
-            added_new_node=self.manager.add_main_node(main_node,verbose=self.verbose)
             
             # add to main graph
+            added_new_node=self.manager.add_main_node(main_node,verbose=self.verbose,logger=self.log_data)
+            if self.mode =="debug":
+                # publish the main graph
+                self.visualize_main_graph()
+                
+                if added_new_node:
+                    self.manager.update_visualization_node()
+            
+            self.system_events["image_callback_state"] = {"time": rospy.get_time(), "value": "executed successfully"}
              
         except Exception as e:
             traceback.print_exc()
@@ -290,7 +309,7 @@ class MainProcess(NodeForROS):
         scale the intrinsic matrix
         """
         # dimension check of K
-        if K.shape[2]!=3 or K.shape[1]!=3:
+        if K.shape[2]!=4 or K.shape[1]!=4:
             raise ValueError("The dimension of the intrinsic matrix is not 4x4!")
         K_scaled = K.clone()
         K_scaled[:,0,0]=K[:,0,0]*ratio_x
@@ -337,5 +356,7 @@ if __name__ == "__main__":
     node_name = "Main_process_node"
     rospy.set_param("/use_sim_time", True)
     rospy.init_node(node_name)
+   
     phy_node = MainProcess()
+
     rospy.spin()

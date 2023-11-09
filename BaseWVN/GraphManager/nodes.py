@@ -3,7 +3,7 @@ from torch_geometric.data import Data
 import os
 import torch
 import torch.nn.functional as F
-from typing import Optional
+from typing import Optional,Union,Dict
 from BaseWVN.utils import ImageProjector
 
 
@@ -116,7 +116,7 @@ class MainNode(BaseNode):
         pose_cam_in_world: torch.tensor = None,
         image: torch.tensor = None,
         image_projector: ImageProjector = None,
-        features: torch.tensor = None,
+        features: Union[torch.tensor,dict] = None,
         feature_type: str = None,
         segments: torch.tensor = None,
         camera_name="cam",
@@ -133,6 +133,17 @@ class MainNode(BaseNode):
         self._features = features
         self._feature_segments = segments
         self._feature_type = feature_type
+        self._is_feat_compressed=True if isinstance(features,dict) else False
+
+        """ 
+        Warning: to save GPU memory, move features to cpu
+        """
+        if self._is_feat_compressed:
+            for key, tensor in self._features.items():
+                self._features[key] = tensor.cpu()
+        else:
+            self._features = self._features.cpu()
+
         
         # Uninitialized members
         self._confidence = None

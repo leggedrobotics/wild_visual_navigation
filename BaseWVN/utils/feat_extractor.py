@@ -68,6 +68,7 @@ class FeatureExtractor:
             sparse_features (torch.tensor, shape:(B,num_segs or H*W,C)): Sparse features tensor
             seg (torch.tensor, shape:(H,W)): Segmentation map
             transformed_img (torch.tensor, shape:(B,C,H,W)): Transformed image
+            compressed_feats (Dict): only in pixel segmentation, {(scale_x,scale_y):feat-->(B,C,H,W))}
         """
         transformed_img=self.transform(img)
         # Compute segmentation
@@ -75,8 +76,8 @@ class FeatureExtractor:
         # Compute features
         dense_features = self.compute_features(transformed_img, **kwargs)
         # Sparsify features
-        sparse_features = self.sparsify_features(dense_features, seg)
-        return sparse_features, seg,transformed_img
+        sparse_features,compressed_feats = self.sparsify_features(dense_features, seg)
+        return sparse_features, seg,transformed_img,compressed_feats
 
     
     def set_original_size(self, original_width: int, original_height: int):
@@ -180,9 +181,12 @@ class FeatureExtractor:
          
         Return:
             sparse_features (B,H*W/segs_num,C)
+            compressed_feat (Dict): only in pixel segmentation
           
             """
+        compressed_feat={}
         if isinstance(dense_features, dict):
+            compressed_feat=None
             # Multiscale feature pyramid extraction
             scales_x = [  seg.shape[0]/feat.shape[2] for feat in dense_features.values()]
             scales_y = [ seg.shape[1] /feat.shape[3] for feat in dense_features.values()]
@@ -194,39 +198,51 @@ class FeatureExtractor:
                 for scale_x, scale_y,feat in zip(scales_x, scales_y,dense_features.values())
             ]
             sparse_features = []
-
-            for i in range(seg.max() + 1):
-                single_segment_feature = []
-                for resized_feat in resized_feats:
-                    m=seg==i
-                    x, y = torch.where(m)
-                    avg_feat_per_seg = torch.mean(resized_feat[:, :, x, y], dim=-1)
-                    single_segment_feature.append(avg_feat_per_seg)
-                single_segment_feature = torch.cat(single_segment_feature, dim=1)
-                sparse_features.append(single_segment_feature)
+            if self._segmentation_type != "pixel":
+                compressed_feat=None
+                for i in range(seg.max() + 1):
+                    single_segment_feature = []
+                    for resized_feat in resized_feats:
+                        m=seg==i
+                        x, y = torch.where(m)
+                        avg_feat_per_seg = torch.mean(resized_feat[:, :, x, y], dim=-1)
+                        single_segment_feature.append(avg_feat_per_seg)
+                    single_segment_feature = torch.cat(single_segment_feature, dim=1)
+                    sparse_features.append(single_segment_feature)
+            else:
+                for scale_x, scale_y,feat in zip(scales_x, scales_y,dense_features.values()):
+                    compressed_feat[(scale_x,scale_y)]=feat
+                resized_feats=torch.cat(resized_feats,dim=1)
+                resized_feats=resized_feats.permute(0,2,3,1)
+                sparse_features = resized_feats.reshape(resized_feats.shape[0],resized_feats.shape[1]*resized_feats.shape[2],-1)
+                return sparse_features,compressed_feat
             
         else:
             # check if las two dim of seg is equal to dense_features dim, if not ,resize the feat
+            scale_x=seg.shape[0]/dense_features.shape[2]
+            scale_y=seg.shape[1]/dense_features.shape[3]
             if seg.shape[-2:] != dense_features.shape[-2:]:
-                dense_features = F.interpolate(
-                    dense_features.type(torch.float32), size=seg.shape[-2:]
+                resized_features = F.interpolate(
+                    dense_features.type(torch.float32), scale_factor=(scale_x, scale_y)
                 )
             # Sparsify features
             sparse_features = []
             if self._segmentation_type != "pixel":
+                compressed_feat=None
                 for i in range(seg.max() + 1):
                     m = seg == i
                     x, y = torch.where(m)
-                    avg_feat_per_seg = torch.mean(dense_features[:, :, x, y], dim=-1)
+                    avg_feat_per_seg = torch.mean(resized_features[:, :, x, y], dim=-1)
                     sparse_features.append(avg_feat_per_seg)
             else:
-                dense_features=dense_features.permute(0,2,3,1)
-                sparse_features = dense_features.reshape(dense_features.shape[0],dense_features.shape[1]*dense_features.shape[2],-1)
-                return sparse_features
+                compressed_feat[(scale_x,scale_y)]=dense_features
+                resized_features=resized_features.permute(0,2,3,1)
+                sparse_features = resized_features.reshape(resized_features.shape[0],resized_features.shape[1]*resized_features.shape[2],-1)
+                return sparse_features,compressed_feat
         
         # Concatenate features
         sparse_features = torch.stack(sparse_features, dim=1)
-        return sparse_features
+        return sparse_features,compressed_feat
 
 def test_extractor():
     import cv2
@@ -245,7 +261,7 @@ def test_extractor():
     extractor=FeatureExtractor(device, segmentation_type="pixel",input_size=input_size, original_width=img.shape[-1], original_height=img.shape[-2], interp='bilinear')
     start_time = time.time()
     
-    features, seg,_=extractor.extract(img)
+    features, seg,_,_=extractor.extract(img)
 
      # Stop the timer
     end_time = time.time()
