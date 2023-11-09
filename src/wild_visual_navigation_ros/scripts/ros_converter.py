@@ -2,6 +2,7 @@ import cv2
 from geometry_msgs.msg import Pose,Point
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Image, CompressedImage, CameraInfo
+from wild_visual_navigation_msgs.msg import PlaneEdge
 from cv_bridge import CvBridge
 
 from liegroups.torch import SO3, SE3
@@ -160,3 +161,18 @@ def numpy_to_ros_image(np_img, desired_encoding="rgb8"):
     """
     ros_image = CV_BRIDGE.cv2_to_imgmsg(np_img, encoding=desired_encoding)
     return ros_image
+
+def ros_pose_to_torch(ros_pose, device="cpu"):
+    q = torch.FloatTensor(
+        [ros_pose.orientation.x, ros_pose.orientation.y, ros_pose.orientation.z, ros_pose.orientation.w]
+    )
+    t = torch.FloatTensor([ros_pose.position.x, ros_pose.position.y, ros_pose.position.z])
+    return SE3(SO3.from_quaternion(q, ordering="xyzw"), t).as_matrix().to(device)
+
+def plane_edge_to_torch(edge:PlaneEdge,device="cpu"):
+    edge=edge.edge_points
+    ls=[]
+    for point in edge:
+        point=torch.FloatTensor([point.x,point.y,point.z]).to(device)
+        ls.append(point)
+    return torch.stack(ls,dim=0).to(device)

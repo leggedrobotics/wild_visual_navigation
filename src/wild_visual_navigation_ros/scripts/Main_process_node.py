@@ -11,7 +11,7 @@ from nav_msgs.msg import Path
 from anymal_msgs.msg import AnymalState
 from geometry_msgs.msg import PoseStamped, Point
 from visualization_msgs.msg import Marker
-from wild_visual_navigation_msgs.msg import FeatExtractorOutput
+from wild_visual_navigation_msgs.msg import FeatExtractorOutput,PhyDecoderOutput
 import os
 import rospy
 import time
@@ -170,6 +170,9 @@ class MainProcess(NodeForROS):
         sync= message_filters.ApproximateTimeSynchronizer([camera_sub,anymal_state_sub],queue_size=200,slop=0.2)
         sync.registerCallback(self.camera_callback,self.camera_topic)
 
+        # Phy-decoder info subscriber
+        phy_sub=rospy.Subscriber(self.param.roscfg.phy_decoder_output_topic,PhyDecoderOutput,self.phy_decoder_callback,queue_size=20)
+        
         # Fill in handler
         self.camera_handler['name'] = self.camera_topic
         self.camera_handler['img_sub'] = camera_sub
@@ -258,7 +261,7 @@ class MainProcess(NodeForROS):
             # tolist is expensive
             # msg=FeatExtractorOutput()
             # msg.header=img_msg.header
-            # msg.features=features.reshape(-1).cpu().numpy()
+            # # msg.features=features.reshape(-1).cpu().numpy()
             # msg.segments=seg.cpu().numpy().flatten().tolist()
             # msg.resized_image=transformed_img.cpu().numpy().flatten().tolist()
             # msg.ori_camera_info=self.camera_handler["camera_info"]
@@ -303,7 +306,48 @@ class MainProcess(NodeForROS):
                 "value": f"failed to execute {e}",
             }
         pass
+    
+    def phy_decoder_callback(self,phy_output:PhyDecoderOutput):
+        self.system_events["phy_decoder_callback_received"] = {"time": rospy.get_time(), "value": "message received"}
+        try:
+            ts = phy_output.header.stamp.to_sec()
+            if abs(ts - self.last_supervision_ts) < 1.0 / self.proprio_callback_rate:
+                self.system_events["phy_decoder_callback_cancled"] = {
+                    "time": rospy.get_time(),
+                    "value": "cancled due to rate",
+                }
+                if self.verbose:
+                    self.log_data[f"phy_decoder_callback"] = "skipping"
+                return
+            else:
+                if self.verbose:
+                    self.log_data[f"phy_decoder_callback"] = "processing"
+            self.last_supervision_ts = ts
+        
+            pose_base_in_world = rc.ros_pose_to_torch(phy_output.base_pose, device=self.device)
+            fric=torch.tensor(phy_output.prediction[:4]).to(self.device)
+            stiff=torch.tensor(phy_output.prediction[4:]).to(self.device)
 
+            
+        
+            self.system_events["phy_decoder_callback_state"] = {
+                    "time": rospy.get_time(),
+                    "value": "executed successfully",
+                }
+        
+        except Exception as e:
+            traceback.print_exc()
+            print("error phy_decoder_callback", e)
+            self.system_events["phy_decoder_callback_state"] = {
+                "time": rospy.get_time(),
+                "value": f"failed to execute {e}",
+            }
+
+            raise Exception("Error in phy_decoder_callback")
+            
+        pass
+        
+    
     def scale_intrinsic(self,K:torch.tensor,ratio_x,ratio_y):
         """ 
         scale the intrinsic matrix

@@ -261,7 +261,7 @@ def test_extractor():
     extractor=FeatureExtractor(device, segmentation_type="pixel",input_size=input_size, original_width=img.shape[-1], original_height=img.shape[-2], interp='bilinear')
     start_time = time.time()
     
-    features, seg,_,_=extractor.extract(img)
+    features, seg,trans_img,_=extractor.extract(img)
 
      # Stop the timer
     end_time = time.time()

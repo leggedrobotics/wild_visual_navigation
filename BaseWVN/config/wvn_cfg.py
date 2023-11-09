@@ -24,6 +24,7 @@ class ParamCollection(Serializable):
         anymal_state_topic: str='/state_estimator/anymal_state'
         feet_list: List[str]=field(default_factory=lambda: ['LF_FOOT', 'RF_FOOT', 'LH_FOOT', 'RH_FOOT'])
         phy_decoder_input_topic: str='/debug_info'
+        phy_decoder_output_topic:str='/vd_pipeline/phy_decoder_output'
 
         camera_bag_name: str='jetson'
         camera_topic: str='/v4l2_camera/image_raw_throttle/compressed'
@@ -49,7 +50,7 @@ class ParamCollection(Serializable):
     class ThreadParams:
         """Parameters for the threads."""
         image_callback_rate: float=2.0
-        proprio_callback_rate: float=50.0
+        proprio_callback_rate: float=10.0
         learning_rate: float=1.0
         logging_rate: float=2.0
     

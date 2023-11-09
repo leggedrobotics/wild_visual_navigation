@@ -163,7 +163,11 @@ class MainNode(BaseNode):
     @property
     def feature_type(self):
         return self._feature_type
-
+    
+    @property
+    def is_feat_compressed(self):
+        return self._is_feat_compressed
+    
     @property
     def image(self):
         return self._image
