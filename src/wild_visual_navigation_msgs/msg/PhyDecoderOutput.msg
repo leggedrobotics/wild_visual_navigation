@@ -2,6 +2,7 @@
 # and 3d footprint coordinates in odom frame and their plane info
 # and contact info for each feet
 std_msgs/Header header
+geometry_msgs/Pose base_pose
 float32[] prediction
 geometry_msgs/Pose[] feet_poses
 bool[] feet_contact

@@ -111,6 +111,7 @@ def publish_transform():
     rospy.spin()
 
 if __name__ == '__main__':
+
     try:
         publish_transform()
     except rospy.ROSInterruptException:

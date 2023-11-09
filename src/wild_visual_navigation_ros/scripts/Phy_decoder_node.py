@@ -87,7 +87,17 @@ class PhyDecoder(NodeForROS):
         msg=PhyDecoderOutput()
         msg.header=anymal_state_msg.header
         try:
-
+            
+            transform=anymal_state_msg.pose
+            trans=(transform.pose.position.x,
+                   transform.pose.position.y,
+                   transform.pose.position.z)
+            rot=(transform.pose.orientation.x,
+                 transform.pose.orientation.y,
+                 transform.pose.orientation.z,
+                 transform.pose.orientation.w)
+            suc, pose_base_in_world = rc.ros_tf_to_numpy((trans,rot))
+            msg.base_pose=self.matrix_to_pose(pose_base_in_world)
             # Query footprint transform from AnymalState message
             suc, pose_footprint_in_world = rc.ros_tf_to_numpy(
                 self.query_tf(self.fixed_frame, self.footprint_frame, from_message=anymal_state_msg)

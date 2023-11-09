@@ -48,8 +48,8 @@ class ParamCollection(Serializable):
     @dataclass
     class ThreadParams:
         """Parameters for the threads."""
-        image_callback_rate: float=10.0
-        proprio_callback_rate: float=100.0
+        image_callback_rate: float=2.0
+        proprio_callback_rate: float=50.0
         learning_rate: float=1.0
         logging_rate: float=2.0
     

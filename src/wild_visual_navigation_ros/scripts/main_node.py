@@ -1,7 +1,8 @@
 """ 
 Main node to process ros messages, publish the relevant topics, train the model...
  """
-from BaseWVN.utils import NodeForROS,FeatureExtractor,ConfidenceGenerator
+from BaseWVN.utils import NodeForROS,FeatureExtractor,ConfidenceGenerator,ImageProjector
+from BaseWVN.GraphManager import VisualNode
 import ros_converter as rc
 import message_filters
 from sensor_msgs.msg import Image, CameraInfo, CompressedImage
@@ -26,7 +27,10 @@ class MainProcess(NodeForROS):
     def __init__(self):
         super().__init__()
         self.step=0
-
+        # Timers to control the rate of the callbacks
+        self.last_image_ts = rospy.get_time()
+        self.last_supervision_ts = rospy.get_time()
+        
         # Init feature extractor
         self.feat_extractor = FeatureExtractor(device=self.device,
                                                segmentation_type=self.segmentation_type,
@@ -169,10 +173,20 @@ class MainProcess(NodeForROS):
         """ 
         callback function for the anymal state subscriber
         """
-        self.system_events["state_callback_received"] = {"time": rospy.get_time(), "value": "message received"}
+        self.system_events["camera_callback_received"] = {"time": rospy.get_time(), "value": "message received"}
         
         try:
-
+            # Run the callback so as to match the desired rate
+            ts = img_msg.header.stamp.to_sec()
+            if abs(ts - self.last_image_ts) < 1.0 / self.image_callback_rate:
+                if self.verbose:
+                    print("skip")
+                return
+            else:
+                if self.verbose:
+                    print("process")
+            self.last_image_ts = ts
+            
             if self.mode == "debug":
                 # pub for testing frequency
                 freq_pub = self.camera_handler['freq_pub']
@@ -180,7 +194,8 @@ class MainProcess(NodeForROS):
                 msg.data=1.0
                 freq_pub.publish(msg)
             
-            # load MLP and confidence generator params if possible
+            # TODO:load MLP and confidence generator params if possible,
+            # don't know if needed
             self.load_model()
             
             # prepare tf from base to camera
@@ -210,6 +225,11 @@ class MainProcess(NodeForROS):
             img_torch = img_torch[None]
             features, seg,transformed_img=self.feat_extractor.extract(img_torch)
             
+            image_projector=ImageProjector(
+                K=self.camera_handler["K_scaled"],
+                h=self.camera_handler["H_scaled"],
+                w=self.camera_handler["W_scaled"],
+            )
             # tolist is expensive
             # msg=FeatExtractorOutput()
             # msg.header=img_msg.header
@@ -221,11 +241,20 @@ class MainProcess(NodeForROS):
             # msg.resized_height=self.camera_handler["H_scaled"]
             # msg.resized_width=self.camera_handler["W_scaled"]
             
-            
-
+            # TODO: the log maybe need to change
             if self.verbose:
                 self.log_data[f"num_images_{cam}"]+=1
                 self.log_data[f"time_last_image_{cam}"]=rospy.get_time()
+                
+            visual_node = VisualNode(
+                timestamp=img_msg.header.stamp.to_sec(),
+                pose_base_in_world=torch.from_numpy(pose_base_in_world).to(self.device),
+                pose_cam_in_world=torch.from_numpy(pose_cam_in_world).to(self.device),
+                image=transformed_img,
+                image_projector=image_projector,
+                camera_name=cam,
+                use_for_training=True,              
+            )    
         except Exception as e:
             traceback.print_exc()
             print("error camera callback", e)

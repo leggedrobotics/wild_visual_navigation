@@ -8,7 +8,7 @@ from kornia.geometry.camera.pinhole import PinholeCamera
 from kornia.geometry.linalg import transform_points
 from kornia.utils.draw import draw_convex_polygon
 from liegroups.torch import SE3, SO3
-
+from typing import Optional,List,Union
 class ImageProjector:
     def __init__(self, K: torch.tensor, h: int, w: int):
         """Initializes the projector using the pinhole model, without distortion
@@ -149,3 +149,100 @@ class ImageProjector:
         self.masks[self.masks == 0.0] = torch.nan
 
         return self.masks, image_overlay, projected_points, valid_points
+
+def run_image_projector():
+    """Projects 3D points to example images and returns an image with the projection"""
+
+    from BaseWVN.utils import get_img_from_fig
+    from pytictac import Timer
+    from PIL import Image
+    import matplotlib.pyplot as plt
+    import torch
+    import torchvision.transforms as transforms
+    from kornia.utils import tensor_to_image
+    # from stego.src import remove_axes
+
+    to_tensor = transforms.ToTensor()
+
+    # Create test directory
+    os.makedirs(join(WVN_ROOT_DIR, "results", "test_image_projector"), exist_ok=True)
+
+    # Define number of cameras (batch)
+    B = 10
+
+    # Prepare single pinhole model
+    # Camera is created 1.5m backward, and 1m upwards, 0deg towards the origin
+    # Intrinsics
+    K = torch.FloatTensor([[720, 0, 720, 0], [0, 720, 540, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+    K = K.expand(B, 4, 4)
+
+    # Extrisics
+    pose_camera_in_world = torch.eye(4).repeat(B, 1, 1)
+
+    for i in range(B):
+        rho = torch.FloatTensor([-1.2 - i / 10.0, 0, 1])  # Translation vector (x, y, z)
+        phi = torch.FloatTensor([-2 * torch.pi / 4, 0.0, -torch.pi / 2.4])  # roll-pitch-yaw
+        R_WC = SO3.from_rpy(phi)  # Rotation matrix from roll-pitch-yaw
+        pose_camera_in_world[i] = SE3(R_WC, rho).as_matrix()  # Pose matrix of camera in world frame
+    # Image size
+    H = 1080
+    W = 1440
+
+    # Create projector
+    im = ImageProjector(K, H, W)
+    image_crop = T.Resize([H, W], T.InterpolationMode.NEAREST)
+    # Load image
+    pil_img = Image.open(join(WVN_ROOT_DIR, "image/forest_clean.png"))
+
+    # Convert to torch
+    k_img = to_tensor(pil_img)
+    k_img = k_img.expand(B, 3, H, W)
+    k_img = image_crop(k_img)
+
+    # Create 3D points around origin
+    # X = make_plane(x=0.8, y=0.5, pose=torch.eye(4))
+    with Timer("make_plane"):
+        # X = make_dense_plane(x=2, y=2, pose=torch.eye(4), grid_size=15)
+        points = torch.FloatTensor([[1, 1, 0], [-1, 1, 0], [-1, -1, 0], [1, -1, 0]]) * 0.5
+        X = points
+
+    N, D = X.shape
+    X = X.expand(B, N, D)
+    colors = torch.tensor([0, 1, 0]).expand(B, 3)
+
+    # Project points to image
+    with Timer("project_and_render"):
+        k_mask, k_img_overlay, k_points, k_valid = im.project_and_render(pose_camera_in_world, X, colors, k_img)
+
+    # Plot points independently
+    fig, ax = plt.subplots(B, 4, figsize=(4 * 5, B * 5))
+
+    for i in range(B):
+        k_points_overlay = k_img[i].clone()
+        for p in k_points[i]:
+            idx = torch.round(p).to(torch.int32)
+            for y in range(-3, 3, 1):
+                for x in range(-3, 3, 1):
+                    try:
+                        k_points_overlay[:, idx[1].item() + y, idx[0].item() + x] = torch.tensor([0, 255, 0])
+                    except Exception as e:
+                        continue
+
+        ax[i, 0].imshow(tensor_to_image(k_img[i]))
+        ax[i, 0].set_title("Image")
+        ax[i, 1].imshow(tensor_to_image(k_mask[i]))
+        ax[i, 1].set_title("Labels")
+        ax[i, 2].imshow(tensor_to_image(k_img_overlay[i]))
+        ax[i, 2].set_title("Overlay")
+        ax[i, 3].imshow(tensor_to_image(k_points_overlay))
+        ax[i, 3].set_title("Overlay - dots")
+
+    plt.tight_layout()
+
+    # Store results to test directory
+    img = get_img_from_fig(fig)
+    img.save(join(WVN_ROOT_DIR, "results", "test_image_projector", "forest_clean_image_projector.png"))
+
+
+if __name__ == "__main__":
+    run_image_projector()
