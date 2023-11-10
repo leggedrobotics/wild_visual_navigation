@@ -295,7 +295,7 @@ class MainNode(BaseNode):
         if self._supervision_mask is None:
             return
         signal=self._supervision_mask
-        if len(signal) != 3 or signal.shape[0] != 2:
+        if len(signal.shape) != 3 or signal.shape[0] != 2:
             raise ValueError("Supervision signal must be a 2 channel image (2,H,W)")
         # If we don't have features, return
         if self._features is None:
@@ -328,13 +328,111 @@ class MainNode(BaseNode):
         # Compute the average of the supervision signal dividing by the number of elements
         signal_mean = signal_sum / num_elements_per_segment
 
-        # Finally replace the nan values to 0.0
-        self._supervision_signal = signal_mean.nan_to_num(0)
-        self._supervision_signal_valid = self._supervision_signal > 0
+        # Finally replace the nan values to 0.0 TODO: nan to 0 maybe not necesssary
+        # self._supervision_signal = signal_mean.nan_to_num(0)
+        self._supervision_signal_valid = True
 
-#   TODO: PHY node
+    def recover_feat(self):
+        """Recover the feature from compression if needed"""
+        if not self._is_feat_compressed:
+            return self._features
+        else:
+            # check it must be dict
+            if not isinstance(self._features,dict):
+                raise TypeError("The feature must be dict")
+            # feat in dict: (ratio_x,ratio_y):(B, C, H, W)
+            # recover to tensor (B, H*W,C)
+            recover_feat=[]
+            for key,value in self._features:
+                scale_x,scale_y=key
+                resized_feats = F.interpolate(
+                    value.type(torch.float32), scale_factor=(scale_x, scale_y)
+                )
+                recover_feat.append(resized_feats)
+            recover_feat=torch.cat(recover_feat,dim=1)
+            recover_feat=recover_feat.permute(0,2,3,1)
+            res_features = recover_feat.reshape(recover_feat.shape[0],recover_feat.shape[1]*recover_feat.shape[2],-1)  
+            return res_features
+
+class SubNode(BaseNode):
+    """Local node stores all the information required for traversability estimation and debugging
+    All the information matches a real frame that must be respected to keep consistency"""
+
+    _name = "sub_node"
+    def __init__(self, 
+                 timestamp: float = 0, 
+                 pose_base_in_world: torch.tensor = torch.eye(4),
+                 phy_pred: torch.tensor = None,
+                 feet_planes: torch.tensor = None,
+                 feet_contact: torch.tensor = None,):
+        assert isinstance(pose_base_in_world, torch.Tensor)
+        assert len(feet_contact.shape)==1
+        super().__init__(timestamp, pose_base_in_world)
+        
+        self._pose_base_in_world = pose_base_in_world
+        self._phy_pred = phy_pred
+        self._feet_planes = feet_planes
+        self._feet_contact = feet_contact
+        
+    def change_device(self, device):
+        super().change_device(device)
+        self._pose_base_in_world = self._pose_base_in_world.to(device)
+        self._phy_pred = self._phy_pred.to(device)
+        self._feet_planes = self._feet_planes.to(device)
+        self._feet_contact = self._feet_contact.to(device)
+    
+    def is_valid(self):
+        return isinstance(self._phy_pred, torch.Tensor) and isinstance(self._feet_planes, torch.Tensor)
+    
+    @property
+    def phy_pred(self):
+        return self._phy_pred
+    
+    @property
+    def feet_planes(self):
+        return self._feet_planes
+    
+    @property
+    def feet_contact(self):
+        return self._feet_contact
+    
+    @phy_pred.setter
+    def phy_pred(self, phy_pred):
+        self._phy_pred = phy_pred
+        
+    @feet_planes.setter
+    def feet_planes(self, feet_planes):
+        self._feet_planes = feet_planes
+        
+    @feet_contact.setter
+    def feet_contact(self, feet_contact):
+        self._feet_contact = feet_contact
+    
 
 if __name__ == '__main__':
-    a=torch.tensor([0])
-    b=a.clone()
-    print(a/b)
+    H=4
+    W=6
+    first_tensor = torch.rand((1, H, W))
+    aa=first_tensor.repeat(2,1,1)
+    bb=first_tensor.repeat(2,1,1,1)
+    print(aa==bb[:,0,:,:])
+    second_tensor = torch.rand((1, H, W)) * 9 + 1  # Scaling and shifting to get values from 1 to 10
+    supervision_tensor = torch.cat((first_tensor, second_tensor), dim=0)
+   
+    supervision_tensor[:,2:,2:]=supervision_tensor[:,2:,2:]*torch.nan
+    ss=torch.fmin(supervision_tensor,supervision_tensor)
+    
+    # Generate a (3, H, W) random tensor with values from 0 to 1
+    img_tensor = torch.rand((3, H, W))
+
+    # Generate a (6, 4) tensor with values from 0 to 24
+    mask_tensor = torch.arange(24).reshape(H, W)
+    
+    main_node=MainNode(features=img_tensor,segments=mask_tensor,image=img_tensor)
+    main_node.supervision_mask=supervision_tensor
+    main_node.update_supervision_signal()
+    if torch.allclose(main_node.supervision_signal.reshape(2,H,W),supervision_tensor.nan_to_num(0)) :
+        print("True")
+    
+    pass
+

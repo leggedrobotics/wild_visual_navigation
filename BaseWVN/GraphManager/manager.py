@@ -18,8 +18,8 @@ from .graphs import (
     DistanceWindowGraph,
     MaxElementsGraph,
 )
-from .nodes import MainNode
-
+from .nodes import MainNode,SubNode
+from ..utils import ImageProjector
 
 to_tensor = transforms.ToTensor()
 
@@ -133,14 +133,74 @@ class Manager:
             return False
         
     @torch.no_grad()
-    def add_supervision_node(self):
+    def add_sub_node(self,subnode:SubNode):
         # TODO: add supervision node to sub_graph
+        if self._pause_sub_graph:
+            return False
+        if not subnode.is_valid():
+            return False
+        success=self._sub_graph.add_node(subnode)
+        if success:
+            feet_planes=subnode.feet_planes
+            feet_contact=subnode.feet_contact
+            
+            last_main_node:MainNode=self._main_graph.get_last_node()
+            if last_main_node is None:
+                return False
+            main_nodes=self._main_graph.get_nodes_within_radius_range(last_main_node,0,self._sub_graph.max_distance)
+            
+            if len(main_nodes)<1:
+                return False
+            
+            # Set color
+            color = torch.ones((3,), device=self._device)
+            
+            C,H,W=last_main_node.supervision_mask.shape
+            B=len(main_nodes)
+            
+            # prepare batches
+            K = torch.eye(4, device=self._device).repeat(B, 1, 1)
+            supervision_masks=torch.ones((1,C,H,W), device=self._device).repeat(B, 1, 1, 1)
+            pose_camera_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
+            H = last_main_node.image_projector.camera.height
+            W = last_main_node.image_projector.camera.width
+            
+            for i, mnode in enumerate(main_nodes):
+                K[i] = mnode.image_projector.camera.intrinsics
+                pose_camera_in_world[i] = mnode.pose_cam_in_world
+                supervision_masks[i] = mnode.supervision_mask
+            
+            im=ImageProjector(K,H,W)
+            assert feet_planes.shape[0]==4
+            for i in range(feet_planes.shape[0]):
+                # skip not contacting feet
+                if not feet_contact[i]:
+                    continue
+                foot_plane=feet_planes[i].unsqueeze(0)
+                foot_plane=foot_plane.repeat(B,1,1)
+                mask, _, _, _ = im.project_and_render(pose_camera_in_world, foot_plane, color)
+                mask=mask[:,:2,:,:]*subnode.phy_pred[:,i][None,:,None,None]
+                supervision_masks=torch.fmin(supervision_masks,mask)
+            
+            # Update supervision mask per node
+            for i, mnode in enumerate(main_nodes):
+                mnode.supervision_mask = supervision_masks[i]
+                mnode.update_supervision_signal()
+            
+            
+                
+  
+            
+            
+            
+            
+            
         pass
     
     def get_main_nodes(self):
         return self._main_graph.get_nodes()
     
-    def get_supervision_nodes(self):
+    def get_sub_nodes(self):
         return self._sub_graph.get_nodes()
     
     def get_last_valid_main_node(self):
