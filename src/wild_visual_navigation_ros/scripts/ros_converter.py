@@ -176,3 +176,16 @@ def plane_edge_to_torch(edge:PlaneEdge,device="cpu"):
         point=torch.FloatTensor([point.x,point.y,point.z]).to(device)
         ls.append(point)
     return torch.stack(ls,dim=0).to(device)
+
+def numpy_to_ros_image(np_img, desired_encoding="rgb8"):
+    """
+
+    Args:
+        np_img (np.array): Image to convert to ROS message
+        desired_encoding (str, optional): _description_. Defaults to "rgb8".
+
+    Returns:
+        _type_: _description_
+    """
+    ros_image = CV_BRIDGE.cv2_to_imgmsg(np_img, encoding=desired_encoding)
+    return ros_image

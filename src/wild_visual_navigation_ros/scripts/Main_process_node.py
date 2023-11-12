@@ -1,7 +1,7 @@
 """ 
 Main node to process ros messages, publish the relevant topics, train the model...
  """
-from BaseWVN.utils import NodeForROS,FeatureExtractor,ConfidenceGenerator,ImageProjector
+from BaseWVN.utils import NodeForROS,FeatureExtractor,ConfidenceGenerator,ImageProjector,plot_overlay_image
 from BaseWVN.GraphManager import Manager,MainNode,SubNode
 import ros_converter as rc
 import message_filters
@@ -427,6 +427,11 @@ class MainProcess(NodeForROS):
             torch_mask = vis_node._supervision_mask
             # find how many pixels are not nan in torch_mask
             notnan=(~torch.isnan(torch_mask)).sum()
+            overlay=[]
+            for i in range(torch_mask.shape[0]):
+                out=plot_overlay_image(torch_image, overlay_mask=torch_mask, channel=i)
+                overlay.append(out)
+             
             pass        
 
 

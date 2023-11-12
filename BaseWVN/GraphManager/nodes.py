@@ -329,7 +329,6 @@ class MainNode(BaseNode):
             # Compute the average of the supervision signal dividing by the number of elements
             signal_mean = signal_sum / num_elements_per_segment
 
-            # Finally replace the nan values to 0.0 TODO: nan to 0 maybe not necesssary
             # self._supervision_signal = signal_mean.nan_to_num(0)
         self._supervision_signal_valid = torch.tensor([True])
 

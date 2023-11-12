@@ -133,7 +133,6 @@ class Manager:
         
     @torch.no_grad()
     def add_sub_node(self,subnode:SubNode,logger=None):
-        # TODO: add supervision node to sub_graph
         if self._pause_sub_graph:
             return False
         if not subnode.is_valid():
