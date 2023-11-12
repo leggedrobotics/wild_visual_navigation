@@ -279,58 +279,59 @@ class MainNode(BaseNode):
         if self._supervision_signal_valid is not None:
             self._supervision_signal_valid = self._supervision_signal_valid.to(device)
      
-    def is_valid(self):
-        valid_members = (
-            isinstance(self._features, torch.Tensor)
-            and isinstance(self._supervision_signal, torch.Tensor)
-            and isinstance(self._supervision_signal_valid, torch.Tensor)
-        )
-        valid_signals = self._supervision_signal_valid.any() if valid_members else False
+    # def is_valid(self):
+    #     valid_members = (
+    #         isinstance(self._features, torch.Tensor)
+    #         and isinstance(self._supervision_signal, torch.Tensor)
+    #         and isinstance(self._supervision_signal_valid, torch.Tensor)
+    #     )
+    #     valid_signals = self._supervision_signal_valid.any() if valid_members else False
 
-        return valid_members and valid_signals
+    #     return valid_members and valid_signals
     
     def update_supervision_signal(self):
-        # TODO: only use the foorholds part, no need to fill entire image with 0/nan
-        # it average the supervision signal over each segment in case of muliple possible value in a segment
-        if self._supervision_mask is None:
-            return
-        signal=self._supervision_mask
-        if len(signal.shape) != 3 or signal.shape[0] != 2:
-            raise ValueError("Supervision signal must be a 2 channel image (2,H,W)")
-        # If we don't have features, return
-        if self._features is None:
-            return
+        if not self.is_feat_compressed:
+            # TODO: only use the foorholds part, no need to fill entire image with 0/nan
+            # it average the supervision signal over each segment in case of muliple possible value in a segment
+            if self._supervision_mask is None:
+                return
+            signal=self._supervision_mask
+            if len(signal.shape) != 3 or signal.shape[0] != 2:
+                raise ValueError("Supervision signal must be a 2 channel image (2,H,W)")
+            # If we don't have features, return
+            if self._features is None:
+                return
 
-        # If we have features, update supervision signal
-        C,N, M = signal.shape
-        num_segments = self._feature_segments.max() + 1
-        # torch.arange(0, num_segments)[None, None]
+            # If we have features, update supervision signal
+            C,N, M = signal.shape
+            num_segments = self._feature_segments.max() + 1
+            # torch.arange(0, num_segments)[None, None]
 
-        # Create array to mask by index (used to select the segments)
-        multichannel_index_mask = torch.arange(0, num_segments, device=self._feature_segments.device)[
-            None, None,None
-        ].expand(C,N, M, num_segments)
-        # Make a copy of the segments with the dimensionality of the segments, so we can split them on each channel
-        multichannel_segments = self._feature_segments[None,:, :, None].expand(C,N, M, num_segments)
+            # Create array to mask by index (used to select the segments)
+            multichannel_index_mask = torch.arange(0, num_segments, device=self._feature_segments.device)[
+                None, None,None
+            ].expand(C,N, M, num_segments)
+            # Make a copy of the segments with the dimensionality of the segments, so we can split them on each channel
+            multichannel_segments = self._feature_segments[None,:, :, None].expand(C,N, M, num_segments)
 
-        # Create a multichannel mask that allows to associate a segment to each channel
-        multichannel_segments_mask = multichannel_index_mask == multichannel_segments
+            # Create a multichannel mask that allows to associate a segment to each channel
+            multichannel_segments_mask = multichannel_index_mask == multichannel_segments
 
-        # Apply the mask to an expanded supervision signal and get the mean value per segment
-        # First we get the number of elements per segment (stored on each channel)
-        num_elements_per_segment = (
-            multichannel_segments_mask * ~torch.isnan(signal[:, :, :,None].expand(C,N, M, num_segments))
-        ).sum(dim=[1, 2])
-        # We get the sum of all the values of the supervision signal that fall in the segment
-        signal_sum = (signal.nan_to_num(0)[:, :,:, None].expand(C,N, M, num_segments) * multichannel_segments_mask).sum(
-            dim=[1, 2]
-        )
-        # Compute the average of the supervision signal dividing by the number of elements
-        signal_mean = signal_sum / num_elements_per_segment
+            # Apply the mask to an expanded supervision signal and get the mean value per segment
+            # First we get the number of elements per segment (stored on each channel)
+            num_elements_per_segment = (
+                multichannel_segments_mask * ~torch.isnan(signal[:, :, :,None].expand(C,N, M, num_segments))
+            ).sum(dim=[1, 2])
+            # We get the sum of all the values of the supervision signal that fall in the segment
+            signal_sum = (signal.nan_to_num(0)[:, :,:, None].expand(C,N, M, num_segments) * multichannel_segments_mask).sum(
+                dim=[1, 2]
+            )
+            # Compute the average of the supervision signal dividing by the number of elements
+            signal_mean = signal_sum / num_elements_per_segment
 
-        # Finally replace the nan values to 0.0 TODO: nan to 0 maybe not necesssary
-        # self._supervision_signal = signal_mean.nan_to_num(0)
-        self._supervision_signal_valid = True
+            # Finally replace the nan values to 0.0 TODO: nan to 0 maybe not necesssary
+            # self._supervision_signal = signal_mean.nan_to_num(0)
+        self._supervision_signal_valid = torch.tensor([True])
 
     def recover_feat(self):
         """Recover the feature from compression if needed"""
@@ -416,6 +417,9 @@ if __name__ == '__main__':
     aa=first_tensor.repeat(2,1,1)
     bb=first_tensor.repeat(2,1,1,1)
     print(aa==bb[:,0,:,:])
+    notnan=(~torch.isnan(aa)).sum()
+    a=torch.tensor([True])
+    b=a.any()
     second_tensor = torch.rand((1, H, W)) * 9 + 1  # Scaling and shifting to get values from 1 to 10
     supervision_tensor = torch.cat((first_tensor, second_tensor), dim=0)
    

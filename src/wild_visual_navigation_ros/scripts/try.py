@@ -111,7 +111,9 @@ def publish_transform():
     rospy.spin()
 
 if __name__ == '__main__':
-
+    a=np.array([[1,2,3],[4,5,6],[7,8,9]])
+    b=a[:,2]
+    print(a[:,2])
     try:
         publish_transform()
     except rospy.ROSInterruptException:

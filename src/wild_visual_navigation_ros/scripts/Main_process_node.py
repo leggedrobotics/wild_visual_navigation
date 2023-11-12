@@ -2,7 +2,7 @@
 Main node to process ros messages, publish the relevant topics, train the model...
  """
 from BaseWVN.utils import NodeForROS,FeatureExtractor,ConfidenceGenerator,ImageProjector
-from BaseWVN.GraphManager import Manager,MainNode
+from BaseWVN.GraphManager import Manager,MainNode,SubNode
 import ros_converter as rc
 import message_filters
 from sensor_msgs.msg import Image, CameraInfo, CompressedImage
@@ -21,7 +21,7 @@ from typing import Optional
 import traceback
 import signal
 import sys
-from threading import Thread, Event
+from threading import Thread, Event,Lock
 from prettytable import PrettyTable
 from termcolor import colored
 
@@ -68,6 +68,7 @@ class MainProcess(NodeForROS):
             self.log_data = {}
             self.status_thread_stop_event = Event()
             self.status_thread = Thread(target=self.status_thread_loop, name="status")
+            self.log_data["Lock"] = Lock()
             self.run_status_thread = True
             self.status_thread.start()
 
@@ -101,21 +102,23 @@ class MainProcess(NodeForROS):
             t = rospy.get_time()
             x = PrettyTable()
             x.field_names = ["Key", "Value"]
-
-            for k, v in self.log_data.items():
-                if "time" in k:
-                    d = t - v
-                    if d < 0:
-                        c = "red"
-                    if d < 0.2:
-                        c = "green"
-                    elif d < 1.0:
-                        c = "yellow"
+            with self.log_data["Lock"]:  # Acquire the lock
+                for k, v in self.log_data.items():
+                    if "Lock" in k:
+                        continue
+                    if "time" in k:
+                        d = t - v
+                        if d < 0:
+                            c = "red"
+                        if d < 0.2:
+                            c = "green"
+                        elif d < 1.0:
+                            c = "yellow"
+                        else:
+                            c = "red"
+                        x.add_row([k, colored(round(d, 2), c)])
                     else:
-                        c = "red"
-                    x.add_row([k, colored(round(d, 2), c)])
-                else:
-                    x.add_row([k, v])
+                        x.add_row([k, v])
             # self.clear_screen()
             print(x)
             time.sleep(0.1)
@@ -133,12 +136,13 @@ class MainProcess(NodeForROS):
         
         if self.verbose:
             # DEBUG Logging
-            self.log_data[f"time_last_model"] = -1
-            self.log_data[f"num_model_updates"] = -1
-            cam=self.camera_topic
-            self.log_data[f"num_images"] = 0
-            self.log_data[f"time_last_image"] = -1
-            self.log_data[f"image_callback"] = "N/A"
+            with self.log_data["Lock"]:
+                self.log_data[f"time_last_model"] = -1
+                self.log_data[f"num_model_updates"] = -1
+                cam=self.camera_topic
+                self.log_data[f"num_images"] = 0
+                self.log_data[f"time_last_image"] = -1
+                self.log_data[f"image_callback"] = "N/A"
 
         print("Start waiting for Camera topic being published!")
         # Camera info
@@ -208,11 +212,13 @@ class MainProcess(NodeForROS):
             ts = img_msg.header.stamp.to_sec()
             if abs(ts - self.last_image_ts) < 1.0 / self.image_callback_rate:
                 if self.verbose:
-                    self.log_data[f"image_callback"] = "skipping"
+                    with self.log_data["Lock"]:
+                        self.log_data[f"image_callback"] = "skipping"
                 return
             else:
                 if self.verbose:
-                    self.log_data[f"image_callback"] = "processing"
+                    with self.log_data["Lock"]:
+                        self.log_data[f"image_callback"] = "processing"
             self.last_image_ts = ts
             self.log_data[f"ros_time_now"] = rospy.get_time()
             if self.mode == "debug":
@@ -271,8 +277,9 @@ class MainProcess(NodeForROS):
             
             # TODO: the log maybe need to change
             if self.verbose:
-                self.log_data[f"num_images"]+=1
-                self.log_data[f"time_last_image"]=rospy.get_time()
+                with self.log_data["Lock"]:
+                    self.log_data[f"num_images"]+=1
+                    self.log_data[f"time_last_image"]=rospy.get_time()
                 
             main_node = MainNode(
                 timestamp=img_msg.header.stamp.to_sec(),
@@ -292,7 +299,8 @@ class MainProcess(NodeForROS):
             if self.mode =="debug":
                 # publish the main graph
                 self.visualize_main_graph()
-                
+                # TODO: publish the img overlay
+                self.visualize_image_overlay()
                 if added_new_node:
                     self.manager.update_visualization_node()
             
@@ -317,11 +325,13 @@ class MainProcess(NodeForROS):
                     "value": "cancled due to rate",
                 }
                 if self.verbose:
-                    self.log_data[f"phy_decoder_callback"] = "skipping"
+                    with self.log_data["Lock"]:
+                        self.log_data[f"phy_decoder_callback"] = "skipping"
                 return
             else:
                 if self.verbose:
-                    self.log_data[f"phy_decoder_callback"] = "processing"
+                    with self.log_data["Lock"]:
+                        self.log_data[f"phy_decoder_callback"] = "processing"
             self.last_supervision_ts = ts
         
             pose_base_in_world = rc.ros_pose_to_torch(phy_output.base_pose, device=self.device)
@@ -335,12 +345,17 @@ class MainProcess(NodeForROS):
                 edge=rc.plane_edge_to_torch(plane,device=self.device)
                 feet_planes.append(edge)
             feet_planes=torch.stack(feet_planes,dim=0)
-            pass
+            feet_contact=torch.tensor(phy_output.feet_contact).to(self.device)
+            sub_node=SubNode(timestamp=ts,
+                             pose_base_in_world=pose_base_in_world,
+                             feet_planes=feet_planes,
+                             feet_contact=feet_contact,
+                             phy_pred=phy_label)
             
-                
+            # add subnode to graph
+            self.manager.add_sub_node(sub_node,logger=self.log_data)
+            
 
-            
-        
             self.system_events["phy_decoder_callback_state"] = {
                     "time": rospy.get_time(),
                     "value": "executed successfully",
@@ -403,7 +418,16 @@ class MainProcess(NodeForROS):
             main_graph_msg.poses.append(pose)
         self.camera_handler["main_graph_pub"].publish(main_graph_msg)
         
-        
+    def visualize_image_overlay(self):
+        """Publishes all the debugging, slow visualizations"""
+        vis_node:MainNode=self.manager.get_main_node_for_visualization()
+        if vis_node is not None:
+            cam = vis_node.camera_name
+            torch_image = vis_node._image
+            torch_mask = vis_node._supervision_mask
+            # find how many pixels are not nan in torch_mask
+            notnan=(~torch.isnan(torch_mask)).sum()
+            pass        
 
 
 if __name__ == "__main__":

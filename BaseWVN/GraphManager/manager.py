@@ -119,21 +119,20 @@ class Manager:
                 if verbose:
                     print(s)
             else:
-                logger["total main nodes"]=f"{total_nodes}"
+                with logger["Lock"]:
+                    logger["total main nodes"]=f"{total_nodes}"
 
             # Init the supervision mask
             H,W=node.image.shape[-2],node.image.shape[-1]
             supervision_mask=torch.ones((2,H,W),dtype=torch.float32,device=self._device)*torch.nan
             node.supervision_mask = supervision_mask
             
-            # TODO: in extract label mode, save the node.image maybe
-            
             return True
         else:   
             return False
         
     @torch.no_grad()
-    def add_sub_node(self,subnode:SubNode):
+    def add_sub_node(self,subnode:SubNode,logger=None):
         # TODO: add supervision node to sub_graph
         if self._pause_sub_graph:
             return False
@@ -141,6 +140,9 @@ class Manager:
             return False
         success=self._sub_graph.add_node(subnode)
         if success:
+            if logger is not None:
+                with logger["Lock"]:
+                    logger["total sub nodes"]=f"{self._sub_graph.get_num_nodes()}"
             feet_planes=subnode.feet_planes
             feet_contact=subnode.feet_contact
             
@@ -181,21 +183,17 @@ class Manager:
                 mask, _, _, _ = im.project_and_render(pose_camera_in_world, foot_plane, color)
                 mask=mask[:,:2,:,:]*subnode.phy_pred[:,i][None,:,None,None]
                 supervision_masks=torch.fmin(supervision_masks,mask)
-            
+                    
             # Update supervision mask per node
             for i, mnode in enumerate(main_nodes):
                 mnode.supervision_mask = supervision_masks[i]
                 mnode.update_supervision_signal()
+                with logger["Lock"]:
+                    logger[f"mnode {i} reproj_pixels_num"]=(~torch.isnan(mnode.supervision_mask[0])).sum().item()
             
-            
-                
-  
-            
-            
-            
-            
-            
-        pass
+            return True
+        else:
+            return False
     
     def get_main_nodes(self):
         return self._main_graph.get_nodes()

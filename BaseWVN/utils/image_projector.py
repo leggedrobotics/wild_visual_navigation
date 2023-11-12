@@ -138,7 +138,8 @@ class ImageProjector:
 
         # Fill the mask
         self.masks = draw_convex_polygon(self.masks, projected_points, colors)
-
+        # if self.masks.sum()>0.5:
+        #     print(f"points {self.masks.sum()}projected in the mask")
         # Draw on image (if applies)
         if image is not None:
             if len(image.shape) != 4:
