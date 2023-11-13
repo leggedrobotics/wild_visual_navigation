@@ -27,9 +27,7 @@ to_tensor = transforms.ToTensor()
 class Manager:
     def __init__(self,
                 device: str = "cuda",
-                max_dist_sub_graph: float = 3,
                 update_range_main_graph: float = 10,
-                edge_dist_thr_sub_graph: float = 0.2,
                 edge_dist_thr_main_graph: float = 1,
                 min_samples_for_training: int = 10,
                 vis_node_index: int = 10,
@@ -42,9 +40,8 @@ class Manager:
         self._extraction_store_folder=kwargs.get("extraction_store_folder",'LabelExtraction')
         self._update_range_main_graph=update_range_main_graph
         # Init main and sub graphs
-        self._sub_graph=BaseGraph(edge_distance=edge_dist_thr_sub_graph)
-        # self._sub_graph=MaxElementsGraph(max_elements=20,edge_distance=edge_dist_thr_sub_graph)
-        # self._sub_graph=DistanceWindowGraph(max_distance=max_dist_sub_graph,edge_distance=edge_dist_thr_sub_graph)
+        self.last_sub_node=None
+
         if label_ext_mode:
             self._main_graph = MaxElementsGraph(edge_distance=edge_dist_thr_main_graph, max_elements=200)
         else:
@@ -92,7 +89,6 @@ class Manager:
         Args:
             device (str): new device
         """
-        self._sub_graph.change_device(device)
         self._main_graph.change_device(device)
         # self._model = self._model.to(device)
     
@@ -112,7 +108,7 @@ class Manager:
         
         # check the head distance between main and sub graph
         last_main_node = self._main_graph.get_last_node()
-        last_sub_node = self._sub_graph.get_last_node()
+        last_sub_node = self.last_sub_node
         if last_main_node is not None and last_sub_node is not None:
             self._graph_distance=last_main_node.distance_to(last_sub_node)
     
@@ -153,72 +149,66 @@ class Manager:
             return False
         if not subnode.is_valid():
             return False
-        with ClassContextTimer(parent_obj=self,block_name="add node",parent_method_name="add_sub_node"):
-            success=self._sub_graph.add_node(subnode)
-        if success:
-            if logger is not None:
-                with logger["Lock"]:
-                    logger["total sub nodes"]=f"{self._sub_graph.get_num_nodes()}"
-            feet_planes=subnode.feet_planes
-            feet_contact=subnode.feet_contact
-            
-            last_main_node:MainNode=self._main_graph.get_last_node()
-            if last_main_node is None:
-                return False
-            # main_nodes=self._main_graph.get_nodes_within_radius_range(last_main_node,0,self._sub_graph.max_distance)
-            with ClassContextTimer(parent_obj=self,block_name="get node",parent_method_name="add_sub_node"):
-                main_nodes=self._main_graph.get_nodes_within_radius_range(last_main_node,0,self._update_range_main_graph)
-            if len(main_nodes)<1:
-                return False
-            with ClassContextTimer(parent_obj=self,block_name="reprojection",parent_method_name="add_sub_node"):
+        
+        self.last_sub_node=subnode
 
-                
-                # Set color
-                color = torch.ones((3,), device=self._device)
-                
-                C,H,W=last_main_node.supervision_mask.shape
-                B=len(main_nodes)
-                
-                # prepare batches
-                K = torch.eye(4, device=self._device).repeat(B, 1, 1)
-                supervision_masks=torch.ones((1,C,H,W), device=self._device).repeat(B, 1, 1, 1)
-                pose_camera_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
-                H = last_main_node.image_projector.camera.height
-                W = last_main_node.image_projector.camera.width
-                
-                for i, mnode in enumerate(main_nodes):
-                    K[i] = mnode.image_projector.camera.intrinsics
-                    pose_camera_in_world[i] = mnode.pose_cam_in_world
-                    supervision_masks[i] = mnode.supervision_mask
-                
-                im=ImageProjector(K,H,W)
-                assert feet_planes.shape[0]==4
-                for i in range(feet_planes.shape[0]):
-                    # skip not contacting feet
-                    if not feet_contact[i]:
-                        continue
-                    foot_plane=feet_planes[i].unsqueeze(0)
-                    foot_plane=foot_plane.repeat(B,1,1)
-                    mask, _, _, _ = im.project_and_render(pose_camera_in_world, foot_plane, color)
-                    mask=mask[:,:2,:,:]*subnode.phy_pred[:,i][None,:,None,None]
-                    supervision_masks=torch.fmin(supervision_masks,mask)
-                        
-                # Update supervision mask per node
-                for i, mnode in enumerate(main_nodes):
-                    mnode.supervision_mask = supervision_masks[i]
-                    mnode.update_supervision_signal()
-                    with logger["Lock"]:
-                        logger[f"mnode {i} reproj_pixels_num"]=(~torch.isnan(mnode.supervision_mask[0])).sum().item()
-                
-            return True
-        else:
+        feet_planes=subnode.feet_planes
+        feet_contact=subnode.feet_contact
+        
+        last_main_node:MainNode=self._main_graph.get_last_node()
+        if last_main_node is None:
             return False
+        # main_nodes=self._main_graph.get_nodes_within_radius_range(last_main_node,0,self._sub_graph.max_distance)
+        main_nodes=self._main_graph.get_nodes_within_radius_range(last_main_node,0,self._update_range_main_graph)
+        if len(main_nodes)<1:
+            return False
+       
+        # Set color
+        color = torch.ones((3,), device=self._device)
+        
+        C,H,W=last_main_node.supervision_mask.shape
+        B=len(main_nodes)
+        
+        # prepare batches
+        K = torch.eye(4, device=self._device).repeat(B, 1, 1)
+        supervision_masks=torch.ones((1,C,H,W), device=self._device).repeat(B, 1, 1, 1)
+        pose_camera_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
+        H = last_main_node.image_projector.camera.height
+        W = last_main_node.image_projector.camera.width
+        
+        for i, mnode in enumerate(main_nodes):
+            K[i] = mnode.image_projector.camera.intrinsics
+            pose_camera_in_world[i] = mnode.pose_cam_in_world
+            if mnode.supervision_mask is None:
+                print("strange")
+                pass
+            supervision_masks[i] = mnode.supervision_mask
+        with ClassContextTimer(parent_obj=self,block_name="reprojection_main",parent_method_name="add_sub_node"):
+            im=ImageProjector(K,H,W)
+            assert feet_planes.shape[0]==4
+            for i in range(feet_planes.shape[0]):
+                # skip not contacting feet
+                if not feet_contact[i]:
+                    continue
+                foot_plane=feet_planes[i].unsqueeze(0)
+                foot_plane=foot_plane.repeat(B,1,1)
+                with ClassContextTimer(parent_obj=self,block_name="reprojection_main_1",parent_method_name="add_sub_node"):
+                    mask, _, _, _ = im.project_and_render(pose_camera_in_world, foot_plane, color)
+                print(im.timer)
+                mask=mask[:,:2,:,:]*subnode.phy_pred[:,i][None,:,None,None]
+                supervision_masks=torch.fmin(supervision_masks,mask)
+        # Update supervision mask per node
+        for i, mnode in enumerate(main_nodes):
+            mnode.supervision_mask = supervision_masks[i]
+            mnode.update_supervision_signal()
+            with logger["Lock"]:
+                logger[f"mnode {i} reproj_pixels_num"]=(~torch.isnan(mnode.supervision_mask[0])).sum().item()
+            
+        return True
+
 
     def get_main_nodes(self):
         return self._main_graph.get_nodes()
-
-    def get_sub_nodes(self):
-        return self._sub_graph.get_nodes()
     
     def get_last_valid_main_node(self):
         last_valid_node = None
@@ -244,7 +234,7 @@ class Manager:
             output_file += '.pkl'  # Append .pkl if not already present
         # self.change_device("cpu")
         self._learning_lock = None
-        pickle.dump(self, open(output_file, "wb"))
+        # pickle.dump(self, open(output_file, "wb"))
         self._pause_training = False
     
     @classmethod

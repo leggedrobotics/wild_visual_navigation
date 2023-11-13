@@ -52,9 +52,7 @@ class MainProcess(NodeForROS):
 
         # Init graph manager
         self.manager = Manager(device=self.device,
-                               max_dist_sub_graph=self.param.graph.max_dist_sub_graph,
                                update_range_main_graph=self.param.graph.update_range_main_graph,
-                               edge_dist_thr_sub_graph=self.param.graph.edge_dist_thr_sub_graph,
                                edge_dist_thr_main_graph=self.param.graph.edge_dist_thr_main_graph,
                                min_samples_for_training=self.param.graph.min_samples_for_training,
                                vis_node_index=self.param.graph.vis_node_index,
@@ -152,7 +150,6 @@ class MainProcess(NodeForROS):
             with self.log_data["Lock"]:
                 self.log_data[f"time_last_model"] = -1
                 self.log_data[f"num_model_updates"] = -1
-                cam=self.camera_topic
                 self.log_data[f"num_images"] = 0
                 self.log_data[f"time_last_image"] = -1
                 self.log_data[f"image_callback"] = "N/A"
@@ -205,7 +202,6 @@ class MainProcess(NodeForROS):
         info_pub=rospy.Publisher('/vd_pipeline/camera_info', CameraInfo, queue_size=10)
         freq_pub=rospy.Publisher('/test', Float32, queue_size=10)
         main_graph_pub=rospy.Publisher('/vd_pipeline/main_graph', Path, queue_size=10)
-        sub_graph_pub=rospy.Publisher('/vd_pipeline/sub_graph', Path, queue_size=10)
         # Fill in handler
         self.camera_handler['input_pub']=input_pub
         self.camera_handler['fric_pub']=fric_pub
@@ -214,7 +210,6 @@ class MainProcess(NodeForROS):
         self.camera_handler['info_pub']=info_pub
         self.camera_handler['freq_pub']=freq_pub
         self.camera_handler['main_graph_pub']=main_graph_pub
-        self.camera_handler['sub_graph_pub']=sub_graph_pub
         # TODO: Add the publisher for the two graphs and services (save/load checkpoint) maybe
         pass
     
@@ -321,8 +316,6 @@ class MainProcess(NodeForROS):
             if self.mode =="debug":
                 # publish the main graph
                 self.visualize_main_graph()
-                # if abs(ts - self.last_image_ts) < 1.0 / 0.5:
-                #     self.visualize_image_overlay()
                 if added_new_node:
                     self.manager.update_visualization_node()
                 with self.log_data["Lock"]:
@@ -378,11 +371,8 @@ class MainProcess(NodeForROS):
                              feet_contact=feet_contact,
                              phy_pred=phy_label)
             
-            # add subnode to graph
+            # add subnode 
             self.manager.add_sub_node(sub_node,logger=self.log_data)
-            if self.mode =="debug":
-                # publish the main graph
-                self.visualize_sub_graph()
 
             self.system_events["phy_decoder_callback_state"] = {
                     "time": rospy.get_time(),
@@ -474,24 +464,6 @@ class MainProcess(NodeForROS):
             pose.pose=rc.torch_to_ros_pose(node.pose_cam_in_world)
             main_graph_msg.poses.append(pose)
         self.camera_handler["main_graph_pub"].publish(main_graph_msg)
-    
-    @accumulate_time    
-    def visualize_sub_graph(self):
-        """Publishes all the visualizations related to the mission graph"""
-        now=rospy.Time.from_sec(self.last_image_ts)
-        
-        # publish main graph
-        sub_graph_msg=Path()
-        sub_graph_msg.header.frame_id=self.fixed_frame
-        sub_graph_msg.header.stamp=now
-        
-        for node in self.manager.get_sub_nodes():
-            pose = PoseStamped()
-            pose.header.frame_id = self.fixed_frame
-            pose.header.stamp = rospy.Time.from_sec(node.timestamp)
-            pose.pose=rc.torch_to_ros_pose(node.pose_base_in_world)
-            sub_graph_msg.poses.append(pose)
-        self.camera_handler["sub_graph_pub"].publish(sub_graph_msg)
         
     def visualize_image_overlay(self):
         """Publishes all the debugging, slow visualizations"""

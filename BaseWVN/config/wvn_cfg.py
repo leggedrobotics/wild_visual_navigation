@@ -109,9 +109,7 @@ class ParamCollection(Serializable):
     @dataclass
     class GraphParams:
         """Parameters for the graph."""
-        max_dist_sub_graph: float=3
-        update_range_main_graph: float=10
-        edge_dist_thr_sub_graph: float=0.2
+        update_range_main_graph: float=5
         edge_dist_thr_main_graph: float=1
         min_samples_for_training: int=10
         vis_node_index: int=10

@@ -9,6 +9,9 @@ from kornia.geometry.linalg import transform_points
 from kornia.utils.draw import draw_convex_polygon
 from liegroups.torch import SE3, SO3
 from typing import Optional,List,Union
+
+from pytictac import ClassContextTimer,accumulate_time,ClassTimer
+
 class ImageProjector:
     def __init__(self, K: torch.tensor, h: int, w: int):
         """Initializes the projector using the pinhole model, without distortion
@@ -42,7 +45,12 @@ class ImageProjector:
         W = self.camera.width.item()
         # Create output mask
         self.masks = torch.zeros((B, C, H, W), dtype=torch.float32, device=device)
-
+        self.timer=ClassTimer(
+            objects=[self,
+                     ],
+            names=["Projector"],
+            enabled=True
+        )
     @property
     def scaled_camera_matrix(self):
         return self.camera.intrinsics.clone()[:3, :3]
@@ -106,7 +114,7 @@ class ImageProjector:
 
         # Return projected points and validity
         return projected_points, valid_points, valid_z
-    
+    @accumulate_time
     def project_and_render(
         self, pose_camera_in_world: torch.tensor, points: torch.tensor, colors: torch.tensor, image: torch.tensor = None
     ):
@@ -135,9 +143,10 @@ class ImageProjector:
         # projected_points[~valid_points,:] = torch.nan
         projected_points[~valid_z, :] = torch.nan
         # projected_points[projected_points < 0.0]
+        with ClassContextTimer(parent_obj=self,block_name="draw polygon",parent_method_name="project_and_render"):
 
-        # Fill the mask
-        self.masks = draw_convex_polygon(self.masks, projected_points, colors)
+            # Fill the mask
+            self.masks = draw_convex_polygon(self.masks, projected_points, colors)
 
         # Draw on image (if applies)
         if image is not None:
