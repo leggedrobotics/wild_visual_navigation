@@ -136,8 +136,9 @@ class MainNode(BaseNode):
         self._is_feat_compressed=True if isinstance(features,dict) else False
 
         """ 
-        Warning: to save GPU memory, move features to cpu
+        Warning: to save GPU memory, move img and features to cpu
         """
+        self._image = self._image.cpu()
         if self._is_feat_compressed:
             for key, tensor in self._features.items():
                 self._features[key] = tensor.cpu()
@@ -261,10 +262,10 @@ class MainNode(BaseNode):
         super().change_device(device)
         self._image_projector.change_device(device)
         self._image = self._image.to(device)
-        self._pose_cam_in_base = self._pose_cam_in_base.to(device)
+        self._pose_base_in_world = self._pose_base_in_world.to(device)
         self._pose_cam_in_world = self._pose_cam_in_world.to(device)
 
-        if self._features is not None:
+        if self._features is not None and not self._is_feat_compressed:
             self._features = self._features.to(device)
         if self._feature_segments is not None:
             self._feature_segments = self._feature_segments.to(device)

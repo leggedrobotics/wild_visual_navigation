@@ -169,8 +169,10 @@ class PhyDecoder(NodeForROS):
             with torch.no_grad():
                 # Predict using the friction predictor
                 fric_pred, self.fric_hidden = self.fric_predictor.get_unnormalized_recon(padded_input, self.fric_hidden)           
+                fric_pred = torch.clamp(fric_pred, min=0, max=1)
                 # Predict using the stiffness predictor
                 stiff_pred, self.stiff_hidden = self.stiff_predictor.get_unnormalized_recon(padded_input, self.stiff_hidden)
+                stiff_pred = torch.clamp(stiff_pred, min=1, max=10)
             self.input_buffers[0].add(input_data[0].unsqueeze(0))
             # pub fric and stiff together
             new_priv=torch.cat([fric_pred,stiff_pred],dim=-1)

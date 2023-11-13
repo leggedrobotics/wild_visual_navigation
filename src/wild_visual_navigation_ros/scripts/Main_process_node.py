@@ -9,7 +9,7 @@ from sensor_msgs.msg import Image, CameraInfo, CompressedImage
 from std_msgs.msg import ColorRGBA, Float32, Float32MultiArray,Header
 from nav_msgs.msg import Path
 from anymal_msgs.msg import AnymalState
-from geometry_msgs.msg import PoseStamped, Point
+from geometry_msgs.msg import PoseStamped, Point,TransformStamped
 from visualization_msgs.msg import Marker
 from wild_visual_navigation_msgs.msg import FeatExtractorOutput,PhyDecoderOutput
 import os
@@ -24,6 +24,8 @@ import sys
 from threading import Thread, Event,Lock
 from prettytable import PrettyTable
 from termcolor import colored
+import PIL.Image
+import tf2_ros
 
 class MainProcess(NodeForROS):
     def __init__(self):
@@ -50,6 +52,7 @@ class MainProcess(NodeForROS):
         # Init graph manager
         self.manager = Manager(device=self.device,
                                max_dist_sub_graph=self.param.graph.max_dist_sub_graph,
+                               update_range_main_graph=self.param.graph.update_range_main_graph,
                                edge_dist_thr_sub_graph=self.param.graph.edge_dist_thr_sub_graph,
                                edge_dist_thr_main_graph=self.param.graph.edge_dist_thr_main_graph,
                                min_samples_for_training=self.param.graph.min_samples_for_training,
@@ -79,8 +82,10 @@ class MainProcess(NodeForROS):
         self.run_status_thread = False
         self.status_thread_stop_event.set()
         self.status_thread.join()
-
+        self.visualize_image_overlay()
         rospy.signal_shutdown(f"FeatExtractor Node killed {args}")
+        self.manager.save("results/manager","try1")
+        
         sys.exit(0)
     
     def clear_screen(self):
@@ -180,11 +185,16 @@ class MainProcess(NodeForROS):
         # Fill in handler
         self.camera_handler['name'] = self.camera_topic
         self.camera_handler['img_sub'] = camera_sub
+        
+        # camera tf broadcaster
+        self.camera_br=tf2_ros.TransformBroadcaster()
 
         # Results publisher
         input_pub=rospy.Publisher('/vd_pipeline/image_input', Image, queue_size=10)
         fric_pub=rospy.Publisher('/vd_pipeline/friction', Image, queue_size=10)
+        fric_overlay_pub=rospy.Publisher('/vd_pipeline/friction_overlay', Image, queue_size=10)
         stiff_pub=rospy.Publisher('/vd_pipeline/stiffness', Image, queue_size=10)
+        stiff_overlay_pub=rospy.Publisher('/vd_pipeline/stiffness_overlay', Image, queue_size=10)
         conf_pub=rospy.Publisher('/vd_pipeline/confidence', Image, queue_size=10)
         info_pub=rospy.Publisher('/vd_pipeline/camera_info', CameraInfo, queue_size=10)
         freq_pub=rospy.Publisher('/test', Float32, queue_size=10)
@@ -192,7 +202,9 @@ class MainProcess(NodeForROS):
         # Fill in handler
         self.camera_handler['input_pub']=input_pub
         self.camera_handler['fric_pub']=fric_pub
+        self.camera_handler['fric_overlay_pub']=fric_overlay_pub
         self.camera_handler['stiff_pub']=stiff_pub
+        self.camera_handler['stiff_overlay_pub']=stiff_overlay_pub
         self.camera_handler['conf_pub']=conf_pub
         self.camera_handler['info_pub']=info_pub
         self.camera_handler['freq_pub']=freq_pub
@@ -219,7 +231,7 @@ class MainProcess(NodeForROS):
                 if self.verbose:
                     with self.log_data["Lock"]:
                         self.log_data[f"image_callback"] = "processing"
-            self.last_image_ts = ts
+            
             self.log_data[f"ros_time_now"] = rospy.get_time()
             if self.mode == "debug":
                 # pub for testing frequency
@@ -242,6 +254,7 @@ class MainProcess(NodeForROS):
                  transform.pose.orientation.z,
                  transform.pose.orientation.w)
             suc, pose_base_in_world = rc.ros_tf_to_numpy((trans,rot))
+           
             if not suc:
                 self.system_events["camera_callback_cancled"] = {
                     "time": rospy.get_time(),
@@ -254,6 +267,9 @@ class MainProcess(NodeForROS):
             pose_cam_in_world=np.matmul(pose_base_in_world,pose_cam_in_base)
             self.camera_handler["pose_cam_in_world"]=pose_cam_in_world
 
+            # send tf , vis in rviz
+            self.broadcast_tf_from_matrix(pose_cam_in_world,self.fixed_frame,"hdr_rear_camera")
+            
             # prepare image
             img_torch = rc.ros_image_to_torch(img_msg, device=self.device)
             img_torch = img_torch[None]
@@ -299,13 +315,16 @@ class MainProcess(NodeForROS):
             if self.mode =="debug":
                 # publish the main graph
                 self.visualize_main_graph()
-                # TODO: publish the img overlay
-                self.visualize_image_overlay()
+                # if abs(ts - self.last_image_ts) < 1.0 / 0.5:
+                #     self.visualize_image_overlay()
                 if added_new_node:
                     self.manager.update_visualization_node()
+                with self.log_data["Lock"]:
+                    if self.manager._graph_distance is not None:
+                        self.log_data["head dist of main/sub graph"]="{:.2f}".format(self.manager._graph_distance.item())
             
             self.system_events["image_callback_state"] = {"time": rospy.get_time(), "value": "executed successfully"}
-             
+            self.last_image_ts = ts 
         except Exception as e:
             traceback.print_exc()
             print("error camera callback", e)
@@ -372,7 +391,33 @@ class MainProcess(NodeForROS):
             raise Exception("Error in phy_decoder_callback")
             
         pass
+    
+    def broadcast_tf_from_matrix(self,matrix, parent_frame, child_frame):
+        br=self.camera_br
+        t = TransformStamped()
         
+        if isinstance(matrix,torch.Tensor):
+            pass
+        elif isinstance(matrix,np.ndarray):
+            matrix=torch.from_numpy(matrix)
+        pose=rc.torch_to_ros_pose(matrix)
+        # Extract translation
+        t.header.stamp = rospy.Time.now()
+        t.header.frame_id = parent_frame
+        t.child_frame_id = child_frame
+
+        # Copy position
+        t.transform.translation.x = pose.position.x
+        t.transform.translation.y = pose.position.y
+        t.transform.translation.z = pose.position.z
+
+        # Copy orientation
+        t.transform.rotation.x = pose.orientation.x
+        t.transform.rotation.y = pose.orientation.y
+        t.transform.rotation.z = pose.orientation.z
+        t.transform.rotation.w = pose.orientation.w
+
+        br.sendTransform(t)
     
     def scale_intrinsic(self,K:torch.tensor,ratio_x,ratio_y):
         """ 
@@ -420,18 +465,37 @@ class MainProcess(NodeForROS):
         
     def visualize_image_overlay(self):
         """Publishes all the debugging, slow visualizations"""
+        save_local=True
+        # Ensure the results/reprojection directory exists
+        output_dir = 'results/reprojection'
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
         vis_node:MainNode=self.manager.get_main_node_for_visualization()
         if vis_node is not None:
             cam = vis_node.camera_name
             torch_image = vis_node._image
             torch_mask = vis_node._supervision_mask
-            # find how many pixels are not nan in torch_mask
-            notnan=(~torch.isnan(torch_mask)).sum()
-            overlay=[]
             for i in range(torch_mask.shape[0]):
-                out=plot_overlay_image(torch_image, overlay_mask=torch_mask, channel=i)
-                overlay.append(out)
-             
+                out=plot_overlay_image(torch_image, overlay_mask=torch_mask, channel=i,alpha=1.0)
+                if not save_local:
+                    img_msg=rc.numpy_to_ros_image(out)  
+                    if i==0:     
+                        self.camera_handler["fric_overlay_pub"].publish(img_msg)
+                    elif i==1:
+                        self.camera_handler["stiff_overlay_pub"].publish(img_msg)
+                else:
+                    # Convert the numpy array to an image
+                    out_image = PIL.Image.fromarray(out)
+                    # Construct a filename
+                    filename = f"channel_{i}.jpg"
+                    file_path = os.path.join(output_dir, filename)
+
+                    # Save the image
+                    out_image.save(file_path)
+                    
+            # if self.manager._main_graph.get_num_nodes() > self.manager._vis_node_index:
+                # clear the img and seg var in the node for saving memory
+                # vis_node._feature_segments=None
             pass        
 
 

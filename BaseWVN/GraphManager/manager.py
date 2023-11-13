@@ -27,6 +27,7 @@ class Manager:
     def __init__(self,
                 device: str = "cuda",
                 max_dist_sub_graph: float = 3,
+                update_range_main_graph: float = 10,
                 edge_dist_thr_sub_graph: float = 0.2,
                 edge_dist_thr_main_graph: float = 1,
                 min_samples_for_training: int = 10,
@@ -38,7 +39,7 @@ class Manager:
         self._vis_node_index = vis_node_index
         self._min_samples_for_training = min_samples_for_training
         self._extraction_store_folder=kwargs.get("extraction_store_folder",'LabelExtraction')
-        
+        self._update_range_main_graph=update_range_main_graph
         # Init main and sub graphs
         self._sub_graph=DistanceWindowGraph(max_distance=max_dist_sub_graph,edge_distance=edge_dist_thr_sub_graph)
         if label_ext_mode:
@@ -48,6 +49,7 @@ class Manager:
         
         # Visualization node
         self._vis_main_node = None
+        self._graph_distance=None
         
         # Mutex
         self._learning_lock = Lock()
@@ -88,7 +90,7 @@ class Manager:
         """
         self._sub_graph.change_device(device)
         self._main_graph.change_device(device)
-        self._model = self._model.to(device)
+        # self._model = self._model.to(device)
     
     def update_prediction(self, node: MainNode):
         # TODO:use MLP to predict here, update_node_confidence
@@ -101,6 +103,12 @@ class Manager:
         else:
 
             self._vis_main_node = self._main_graph.get_nodes()[-self._vis_node_index]
+        
+        # check the head distance between main and sub graph
+        last_main_node = self._main_graph.get_last_node()
+        last_sub_node = self._sub_graph.get_last_node()
+        if last_main_node is not None and last_sub_node is not None:
+            self._graph_distance=last_main_node.distance_to(last_sub_node)
     
     def add_main_node(self, node: MainNode,verbose:bool=False,logger=None):
         """ 
@@ -148,8 +156,8 @@ class Manager:
             last_main_node:MainNode=self._main_graph.get_last_node()
             if last_main_node is None:
                 return False
-            main_nodes=self._main_graph.get_nodes_within_radius_range(last_main_node,0,self._sub_graph.max_distance)
-            
+            # main_nodes=self._main_graph.get_nodes_within_radius_range(last_main_node,0,self._sub_graph.max_distance)
+            main_nodes=self._main_graph.get_nodes_within_radius_range(last_main_node,0,self._update_range_main_graph)
             if len(main_nodes)<1:
                 return False
             
@@ -220,7 +228,9 @@ class Manager:
         self._pause_training = True
         os.makedirs(manager_path, exist_ok=True)
         output_file = os.path.join(manager_path, filename)
-        self.change_device("cpu")
+        if not filename.endswith('.pkl') and not filename.endswith('.pickle'):
+            output_file += '.pkl'  # Append .pkl if not already present
+        # self.change_device("cpu")
         self._learning_lock = None
         pickle.dump(self, open(output_file, "wb"))
         self._pause_training = False
@@ -236,7 +246,7 @@ class Manager:
         """
         # Load pickled object
         obj = pickle.load(open(file_path, "rb"))
-        obj.change_device(device)
+        # obj.change_device(device)
         return obj
     
     

@@ -39,10 +39,10 @@ class ParamCollection(Serializable):
         robot_width: float=0.530
         robot_max_velocity: float=1.2
         foot_radius: float=0.03269
-        rear_camera_in_base= np.array([[-0.98962361  ,0.          ,0.14368394 ,-0.3537],
-                                        [ 0.          ,0.99999982 , 0.         , 0.    ],
-                                        [-0.14368394  ,0.         ,-0.98962343 , 0.1634],
-                                        [ 0.          ,0.         ,0.          ,1.      ]])
+        rear_camera_in_base= np.array([[ 3.63509049e-06, -1.43680305e-01, -9.89624138e-01,-3.53700000e-01],
+                                        [-9.99999820e-01,  1.34923159e-11, -3.67320444e-06,0.00000000e+00],
+                                        [ 5.27780582e-07,  9.89623958e-01, -1.43680305e-01,1.63400000e-01],
+                                        [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,1.00000000e+00]])
         pass
     roscfg: RosParams=RosParams()
     
@@ -110,6 +110,7 @@ class ParamCollection(Serializable):
     class GraphParams:
         """Parameters for the graph."""
         max_dist_sub_graph: float=3
+        update_range_main_graph: float=10
         edge_dist_thr_sub_graph: float=0.2
         edge_dist_thr_main_graph: float=1
         min_samples_for_training: int=10
