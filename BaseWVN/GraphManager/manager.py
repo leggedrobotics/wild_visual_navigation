@@ -160,6 +160,8 @@ class Manager:
             return False
         # main_nodes=self._main_graph.get_nodes_within_radius_range(last_main_node,0,self._sub_graph.max_distance)
         main_nodes=self._main_graph.get_nodes_within_radius_range(last_main_node,0,self._update_range_main_graph)
+        with logger["Lock"]:
+                logger["to_be_updated_mnode_num"]=len(main_nodes)
         if len(main_nodes)<1:
             return False
        

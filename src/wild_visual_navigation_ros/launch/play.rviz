@@ -12,6 +12,7 @@ Panels:
         - /Path2
         - /TF1/Frames1
         - /Path3
+        - /Marker2
       Splitter Ratio: 0.5
     Tree Height: 564
   - Class: rviz/Selection
@@ -438,7 +439,7 @@ Visualization Manager:
         WrenchStamped: true
       Zoom Factor: 1
     - Class: rviz/Image
-      Enabled: false
+      Enabled: true
       Image Topic: /v4l2_camera/image_raw_throttle
       Max Value: 1
       Median window: 5
@@ -448,7 +449,7 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: compressed
       Unreliable: false
-      Value: false
+      Value: true
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
@@ -697,7 +698,11 @@ Visualization Manager:
       Marker Topic: /vd_pipeline/visualization_planes
       Name: MarkerArray
       Namespaces:
-        {}
+        LF_FOOT: true
+        LH_FOOT: true
+        RF_FOOT: true
+        RH_FOOT: true
+        footprint: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -764,7 +769,7 @@ Visualization Manager:
       Unreliable: false
       Value: false
     - Class: rviz/Image
-      Enabled: true
+      Enabled: false
       Image Topic: /wide_angle_camera_rear/image_color_rect
       Max Value: 1
       Median window: 5
@@ -774,7 +779,7 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: compressed
       Unreliable: false
-      Value: true
+      Value: false
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
@@ -823,6 +828,14 @@ Visualization Manager:
       Transport Hint: compressed
       Unreliable: false
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /vd_pipeline/sub_node
+      Name: Marker
+      Namespaces:
+        "": true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -867,9 +880,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4697975814342499
+      Pitch: 0.38479745388031006
       Target Frame: <Fixed Frame>
-      Yaw: 3.4117865562438965
+      Yaw: 4.241786956787109
     Saved: ~
 Window Geometry:
   Camera:

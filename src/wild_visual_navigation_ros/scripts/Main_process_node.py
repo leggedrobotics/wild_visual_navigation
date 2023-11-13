@@ -202,6 +202,7 @@ class MainProcess(NodeForROS):
         info_pub=rospy.Publisher('/vd_pipeline/camera_info', CameraInfo, queue_size=10)
         freq_pub=rospy.Publisher('/test', Float32, queue_size=10)
         main_graph_pub=rospy.Publisher('/vd_pipeline/main_graph', Path, queue_size=10)
+        sub_node_pub=rospy.Publisher('/vd_pipeline/sub_node', Marker, queue_size=10)
         # Fill in handler
         self.camera_handler['input_pub']=input_pub
         self.camera_handler['fric_pub']=fric_pub
@@ -210,6 +211,7 @@ class MainProcess(NodeForROS):
         self.camera_handler['info_pub']=info_pub
         self.camera_handler['freq_pub']=freq_pub
         self.camera_handler['main_graph_pub']=main_graph_pub
+        self.camera_handler['sub_node_pub']=sub_node_pub
         # TODO: Add the publisher for the two graphs and services (save/load checkpoint) maybe
         pass
     
@@ -374,6 +376,8 @@ class MainProcess(NodeForROS):
             # add subnode 
             self.manager.add_sub_node(sub_node,logger=self.log_data)
 
+            if self.mode =="debug":
+                self.visualize_sub_node()
             self.system_events["phy_decoder_callback_state"] = {
                     "time": rospy.get_time(),
                     "value": "executed successfully",
@@ -446,6 +450,23 @@ class MainProcess(NodeForROS):
         except Exception as e:
             if self.verbose:
                 print(f"Model Loading Failed: {e}")
+    
+    def visualize_sub_node(self):
+        # publish the last sub node
+        msg=Marker()
+        msg.header.frame_id=self.fixed_frame
+        msg.header.stamp=rospy.Time.from_sec(self.manager.last_sub_node.timestamp)
+        msg.pose=rc.torch_to_ros_pose(self.manager.last_sub_node.pose_base_in_world)
+        msg.type=Marker.SPHERE
+        msg.action=Marker.ADD
+        msg.scale.x = 0.2  # size in meters
+        msg.scale.y = 0.2
+        msg.scale.z = 0.2
+
+        # Set the color of the marker
+        msg.color = ColorRGBA(1.0, 1.0, 0.0, 1.0)
+        self.camera_handler["sub_node_pub"].publish(msg)
+    
     
     @accumulate_time
     def visualize_main_graph(self):
