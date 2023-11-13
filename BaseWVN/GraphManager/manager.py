@@ -12,6 +12,7 @@ import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 import random
+from pytictac import accumulate_time,ClassContextTimer
 
 from .graphs import (
     BaseGraph,
@@ -41,7 +42,9 @@ class Manager:
         self._extraction_store_folder=kwargs.get("extraction_store_folder",'LabelExtraction')
         self._update_range_main_graph=update_range_main_graph
         # Init main and sub graphs
-        self._sub_graph=DistanceWindowGraph(max_distance=max_dist_sub_graph,edge_distance=edge_dist_thr_sub_graph)
+        self._sub_graph=BaseGraph(edge_distance=edge_dist_thr_sub_graph)
+        # self._sub_graph=MaxElementsGraph(max_elements=20,edge_distance=edge_dist_thr_sub_graph)
+        # self._sub_graph=DistanceWindowGraph(max_distance=max_dist_sub_graph,edge_distance=edge_dist_thr_sub_graph)
         if label_ext_mode:
             self._main_graph = MaxElementsGraph(edge_distance=edge_dist_thr_main_graph, max_elements=200)
         else:
@@ -81,7 +84,8 @@ class Manager:
     @pause_learning.setter
     def pause_learning(self, pause: bool):
         self._pause_training = pause
-
+        
+    @accumulate_time
     def change_device(self, device: str):
         """Changes the device of all the class members
 
@@ -92,10 +96,12 @@ class Manager:
         self._main_graph.change_device(device)
         # self._model = self._model.to(device)
     
+    @accumulate_time
     def update_prediction(self, node: MainNode):
         # TODO:use MLP to predict here, update_node_confidence
         pass
     
+    @accumulate_time
     def update_visualization_node(self):
         # For the first nodes we choose the visualization node as the last node available
         if self._main_graph.get_num_nodes() <= self._vis_node_index:
@@ -110,6 +116,7 @@ class Manager:
         if last_main_node is not None and last_sub_node is not None:
             self._graph_distance=last_main_node.distance_to(last_sub_node)
     
+    @accumulate_time
     def add_main_node(self, node: MainNode,verbose:bool=False,logger=None):
         """ 
         Add new node to the main graph with img and supervision info
@@ -138,14 +145,16 @@ class Manager:
             return True
         else:   
             return False
-        
+    
+    @accumulate_time    
     @torch.no_grad()
     def add_sub_node(self,subnode:SubNode,logger=None):
         if self._pause_sub_graph:
             return False
         if not subnode.is_valid():
             return False
-        success=self._sub_graph.add_node(subnode)
+        with ClassContextTimer(parent_obj=self,block_name="add node",parent_method_name="add_sub_node"):
+            success=self._sub_graph.add_node(subnode)
         if success:
             if logger is not None:
                 with logger["Lock"]:
@@ -157,54 +166,57 @@ class Manager:
             if last_main_node is None:
                 return False
             # main_nodes=self._main_graph.get_nodes_within_radius_range(last_main_node,0,self._sub_graph.max_distance)
-            main_nodes=self._main_graph.get_nodes_within_radius_range(last_main_node,0,self._update_range_main_graph)
+            with ClassContextTimer(parent_obj=self,block_name="get node",parent_method_name="add_sub_node"):
+                main_nodes=self._main_graph.get_nodes_within_radius_range(last_main_node,0,self._update_range_main_graph)
             if len(main_nodes)<1:
                 return False
-            
-            # Set color
-            color = torch.ones((3,), device=self._device)
-            
-            C,H,W=last_main_node.supervision_mask.shape
-            B=len(main_nodes)
-            
-            # prepare batches
-            K = torch.eye(4, device=self._device).repeat(B, 1, 1)
-            supervision_masks=torch.ones((1,C,H,W), device=self._device).repeat(B, 1, 1, 1)
-            pose_camera_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
-            H = last_main_node.image_projector.camera.height
-            W = last_main_node.image_projector.camera.width
-            
-            for i, mnode in enumerate(main_nodes):
-                K[i] = mnode.image_projector.camera.intrinsics
-                pose_camera_in_world[i] = mnode.pose_cam_in_world
-                supervision_masks[i] = mnode.supervision_mask
-            
-            im=ImageProjector(K,H,W)
-            assert feet_planes.shape[0]==4
-            for i in range(feet_planes.shape[0]):
-                # skip not contacting feet
-                if not feet_contact[i]:
-                    continue
-                foot_plane=feet_planes[i].unsqueeze(0)
-                foot_plane=foot_plane.repeat(B,1,1)
-                mask, _, _, _ = im.project_and_render(pose_camera_in_world, foot_plane, color)
-                mask=mask[:,:2,:,:]*subnode.phy_pred[:,i][None,:,None,None]
-                supervision_masks=torch.fmin(supervision_masks,mask)
-                    
-            # Update supervision mask per node
-            for i, mnode in enumerate(main_nodes):
-                mnode.supervision_mask = supervision_masks[i]
-                mnode.update_supervision_signal()
-                with logger["Lock"]:
-                    logger[f"mnode {i} reproj_pixels_num"]=(~torch.isnan(mnode.supervision_mask[0])).sum().item()
-            
+            with ClassContextTimer(parent_obj=self,block_name="reprojection",parent_method_name="add_sub_node"):
+
+                
+                # Set color
+                color = torch.ones((3,), device=self._device)
+                
+                C,H,W=last_main_node.supervision_mask.shape
+                B=len(main_nodes)
+                
+                # prepare batches
+                K = torch.eye(4, device=self._device).repeat(B, 1, 1)
+                supervision_masks=torch.ones((1,C,H,W), device=self._device).repeat(B, 1, 1, 1)
+                pose_camera_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
+                H = last_main_node.image_projector.camera.height
+                W = last_main_node.image_projector.camera.width
+                
+                for i, mnode in enumerate(main_nodes):
+                    K[i] = mnode.image_projector.camera.intrinsics
+                    pose_camera_in_world[i] = mnode.pose_cam_in_world
+                    supervision_masks[i] = mnode.supervision_mask
+                
+                im=ImageProjector(K,H,W)
+                assert feet_planes.shape[0]==4
+                for i in range(feet_planes.shape[0]):
+                    # skip not contacting feet
+                    if not feet_contact[i]:
+                        continue
+                    foot_plane=feet_planes[i].unsqueeze(0)
+                    foot_plane=foot_plane.repeat(B,1,1)
+                    mask, _, _, _ = im.project_and_render(pose_camera_in_world, foot_plane, color)
+                    mask=mask[:,:2,:,:]*subnode.phy_pred[:,i][None,:,None,None]
+                    supervision_masks=torch.fmin(supervision_masks,mask)
+                        
+                # Update supervision mask per node
+                for i, mnode in enumerate(main_nodes):
+                    mnode.supervision_mask = supervision_masks[i]
+                    mnode.update_supervision_signal()
+                    with logger["Lock"]:
+                        logger[f"mnode {i} reproj_pixels_num"]=(~torch.isnan(mnode.supervision_mask[0])).sum().item()
+                
             return True
         else:
             return False
-    
+
     def get_main_nodes(self):
         return self._main_graph.get_nodes()
-    
+
     def get_sub_nodes(self):
         return self._sub_graph.get_nodes()
     

@@ -26,6 +26,7 @@ from prettytable import PrettyTable
 from termcolor import colored
 import PIL.Image
 import tf2_ros
+from pytictac import ClassTimer, ClassContextTimer, accumulate_time
 
 class MainProcess(NodeForROS):
     def __init__(self):
@@ -66,7 +67,13 @@ class MainProcess(NodeForROS):
         # Init Camera handler
         self.camera_handler = {}
         self.system_events = {}
-
+        self.timer=ClassTimer(
+            objects=[self,
+                     self.manager,],
+            names=["Main_process","Manager"],
+            enabled=self.param.general.timestamp
+        )
+        
         if self.verbose:
             self.log_data = {}
             self.status_thread_stop_event = Event()
@@ -83,6 +90,7 @@ class MainProcess(NodeForROS):
         self.status_thread_stop_event.set()
         self.status_thread.join()
         self.visualize_image_overlay()
+        print(self.timer)
         rospy.signal_shutdown(f"FeatExtractor Node killed {args}")
         self.manager.save("results/manager","try1")
         
@@ -180,7 +188,7 @@ class MainProcess(NodeForROS):
         sync.registerCallback(self.camera_callback,self.camera_topic)
 
         # Phy-decoder info subscriber
-        phy_sub=rospy.Subscriber(self.param.roscfg.phy_decoder_output_topic,PhyDecoderOutput,self.phy_decoder_callback,queue_size=20)
+        phy_sub=rospy.Subscriber(self.param.roscfg.phy_decoder_output_topic,PhyDecoderOutput,self.phy_decoder_callback,queue_size=1)
         
         # Fill in handler
         self.camera_handler['name'] = self.camera_topic
@@ -192,27 +200,25 @@ class MainProcess(NodeForROS):
         # Results publisher
         input_pub=rospy.Publisher('/vd_pipeline/image_input', Image, queue_size=10)
         fric_pub=rospy.Publisher('/vd_pipeline/friction', Image, queue_size=10)
-        fric_overlay_pub=rospy.Publisher('/vd_pipeline/friction_overlay', Image, queue_size=10)
         stiff_pub=rospy.Publisher('/vd_pipeline/stiffness', Image, queue_size=10)
-        stiff_overlay_pub=rospy.Publisher('/vd_pipeline/stiffness_overlay', Image, queue_size=10)
         conf_pub=rospy.Publisher('/vd_pipeline/confidence', Image, queue_size=10)
         info_pub=rospy.Publisher('/vd_pipeline/camera_info', CameraInfo, queue_size=10)
         freq_pub=rospy.Publisher('/test', Float32, queue_size=10)
         main_graph_pub=rospy.Publisher('/vd_pipeline/main_graph', Path, queue_size=10)
+        sub_graph_pub=rospy.Publisher('/vd_pipeline/sub_graph', Path, queue_size=10)
         # Fill in handler
         self.camera_handler['input_pub']=input_pub
         self.camera_handler['fric_pub']=fric_pub
-        self.camera_handler['fric_overlay_pub']=fric_overlay_pub
         self.camera_handler['stiff_pub']=stiff_pub
-        self.camera_handler['stiff_overlay_pub']=stiff_overlay_pub
         self.camera_handler['conf_pub']=conf_pub
         self.camera_handler['info_pub']=info_pub
         self.camera_handler['freq_pub']=freq_pub
         self.camera_handler['main_graph_pub']=main_graph_pub
+        self.camera_handler['sub_graph_pub']=sub_graph_pub
         # TODO: Add the publisher for the two graphs and services (save/load checkpoint) maybe
         pass
     
-    
+    @accumulate_time
     def camera_callback(self, img_msg:CompressedImage,state_msg:AnymalState,cam:str):
         """ 
         callback function for the anymal state subscriber
@@ -334,6 +340,7 @@ class MainProcess(NodeForROS):
             }
         pass
     
+    @accumulate_time
     def phy_decoder_callback(self,phy_output:PhyDecoderOutput):
         self.system_events["phy_decoder_callback_received"] = {"time": rospy.get_time(), "value": "message received"}
         try:
@@ -373,7 +380,9 @@ class MainProcess(NodeForROS):
             
             # add subnode to graph
             self.manager.add_sub_node(sub_node,logger=self.log_data)
-            
+            if self.mode =="debug":
+                # publish the main graph
+                self.visualize_sub_graph()
 
             self.system_events["phy_decoder_callback_state"] = {
                     "time": rospy.get_time(),
@@ -392,6 +401,7 @@ class MainProcess(NodeForROS):
             
         pass
     
+    @accumulate_time
     def broadcast_tf_from_matrix(self,matrix, parent_frame, child_frame):
         br=self.camera_br
         t = TransformStamped()
@@ -419,6 +429,7 @@ class MainProcess(NodeForROS):
 
         br.sendTransform(t)
     
+    @accumulate_time
     def scale_intrinsic(self,K:torch.tensor,ratio_x,ratio_y):
         """ 
         scale the intrinsic matrix
@@ -446,6 +457,7 @@ class MainProcess(NodeForROS):
             if self.verbose:
                 print(f"Model Loading Failed: {e}")
     
+    @accumulate_time
     def visualize_main_graph(self):
         """Publishes all the visualizations related to the mission graph"""
         now=rospy.Time.from_sec(self.last_image_ts)
@@ -462,6 +474,24 @@ class MainProcess(NodeForROS):
             pose.pose=rc.torch_to_ros_pose(node.pose_cam_in_world)
             main_graph_msg.poses.append(pose)
         self.camera_handler["main_graph_pub"].publish(main_graph_msg)
+    
+    @accumulate_time    
+    def visualize_sub_graph(self):
+        """Publishes all the visualizations related to the mission graph"""
+        now=rospy.Time.from_sec(self.last_image_ts)
+        
+        # publish main graph
+        sub_graph_msg=Path()
+        sub_graph_msg.header.frame_id=self.fixed_frame
+        sub_graph_msg.header.stamp=now
+        
+        for node in self.manager.get_sub_nodes():
+            pose = PoseStamped()
+            pose.header.frame_id = self.fixed_frame
+            pose.header.stamp = rospy.Time.from_sec(node.timestamp)
+            pose.pose=rc.torch_to_ros_pose(node.pose_base_in_world)
+            sub_graph_msg.poses.append(pose)
+        self.camera_handler["sub_graph_pub"].publish(sub_graph_msg)
         
     def visualize_image_overlay(self):
         """Publishes all the debugging, slow visualizations"""
