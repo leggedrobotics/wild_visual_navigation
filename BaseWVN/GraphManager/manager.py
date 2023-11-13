@@ -32,6 +32,7 @@ class Manager:
                 min_samples_for_training: int = 10,
                 vis_node_index: int = 10,
                 label_ext_mode: bool = False,
+                cut_threshold: float = 2.0,
                 **kwargs):
         self._device = device
         self._label_ext_mode = label_ext_mode
@@ -39,6 +40,7 @@ class Manager:
         self._min_samples_for_training = min_samples_for_training
         self._extraction_store_folder=kwargs.get("extraction_store_folder",'LabelExtraction')
         self._update_range_main_graph=update_range_main_graph
+        self._cut_threshold=cut_threshold
         # Init main and sub graphs
         self.last_sub_node=None
 
@@ -158,8 +160,10 @@ class Manager:
         last_main_node:MainNode=self._main_graph.get_last_node()
         if last_main_node is None:
             return False
-        # main_nodes=self._main_graph.get_nodes_within_radius_range(last_main_node,0,self._sub_graph.max_distance)
         main_nodes=self._main_graph.get_nodes_within_radius_range(last_main_node,0,self._update_range_main_graph)
+        # check if the last main node is too far away from the sub node
+        if last_main_node.distance_to(subnode)>self._cut_threshold:
+            return False
         with logger["Lock"]:
                 logger["to_be_updated_mnode_num"]=len(main_nodes)
         if len(main_nodes)<1:

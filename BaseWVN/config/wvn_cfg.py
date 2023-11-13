@@ -49,10 +49,10 @@ class ParamCollection(Serializable):
     @dataclass
     class ThreadParams:
         """Parameters for the threads."""
-        image_callback_rate: float=2.0
-        proprio_callback_rate: float=5.0
+        image_callback_rate: float=1.0
+        proprio_callback_rate: float=2.0
         learning_rate: float=1.0
-        logging_rate: float=2.0
+        logging_rate: float=0.5
     
     thread: ThreadParams=ThreadParams()
 
@@ -110,6 +110,7 @@ class ParamCollection(Serializable):
     class GraphParams:
         """Parameters for the graph."""
         update_range_main_graph: float=5
+        cut_threshold: float=2.0
         edge_dist_thr_main_graph: float=1
         min_samples_for_training: int=10
         vis_node_index: int=10

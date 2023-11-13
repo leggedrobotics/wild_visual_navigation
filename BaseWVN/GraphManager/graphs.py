@@ -148,7 +148,8 @@ class BaseGraph:
     ):
         # Find closest node in the graph (timestamp). This is useful when we are finding nodes corresponding to another graph
         closest_node = self.get_node_with_timestamp(node.timestamp, eps=time_eps)
-
+        if closest_node is None:
+            return []
         nodes = []
         try:
             with self._lock:

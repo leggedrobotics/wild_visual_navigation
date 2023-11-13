@@ -57,7 +57,8 @@ class MainProcess(NodeForROS):
                                min_samples_for_training=self.param.graph.min_samples_for_training,
                                vis_node_index=self.param.graph.vis_node_index,
                                label_ext_mode=self.param.graph.label_ext_mode,
-                               extraction_store_folder=self.param.graph.extraction_store_folder)
+                               extraction_store_folder=self.param.graph.extraction_store_folder,
+                               cut_threshold=self.param.graph.cut_threshold)
         
         # TODO:Load the visual decoder (to device, eval mode)
         self.visual_decoder = []
