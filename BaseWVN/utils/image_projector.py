@@ -135,19 +135,17 @@ class ImageProjector:
         W = self.camera.width.item()
         self.masks = torch.zeros((B, C, H, W), dtype=torch.float32, device=self.camera.camera_matrix.device)
         image_overlay = image
-        with ClassContextTimer(parent_obj=self,block_name="project points",parent_method_name="project_and_render"):
 
-            # Project points
-            projected_points, valid_points, valid_z = self.project(pose_camera_in_world, points)
+        # Project points
+        projected_points, valid_points, valid_z = self.project(pose_camera_in_world, points)
 
         # Mask invalid points
         # projected_points[~valid_points,:] = torch.nan
         projected_points[~valid_z, :] = torch.nan
         # projected_points[projected_points < 0.0]
-        with ClassContextTimer(parent_obj=self,block_name="draw polygon",parent_method_name="project_and_render"):
 
-            # Fill the mask
-            self.masks = draw_convex_polygon(self.masks, projected_points, colors)
+        # Fill the mask
+        self.masks = draw_convex_polygon(self.masks, projected_points, colors)
 
         # Draw on image (if applies)
         if image is not None:

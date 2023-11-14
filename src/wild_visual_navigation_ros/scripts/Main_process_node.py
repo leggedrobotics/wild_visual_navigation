@@ -521,11 +521,7 @@ class MainProcess(NodeForROS):
 
                     # Save the image
                     out_image.save(file_path)
-                    
-            # if self.manager._main_graph.get_num_nodes() > self.manager._vis_node_index:
-                # clear the img and seg var in the node for saving memory
-                # vis_node._feature_segments=None
-            pass        
+                        
 
 
 if __name__ == "__main__":

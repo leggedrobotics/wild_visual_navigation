@@ -68,7 +68,7 @@ class FeatureExtractor:
             sparse_features (torch.tensor, shape:(B,num_segs or H*W,C)): Sparse features tensor
             seg (torch.tensor, shape:(H,W)): Segmentation map
             transformed_img (torch.tensor, shape:(B,C,H,W)): Transformed image
-            compressed_feats (Dict): only in pixel segmentation, {(scale_x,scale_y):feat-->(B,C,H,W))}
+            compressed_feats (Dict): only in pixel segmentation, {(scale_h,scale_w):feat-->(B,C,H,W))}
         """
         transformed_img=self.transform(img)
         # Compute segmentation
@@ -188,14 +188,14 @@ class FeatureExtractor:
         if isinstance(dense_features, dict):
             compressed_feat=None
             # Multiscale feature pyramid extraction
-            scales_x = [  seg.shape[0]/feat.shape[2] for feat in dense_features.values()]
-            scales_y = [ seg.shape[1] /feat.shape[3] for feat in dense_features.values()]
+            scales_h = [  seg.shape[0]/feat.shape[2] for feat in dense_features.values()]
+            scales_w = [ seg.shape[1] /feat.shape[3] for feat in dense_features.values()]
             # upsampling the feat of each scale
             resized_feats = [
                 F.interpolate(
-                    feat.type(torch.float32), scale_factor=(scale_x, scale_y)
+                    feat.type(torch.float32), scale_factor=(scale_h, scale_w)
                 )
-                for scale_x, scale_y,feat in zip(scales_x, scales_y,dense_features.values())
+                for scale_h, scale_w,feat in zip(scales_h, scales_w,dense_features.values())
             ]
             sparse_features = []
             if self._segmentation_type != "pixel":
@@ -210,8 +210,8 @@ class FeatureExtractor:
                     single_segment_feature = torch.cat(single_segment_feature, dim=1)
                     sparse_features.append(single_segment_feature)
             else:
-                for scale_x, scale_y,feat in zip(scales_x, scales_y,dense_features.values()):
-                    compressed_feat[(scale_x,scale_y)]=feat
+                for scale_h, scale_w,feat in zip(scales_h, scales_w,dense_features.values()):
+                    compressed_feat[(scale_h,scale_w)]=feat
                 resized_feats=torch.cat(resized_feats,dim=1)
                 resized_feats=resized_feats.permute(0,2,3,1)
                 sparse_features = resized_feats.reshape(resized_feats.shape[0],resized_feats.shape[1]*resized_feats.shape[2],-1)
@@ -219,11 +219,11 @@ class FeatureExtractor:
             
         else:
             # check if las two dim of seg is equal to dense_features dim, if not ,resize the feat
-            scale_x=seg.shape[0]/dense_features.shape[2]
-            scale_y=seg.shape[1]/dense_features.shape[3]
+            scale_h=seg.shape[0]/dense_features.shape[2]
+            scale_w=seg.shape[1]/dense_features.shape[3]
             if seg.shape[-2:] != dense_features.shape[-2:]:
                 resized_features = F.interpolate(
-                    dense_features.type(torch.float32), scale_factor=(scale_x, scale_y)
+                    dense_features.type(torch.float32), scale_factor=(scale_h, scale_w)
                 )
             # Sparsify features
             sparse_features = []
@@ -235,7 +235,7 @@ class FeatureExtractor:
                     avg_feat_per_seg = torch.mean(resized_features[:, :, x, y], dim=-1)
                     sparse_features.append(avg_feat_per_seg)
             else:
-                compressed_feat[(scale_x,scale_y)]=dense_features
+                compressed_feat[(scale_h,scale_w)]=dense_features
                 resized_features=resized_features.permute(0,2,3,1)
                 sparse_features = resized_features.reshape(resized_features.shape[0],resized_features.shape[1]*resized_features.shape[2],-1)
                 return sparse_features,compressed_feat
@@ -312,20 +312,20 @@ if __name__=="__main__":
     ])
     print(seg.reshape(-1))
     # Scale factors
-    scales_x = [2, 0.5]
-    scales_y = [2, 0.5]
+    scales_h = [2, 0.5]
+    scales_w = [2, 0.5]
 
     # Resized segmentation maps
     segs = [
         F.interpolate(
-            seg[None, None, :, :].type(torch.float32), scale_factor=(scale_x, scale_y), mode='nearest'
+            seg[None, None, :, :].type(torch.float32), scale_factor=(scale_h, scale_w), mode='nearest'
         )[0, 0].type(torch.long)
-        for scale_x, scale_y in zip(scales_x, scales_y)
+        for scale_h, scale_w in zip(scales_h, scales_w)
     ]
 
     # Print the resized maps
     for i, resized_seg in enumerate(segs):
-        print(f"Resized seg at scale {scales_x[i]}x{[scales_y[i]]}:")
+        print(f"Resized seg at scale {scales_h[i]}x{[scales_w[i]]}:")
         print(resized_seg.numpy(), "\n")
     
     dense_features = {

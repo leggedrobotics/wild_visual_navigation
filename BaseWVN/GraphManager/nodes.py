@@ -331,19 +331,49 @@ class MainNode(BaseNode):
             # check it must be dict
             if not isinstance(self._features,dict):
                 raise TypeError("The feature must be dict")
-            # feat in dict: (ratio_x,ratio_y):(B, C, H, W)
+            # feat in dict: (ratio_h,ratio_w):(B, C, H, W)
             # recover to tensor (B, H*W,C)
             recover_feat=[]
             for key,value in self._features:
-                scale_x,scale_y=key
+                scale_h,scale_w=key
                 resized_feats = F.interpolate(
-                    value.type(torch.float32), scale_factor=(scale_x, scale_y)
+                    value.type(torch.float32), scale_factor=(scale_h, scale_w)
                 )
                 recover_feat.append(resized_feats)
             recover_feat=torch.cat(recover_feat,dim=1)
             recover_feat=recover_feat.permute(0,2,3,1)
             res_features = recover_feat.reshape(recover_feat.shape[0],recover_feat.shape[1]*recover_feat.shape[2],-1)  
             return res_features
+    
+    def query_valid_feat(self):
+        """ Since the feat is compressed with ratio info in dict, we need to query the valid feat
+            given supervision_signal_valid ---> get the dataset for model training
+            
+            Return:
+                valid_feats: (B, num_valid, C)
+        """
+        # first check the real ratio is equal to the ratio in dict
+        if not self._is_feat_compressed:
+            return self._features
+        else:
+            _,H_s,W_s=self._supervision_signal_valid.shape
+            valid_feats = []
+            for key, value in self._features.items():
+                B,C,H,W=value.shape
+                if H_s/H!=key[0] or W_s/W!=key[1]:
+                    raise ValueError("The ratio in feats dict is not equal to the real ratio")
+
+                valid_indices = torch.where(self._supervision_signal_valid[0] == 1)
+                ratio_h,ratio_w=key
+                for h_idx, w_idx in zip(*valid_indices):
+                    patch_h_idx = h_idx // ratio_h
+                    patch_w_idx = w_idx // ratio_w
+
+                    # Extract the feature vector for the corresponding patch
+                    feat_vec = value[:, :, patch_h_idx, patch_w_idx]
+                    valid_feats.append(feat_vec)
+            return torch.stack(valid_feats,dim=1)
+
 
 class SubNode(BaseNode):
     """Local node stores all the information required for traversability estimation and debugging
@@ -404,29 +434,32 @@ if __name__ == '__main__':
     H=4
     W=6
     first_tensor = torch.rand((1, H, W))
-    aa=first_tensor.repeat(2,1,1)
-    bb=first_tensor.repeat(2,1,1,1)
-    print(aa==bb[:,0,:,:])
-    notnan=(~torch.isnan(aa)).sum()
-    a=torch.tensor([True])
-    b=a.any()
     second_tensor = torch.rand((1, H, W)) * 9 + 1  # Scaling and shifting to get values from 1 to 10
     supervision_tensor = torch.cat((first_tensor, second_tensor), dim=0)
    
     supervision_tensor[:,2:,2:]=supervision_tensor[:,2:,2:]*torch.nan
-    ss=torch.fmin(supervision_tensor,supervision_tensor)
-    
+
     # Generate a (3, H, W) random tensor with values from 0 to 1
     img_tensor = torch.rand((3, H, W))
 
     # Generate a (6, 4) tensor with values from 0 to 24
     mask_tensor = torch.arange(24).reshape(H, W)
     
-    main_node=MainNode(features=img_tensor,segments=mask_tensor,image=img_tensor)
+    features={
+    (2, 2): torch.rand(1, 10, H//2, W//2)  # Example feature tensor
+    }
+    
+    main_node=MainNode(features=features,segments=mask_tensor,image=img_tensor)
     main_node.supervision_mask=supervision_tensor
     main_node.update_supervision_signal()
-    if torch.allclose(main_node.supervision_signal.reshape(2,H,W),supervision_tensor.nan_to_num(0)) :
-        print("True")
+    valid_feats=main_node.query_valid_feat()
+    # if torch.allclose(main_node.supervision_signal.reshape(2,H,W),supervision_tensor.nan_to_num(0)) :
+    #     print("True")
+    
+    
+    
+
+    
     
     pass
 
