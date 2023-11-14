@@ -62,6 +62,10 @@ class Manager:
         
         # TODO: self._visualizer = LearningVisualizer()
         #  Init model and optimizer, loss function...
+        
+        # Lightning module
+        seed_everything(42)
+        
     
     def __getstate__(self):
         """We modify the state so the object can be pickled"""

@@ -104,7 +104,8 @@ class MainProcess(NodeForROS):
             _ = os.system('clear')
         
     def status_thread_loop(self):
-        # Learning loop
+        # Log loop
+        # TODO: make the table prettier, into columns...
         while self.run_status_thread:
             self.status_thread_stop_event.wait(timeout=0.01)
             if self.status_thread_stop_event.is_set():
@@ -213,7 +214,6 @@ class MainProcess(NodeForROS):
         self.camera_handler['freq_pub']=freq_pub
         self.camera_handler['main_graph_pub']=main_graph_pub
         self.camera_handler['sub_node_pub']=sub_node_pub
-        # TODO: Add the publisher for the two graphs and services (save/load checkpoint) maybe
         pass
     
     @accumulate_time

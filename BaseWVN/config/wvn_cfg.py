@@ -119,3 +119,18 @@ class ParamCollection(Serializable):
         use_for_training: bool=True
         
     graph: GraphParams=GraphParams()
+    
+    @dataclass
+    class ModelParams:
+        name: str = "SimpleMLP"  #  SimpleMLP
+        load_ckpt: Optional[str] = None
+        
+        @dataclass
+        class SimpleMlpCfgParams:
+            input_size: int = 384
+            hidden_sizes: List[int] = field(default_factory=lambda: [256, 32, 1])
+            reconstruction: bool = True
+
+        simple_mlp_cfg: SimpleMlpCfgParams = SimpleMlpCfgParams()
+    
+    model: ModelParams = ModelParams()
