@@ -1,4 +1,4 @@
-
+from MLP import SimpleMLP
 import inspect
 import torch
 
@@ -35,7 +35,7 @@ def create_registery():
 
     return register, cfg_keys
 
-def get_model(model_cfg: dict) -> torch.nn.Module:
+def get_model(model_cfg) -> torch.nn.Module:
     """Returns the instantiated model
 
     Args:
@@ -43,7 +43,15 @@ def get_model(model_cfg: dict) -> torch.nn.Module:
     Returns:
         model (nn.Module): Some torch module
     """
-    name = model_cfg["name"]
+    name = model_cfg.name
     register, cfg_keys = create_registery()
-    model = register[name](**model_cfg[cfg_keys[name]])
+    cfg_attr = getattr(model_cfg, cfg_keys[name])
+    cfg_attr_dict = cfg_attr.to_dict()
+    model = register[name](**cfg_attr_dict)
+
     return model
+
+if __name__ == "__main__":
+    from BaseWVN.config.wvn_cfg import ParamCollection
+    param=ParamCollection()
+    model=get_model(param.model)
