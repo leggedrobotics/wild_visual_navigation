@@ -33,16 +33,19 @@ class Manager:
                 vis_node_index: int = 10,
                 label_ext_mode: bool = False,
                 cut_threshold: float = 2.0,
+                model=None,
                 **kwargs):
         self._device = device
         self._label_ext_mode = label_ext_mode
         self._vis_node_index = vis_node_index
         self._min_samples_for_training = min_samples_for_training
-        self._extraction_store_folder=kwargs.get("extraction_store_folder",'LabelExtraction')
         self._update_range_main_graph=update_range_main_graph
         self._cut_threshold=cut_threshold
-        # Init main and sub graphs
         self.last_sub_node=None
+        
+        self._extraction_store_folder=kwargs.get("extraction_store_folder",'LabelExtraction')
+        self._lr=kwargs.get("lr",0.001)
+        
 
         if label_ext_mode:
             self._main_graph = MaxElementsGraph(edge_distance=edge_dist_thr_main_graph, max_elements=200)
@@ -62,7 +65,13 @@ class Manager:
         
         # TODO: self._visualizer = LearningVisualizer()
         #  Init model and optimizer, loss function...
-        
+        self._model=model
+        self._model.train()
+        self._optimizer = torch.optim.Adam(self._model.parameters(), lr=self._lr)
+        self._loss = torch.tensor([torch.inf])
+        self._step = 0
+
+        torch.set_grad_enabled(True)
         # Lightning module
         seed_everything(42)
         

@@ -150,7 +150,6 @@ class MainNode(BaseNode):
         self._confidence = None
         self._prediction = None
         self._supervision_mask = None
-        self._supervision_signal = None
         self._supervision_signal_valid = None
     
     @property
@@ -191,10 +190,6 @@ class MainNode(BaseNode):
         return self._prediction
 
     @property
-    def supervision_signal(self):
-        return self._supervision_signal
-
-    @property
     def supervision_signal_valid(self):
         return self._supervision_signal_valid
 
@@ -225,10 +220,6 @@ class MainNode(BaseNode):
     @prediction.setter
     def prediction(self, prediction):
         self._prediction = prediction
-
-    @supervision_signal.setter
-    def supervision_signal(self, _supervision_signal):
-        self._supervision_signal = _supervision_signal
 
     @supervision_signal_valid.setter
     def supervision_signal_valid(self, _supervision_signal_valid):
@@ -275,8 +266,6 @@ class MainNode(BaseNode):
             self._confidence = self._confidence.to(device)
         if self._supervision_mask is not None:
             self._supervision_mask = self._supervision_mask.to(device)
-        if self._supervision_signal is not None:
-            self._supervision_signal = self._supervision_signal.to(device)
         if self._supervision_signal_valid is not None:
             self._supervision_signal_valid = self._supervision_signal_valid.to(device)
      
@@ -331,7 +320,8 @@ class MainNode(BaseNode):
             signal_mean = signal_sum / num_elements_per_segment
 
             # self._supervision_signal = signal_mean.nan_to_num(0)
-        self._supervision_signal_valid = torch.tensor([True])
+        # the not nan pixel is valid
+        self._supervision_signal_valid = ~torch.isnan(self._supervision_mask)
 
     def recover_feat(self):
         """Recover the feature from compression if needed"""

@@ -1,4 +1,4 @@
-from MLP import SimpleMLP
+from .MLP import SimpleMLP
 import inspect
 import torch
 

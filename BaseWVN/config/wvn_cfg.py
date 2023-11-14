@@ -110,7 +110,7 @@ class ParamCollection(Serializable):
     class GraphParams:
         """Parameters for the graph."""
         update_range_main_graph: float=5
-        cut_threshold: float=2.0
+        cut_threshold: float=1.0
         edge_dist_thr_main_graph: float=1
         min_samples_for_training: int=10
         vis_node_index: int=10
