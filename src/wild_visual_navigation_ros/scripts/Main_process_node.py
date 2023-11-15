@@ -3,7 +3,6 @@ Main node to process ros messages, publish the relevant topics, train the model.
  """
 from BaseWVN.utils import NodeForROS,FeatureExtractor,ConfidenceGenerator,ImageProjector,plot_overlay_image
 from BaseWVN.GraphManager import Manager,MainNode,SubNode
-from BaseWVN.model import get_model
 import ros_converter as rc
 import message_filters
 from sensor_msgs.msg import Image, CameraInfo, CompressedImage
@@ -50,20 +49,12 @@ class MainProcess(NodeForROS):
                                                         log_enabled=self.log_enabled,
                                                         log_folder=self.log_folder,
                                                         device=self.device)
-
-        # TODO:Load the existed visual decoder (to device, eval mode)
-        self.visual_decoder = get_model(self.param.model)
         
         # Init graph manager
         self.manager = Manager(device=self.device,
-                               update_range_main_graph=self.param.graph.update_range_main_graph,
-                               edge_dist_thr_main_graph=self.param.graph.edge_dist_thr_main_graph,
-                               min_samples_for_training=self.param.graph.min_samples_for_training,
-                               vis_node_index=self.param.graph.vis_node_index,
-                               label_ext_mode=self.param.graph.label_ext_mode,
-                               extraction_store_folder=self.param.graph.extraction_store_folder,
-                               cut_threshold=self.param.graph.cut_threshold,
-                               model=self.visual_decoder,
+                               graph_params=self.param.graph,
+                               loss_params=self.param.loss,
+                               model_params=self.param.model,
                                lr=self.param.optimizer.lr,
                                phy_dim=self.param.feat.physical_dim,)
         

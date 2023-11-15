@@ -94,16 +94,13 @@ class ParamCollection(Serializable):
 
     @dataclass
     class LossParams:
-        anomaly_balanced: bool = True
-        w_trav: float = 0.03
+        w_pred: float = 0.5
         w_reco: float = 0.5
-        w_temp: float = 0.0  # 0.75
         method: str = "running_mean"
         confidence_std_factor: float = 2
         log_enabled: bool = False
         log_folder: str = "/tmp"
         verbose: bool = True
-        trav_cross_entropy: bool = False
 
     loss: LossParams = LossParams()
     
