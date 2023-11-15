@@ -88,6 +88,7 @@ class ParamCollection(Serializable):
         input_size:int =1260
         interp: str='bilinear'
         center_crop: bool=False
+        physical_dim:int=2
     
     feat: FeatParams=FeatParams()
 

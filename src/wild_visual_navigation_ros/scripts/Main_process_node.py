@@ -64,7 +64,8 @@ class MainProcess(NodeForROS):
                                extraction_store_folder=self.param.graph.extraction_store_folder,
                                cut_threshold=self.param.graph.cut_threshold,
                                model=self.visual_decoder,
-                               lr=self.param.optimizer.lr,)
+                               lr=self.param.optimizer.lr,
+                               phy_dim=self.param.feat.physical_dim,)
         
         
 
@@ -316,7 +317,8 @@ class MainProcess(NodeForROS):
                 segments=seg,
                 image_projector=image_projector,
                 camera_name=cam,
-                use_for_training=self.param.graph.use_for_training,              
+                use_for_training=self.param.graph.use_for_training,
+                phy_dim=self.param.feat.physical_dim,              
             )
             
             # add to main graph

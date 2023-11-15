@@ -44,6 +44,7 @@ class Manager:
         self.last_sub_node=None
         
         self._extraction_store_folder=kwargs.get("extraction_store_folder",'LabelExtraction')
+        self._phy_dim=kwargs.get("phy_dim",2)
         self._lr=kwargs.get("lr",0.001)
         
 
@@ -131,7 +132,7 @@ class Manager:
     def add_main_node(self, node: MainNode,verbose:bool=False,logger=None):
         """ 
         Add new node to the main graph with img and supervision info
-        supervision mask has 2 channels (2,H,W)
+        supervision mask has self._phy_dim channels e.g. (2,H,W)
         """
         if self._pause_main_graph:
             return False
@@ -150,7 +151,7 @@ class Manager:
 
             # Init the supervision mask
             H,W=node.image.shape[-2],node.image.shape[-1]
-            supervision_mask=torch.ones((2,H,W),dtype=torch.float32,device=self._device)*torch.nan
+            supervision_mask=torch.ones((self._phy_dim,H,W),dtype=torch.float32,device=self._device)*torch.nan
             node.supervision_mask = supervision_mask
             
             return True
@@ -214,7 +215,7 @@ class Manager:
                 with ClassContextTimer(parent_obj=self,block_name="reprojection_main_1",parent_method_name="add_sub_node"):
                     mask, _, _, _ = im.project_and_render(pose_camera_in_world, foot_plane, color)
                 print(im.timer)
-                mask=mask[:,:2,:,:]*subnode.phy_pred[:,i][None,:,None,None]
+                mask=mask[:,:self._phy_dim,:,:]*subnode.phy_pred[:,i][None,:,None,None]
                 supervision_masks=torch.fmin(supervision_masks,mask)
         # Update supervision mask per node
         for i, mnode in enumerate(main_nodes):

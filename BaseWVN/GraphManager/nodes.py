@@ -121,6 +121,7 @@ class MainNode(BaseNode):
         segments: torch.tensor = None,
         camera_name="cam",
         use_for_training=True,
+        phy_dim:int=2,
     ):
         super().__init__(timestamp=timestamp, pose_base_in_world=pose_base_in_world)
         # Initialize members
@@ -134,7 +135,7 @@ class MainNode(BaseNode):
         self._feature_segments = segments
         self._feature_type = feature_type
         self._is_feat_compressed=True if isinstance(features,dict) else False
-
+        self._phy_dim=phy_dim
         """ 
         Warning: to save GPU memory, move img and features to cpu
         """
@@ -285,7 +286,7 @@ class MainNode(BaseNode):
             if self._supervision_mask is None:
                 return
             signal=self._supervision_mask
-            if len(signal.shape) != 3 or signal.shape[0] != 2:
+            if len(signal.shape) != 3 or signal.shape[0] != self._phy_dim:
                 raise ValueError("Supervision signal must be a 2 channel image (2,H,W)")
             # If we don't have features, return
             if self._features is None:
