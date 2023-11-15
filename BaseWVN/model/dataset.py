@@ -35,6 +35,29 @@ class VD_dataset(Dataset):
                     return x_batch[index], y_batch[index]
                 index -= len(x_batch)
             raise IndexError("Index out of range")
+    
+    def add_batches(self, new_list_of_batches):
+        # Perform dimension check as before
+        for x, y in new_list_of_batches:
+            if x.shape[0] != y.shape[0]:
+                raise ValueError("Mismatch in batch size: x and y should have the same first dimension.")
+
+        if self.combine_batches:
+            # If batches are combined, just concatenate the new data
+            new_xs, new_ys = zip(*new_list_of_batches)
+            self.xs = torch.cat([self.xs] + list(new_xs), dim=0)
+            self.ys = torch.cat([self.ys] + list(new_ys), dim=0)
+        else:
+            # If batches are separate, extend the list
+            self.batches.extend(new_list_of_batches)
+    
+    def save_dataset(dataset, file_path):
+        torch.save(dataset, file_path)
+    
+    def load_dataset(file_path):
+        return torch.load(file_path)
+
+
 
 if __name__=="__main__":
 
@@ -46,5 +69,12 @@ if __name__=="__main__":
     x_dim=5
     y_dim=2
     list_of_batches = [(torch.randn(batch_size1, x_dim), torch.randn(batch_size1, y_dim)), (torch.randn(batch_size2, x_dim), torch.randn(batch_size2, y_dim))]
-    dataset = VD_dataset(list_of_batches, combine_batches=True or False)
+    dataset = VD_dataset(list_of_batches, combine_batches=False)
+    
+    batch_size1=20
+    batch_size2=35
+    x_dim=5
+    y_dim=2
+    list_of_batches = [(torch.randn(batch_size1, x_dim), torch.randn(batch_size1, y_dim)), (torch.randn(batch_size2, x_dim), torch.randn(batch_size2, y_dim))]
+    dataset.add_batches(list_of_batches)
     pass

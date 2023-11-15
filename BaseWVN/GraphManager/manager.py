@@ -21,6 +21,7 @@ from .graphs import (
 )
 from .nodes import MainNode,SubNode
 from ..utils import ImageProjector
+from ..model import VD_dataset
 
 to_tensor = transforms.ToTensor()
 
@@ -226,7 +227,6 @@ class Manager:
             
         return True
 
-
     def get_main_nodes(self):
         return self._main_graph.get_nodes()
     
@@ -239,6 +239,18 @@ class Manager:
     
     def get_main_node_for_visualization(self):
         return self._vis_main_node
+    
+    @accumulate_time
+    def make_batch_to_dataset(
+        self,
+        node_num: int = 8,
+    ):
+        # Just sample N random nodes
+        mnodes = self._main_graph.get_n_random_valid_nodes(n=node_num)
+        batch_list=[mnode.query_valid_batch() for mnode in mnodes]
+        dataset=VD_dataset(batch_list,combine_batches=True)
+        
+        return dataset
     
     def save(self, manager_path: str, filename: str):
         """Saves a pickled file of the Manager class

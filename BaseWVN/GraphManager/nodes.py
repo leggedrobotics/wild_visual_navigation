@@ -270,15 +270,14 @@ class MainNode(BaseNode):
         if self._supervision_signal_valid is not None:
             self._supervision_signal_valid = self._supervision_signal_valid.to(device)
      
-    # def is_valid(self):
-    #     valid_members = (
-    #         isinstance(self._features, torch.Tensor)
-    #         and isinstance(self._supervision_signal, torch.Tensor)
-    #         and isinstance(self._supervision_signal_valid, torch.Tensor)
-    #     )
-    #     valid_signals = self._supervision_signal_valid.any() if valid_members else False
+    def is_valid(self):
+        valid_members = (
+            isinstance(self._features, torch.Tensor)
+            and isinstance(self._supervision_signal_valid, torch.Tensor)
+        )
+        valid_signals = self._supervision_signal_valid.any() if valid_members else False
 
-    #     return valid_members and valid_signals
+        return valid_members and valid_signals
     
     def update_supervision_signal(self):
         if not self.is_feat_compressed:
