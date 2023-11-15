@@ -2,7 +2,7 @@ from torch.utils.data import Dataset
 import torch
 
 class VD_dataset(Dataset):
-    def __init__(self, list_of_batches, combine_batches=False):
+    def __init__(self, list_of_batches, combine_batches=True):
         # list_of_batches is a list of tuples: [(x1, y1), (x2, y2), ...]
         self.combine_batches = combine_batches
         # Dimension check
@@ -35,6 +35,24 @@ class VD_dataset(Dataset):
                     return x_batch[index], y_batch[index]
                 index -= len(x_batch)
             raise IndexError("Index out of range")
+    
+
+    def get_x(self,batch_idx=None):
+        if self.combine_batches:
+            return self.xs
+        else:
+            if batch_idx is None:
+                raise ValueError("batch_idx must be specified when batches are not combined.")
+            return self.batches[batch_idx][0]
+    
+ 
+    def get_y(self,batch_idx=None):
+        if self.combine_batches:
+            return self.ys
+        else:
+            if batch_idx is None:
+                raise ValueError("batch_idx must be specified when batches are not combined.")
+            return self.batches[batch_idx][1]
     
     def add_batches(self, new_list_of_batches):
         # Perform dimension check as before
