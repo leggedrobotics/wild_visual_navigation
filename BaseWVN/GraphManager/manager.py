@@ -75,7 +75,7 @@ class Manager:
                                method=loss_params.method,
                                confidence_std_factor=loss_params.confidence_std_factor,
                                log_enabled=loss_params.log_enabled,
-                               log_folder=loss_params.log_folder)
+                               log_folder=loss_params.log_folder).to(self._device)
         self._loss = torch.tensor([torch.inf])
         self._step = 0
 
@@ -96,6 +96,14 @@ class Manager:
         self._learning_lock = Lock()
 
     @property
+    def loss(self):
+        return self._loss.detach().item()
+    
+    @property
+    def step(self):
+        return self._step
+    
+    @property
     def pause_learning(self):
         return self._pause_training
 
@@ -111,11 +119,12 @@ class Manager:
             device (str): new device
         """
         self._main_graph.change_device(device)
-        # self._model = self._model.to(device)
+        self._model = self._model.to(device)
+        self._phy_loss=self._phy_loss.to(device)
     
     @accumulate_time
     def update_prediction(self, node: MainNode):
-        # TODO:use MLP to predict here, update_node_confidence
+        # TODO:use MLP to predict here, update_node_confidence, maybe useless here
         pass
     
     @accumulate_time
@@ -287,7 +296,58 @@ class Manager:
         # obj.change_device(device)
         return obj
     
-    
+    def save_ckpt(self, path: str, checkpoint_name: str = "last_checkpoint.pt"):
+        """Saves the torch checkpoint and optimization state
 
+        Args:
+            path (str): Folder where to put the data
+            checkpoint_name (str): Name for the checkpoint file
+        """
+        with self._learning_lock:
+            self._pause_training = True
+            
+            # Prepare folder
+            os.makedirs(path, exist_ok=True)
+            checkpoint_file = os.path.join(path, checkpoint_name)
+
+            # Save checkpoint
+            torch.save(
+                {
+                    "step": self._step,
+                    "model_state_dict": self._model.state_dict(),
+                    "optimizer_state_dict": self._optimizer.state_dict(),
+                    "phy_loss_state_dict": self._phy_loss.state_dict(),
+                    "loss": self._loss.item(),
+                },
+                checkpoint_file,
+            )
+
+            print(f"Saved checkpoint to file {checkpoint_file}")
+            self._pause_training = False
+    
+    def load_ckpt(self, checkpoint_path: str):
+        """Loads the torch checkpoint and optimization state
+
+        Args:
+            checkpoint_path (str): Global path to the checkpoint
+        """
+
+        with self._learning_lock:
+            self._pause_training = True
+
+            # Load checkpoint
+            checkpoint = torch.load(checkpoint_path)
+            self._model.load_state_dict(checkpoint["model_state_dict"])
+            self._optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+            self._phy_loss.load_state_dict(checkpoint["phy_loss_state_dict"])
+            self._step = checkpoint["step"]
+            self._loss = checkpoint["loss"]
+
+            # Set model in training mode
+            self._model.train()
+            self._optimizer.zero_grad()
+
+            print(f"Loaded checkpoint from file {checkpoint_path}")
+            self._pause_training = False
         
         
