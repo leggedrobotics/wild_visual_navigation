@@ -248,8 +248,8 @@ def test_extractor():
     import cv2
     import os
     import time
-    image_relative_path = 'image/forest_clean.png'  # Update to the relative path of your image
-    feat_relative_path = 'image/forest_clean_feat.png'
+    image_relative_path = 'image/sample.png'  # Update to the relative path of your image
+    feat_relative_path = 'image/sample_feat.png'
     # Use os.path.join to get the full path of the image
     image_path = os.path.join(WVN_ROOT_DIR, image_relative_path)
     device = 'cuda' if torch.cuda.is_available() else 'cpu'

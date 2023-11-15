@@ -281,7 +281,6 @@ class MainNode(BaseNode):
     
     def update_supervision_signal(self):
         if not self.is_feat_compressed:
-            # TODO: only use the foorholds part, no need to fill entire image with 0/nan
             # it average the supervision signal over each segment in case of muliple possible value in a segment
             if self._supervision_mask is None:
                 return
@@ -345,12 +344,13 @@ class MainNode(BaseNode):
             res_features = recover_feat.reshape(recover_feat.shape[0],recover_feat.shape[1]*recover_feat.shape[2],-1)  
             return res_features
     
-    def query_valid_feat(self):
+    def query_valid_batch(self):
         """ Since the feat is compressed with ratio info in dict, we need to query the valid feat
             given supervision_signal_valid ---> get the dataset for model training
             
             Return:
-                valid_feats: (B, num_valid, C)
+                valid_feats: (num_valid, C)
+                valid_masks: (num_valid, C (=2))
         """
         # first check the real ratio is equal to the ratio in dict
         if not self._is_feat_compressed:
@@ -358,6 +358,7 @@ class MainNode(BaseNode):
         else:
             _,H_s,W_s=self._supervision_signal_valid.shape
             valid_feats = []
+            valid_masks=[]
             for key, value in self._features.items():
                 B,C,H,W=value.shape
                 if H_s/H!=key[0] or W_s/W!=key[1]:
@@ -366,13 +367,16 @@ class MainNode(BaseNode):
                 valid_indices = torch.where(self._supervision_signal_valid[0] == 1)
                 ratio_h,ratio_w=key
                 for h_idx, w_idx in zip(*valid_indices):
+                    # Extract the mask
+                    mask_vec=self._supervision_mask[:,h_idx,w_idx]
+                    valid_masks.append(mask_vec)
+                    
                     patch_h_idx = h_idx // ratio_h
                     patch_w_idx = w_idx // ratio_w
-
                     # Extract the feature vector for the corresponding patch
                     feat_vec = value[:, :, patch_h_idx, patch_w_idx]
                     valid_feats.append(feat_vec)
-            return torch.stack(valid_feats,dim=1)
+            return torch.cat(valid_feats,dim=0),torch.stack(valid_masks,dim=0)
 
 
 class SubNode(BaseNode):
@@ -452,7 +456,7 @@ if __name__ == '__main__':
     main_node=MainNode(features=features,segments=mask_tensor,image=img_tensor)
     main_node.supervision_mask=supervision_tensor
     main_node.update_supervision_signal()
-    valid_feats=main_node.query_valid_feat()
+    valid_feats,valid_masks=main_node.query_valid_batch()
     # if torch.allclose(main_node.supervision_signal.reshape(2,H,W),supervision_tensor.nan_to_num(0)) :
     #     print("True")
     
