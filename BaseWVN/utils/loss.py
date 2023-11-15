@@ -47,7 +47,8 @@ class PhyLoss(nn.Module):
                 confidence = self._confidence_generator.inference_without_update(x=loss_reco)
         # need to normalize the last two dim of res seperately since their range is different
         normalized_y=self.normalize_tensor(dataset.get_y(batch_idx))
-        loss_pred_raw=F.mse_loss(res[:, nr_channel_reco:], normalized_y, reduction="none").mean(dim=1)
+        normalized_res=self.normalize_tensor(res[:, nr_channel_reco:])
+        loss_pred_raw=F.mse_loss(normalized_res, normalized_y, reduction="none").mean(dim=1)
 
         loss_final=self._w_pred*loss_pred_raw.mean()+self._w_recon*loss_reco.mean()
         
@@ -61,8 +62,8 @@ class PhyLoss(nn.Module):
         dim1 = tensor[:, 1]  # Second dimension (1-10)--stiffness
 
         # Normalize the second dimension
-        min_val = 1  # Minimum value in the second dimension
-        max_val = 10  # Maximum value in the second dimension
+        min_val = 1.0  # Minimum value in the second dimension
+        max_val = 10.0  # Maximum value in the second dimension
         dim1_normalized = (dim1 - min_val) / (max_val - min_val)
 
         # Combine the dimensions back into a tensor

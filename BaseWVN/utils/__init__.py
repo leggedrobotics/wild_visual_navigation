@@ -6,3 +6,4 @@ from .meshes import make_superquadric,make_plane,make_ellipsoid,make_polygon_fro
 from .dinov2_interface import Dinov2Interface
 from .plotting import get_img_from_fig
 from .visualizer import plot_overlay_image
+from .loss import PhyLoss
