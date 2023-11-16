@@ -4,7 +4,7 @@ import os
 import torch
 import torch.nn.functional as F
 from typing import Optional,Union,Dict
-from ..utils import ImageProjector
+from BaseWVN.utils import ImageProjector
 
 
 class BaseNode:
@@ -360,15 +360,11 @@ class MainNode(BaseNode):
         else:
             temp_feat=self._features.to(self._supervision_mask.device)
         
-        used_combin=[]
-        
         # first check the real ratio is equal to the ratio in dict
         if not self._is_feat_compressed:
             return temp_feat
         else:
             _,H_s,W_s=self._supervision_signal_valid.shape
-            valid_feats = []
-            valid_masks=[]
             for key, value in temp_feat.items():
                 B,C,H,W=value.shape
                 if H_s/H!=key[0] or W_s/W!=key[1]:
@@ -376,26 +372,35 @@ class MainNode(BaseNode):
 
                 valid_indices = torch.where(self._supervision_signal_valid[0] == 1)
                 ratio_h,ratio_w=key
-                for h_idx, w_idx in zip(*valid_indices):
-                     
-                    patch_h_idx = h_idx // ratio_h
-                    patch_w_idx = w_idx // ratio_w
-                    # skip the repeated feat
-                    if (patch_h_idx,patch_w_idx) in used_combin:
-                        continue
-                    # Extract the mask
-                    mask_vec=self._supervision_mask[:,h_idx,w_idx]
-                    valid_masks.append(mask_vec)
-                    
-                    # idx to tensor int
-                    patch_h_idx=torch.tensor(patch_h_idx,dtype=torch.int64)
-                    patch_w_idx=torch.tensor(patch_w_idx,dtype=torch.int64)
-                    # Extract the feature vector for the corresponding patch
-                    feat_vec = value[:, :, patch_h_idx, patch_w_idx]
-                    valid_feats.append(feat_vec)
-                    # record the used combination
-                    used_combin.append((patch_h_idx,patch_w_idx))
-            return torch.cat(valid_feats,dim=0),torch.stack(valid_masks,dim=0)
+                             
+                # Vectorize the computation of patch indices
+                h_indices, w_indices = valid_indices
+                patch_h_indices = h_indices // ratio_h
+                patch_w_indices = w_indices // ratio_w
+                patch_h_indices = patch_h_indices.type(torch.int64)
+                patch_w_indices = patch_w_indices.type(torch.int64)
+                # Identify unique indices and corresponding unique masks and features
+                unique_indices, inverse_indices = torch.unique(torch.stack([patch_h_indices, patch_w_indices], dim=1), 
+                                                            dim=0, 
+                                                            return_inverse=True)
+                selected_feats=value[:, :, unique_indices[:, 0], unique_indices[:, 1]]
+                selected_feats=selected_feats.squeeze(0).permute(1,0)
+                # Initialize a list to store the selected masks corresponding to each unique index
+                selected_masks = []
+
+                # Iterate over unique indices
+                for idx in range(unique_indices.shape[0]):
+                    # Find the first occurrence of the unique index in the inverse_indices
+                    original_idx = torch.where(inverse_indices == idx)[0][0]
+
+                    # Extract the corresponding mask using the original valid indices
+                    mask = self._supervision_mask[:, h_indices[original_idx], w_indices[original_idx]]
+
+                    selected_masks.append(mask)
+
+                # Stack the selected masks
+                selected_masks = torch.stack(selected_masks, dim=0)
+            return selected_feats,selected_masks
 
 
 class SubNode(BaseNode):
@@ -476,6 +481,10 @@ if __name__ == '__main__':
     main_node.supervision_mask=supervision_tensor
     main_node.update_supervision_signal()
     valid_feats,valid_masks=main_node.query_valid_batch()
+    valid_feats_s,valid_masks_s=main_node.query_valid_batch(fast=False)
+    print(valid_feats.shape)
+    if torch.allclose(valid_feats,valid_feats_s) and torch.allclose(valid_masks,valid_masks_s):
+        print("True")
     # if torch.allclose(main_node.supervision_signal.reshape(2,H,W),supervision_tensor.nan_to_num(0)) :
     #     print("True")
     
