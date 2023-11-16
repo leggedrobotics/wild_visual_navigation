@@ -408,7 +408,7 @@ class MainProcess(NodeForROS):
     
     @accumulate_time
     def learning_thread_loop(self):
-        rate = rospy.Rate(self.param.thread.learning_rate)
+        # rate = rospy.Rate(self.param.thread.learning_rate)
         i=0
         # Learning loop
         while True:     
@@ -436,9 +436,10 @@ class MainProcess(NodeForROS):
             system_state.step=step
             system_state.header.stamp=rospy.Time.from_sec(step_time)
             self.camera_handler["system_state_pub"].publish(system_state)
-            rate.sleep()
-            
+            # rate.sleep()
             i += 1
+            time.sleep(1/self.param.thread.learning_rate)
+            
         self.system_events["learning_thread_loop"] = {"time": rospy.get_time(), "value": "finished"}
         self.learning_thread_stop_event.clear()
             

@@ -192,8 +192,10 @@ class Manager:
         # check if the last main node is too far away from the sub node
         if last_main_node.distance_to(subnode)>self._cut_threshold:
             return False
+        num_valid_nodes = self._main_graph.get_num_valid_nodes()
         with logger["Lock"]:
                 logger["to_be_updated_mnode_num"]=len(main_nodes)
+                logger["num_valid_node"]=num_valid_nodes
         if len(main_nodes)<1:
             return False
        
@@ -260,8 +262,10 @@ class Manager:
     ):
         # Just sample N random nodes
         mnodes = self._main_graph.get_n_random_valid_nodes(n=node_num)
-        batch_list=[mnode.query_valid_batch() for mnode in mnodes]
-        dataset=VD_dataset(batch_list,combine_batches=True)
+        with ClassContextTimer(parent_obj=self,block_name="query",parent_method_name="make_batch_to_dataset"):
+            batch_list=[mnode.query_valid_batch() for mnode in mnodes]
+        with ClassContextTimer(parent_obj=self,block_name="into VDdataset",parent_method_name="make_batch_to_dataset"):
+            dataset=VD_dataset(batch_list,combine_batches=True)
         
         return dataset
     
@@ -378,9 +382,9 @@ class Manager:
                     self._loss.backward()
                     self._optimizer.step()
             # Print losses
-            if log_step:
-                loss_reco=loss_dict["loss_reco"]
-                loss_pred=loss_dict["loss_pred"]
+            loss_reco=loss_dict["loss_reco"]
+            loss_pred=loss_dict["loss_pred"]
+            if log_step: 
                 print(f"step: {self._step}, loss: {self._loss}, loss_reco: {loss_reco}, loss_pred: {loss_pred}")
             
             # Update steps

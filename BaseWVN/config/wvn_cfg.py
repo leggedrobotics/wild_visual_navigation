@@ -52,7 +52,7 @@ class ParamCollection(Serializable):
         """Parameters for the threads."""
         image_callback_rate: float=1.0
         proprio_callback_rate: float=2.0
-        learning_rate: float=0.2
+        learning_rate: float=0.5
         logging_rate: float=0.5
     
     thread: ThreadParams=ThreadParams()
@@ -111,7 +111,7 @@ class ParamCollection(Serializable):
         update_range_main_graph: float=5
         cut_threshold: float=1.0
         edge_dist_thr_main_graph: float=1
-        min_samples_for_training: int=6
+        min_samples_for_training: int=2
         
         vis_node_index: int=10
         label_ext_mode: bool=False
