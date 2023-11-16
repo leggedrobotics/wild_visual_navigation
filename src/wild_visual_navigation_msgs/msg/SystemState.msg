@@ -1,16 +1,17 @@
 # Pipeline operation mode
-uint32 mode
+std_msgs/Header header
+string mode
 # Current valid samples
-uint32 mission_graph_num_valid_node
+uint32 main_graph_num_valid_node
 # Training loss
-float32 loss_total
+float32 total_loss
 # Training loss
-float32 loss_trav
+float32 loss_pred
 # Training loss
 float32 loss_reco
+
+float32 confidence
 # Training step
 uint32 step
 # Pause learning flag
 bool pause_learning
-# Traversability thereshold scaling
-float32 scale_traversability_threshold

@@ -19,7 +19,7 @@ class SimpleMLP(torch.nn.Module):
         self.layers = torch.nn.Sequential(*layers)
         self.output_features = hidden_sizes[-1]
 
-    def forward(self, data) -> torch.Tensor:
+    def forward(self, x) -> torch.Tensor:
         # Checked data is correctly memory aligned and can be reshaped
         # If you change something in the dataloader make sure this is still working
         x = self.layers(x)

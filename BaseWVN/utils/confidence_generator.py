@@ -8,7 +8,7 @@ class ConfidenceGenerator(torch.nn.Module):
         method: str = "running_mean",
         log_enabled: bool = False,
         log_folder: str = "/tmp",
-        device: str = "cpu",
+        device: str = "cuda",
     ):
         """Returns a confidence value for each number
 
@@ -47,6 +47,8 @@ class ConfidenceGenerator(torch.nn.Module):
     def update_running_mean(self, x: torch.tensor, x_positive: torch.tensor):
         # We assume the positive samples' loss follows a Gaussian distribution
         # We estimate the parameters empirically
+        if x_positive.device != self.device:
+            x_positive = x_positive.to(self.device)
         self.running_n += x_positive.numel()
         self.running_sum += x_positive.sum()
         self.running_sum_of_squares += (x_positive**2).sum()

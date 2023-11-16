@@ -11,7 +11,7 @@ from nav_msgs.msg import Path
 from anymal_msgs.msg import AnymalState
 from geometry_msgs.msg import PoseStamped, Point,TransformStamped
 from visualization_msgs.msg import Marker
-from wild_visual_navigation_msgs.msg import FeatExtractorOutput,PhyDecoderOutput
+from wild_visual_navigation_msgs.msg import SystemState,PhyDecoderOutput
 import os
 import rospy
 import time
@@ -73,16 +73,33 @@ class MainProcess(NodeForROS):
 
         # Initialize ROS nodes
         self.ros_init()
+        
+        if self.mode!="label":
+            # Init learning thread
+            self.learning_thread_stop_event = Event()
+            self.learning_thread = Thread(target=self.learning_thread_loop, name="learning")
+            self.learning_thread.start()
+        
+        
+        print("Main process node initialized!")
     
     def shutdown_callback(self, *args, **kwargs):
         self.run_status_thread = False
         self.status_thread_stop_event.set()
         self.status_thread.join()
         self.visualize_image_overlay()
-        print(self.timer)
-        rospy.signal_shutdown(f"FeatExtractor Node killed {args}")
-        self.manager.save("results/manager","try1")
+        if self.param.general.timestamp:
+            print(self.timer)
         
+        # self.manager.save("results/manager","try1")
+        
+        if self.mode!="label":
+            self.learning_thread_stop_event.set()
+            self.learning_thread.join()
+        print("Storing learned checkpoint...", end="")
+        self.manager.save_ckpt(self.param.general.model_path,"last_checkpoint.pt")
+        print("done")
+        rospy.signal_shutdown(f"FeatExtractor Node killed {args}")
         sys.exit(0)
     
     def clear_screen(self):
@@ -195,6 +212,7 @@ class MainProcess(NodeForROS):
         freq_pub=rospy.Publisher('/test', Float32, queue_size=10)
         main_graph_pub=rospy.Publisher('/vd_pipeline/main_graph', Path, queue_size=10)
         sub_node_pub=rospy.Publisher('/vd_pipeline/sub_node', Marker, queue_size=10)
+        system_state_pub=rospy.Publisher('/vd_pipeline/system_state', SystemState, queue_size=10)
         # Fill in handler
         self.camera_handler['input_pub']=input_pub
         self.camera_handler['fric_pub']=fric_pub
@@ -204,6 +222,7 @@ class MainProcess(NodeForROS):
         self.camera_handler['freq_pub']=freq_pub
         self.camera_handler['main_graph_pub']=main_graph_pub
         self.camera_handler['sub_node_pub']=sub_node_pub
+        self.camera_handler['system_state_pub']=system_state_pub
         pass
     
     @accumulate_time
@@ -387,6 +406,42 @@ class MainProcess(NodeForROS):
             
         pass
     
+    @accumulate_time
+    def learning_thread_loop(self):
+        rate = rospy.Rate(self.param.thread.learning_rate)
+        i=0
+        # Learning loop
+        while True:     
+            self.system_events["learning_thread_loop"] = {"time": rospy.get_time(), "value": "running"}
+            self.learning_thread_stop_event.wait(timeout=0.01)
+            if self.learning_thread_stop_event.is_set():
+                rospy.logwarn("Stopped learning thread")
+                break
+            with self.log_data["Lock"]:
+                self.log_data[f"learning_thread_step"] = i
+            
+            res=self.manager.train()
+            
+            with self.log_data["Lock"]:
+                self.log_data[f"training_step"] = self.manager.step
+            step_time=rospy.get_time()
+            step=self.manager.step
+            # Publish loss
+            system_state = SystemState()
+            for k in res.keys():
+                if hasattr(system_state, k):
+                    setattr(system_state, k, res[k])
+            system_state.pause_learning=self.manager.pause_learning
+            system_state.mode=self.mode
+            system_state.step=step
+            system_state.header.stamp=rospy.Time.from_sec(step_time)
+            self.camera_handler["system_state_pub"].publish(system_state)
+            rate.sleep()
+            
+            i += 1
+        self.system_events["learning_thread_loop"] = {"time": rospy.get_time(), "value": "finished"}
+        self.learning_thread_stop_event.clear()
+            
     @accumulate_time
     def broadcast_tf_from_matrix(self,matrix, parent_frame, child_frame):
         br=self.camera_br

@@ -4,7 +4,7 @@ import os
 import torch
 import torch.nn.functional as F
 from typing import Optional,Union,Dict
-from BaseWVN.utils import ImageProjector
+from ..utils import ImageProjector
 
 
 class BaseNode:
@@ -272,7 +272,7 @@ class MainNode(BaseNode):
      
     def is_valid(self):
         valid_members = (
-            isinstance(self._features, torch.Tensor)
+            (isinstance(self._features, torch.Tensor) or isinstance(self._features,dict))
             and isinstance(self._supervision_signal_valid, torch.Tensor)
         )
         valid_signals = self._supervision_signal_valid.any() if valid_members else False
@@ -352,14 +352,24 @@ class MainNode(BaseNode):
                 valid_feats: (num_valid, C)
                 valid_masks: (num_valid, C (=2))
         """
+        # transfer the features to the same device as supervision_mask
+        if self._is_feat_compressed:
+            temp_feat={}
+            for key, value in self._features.items():
+                temp_feat[key] = value.to(self._supervision_mask.device)
+        else:
+            temp_feat=self._features.to(self._supervision_mask.device)
+        
+        used_combin=[]
+        
         # first check the real ratio is equal to the ratio in dict
         if not self._is_feat_compressed:
-            return self._features
+            return temp_feat
         else:
             _,H_s,W_s=self._supervision_signal_valid.shape
             valid_feats = []
             valid_masks=[]
-            for key, value in self._features.items():
+            for key, value in temp_feat.items():
                 B,C,H,W=value.shape
                 if H_s/H!=key[0] or W_s/W!=key[1]:
                     raise ValueError("The ratio in feats dict is not equal to the real ratio")
@@ -367,15 +377,24 @@ class MainNode(BaseNode):
                 valid_indices = torch.where(self._supervision_signal_valid[0] == 1)
                 ratio_h,ratio_w=key
                 for h_idx, w_idx in zip(*valid_indices):
+                     
+                    patch_h_idx = h_idx // ratio_h
+                    patch_w_idx = w_idx // ratio_w
+                    # skip the repeated feat
+                    if (patch_h_idx,patch_w_idx) in used_combin:
+                        continue
                     # Extract the mask
                     mask_vec=self._supervision_mask[:,h_idx,w_idx]
                     valid_masks.append(mask_vec)
                     
-                    patch_h_idx = h_idx // ratio_h
-                    patch_w_idx = w_idx // ratio_w
+                    # idx to tensor int
+                    patch_h_idx=torch.tensor(patch_h_idx,dtype=torch.int64)
+                    patch_w_idx=torch.tensor(patch_w_idx,dtype=torch.int64)
                     # Extract the feature vector for the corresponding patch
                     feat_vec = value[:, :, patch_h_idx, patch_w_idx]
                     valid_feats.append(feat_vec)
+                    # record the used combination
+                    used_combin.append((patch_h_idx,patch_w_idx))
             return torch.cat(valid_feats,dim=0),torch.stack(valid_masks,dim=0)
 
 
@@ -459,10 +478,6 @@ if __name__ == '__main__':
     valid_feats,valid_masks=main_node.query_valid_batch()
     # if torch.allclose(main_node.supervision_signal.reshape(2,H,W),supervision_tensor.nan_to_num(0)) :
     #     print("True")
-    
-    
-    
-
     
     
     pass
