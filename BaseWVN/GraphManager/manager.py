@@ -349,5 +349,51 @@ class Manager:
 
             print(f"Loaded checkpoint from file {checkpoint_path}")
             self._pause_training = False
+    
+    @accumulate_time
+    def train(self):
+        """Runs one step of the training loop
+        It samples a batch, and optimizes the model.
+        It also updates a copy of the model for inference
+
+        """
+        if self._pause_training:
+            return {}
         
+        num_valid_nodes = self._main_graph.get_num_valid_nodes()
+        return_dict = {"main_graph_num_valid_node": num_valid_nodes}
+        if num_valid_nodes > self._min_samples_for_training:
+            # Prepare new batch
+            dataset=self.make_batch_to_dataset(self._min_samples_for_training)
+            with self._learning_lock:
+                for batch_idx in range(dataset.get_batch_num()):     
+                    # Forward pass
+                    res = self._model(dataset.get_x(batch_idx))
+                    
+                    log_step = (self._step % 20) == 0
+                    self._loss,confidence,loss_dict = self._phy_loss(dataset, res, step=self._step, log_step=log_step,batch_idx=batch_idx)
+                    
+                    # Backprop
+                    self._optimizer.zero_grad()
+                    self._loss.backward()
+                    self._optimizer.step()
+            # Print losses
+            if log_step:
+                loss_reco=loss_dict["loss_reco"]
+                loss_pred=loss_dict["loss_pred"]
+                print(f"step: {self._step}, loss: {self._loss}, loss_reco: {loss_reco}, loss_pred: {loss_pred}")
+            
+            # Update steps
+            self._step += 1
+            
+            return_dict["total_loss"] = self._loss.item()
+            return_dict["confidence"] = confidence.mean().item()
+            return_dict["loss_reco"] = loss_reco.item()
+            return_dict["loss_pred"] = loss_pred.item()
+            
+            return return_dict
+        else:
+            return_dict["total_loss"] = -1
+            return return_dict
+            
         

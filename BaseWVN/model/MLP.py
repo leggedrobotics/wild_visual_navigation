@@ -1,7 +1,5 @@
 import torch
-from torch_geometric.data import Data
 import torch.nn.functional as F
-
 
 class SimpleMLP(torch.nn.Module):
     def __init__(self, input_size: int = 64, hidden_sizes: [int] = [255], reconstruction: bool = False):
@@ -21,11 +19,8 @@ class SimpleMLP(torch.nn.Module):
         self.layers = torch.nn.Sequential(*layers)
         self.output_features = hidden_sizes[-1]
 
-    # TODO:NOT USE Data, use my own 
-    def forward(self, data: Data) -> torch.Tensor:
-        x = data.x
+    def forward(self, data) -> torch.Tensor:
         # Checked data is correctly memory aligned and can be reshaped
         # If you change something in the dataloader make sure this is still working
         x = self.layers(x)
-        x[:, : self.nr_sigmoid_layers] = torch.sigmoid(x[:, : self.nr_sigmoid_layers])
         return x

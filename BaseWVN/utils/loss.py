@@ -52,7 +52,7 @@ class PhyLoss(nn.Module):
 
         loss_final=self._w_pred*loss_pred_raw.mean()+self._w_recon*loss_reco.mean()
         
-        return loss_final, confidence
+        return loss_final, confidence,{"loss_pred":loss_pred_raw.mean(),"loss_reco":loss_reco.mean()}
         
     def normalize_tensor(self,tensor):
         # Assuming tensor shape is [batch_size, 2]

@@ -15,27 +15,24 @@ class VD_dataset(Dataset):
             xs, ys = zip(*list_of_batches)
             self.xs = torch.cat(xs, dim=0)
             self.ys = torch.cat(ys, dim=0)
+            self.batches=[(self.xs,self.ys)]
         else:
             # Keep batches separate
             self.batches = list_of_batches
 
     def __len__(self):
-        if self.combine_batches:
-            return len(self.xs)
-        else:
-            return sum(len(batch[0]) for batch in self.batches)
+        return sum(len(batch[0]) for batch in self.batches)
 
     def __getitem__(self, index):
-        if self.combine_batches:
-            return self.xs[index], self.ys[index]
-        else:
-            # Find the right batch and index within that batch
-            for x_batch, y_batch in self.batches:
-                if index < len(x_batch):
-                    return x_batch[index], y_batch[index]
-                index -= len(x_batch)
-            raise IndexError("Index out of range")
+        # Find the right batch and index within that batch
+        for x_batch, y_batch in self.batches:
+            if index < len(x_batch):
+                return x_batch[index], y_batch[index]
+            index -= len(x_batch)
+        raise IndexError("Index out of range")
     
+    def get_batch_num(self):
+        return len(self.batches)
 
     def get_x(self,batch_idx=None):
         if self.combine_batches:
@@ -65,6 +62,7 @@ class VD_dataset(Dataset):
             new_xs, new_ys = zip(*new_list_of_batches)
             self.xs = torch.cat([self.xs] + list(new_xs), dim=0)
             self.ys = torch.cat([self.ys] + list(new_ys), dim=0)
+            self.batches=[(self.xs,self.ys)]
         else:
             # If batches are separate, extend the list
             self.batches.extend(new_list_of_batches)
@@ -87,8 +85,8 @@ if __name__=="__main__":
     x_dim=5
     y_dim=2
     list_of_batches = [(torch.randn(batch_size1, x_dim), torch.randn(batch_size1, y_dim)), (torch.randn(batch_size2, x_dim), torch.randn(batch_size2, y_dim))]
-    dataset = VD_dataset(list_of_batches, combine_batches=False)
-    
+    dataset = VD_dataset(list_of_batches, combine_batches=True)
+    ss=dataset[1]
     batch_size1=20
     batch_size2=35
     x_dim=5

@@ -111,6 +111,7 @@ class ParamCollection(Serializable):
         cut_threshold: float=1.0
         edge_dist_thr_main_graph: float=1
         min_samples_for_training: int=10
+        
         vis_node_index: int=10
         label_ext_mode: bool=False
         extraction_store_folder: str='LabelExtraction'
@@ -126,7 +127,7 @@ class ParamCollection(Serializable):
         @dataclass
         class SimpleMlpCfgParams:
             input_size: int = 384
-            hidden_sizes: List[int] = field(default_factory=lambda: [256, 32, 1])
+            hidden_sizes: List[int] = field(default_factory=lambda: [256, 64, 2])
             reconstruction: bool = True
             
             def to_dict(self):

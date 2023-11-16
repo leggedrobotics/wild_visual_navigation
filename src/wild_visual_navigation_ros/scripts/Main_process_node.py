@@ -43,12 +43,6 @@ class MainProcess(NodeForROS):
                                                input_size=self.input_size,
                                                interp=self.interp,
                                                center_crop=self.center_crop)
-        # Init confidence generator
-        self.confidence_generator = ConfidenceGenerator(std_factor=self.confidence_std_factor,
-                                                        method=self.method,
-                                                        log_enabled=self.log_enabled,
-                                                        log_folder=self.log_folder,
-                                                        device=self.device)
         
         # Init graph manager
         self.manager = Manager(device=self.device,
@@ -59,7 +53,6 @@ class MainProcess(NodeForROS):
                                phy_dim=self.param.feat.physical_dim,)
         
         
-
         # Init Camera handler
         self.camera_handler = {}
         self.system_events = {}
