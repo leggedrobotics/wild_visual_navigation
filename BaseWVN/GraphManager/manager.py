@@ -40,6 +40,7 @@ class Manager:
         self._cut_threshold=graph_params.cut_threshold
         self._edge_dist_thr_main_graph=graph_params.edge_dist_thr_main_graph
         self._extraction_store_folder=graph_params.extraction_store_folder
+        self._random_sample_num=graph_params.random_sample_num
         
         self.last_sub_node=None
         
@@ -265,7 +266,7 @@ class Manager:
         with ClassContextTimer(parent_obj=self,block_name="query",parent_method_name="make_batch_to_dataset"):
             batch_list=[mnode.query_valid_batch() for mnode in mnodes]
         with ClassContextTimer(parent_obj=self,block_name="into VDdataset",parent_method_name="make_batch_to_dataset"):
-            dataset=VD_dataset(batch_list,combine_batches=True)
+            dataset=VD_dataset(batch_list,combine_batches=True,random_num=self._random_sample_num)
         
         return dataset
       

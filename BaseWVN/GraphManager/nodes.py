@@ -352,6 +352,8 @@ class MainNode(BaseNode):
                 valid_feats: (num_valid, C)
                 valid_masks: (num_valid, C (=2))
         """
+        # an option whether or not to select the unique feat (the first occurence) within a patch
+        unique=False
         # transfer the features to the same device as supervision_mask
         if self._is_feat_compressed:
             temp_feat={}
@@ -359,48 +361,56 @@ class MainNode(BaseNode):
                 temp_feat[key] = value.to(self._supervision_mask.device)
         else:
             temp_feat=self._features.to(self._supervision_mask.device)
-        
-        
-        
+
         # first check the real ratio is equal to the ratio in dict
         if not self._is_feat_compressed:
             return temp_feat
         else:
             _,H_s,W_s=self._supervision_signal_valid.shape
             valid_indices = torch.where(self._supervision_signal_valid[0] == 1)
+            h_indices, w_indices = valid_indices
+            scale_layer=0
+            all_selected_feats=[]
             for key, value in temp_feat.items():
                 B,C,H,W=value.shape
                 if H_s/H!=key[0] or W_s/W!=key[1]:
                     raise ValueError("The ratio in feats dict is not equal to the real ratio")
-                ratio_h,ratio_w=key
-                             
+                ratio_h,ratio_w=key        
                 # Vectorize the computation of patch indices
-                h_indices, w_indices = valid_indices
                 patch_h_indices = h_indices // ratio_h
                 patch_w_indices = w_indices // ratio_w
                 patch_h_indices = patch_h_indices.type(torch.int64)
                 patch_w_indices = patch_w_indices.type(torch.int64)
-                # Identify unique indices and corresponding unique masks and features
-                unique_indices, inverse_indices = torch.unique(torch.stack([patch_h_indices, patch_w_indices], dim=1), 
-                                                            dim=0, 
-                                                            return_inverse=True)
-                selected_feats=value[:, :, unique_indices[:, 0], unique_indices[:, 1]]
-                selected_feats=selected_feats.squeeze(0).permute(1,0)
-                             
-                # Initialize a tensor to store the selected masks
-                selected_masks = torch.zeros_like(self._supervision_mask[:, 0:unique_indices.shape[0], 0])
-                # Vectorized extraction of masks using advanced indexing
-                inverse_indices_expand=inverse_indices.unsqueeze(0).expand(unique_indices.shape[0],-1)
-                comp_expand=torch.arange(unique_indices.shape[0]).to(inverse_indices.device).unsqueeze(1).expand(-1,inverse_indices.shape[0])
-                matching_positions = torch.where(inverse_indices_expand == comp_expand)
                 
-                # Calculate the difference between neighboring elements in matching_positions[0]
-                differences = torch.diff(matching_positions[0], prepend=torch.tensor([-1], device=inverse_indices.device))
-                # Identify non-zero differences, indicating the start of a new unique index
-                first_occurrences = matching_positions[1][differences != 0]
-                selected_masks = self._supervision_mask[:, h_indices[first_occurrences], w_indices[first_occurrences]].permute(1,0)
-
-            return selected_feats,selected_masks
+                if unique:
+                    # Identify unique indices and corresponding unique masks and features
+                    unique_indices, inverse_indices = torch.unique(torch.stack([patch_h_indices, patch_w_indices], dim=1), 
+                                                                dim=0, 
+                                                                return_inverse=True)
+                    selected_feats=value[:, :, unique_indices[:, 0], unique_indices[:, 1]]
+                    selected_feats=selected_feats.squeeze(0).permute(1,0)
+                                
+                    # Initialize a tensor to store the selected masks
+                    selected_masks = torch.zeros_like(self._supervision_mask[:, 0:unique_indices.shape[0], 0])
+                    # Vectorized extraction of masks using advanced indexing
+                    inverse_indices_expand=inverse_indices.unsqueeze(0).expand(unique_indices.shape[0],-1)
+                    comp_expand=torch.arange(unique_indices.shape[0]).to(inverse_indices.device).unsqueeze(1).expand(-1,inverse_indices.shape[0])
+                    matching_positions = torch.where(inverse_indices_expand == comp_expand)
+                    
+                    # Calculate the difference between neighboring elements in matching_positions[0]
+                    differences = torch.diff(matching_positions[0], prepend=torch.tensor([-1], device=inverse_indices.device))
+                    # Identify non-zero differences, indicating the start of a new unique index
+                    first_occurrences = matching_positions[1][differences != 0]
+                    selected_masks = self._supervision_mask[:, h_indices[first_occurrences], w_indices[first_occurrences]].permute(1,0)
+                    all_selected_feats.append(selected_feats)
+                else:
+                    selected_feats=value[:, :, patch_h_indices, patch_w_indices]
+                    selected_feats=selected_feats.squeeze(0).permute(1,0)
+                    all_selected_feats.append(selected_feats)
+                    if scale_layer==0:
+                        selected_masks = self._supervision_mask[:, h_indices, w_indices].permute(1,0)
+                scale_layer+=1
+            return torch.cat(all_selected_feats,dim=1),selected_masks
 
 class SubNode(BaseNode):
     """Local node stores all the information required for traversability estimation and debugging
