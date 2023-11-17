@@ -357,10 +357,14 @@ class TraversabilityEstimator:
             if (not hasattr(last_mission_node, "supervision_mask")) or (last_mission_node.supervision_mask is None):
                 return False
 
-            # Get all mission nodes within a range
             mission_nodes = self._mission_graph.get_nodes_within_radius_range(
-                last_mission_node, 0, self._proprio_graph.max_distance, metric="dijkstra"   # pose or dijkstra
+                last_mission_node, 0, self._proprio_graph.max_distance, metric="pose"  # pose or dijkstra
             )
+
+            center_nodes = self._mission_graph.get_nodes_within_radius_range(
+                last_mission_node, 0, self._proprio_graph.max_distance / 2, metric="pose"  # pose or dijkstra
+            )
+            center_node = center_nodes[0]
 
             if len(mission_nodes) < 1:
                 return False
@@ -378,10 +382,6 @@ class TraversabilityEstimator:
             )
             pose_camera_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
             pose_base_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
-            # pose_pc_in_base = torch.eye(4, device=self._device).repeat(B, 1, 1)
-            # pose_pc_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
-            pose_pc_in_base = {}
-            pose_pc_in_world = {}
 
             H = last_mission_node.image_projector.camera.height
             W = last_mission_node.image_projector.camera.width
@@ -397,6 +397,9 @@ class TraversabilityEstimator:
                 else:
                     supervision_masks[i] = mnode.supervision_mask   # Getting all the existing supervision masks
 
+            center_pose = pose_base_in_world[-1].to("cpu").inverse() @ center_node.pose_base_in_world.to("cpu")
+            center_pose = center_pose.to(self._device).repeat(B, 1, 1)
+
             im = ImageProjector(K, H, W)
 
             map_resolution = self._map_resolution
@@ -405,7 +408,7 @@ class TraversabilityEstimator:
             if projection_mode == "image":
                 mask, _, _, _ = im.project_and_render(pose_camera_in_world, footprints, color)  # Generating the new supervisiom mask to add
             elif projection_mode == "map":
-                mask, _ = im.project_and_render_on_map(pose_base_in_world, footprints, color, map_resolution, map_size)
+                mask = im.project_and_render_on_map(pose_base_in_world, footprints, color, map_resolution, map_size, center_pose=center_pose)
 
             # Update traversability
             # mask = mask * pnode.traversability
@@ -426,16 +429,6 @@ class TraversabilityEstimator:
                         "mask",
                         str(mnode.timestamp).replace(".", "_") + ".pt",
                     ))
-
-                    # Write as grid map msg and save as rosbag
-                    # mask_torch = mask.cpu().numpy()[np.newaxis, ...].astype(np.uint8)
-                    # mask_msg = self.torch_array_to_grid_map(mask_torch, res=0.1, layers=["target"],
-                    #                                         timestamp=rospy.Time.from_sec(mnode.timestamp),
-                    #                                         reference_frame="odom", x=0, y=0)
-                    # # Hack to also publish a clock and record a new bag
-                    # # print(rospy.Time.from_sec(mnode.timestamp))
-                    # self.pub_clock.publish(rospy.Time.from_sec(mnode.timestamp))
-                    # self.pub_grid_map.publish(mask_msg)
 
                     # Save mask as jpg
                     mask_jpg = mask.cpu().numpy().astype(np.uint8) * 255

@@ -193,7 +193,7 @@ class ImageProjector:
         return self.masks, image_overlay, projected_points, valid_points
 
     def project_and_render_on_map(
-        self, pose_base_in_world: torch.tensor, points: torch.tensor, colors: torch.tensor, map_resolution: float, map_size: int, image: torch.tensor = None
+        self, pose_base_in_world: torch.tensor, points: torch.tensor, colors: torch.tensor, map_resolution: float, map_size: int, center_pose: torch.tensor = None
         ):
         """Projects the points and returns an image with the projection
 
@@ -214,15 +214,22 @@ class ImageProjector:
         H = map_size
         W = map_size
         self.masks = torch.zeros((B, C, H, W), dtype=torch.float32, device=self.camera.camera_matrix.device)
-        image_overlay = image
 
         T_BW = pose_base_in_world.inverse()
         # Convert from fixed to base frame
         points_B = transform_points(T_BW, points)
 
+        # Convert from last node base frame to center node base frame
+        if center_pose is not None:
+            T_BW_relative = center_pose
+            points_B = transform_points(T_BW_relative, points_B)
+
         # Remove z dimension
         # TODO: project footprint on gravity aligned plane
         flat_points = points_B[:, :, :-1]   # (B, N, 2)
+
+        # Flip x axis
+        # flat_points[:, :, 0] = -flat_points[:, :, 0]
 
         # Center index of flat_points for first dimentions
         # Hack to center points
@@ -237,16 +244,10 @@ class ImageProjector:
         # Fill the mask
         self.masks = draw_convex_polygon(self.masks, flat_points, colors)
 
-        # Draw on image (if applies)
-        if image is not None:
-            if len(image.shape) != 4:
-                image = image[None]
-            image_overlay = draw_convex_polygon(image, flat_points, colors)
-
         # Return torch masks
         self.masks[self.masks == 0.0] = torch.nan
 
-        return self.masks, image_overlay
+        return self.masks
 
     def resize_image(self, image: torch.tensor):
         return self.image_crop(image)
