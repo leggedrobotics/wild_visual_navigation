@@ -268,7 +268,7 @@ class Manager:
             dataset=VD_dataset(batch_list,combine_batches=True)
         
         return dataset
-    
+      
     def save(self, manager_path: str, filename: str):
         """Saves a pickled file of the Manager class
 

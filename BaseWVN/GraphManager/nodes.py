@@ -360,6 +360,8 @@ class MainNode(BaseNode):
         else:
             temp_feat=self._features.to(self._supervision_mask.device)
         
+        
+        
         # first check the real ratio is equal to the ratio in dict
         if not self._is_feat_compressed:
             return temp_feat
@@ -397,9 +399,8 @@ class MainNode(BaseNode):
                 # Identify non-zero differences, indicating the start of a new unique index
                 first_occurrences = matching_positions[1][differences != 0]
                 selected_masks = self._supervision_mask[:, h_indices[first_occurrences], w_indices[first_occurrences]].permute(1,0)
- 
-            return selected_feats,selected_masks
 
+            return selected_feats,selected_masks
 
 class SubNode(BaseNode):
     """Local node stores all the information required for traversability estimation and debugging
@@ -462,8 +463,9 @@ if __name__ == '__main__':
     first_tensor = torch.rand((1, H, W))
     second_tensor = torch.rand((1, H, W)) * 9 + 1  # Scaling and shifting to get values from 1 to 10
     supervision_tensor = torch.cat((first_tensor, second_tensor), dim=0)
-   
-    supervision_tensor[:,2:,2:]=supervision_tensor[:,2:,2:]*torch.nan
+    super_copy=supervision_tensor.clone()*torch.nan
+    
+    super_copy[:,1:3,2:5]=supervision_tensor[:,1:3,2:5]
 
     # Generate a (3, H, W) random tensor with values from 0 to 1
     img_tensor = torch.rand((3, H, W))
@@ -476,15 +478,11 @@ if __name__ == '__main__':
     }
     
     main_node=MainNode(features=features,segments=mask_tensor,image=img_tensor)
-    main_node.supervision_mask=supervision_tensor
+    main_node.supervision_mask=super_copy
     main_node.update_supervision_signal()
     valid_feats,valid_masks=main_node.query_valid_batch()
-    valid_feats_s,valid_masks_s=main_node.query_valid_batch(fast=False)
     print(valid_feats.shape)
-    if torch.allclose(valid_feats,valid_feats_s) and torch.allclose(valid_masks,valid_masks_s):
-        print("True")
-    # if torch.allclose(main_node.supervision_signal.reshape(2,H,W),supervision_tensor.nan_to_num(0)) :
-    #     print("True")
+
     
     
     pass

@@ -32,7 +32,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: PointCloud2
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -67,348 +67,7 @@ Visualization Manager:
         Expand Joint Details: false
         Expand Link Details: false
         Expand Tree: false
-        LF_FOOT:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        LF_HAA_drive:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        LF_HFE_drive:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        LF_HFE_output:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        LF_HIP:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        LF_KFE_drive:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        LF_SHANK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        LF_THIGH:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        LF_hip_fixed:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        LF_shank_fixed:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        LF_thigh_fixed:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        LH_FOOT:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        LH_HAA_drive:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        LH_HFE_drive:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        LH_HFE_output:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        LH_HIP:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        LH_KFE_drive:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        LH_SHANK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        LH_THIGH:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        LH_hip_fixed:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        LH_shank_fixed:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        LH_thigh_fixed:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
         Link Tree Style: Links in Alphabetic Order
-        RF_FOOT:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        RF_HAA_drive:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        RF_HFE_drive:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        RF_HFE_output:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        RF_HIP:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        RF_KFE_drive:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        RF_SHANK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        RF_THIGH:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        RF_hip_fixed:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        RF_shank_fixed:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        RF_thigh_fixed:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        RH_FOOT:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        RH_HAA_drive:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        RH_HFE_drive:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        RH_HFE_output:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        RH_HIP:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        RH_KFE_drive:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        RH_SHANK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        RH_THIGH:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        RH_hip_fixed:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        RH_shank_fixed:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        RH_thigh_fixed:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        base:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        base_inertia:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        battery:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        body_top:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        bottom_shell:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        depth_camera_front_lower_camera:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        depth_camera_front_lower_camera_parent:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        depth_camera_front_upper_camera:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        depth_camera_front_upper_camera_parent:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        depth_camera_left_camera:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        depth_camera_left_camera_parent:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        depth_camera_rear_lower_camera:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        depth_camera_rear_lower_camera_parent:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        depth_camera_rear_upper_camera:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        depth_camera_rear_upper_camera_parent:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        depth_camera_right_camera:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        depth_camera_right_camera_parent:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        docking_socket:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        face_front:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        face_rear:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        face_shell_front:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        face_shell_rear:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        hatch_shell:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        hbc_receiver:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        imu_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        lidar:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        lidar_parent:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        top_shell:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        wide_angle_camera_front_camera:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        wide_angle_camera_front_camera_parent:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        wide_angle_camera_rear_camera:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        wide_angle_camera_rear_camera_parent:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
       Name: RobotModel
       Robot Description: anymal_description
       TF Prefix: ""
@@ -438,7 +97,7 @@ Visualization Manager:
         WrenchStamped: true
       Zoom Factor: 1
     - Class: rviz/Image
-      Enabled: true
+      Enabled: false
       Image Topic: /v4l2_camera/image_raw_throttle
       Max Value: 1
       Median window: 5
@@ -448,7 +107,7 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: compressed
       Unreliable: false
-      Value: true
+      Value: false
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
@@ -697,11 +356,7 @@ Visualization Manager:
       Marker Topic: /vd_pipeline/visualization_planes
       Name: MarkerArray
       Namespaces:
-        LF_FOOT: true
-        LH_FOOT: true
-        RF_FOOT: true
-        RH_FOOT: true
-        footprint: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -756,7 +411,7 @@ Visualization Manager:
       Update Interval: 0
       Value: false
     - Class: rviz/Image
-      Enabled: true
+      Enabled: false
       Image Topic: /wide_angle_camera_front/image_color_rect
       Max Value: 1
       Median window: 5
@@ -766,9 +421,9 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: compressed
       Unreliable: false
-      Value: true
+      Value: false
     - Class: rviz/Image
-      Enabled: false
+      Enabled: true
       Image Topic: /wide_angle_camera_rear/image_color_rect
       Max Value: 1
       Median window: 5
@@ -778,7 +433,7 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: compressed
       Unreliable: false
-      Value: false
+      Value: true
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
@@ -804,7 +459,7 @@ Visualization Manager:
       Unreliable: false
       Value: true
     - Class: rviz/Image
-      Enabled: false
+      Enabled: true
       Image Topic: /wide_angle_camera_rear/image_color_rect
       Max Value: 1
       Median window: 5
@@ -814,7 +469,7 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: compressed
       Unreliable: false
-      Value: false
+      Value: true
     - Class: rviz/Image
       Enabled: false
       Image Topic: /v4l2_camera/image_raw_throttle
