@@ -111,6 +111,34 @@ Manager                               total [ms]    count [n]        std [ms]   
   +------  query:                     425.54        5                52.881         85.108          
   +------  into VDdataset:            1.34          5                0.291          0.267           
   +-  make_batch_to_dataset:          495.68        5                62.489         99.135 
+  
+  
+  
+  
+Main_process                          total [ms]    count [n]        std [ms]       mean [ms]
+  +-  broadcast_tf_from_matrix:       151.91        101              2.962          1.504           
+  +-  visualize_main_graph:           34715.2       101              3166.781       343.715         
+  +-  camera_callback:                57164.47      1484             841.08         38.521          
+  +-  phy_decoder_callback:           51670.57      2021             712.704        25.567          
+  +-  learning_thread_loop:           104238.66     1                0.0            104238.656      
+Manager                               total [ms]    count [n]        std [ms]       mean [ms]
+  +-  train:                          6907.15       48               123.602        143.899         
+  +-  add_main_node:                  853.44        101              18.814         8.45            
+  +-  update_visualization_node:      490.21        48               14.615         10.213          
+  +-  add_sub_node:                   6661.8        184              77.912         36.205          
+  +------  reprojection_main:         3281.83       100              81.573         32.818          
+  +------  reprojection_main_1:       2348.57       235              43.477         9.994           
+  +------  query:                     3802.22       36               30.543         105.617         
+  +------  into VDdataset:            497.12        36               32.379         13.809          
+  +-  make_batch_to_dataset:          4683.62       36               45.978         130.1 
+  
+  
+  
+  
+  
+  
+  
+  
   def query_valid_batch(self,fast=True):
         """ Since the feat is compressed with ratio info in dict, we need to query the valid feat
             given supervision_signal_valid ---> get the dataset for model training

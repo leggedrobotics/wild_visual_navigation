@@ -11,7 +11,8 @@ d="debug+label"
 if "debug" in d:
     print("yes")
 model_folder=WVN_ROOT_DIR+"/model"
-
+manage_folder=WVN_ROOT_DIR+"/results/manager"
 m=torch.load(model_folder+"/last_checkpoint.pt")
-print(sum([]))
+d=torch.load(manage_folder+"/graph_data.pt")
+
 pass

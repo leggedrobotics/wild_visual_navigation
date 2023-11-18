@@ -286,11 +286,11 @@ class Manager:
         if not filename.endswith('.pkl') and not filename.endswith('.pickle'):
             output_file_graph = output_file+ '.pkl'  # Append .pkl if not already present
         # self.change_device("cpu")
-        self._learning_lock = None
+        # self._learning_lock = None
         if not filename.endswith('_data.pt') :
             output_file_datasets = output_file+'_data.pt'
         torch.save(self._all_dataset,output_file_datasets)
-        pickle.dump(self, open(output_file_graph, "wb"))
+        # pickle.dump(self, open(output_file_graph, "wb"))
         
         self._pause_training = False
     
