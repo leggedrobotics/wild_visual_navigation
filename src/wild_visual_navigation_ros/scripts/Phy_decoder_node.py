@@ -54,14 +54,12 @@ class PhyDecoder(NodeForROS):
         print("Start waiting for AnymalState topic being published!")
         rospy.wait_for_message(self.anymal_state_topic, AnymalState)
         anymal_state_sub = message_filters.Subscriber(self.anymal_state_topic, AnymalState)
-        cache_anymal_state = message_filters.Cache(anymal_state_sub, 10,allow_headerless=True)
         
         print("Start waiting for Phy_decoder_input topic being published!")
         rospy.wait_for_message(self.phy_decoder_input_topic, Float32MultiArray)
-        phy_decoder_input_sub = message_filters.Subscriber(self.phy_decoder_input_topic, Float32MultiArray)  
-        cache_phy_decoder_input = message_filters.Cache(phy_decoder_input_sub, 200,allow_headerless=True)
+        phy_decoder_input_sub = message_filters.Subscriber(self.phy_decoder_input_topic, Float32MultiArray) 
 
-        self.state_sub=message_filters.ApproximateTimeSynchronizer([anymal_state_sub, phy_decoder_input_sub], queue_size=100,slop=0.2,allow_headerless=True)
+        self.state_sub=message_filters.ApproximateTimeSynchronizer([anymal_state_sub, phy_decoder_input_sub], queue_size=100,slop=0.1,allow_headerless=True)
         
         print("Current ros time is: ",rospy.get_time())
         
@@ -86,6 +84,7 @@ class PhyDecoder(NodeForROS):
         self.system_events["state_callback_received"] = {"time": rospy.get_time(), "value": "message received"}
         msg=PhyDecoderOutput()
         msg.header=anymal_state_msg.header
+        # print((rospy.Time.now()-anymal_state_msg.header.stamp)*1e-9)
         try:
             
             transform=anymal_state_msg.pose

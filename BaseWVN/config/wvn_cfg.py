@@ -115,7 +115,7 @@ class ParamCollection(Serializable):
         random_sample_num: int=100
         
         vis_node_index: int=10
-        label_ext_mode: bool=False
+        label_ext_mode: bool=True 
         extraction_store_folder: str='LabelExtraction'
         use_for_training: bool=True
         

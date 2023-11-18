@@ -49,9 +49,8 @@ class Manager:
         
 
         if self._label_ext_mode:
-            self._main_graph = MaxElementsGraph(edge_distance=self._edge_dist_thr_main_graph, max_elements=200)
-        else:
-            self._main_graph = BaseGraph(edge_distance=self._edge_dist_thr_main_graph)
+            self._all_dataset=[]
+        self._main_graph = BaseGraph(edge_distance=self._edge_dist_thr_main_graph)
         
         # Visualization node
         self._vis_main_node = None
@@ -131,8 +130,11 @@ class Manager:
     @accumulate_time
     def update_visualization_node(self):
         # For the first nodes we choose the visualization node as the last node available
-        if self._main_graph.get_num_valid_nodes() <= self._vis_node_index:
+        valid_num=self._main_graph.get_num_valid_nodes()
+        if valid_num <= self._vis_node_index:
             # self._vis_main_node = self._main_graph.get_nodes()[0]
+            if valid_num==0:
+                return
             self._vis_main_node=self._main_graph.get_valid_nodes()[0]
         else:
 
@@ -282,10 +284,14 @@ class Manager:
         os.makedirs(manager_path, exist_ok=True)
         output_file = os.path.join(manager_path, filename)
         if not filename.endswith('.pkl') and not filename.endswith('.pickle'):
-            output_file += '.pkl'  # Append .pkl if not already present
+            output_file_graph = output_file+ '.pkl'  # Append .pkl if not already present
         # self.change_device("cpu")
         self._learning_lock = None
-        # pickle.dump(self, open(output_file, "wb"))
+        if not filename.endswith('_data.pt') :
+            output_file_datasets = output_file+'_data.pt'
+        torch.save(self._all_dataset,output_file_datasets)
+        pickle.dump(self, open(output_file_graph, "wb"))
+        
         self._pause_training = False
     
     @classmethod
@@ -371,6 +377,8 @@ class Manager:
         if num_valid_nodes > self._min_samples_for_training:
             # Prepare new batch
             dataset=self.make_batch_to_dataset(self._min_samples_for_training)
+            if self._label_ext_mode:
+                self._all_dataset.append(dataset)
             with self._learning_lock:
                 for batch_idx in range(dataset.get_batch_num()):     
                     # Forward pass

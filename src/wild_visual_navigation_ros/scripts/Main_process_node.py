@@ -26,6 +26,7 @@ from prettytable import PrettyTable
 from termcolor import colored
 import PIL.Image
 import tf2_ros
+from liegroups.torch import SE3, SO3
 from pytictac import ClassTimer, ClassContextTimer, accumulate_time
 
 class MainProcess(NodeForROS):
@@ -96,6 +97,10 @@ class MainProcess(NodeForROS):
         if "label" not in self.mode:
             self.learning_thread_stop_event.set()
             self.learning_thread.join()
+        if self.manager._label_ext_mode:
+            self.manager.save("results/manager","graph")
+            
+            
         print("Storing learned checkpoint...", end="")
         self.manager.save_ckpt(self.param.general.model_path,"last_checkpoint.pt")
         print("done")
@@ -188,7 +193,7 @@ class MainProcess(NodeForROS):
         self.camera_handler["W_scaled"] = W_scaled
 
         # Camera and anymal state subscriber
-        camera_sub=message_filters.Subscriber(self.camera_topic, CompressedImage)
+        camera_sub=message_filters.Subscriber(self.camera_topic, CompressedImage,queue_size=1)
         anymal_state_sub = message_filters.Subscriber(self.anymal_state_topic, AnymalState)
         sync= message_filters.ApproximateTimeSynchronizer([camera_sub,anymal_state_sub],queue_size=200,slop=0.2)
         sync.registerCallback(self.camera_callback,self.camera_topic)
@@ -212,6 +217,8 @@ class MainProcess(NodeForROS):
         freq_pub=rospy.Publisher('/test', Float32, queue_size=10)
         main_graph_pub=rospy.Publisher('/vd_pipeline/main_graph', Path, queue_size=10)
         sub_node_pub=rospy.Publisher('/vd_pipeline/sub_node', Marker, queue_size=10)
+        latest_img_pub=rospy.Publisher('/vd_pipeline/latest_img', Marker, queue_size=10)
+        latest_phy_pub=rospy.Publisher('/vd_pipeline/latest_phy', Marker, queue_size=10)
         system_state_pub=rospy.Publisher('/vd_pipeline/system_state', SystemState, queue_size=10)
         # Fill in handler
         self.camera_handler['input_pub']=input_pub
@@ -223,6 +230,8 @@ class MainProcess(NodeForROS):
         self.camera_handler['main_graph_pub']=main_graph_pub
         self.camera_handler['sub_node_pub']=sub_node_pub
         self.camera_handler['system_state_pub']=system_state_pub
+        self.camera_handler['latest_img_pub']=latest_img_pub
+        self.camera_handler['latest_phy_pub']=latest_phy_pub
         pass
     
     @accumulate_time
@@ -230,8 +239,7 @@ class MainProcess(NodeForROS):
         """ 
         callback function for the anymal state subscriber
         """
-        self.system_events["camera_callback_received"] = {"time": rospy.get_time(), "value": "message received"}
-        
+        self.system_events["camera_callback_received"] = {"time": rospy.get_time(), "value": "message received"}    
         try:
             # Run the callback so as to match the desired rate
             ts = img_msg.header.stamp.to_sec()
@@ -268,12 +276,26 @@ class MainProcess(NodeForROS):
                  transform.pose.orientation.w)
             suc, pose_base_in_world = rc.ros_tf_to_numpy((trans,rot))
            
+            if "debug" in self.mode:
+               self.visualize_callback(pose_base_in_world,ts,self.camera_handler["latest_img_pub"],"latest_img")
+           
             if not suc:
                 self.system_events["camera_callback_cancled"] = {
                     "time": rospy.get_time(),
                     "value": "cancled due to pose_base_in_world",
                 }
                 return
+            # if self.manager.last_sub_node is not None:
+            #     gap=SE3.from_matrix(torch.from_numpy(pose_base_in_world).to(self.device).inverse() @ self.manager.last_sub_node.pose_base_in_world, normalize=True).log()[:3].norm()
+            #     if gap>self.param.graph.cut_threshold:
+            #         self.system_events["camera_callback_cancled"] = {
+            #         "time": rospy.get_time(),
+            #         "value": "cancled due to graph distance",
+            #     }
+            #         if self.verbose:
+            #             with self.log_data["Lock"]:
+            #                 self.log_data[f"image_callback"] = "skipping"
+            #         return
             
             # transform the camera pose from base to world
             pose_cam_in_base=self.param.roscfg.rear_camera_in_base
@@ -367,6 +389,10 @@ class MainProcess(NodeForROS):
             self.last_supervision_ts = ts
         
             pose_base_in_world = rc.ros_pose_to_torch(phy_output.base_pose, device=self.device)
+            
+            if "debug" in self.mode:
+               self.visualize_callback(pose_base_in_world,ts,self.camera_handler["latest_phy_pub"],"latest_phy")
+            
             fric=torch.tensor(phy_output.prediction[:4]).to(self.device)
             stiff=torch.tensor(phy_output.prediction[4:]).to(self.device)
             phy_label=torch.stack([fric,stiff],dim=0)
@@ -503,6 +529,27 @@ class MainProcess(NodeForROS):
         # Set the color of the marker
         msg.color = ColorRGBA(1.0, 1.0, 0.0, 1.0)
         self.camera_handler["sub_node_pub"].publish(msg)
+        
+    def visualize_callback(self,pose,stamp,handle,name):
+        # publish the last sub node
+        if isinstance(pose,np.ndarray):
+            pose=torch.from_numpy(pose)
+        msg=Marker()
+        msg.header.frame_id=self.fixed_frame
+        msg.header.stamp=rospy.Time.from_sec(stamp)
+        msg.pose=rc.torch_to_ros_pose(pose)
+        msg.type=Marker.CUBE
+        msg.action=Marker.ADD
+        msg.scale.x = 0.2  # size in meters
+        msg.scale.y = 0.2
+        msg.scale.z = 0.2
+
+        # Set the color of the marker
+        if name=="latest_img":
+            msg.color = ColorRGBA(0.0, 1.0, 0.0, 1.0)
+        elif name=="latest_phy":
+            msg.color = ColorRGBA(1.0, 1.0, 0.0, 1.0)
+        handle.publish(msg)
     
     
     @accumulate_time

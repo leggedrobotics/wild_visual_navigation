@@ -13,4 +13,5 @@ if "debug" in d:
 model_folder=WVN_ROOT_DIR+"/model"
 
 m=torch.load(model_folder+"/last_checkpoint.pt")
+print(sum([]))
 pass
