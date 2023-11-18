@@ -181,7 +181,7 @@ class PhyDecoder(NodeForROS):
 
             # Publish results
             self.decoder_handler['phy_decoder_pub'].publish(msg)
-            if self.mode == "debug":
+            if "debug" in self.mode:
                 self.visualize_plane(msg)
             
         

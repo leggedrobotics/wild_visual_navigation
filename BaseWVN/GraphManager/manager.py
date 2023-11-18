@@ -131,11 +131,12 @@ class Manager:
     @accumulate_time
     def update_visualization_node(self):
         # For the first nodes we choose the visualization node as the last node available
-        if self._main_graph.get_num_nodes() <= self._vis_node_index:
-            self._vis_main_node = self._main_graph.get_nodes()[0]
+        if self._main_graph.get_num_valid_nodes() <= self._vis_node_index:
+            # self._vis_main_node = self._main_graph.get_nodes()[0]
+            self._vis_main_node=self._main_graph.get_valid_nodes()[0]
         else:
 
-            self._vis_main_node = self._main_graph.get_nodes()[-self._vis_node_index]
+            self._vis_main_node = self._main_graph.get_valid_nodes()[-self._vis_node_index]
         
         # check the head distance between main and sub graph
         last_main_node = self._main_graph.get_last_node()

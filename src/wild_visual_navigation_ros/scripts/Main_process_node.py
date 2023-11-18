@@ -74,7 +74,7 @@ class MainProcess(NodeForROS):
         # Initialize ROS nodes
         self.ros_init()
         
-        if self.mode!="label":
+        if "label" not in self.mode:
             # Init learning thread
             self.learning_thread_stop_event = Event()
             self.learning_thread = Thread(target=self.learning_thread_loop, name="learning")
@@ -93,7 +93,7 @@ class MainProcess(NodeForROS):
         
         # self.manager.save("results/manager","try1")
         
-        if self.mode!="label":
+        if "label" not in self.mode:
             self.learning_thread_stop_event.set()
             self.learning_thread.join()
         print("Storing learned checkpoint...", end="")
@@ -246,7 +246,7 @@ class MainProcess(NodeForROS):
                         self.log_data[f"image_callback"] = "processing"
             
             self.log_data[f"ros_time_now"] = rospy.get_time()
-            if self.mode == "debug":
+            if "debug" in self.mode:
                 # pub for testing frequency
                 freq_pub = self.camera_handler['freq_pub']
                 msg=Float32()
@@ -326,7 +326,7 @@ class MainProcess(NodeForROS):
             
             # add to main graph
             added_new_node=self.manager.add_main_node(main_node,verbose=self.verbose,logger=self.log_data)
-            if self.mode =="debug":
+            if "debug" in self.mode:
                 # publish the main graph
                 self.visualize_main_graph()
                 if added_new_node:
@@ -387,7 +387,7 @@ class MainProcess(NodeForROS):
             # add subnode 
             self.manager.add_sub_node(sub_node,logger=self.log_data)
 
-            if self.mode =="debug":
+            if "debug" in self.mode:
                 self.visualize_sub_node()
             self.system_events["phy_decoder_callback_state"] = {
                     "time": rospy.get_time(),
