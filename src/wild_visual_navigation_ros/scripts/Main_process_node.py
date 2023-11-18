@@ -180,7 +180,7 @@ class MainProcess(NodeForROS):
         ratio_x,ratio_y=self.feat_extractor.resize_ratio
 
         # scale the intrinsic matrix
-        K_scaled=self.scale_intrinsic(K,ratio_x,ratio_y)
+        K_scaled=rc.scale_intrinsic(K,ratio_x,ratio_y)
         W_scaled,H_scaled=self.feat_extractor.new_size
         # update the camera info
         self.camera_handler["K_scaled"] = K_scaled
@@ -437,6 +437,9 @@ class MainProcess(NodeForROS):
             system_state.header.stamp=rospy.Time.from_sec(step_time)
             self.camera_handler["system_state_pub"].publish(system_state)
             # rate.sleep()
+            # save model every 10 steps
+            if i % 10 == 0:
+                self.manager.save_ckpt(self.param.general.model_path,f"checkpoint_{step}.pt")
             i += 1
             time.sleep(1/self.param.thread.learning_rate)
             
@@ -471,20 +474,6 @@ class MainProcess(NodeForROS):
 
         br.sendTransform(t)
     
-    @accumulate_time
-    def scale_intrinsic(self,K:torch.tensor,ratio_x,ratio_y):
-        """ 
-        scale the intrinsic matrix
-        """
-        # dimension check of K
-        if K.shape[2]!=4 or K.shape[1]!=4:
-            raise ValueError("The dimension of the intrinsic matrix is not 4x4!")
-        K_scaled = K.clone()
-        K_scaled[:,0,0]=K[:,0,0]*ratio_x
-        K_scaled[:,0,2]=K[:,0,2]*ratio_x
-        K_scaled[:,1,1]=K[:,1,1]*ratio_y
-        K_scaled[:,1,2]=K[:,1,2]*ratio_y
-        return K_scaled
     
     def load_model(self):
         """ 

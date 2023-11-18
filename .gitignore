@@ -58,4 +58,5 @@ BaseWVN.egg-info/
 image/
 image/hiking_feat.png
 results/
+model/
 src/ros_comm-dev

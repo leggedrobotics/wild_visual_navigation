@@ -1,10 +1,10 @@
 import cv2
-from geometry_msgs.msg import Pose,Point
+from geometry_msgs.msg import Pose,Point,TransformStamped
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Image, CompressedImage, CameraInfo
 from wild_visual_navigation_msgs.msg import PlaneEdge
 from cv_bridge import CvBridge
-
+import rospy
 from liegroups.torch import SO3, SE3
 from numba import jit
 import numpy as np
@@ -189,3 +189,18 @@ def numpy_to_ros_image(np_img, desired_encoding="rgb8"):
     """
     ros_image = CV_BRIDGE.cv2_to_imgmsg(np_img, encoding=desired_encoding)
     return ros_image
+
+def scale_intrinsic(K:torch.tensor,ratio_x,ratio_y):
+    """ 
+    scale the intrinsic matrix
+    """
+    # dimension check of K
+    if K.shape[2]!=4 or K.shape[1]!=4:
+        raise ValueError("The dimension of the intrinsic matrix is not 4x4!")
+    K_scaled = K.clone()
+    K_scaled[:,0,0]=K[:,0,0]*ratio_x
+    K_scaled[:,0,2]=K[:,0,2]*ratio_x
+    K_scaled[:,1,1]=K[:,1,1]*ratio_y
+    K_scaled[:,1,2]=K[:,1,2]*ratio_y
+    return K_scaled
+

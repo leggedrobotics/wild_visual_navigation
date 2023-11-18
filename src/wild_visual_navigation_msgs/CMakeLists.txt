@@ -19,6 +19,7 @@ add_message_files(
   PlaneEdge.msg
   PhyDecoderOutput.msg
   FeatExtractorOutput.msg
+  FeatInfo.msg
 )
 
 add_service_files(
