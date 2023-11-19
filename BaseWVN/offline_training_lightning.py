@@ -12,6 +12,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers.neptune import NeptuneLogger
 from pytorch_lightning import Trainer
 import torch.nn.functional as F
+from torchvision.transforms.functional import to_tensor
 class DecoderLightning(pl.LightningModule):
     def __init__(self,model,params:ParamCollection):
         super().__init__()
@@ -104,6 +105,21 @@ def load_test_image(folder, file):
     img = (img.type(torch.float32) / 255)[None]
     return img
 
+def load_all_test_images(folder):
+    """ Load all images from a folder and return them  """
+    images = {}
+
+    for file in os.listdir(os.path.join(WVN_ROOT_DIR, folder)):
+        if file.lower().endswith(('.png', '.jpg', '.jpeg')):  # Check for image files
+            image_path = os.path.join(WVN_ROOT_DIR, folder, file)
+            np_img = cv2.imread(image_path)
+            img = torch.from_numpy(cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB))
+            img = img.permute(2, 0, 1)
+            img = (img.type(torch.float32) / 255)[None]
+            images[file] = img
+
+    return images
+
 def find_latest_checkpoint(parent_dir):
     # List all folders in the parent directory
     folders = [f for f in os.listdir(parent_dir) if os.path.isdir(os.path.join(parent_dir, f))]
@@ -194,23 +210,25 @@ def train_and_evaluate():
         model.time = checkpoint["time"]
         model.val_loss = checkpoint["loss"]
         model.model.eval()
-        test_img=load_test_image("image","hiking.png")
-        B,C,H,W=test_img.shape
         feat_extractor=FeatureExtractor(device=param.run.device,
-                                        segmentation_type=param.feat.segmentation_type,
-                                        input_size=param.feat.input_size,
-                                        feature_type=param.feat.feature_type,
-                                        interp=param.feat.interp,
-                                        center_crop=param.feat.center_crop,
-                                        original_width=W,
-                                        original_height=H,)
-        compute_phy_mask(test_img,feat_extractor,
-                         model.model,
-                         model.loss_fn,
-                         param.loss.confidence_threshold,
-                         True,
-                         -1,
-                         time=model.time)
+                                            segmentation_type=param.feat.segmentation_type,
+                                            input_size=param.feat.input_size,
+                                            feature_type=param.feat.feature_type,
+                                            interp=param.feat.interp,
+                                            center_crop=param.feat.center_crop,)
+        test_imgs=load_all_test_images("image/test")
+        for name,img in test_imgs.items():
+            B,C,H,W=img.shape
+            feat_extractor.set_original_size(W,H)
+            compute_phy_mask(img,feat_extractor,
+                             model.model,
+                             model.loss_fn,
+                             param.loss.confidence_threshold,
+                             True,
+                             -1,
+                             time=model.time,
+                             image_name=name,)
+
         pass
 
 if __name__ == "__main__":

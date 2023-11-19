@@ -290,6 +290,7 @@ def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss
     if plot_and_save:
         time=kwargs.get("time","notime")
         param=kwargs.get("param",None)
+        image_name = kwargs.get("image_name", "anonymous")
         output_dir=os.path.join(WVN_ROOT_DIR,"results","overlay",time)
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
@@ -303,9 +304,9 @@ def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss
             rotated_image = out_image.rotate(180)
             # Construct a filename
             if i == 0:
-                filename = f"fric_den_pred_step_{step}.jpg"
+                filename = f"{image_name}_fric_den_pred_step_{step}.jpg"
             elif i==1:
-                filename = f"stiff_den_pred_step_{step}.jpg"
+                filename = f"{image_name}_stiff_den_pred_step_{step}.jpg"
             file_path = os.path.join(output_dir, filename)
             # Save the image
             rotated_image.save(file_path)
