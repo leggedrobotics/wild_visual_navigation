@@ -295,6 +295,7 @@ def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss
             os.makedirs(output_dir)
         channel_num=output_phy.shape[0]
         for i in range(channel_num):
+            output_phy=output_phy.detach()
             overlay_img=plot_overlay_image(trans_img, overlay_mask=output_phy, channel=i,alpha=0.7)
             # Convert the numpy array to an image
             out_image = PIL.Image.fromarray(overlay_img)

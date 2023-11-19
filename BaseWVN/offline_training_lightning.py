@@ -36,6 +36,7 @@ class DecoderLightning(pl.LightningModule):
                                confidence_std_factor=loss_params.confidence_std_factor,
                                log_enabled=loss_params.log_enabled,
                                log_folder=loss_params.log_folder)
+        self.val_loss=0.0
         self.time=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         
     def forward(self, x):
@@ -68,6 +69,7 @@ class DecoderLightning(pl.LightningModule):
             output_phy_resized,trans_img,confidence=compute_phy_mask(self.test_img,self.feat_extractor,self.model,self.loss_fn,self.params.loss.confidence_threshold,True,self.step,time=self.time,param=self.params)
             pass
         self.log('val_loss', loss)
+        self.val_loss=loss
 
         return loss
     
@@ -102,41 +104,114 @@ def load_test_image(folder, file):
     img = (img.type(torch.float32) / 255)[None]
     return img
 
+def find_latest_checkpoint(parent_dir):
+    # List all folders in the parent directory
+    folders = [f for f in os.listdir(parent_dir) if os.path.isdir(os.path.join(parent_dir, f))]
+
+    # Sort these folders based on datetime in their names
+    try:
+        sorted_folders = sorted(folders, key=lambda x: datetime.datetime.strptime(x, "%Y-%m-%d_%H-%M-%S"), reverse=True)
+    except ValueError:
+        # Handle folders that don't follow the datetime naming convention
+        print("Error: Some folders do not follow the expected datetime naming convention.")
+        return None
+
+    # Select the latest folder
+    latest_folder = sorted_folders[0] if sorted_folders else None
+
+    if latest_folder:
+        latest_folder_path = os.path.join(parent_dir, latest_folder)
+        
+        # Search for the 'last_checkpoint.pt' file in this folder
+        last_checkpoint_path = os.path.join(latest_folder_path, 'last_checkpoint.pt')
+        
+        if os.path.exists(last_checkpoint_path):
+            return last_checkpoint_path
+        else:
+            print("Last checkpoint not found in the latest folder.")
+            return None
+    else:
+        print("No folders found in the parent directory.")
+        return None
+
+
 def train_and_evaluate():
     """Train and evaluate the model."""
-    # Initialize the Neptune logger
-    neptune_logger = NeptuneLogger(
-        api_key="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI0MDVkNmYxYi1kZjZjLTRmNmEtOGQ5My0xZmE2YTc0OGVmN2YifQ==",
-        project="swsychen/Decoder-MLP",
-    )
-    
+    mode="test"
+    parent_folder=os.path.join(WVN_ROOT_DIR,"results/overlay")
     param=ParamCollection()
-    max_epochs=42
-    folder='results/manager'
-    file='graph_data.pt'
-    data=load_data(folder, file)
-    
-    combined_dataset = BigDataset(data)
-    train_size = int(0.8 * len(combined_dataset))
-    test_size = len(combined_dataset) - train_size
-
-    train_dataset = Subset(combined_dataset, range(0, train_size))
-    val_dataset = Subset(combined_dataset, range(train_size, len(combined_dataset)))
-    
-    batch_size = 1
-    train_loader = DataLoader(train_dataset, batch_size=batch_size)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size)
-    # batch in loader is a tuple of (xs, ys)
-    # xs:(1, 100, feat_dim), ys:(1, 100, 2)
-    sample_input, sample_output = next(iter(train_loader))
-    device=sample_input.device
-    feat_dim=sample_input.shape[-1]
-    label_dim=sample_output.shape[-1]
-    m=get_model(param.model).to(device)
+    m=get_model(param.model).to(param.run.device)
     model=DecoderLightning(m,param)
-    trainer = Trainer(accelerator="gpu", devices=[0], logger=neptune_logger, max_epochs=max_epochs)
-    trainer.fit(model, train_loader, val_loader)
-    pass
+    if mode=="train":
+        # Initialize the Neptune logger
+        neptune_logger = NeptuneLogger(
+            api_key="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI0MDVkNmYxYi1kZjZjLTRmNmEtOGQ5My0xZmE2YTc0OGVmN2YifQ==",
+            project="swsychen/Decoder-MLP",
+        )
+        max_epochs=42
+        folder='results/manager'
+        file='graph_data.pt'
+        data=load_data(folder, file)
+        
+        combined_dataset = BigDataset(data)
+        train_size = int(0.8 * len(combined_dataset))
+        test_size = len(combined_dataset) - train_size
+
+        train_dataset = Subset(combined_dataset, range(0, train_size))
+        val_dataset = Subset(combined_dataset, range(train_size, len(combined_dataset)))
+        
+        batch_size = 1
+        train_loader = DataLoader(train_dataset, batch_size=batch_size)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size)
+        # batch in loader is a tuple of (xs, ys)
+        # xs:(1, 100, feat_dim), ys:(1, 100, 2)
+        sample_input, sample_output = next(iter(train_loader))
+        device=sample_input.device
+        feat_dim=sample_input.shape[-1]
+        label_dim=sample_output.shape[-1]
+        
+        trainer = Trainer(accelerator="gpu", devices=[0], logger=neptune_logger, max_epochs=max_epochs)
+        trainer.fit(model, train_loader, val_loader)
+        torch.save({
+                    "time": model.time,
+                    "step" : model.step,
+                    "model_state_dict": model.model.state_dict(),
+                    "phy_loss_state_dict": model.loss_fn.state_dict(),
+                    "loss": model.val_loss.item(),
+                },
+                os.path.join(parent_folder,model.time,"last_checkpoint.pt"))
+    else:
+        checkpoint_path = find_latest_checkpoint(parent_folder)
+        if checkpoint_path:
+            print(f"Latest checkpoint path: {checkpoint_path}")
+        else:
+            print("No checkpoint found.")
+            return
+        checkpoint = torch.load(checkpoint_path)
+        model.model.load_state_dict(checkpoint["model_state_dict"])
+        model.loss_fn.load_state_dict(checkpoint["phy_loss_state_dict"])
+        model.step = checkpoint["step"]
+        model.time = checkpoint["time"]
+        model.val_loss = checkpoint["loss"]
+        model.model.eval()
+        test_img=load_test_image("image","hiking.png")
+        B,C,H,W=test_img.shape
+        feat_extractor=FeatureExtractor(device=param.run.device,
+                                        segmentation_type=param.feat.segmentation_type,
+                                        input_size=param.feat.input_size,
+                                        feature_type=param.feat.feature_type,
+                                        interp=param.feat.interp,
+                                        center_crop=param.feat.center_crop,
+                                        original_width=W,
+                                        original_height=H,)
+        compute_phy_mask(test_img,feat_extractor,
+                         model.model,
+                         model.loss_fn,
+                         param.loss.confidence_threshold,
+                         True,
+                         -1,
+                         time=model.time)
+        pass
 
 if __name__ == "__main__":
     train_and_evaluate()

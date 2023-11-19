@@ -131,7 +131,7 @@ class ParamCollection(Serializable):
         @dataclass
         class SimpleMlpCfgParams:
             input_size: int = 384
-            hidden_sizes: List[int] = field(default_factory=lambda: [256, 64, 2])
+            hidden_sizes: List[int] = field(default_factory=lambda: [256, 64,256, 2])
             reconstruction: bool = True
             
             def to_dict(self):
