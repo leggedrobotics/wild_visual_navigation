@@ -27,9 +27,10 @@ def plot_overlay_image(img, alpha=0.5, overlay_mask=None, channel=0, **kwargs):
         # Define the value range based on the channel
         if channel == 0:  # Friction channel
             min_val, max_val = 0, 1
+            mask_channel=np.clip(mask_channel,0,1)
         else:  # Stiffness channel (or others if present)
             min_val, max_val = 1, 10
-
+            mask_channel=np.clip(mask_channel,1,10)
         norm_mask = np.zeros_like(mask_channel)
         norm_mask[valid_mask] = (mask_channel[valid_mask] - min_val) / (max_val - min_val)
         

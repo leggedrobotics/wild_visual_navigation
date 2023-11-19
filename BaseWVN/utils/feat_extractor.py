@@ -1,11 +1,14 @@
 import torch
 import torch.nn.functional as F
 from .dinov2_interface import Dinov2Interface
+from .visualizer import plot_overlay_image
+import PIL.Image
+from .loss import PhyLoss
 import numpy as np
 from torchvision import transforms as T
 from typing import Union, Dict
 from BaseWVN import WVN_ROOT_DIR
-
+import os
 class FeatureExtractor:
     def __init__(
         self, device: str, segmentation_type: str = "pixel", feature_type: str = "dinov2", input_size: int = 448, **kwargs
@@ -264,6 +267,43 @@ def concat_feat_dict(feat_dict: Dict[tuple, torch.Tensor]):
     resized_feats=resized_feats.permute(0,2,3,1)
     sparse_features = resized_feats.reshape(resized_feats.shape[0],resized_feats.shape[1]*resized_feats.shape[2],-1)
     return sparse_features,first_shape[2],first_shape[3]
+
+def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss_fn:PhyLoss,confidence_threshold=0.8,plot_and_save:bool=False,step:int=0):
+    """ process the original_img and return the phy_mask in resized img shape(non-confident--> nan) """
+    """ Shape of phy_mask: (2,H,W) H,W is the size of resized img"""
+    features, seg,trans_img,compressed_feats=feat_extractor.extract(img)
+    feat_input,H,W=concat_feat_dict(compressed_feats)
+    feat_input=feat_input.squeeze(0)
+    output=model(feat_input)
+    confidence=loss_fn.compute_confidence_only(output,feat_input)
+    confidence=confidence.reshape(H,W)
+    output_phy=output[:,-2:].reshape(H,W,2).permute(2,0,1)
+    mask=confidence<confidence_threshold
+    mask = mask.unsqueeze(0).repeat(output_phy.shape[0], 1, 1)
+    output_phy[mask] = torch.nan
+    if output_phy.shape[-2]!=trans_img.shape[-2] or output_phy.shape[-1]!=trans_img.shape[-1]:
+        # upsample the output
+        output_phy=F.interpolate(
+            output_phy.unsqueeze(0).type(torch.float32), size=trans_img.shape[-2:]
+        ).squeeze(0)
+    if plot_and_save:
+        output_dir=os.path.join(WVN_ROOT_DIR,"results","overlay")
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        channel_num=output_phy.shape[0]
+        for i in range(channel_num):
+            overlay_img=plot_overlay_image(trans_img, overlay_mask=output_phy, channel=i,alpha=0.7)
+            # Convert the numpy array to an image
+            out_image = PIL.Image.fromarray(overlay_img)
+            # Construct a filename
+            if i == 0:
+                filename = f"fric_den_pred_step_{step}.jpg"
+            elif i==1:
+                filename = f"stiff_den_pred_step_{step}.jpg"
+            file_path = os.path.join(output_dir, filename)
+            # Save the image
+            out_image.save(file_path)
+    return output_phy,trans_img,confidence
 
 def test_extractor():
     import cv2

@@ -95,11 +95,11 @@ class ParamCollection(Serializable):
 
     @dataclass
     class LossParams:
-        w_pred: float = 0.5
-        w_reco: float = 0.5
+        w_pred: float = 0.1
+        w_reco: float = 0.9
         method: str = "running_mean"
-        confidence_std_factor: float = 2
-        confidence_threshold: float = 0.7
+        confidence_std_factor: float = 1.0
+        confidence_threshold: float = 0.5
         log_enabled: bool = False
         log_folder: str = "/tmp"
         verbose: bool = True

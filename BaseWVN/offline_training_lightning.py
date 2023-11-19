@@ -3,7 +3,7 @@ import os
 import PIL.Image
 import cv2
 from BaseWVN import WVN_ROOT_DIR
-from BaseWVN.utils import PhyLoss,FeatureExtractor,concat_feat_dict,plot_overlay_image
+from BaseWVN.utils import PhyLoss,FeatureExtractor,concat_feat_dict,plot_overlay_image,compute_phy_mask
 from BaseWVN.model import VD_dataset,get_model
 from BaseWVN.config.wvn_cfg import ParamCollection
 from torch.utils.data import DataLoader, ConcatDataset, Subset
@@ -11,7 +11,7 @@ from typing import List
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.neptune import NeptuneLogger
 from pytorch_lightning import Trainer
-
+import torch.nn.functional as F
 class DecoderLightning(pl.LightningModule):
     def __init__(self,model,params:ParamCollection):
         super().__init__()
@@ -51,8 +51,9 @@ class DecoderLightning(pl.LightningModule):
         res=self.model(xs)
         loss,confidence,loss_dict=self.loss_fn((xs,ys),res,step=self.step)
         
-        self.log('train_loss', loss,on_step=True,prog_bar=True)
-        self.step+=1
+        self.log('train_loss', loss)
+        if batch_idx==0:
+            self.step+=1
         return loss
     def validation_step(self, batch, batch_idx):
         xs, ys = batch
@@ -63,39 +64,11 @@ class DecoderLightning(pl.LightningModule):
             raise ValueError("xs and ys must have shape of 2")
         res=self.model(xs)
         loss,confidence,loss_dict=self.loss_fn((xs,ys),res,step=self.step,update_generator=False)
-        # TODO: to plot overlay, upsample the mask.Maybe wrap up the following into function
-        if batch_idx==0:
-            output_dir=os.path.join(WVN_ROOT_DIR,"results","overlay")
-            if not os.path.exists(output_dir):
-                # Create the directory
-                os.makedirs(output_dir)
-                print(f"Created directory: {output_dir}")
-            else:
-                print(f"Directory already exists: {output_dir}")
-            features, seg,trans_img,compressed_feats=self.feat_extractor.extract(self.test_img)
-            feat_input,H,W=concat_feat_dict(compressed_feats)
-            feat_input=feat_input.squeeze(0)
-            output=self.model(feat_input)
-            confidence=self.loss_fn.compute_confidence_only(output,feat_input)
-            confidence=confidence.reshape(H,W)
-            output_phy=output[:,-2:].reshape(H,W,2).permute(2,0,1)
-            mask=confidence<self.params.loss.confidence_threshold
-            mask = mask.unsqueeze(0).repeat(output_phy.shape[0], 1, 1)
-            output_phy[mask] = torch.nan
-            channel_num=output_phy.shape[0]
-            for i in range(channel_num):
-                overlay_img=plot_overlay_image(trans_img, overlay_mask=output_phy, channel=i,alpha=0.7)
-                # Convert the numpy array to an image
-                out_image = PIL.Image.fromarray(overlay_img)
-                # Construct a filename
-                filename = f"dense_prediction_channel_{i}.jpg"
-                file_path = os.path.join(output_dir, filename)
-
-                # Save the image
-                out_image.save(file_path)
+        if batch_idx==0 and self.step%20==0:
+            output_phy_resized,trans_img,confidence=compute_phy_mask(self.test_img,self.feat_extractor,self.model,self.loss_fn,self.params.loss.confidence_threshold,True,self.step)
             pass
-        self.log('val_loss', loss,on_step=True)
-        self.step+=1
+        self.log('val_loss', loss)
+
         return loss
     
     def configure_optimizers(self):
@@ -138,7 +111,7 @@ def train_and_evaluate():
     )
     
     param=ParamCollection()
-    max_epochs=5
+    max_epochs=42
     folder='results/manager'
     file='graph_data.pt'
     data=load_data(folder, file)
