@@ -125,7 +125,7 @@ class ParamCollection(Serializable):
     
     @dataclass
     class ModelParams:
-        name: str = "SimpleMLP"  #  SimpleMLP
+        name: str = "SimpleMLP"  #  SimpleMLP, SeperateMLP
         load_ckpt: Optional[str] = None
         
         @dataclass
@@ -138,6 +138,16 @@ class ParamCollection(Serializable):
                 return vars(self)
 
         simple_mlp_cfg: SimpleMlpCfgParams = SimpleMlpCfgParams()
+        
+        @dataclass
+        class SeperateMLPCfgParams:
+            input_size: int = 384
+            hidden_sizes: List[int] = field(default_factory=lambda: [256, 64,256, 2])
+            
+            def to_dict(self):
+                return vars(self)
+        
+        seperate_mlp_cfg: SeperateMLPCfgParams = SeperateMLPCfgParams()
     
     model: ModelParams = ModelParams()
 

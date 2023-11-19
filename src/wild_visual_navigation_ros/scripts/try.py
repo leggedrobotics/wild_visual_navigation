@@ -19,5 +19,6 @@ d=torch.load(manage_folder+"/graph_data.pt")
 a[0,0]=torch.nan
 e=a.numpy()
 g=np.clip(e,0,1)
-
+v=[2,255,167,0]
+print(min(v[:-1]))
 pass
