@@ -8,7 +8,6 @@ import ros_converter as rc
 from anymal_msgs.msg import AnymalState
 from geometry_msgs.msg import Pose, Point, Quaternion
 from std_msgs.msg import ColorRGBA, Float32, Float32MultiArray,Header
-from threading import Thread, Event
 from visualization_msgs.msg import Marker,MarkerArray
 from wild_visual_navigation_msgs.msg import PhyDecoderOutput,PlaneEdge
 import message_filters
