@@ -2,6 +2,7 @@ import torch
 import torch.nn.functional as F
 from .dinov2_interface import Dinov2Interface
 from .visualizer import plot_overlay_image
+from ..config import save_to_yaml
 import PIL.Image
 from .loss import PhyLoss
 import numpy as np
@@ -268,7 +269,7 @@ def concat_feat_dict(feat_dict: Dict[tuple, torch.Tensor]):
     sparse_features = resized_feats.reshape(resized_feats.shape[0],resized_feats.shape[1]*resized_feats.shape[2],-1)
     return sparse_features,first_shape[2],first_shape[3]
 
-def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss_fn:PhyLoss,confidence_threshold=0.8,plot_and_save:bool=False,step:int=0):
+def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss_fn:PhyLoss,confidence_threshold=0.8,plot_and_save:bool=False,step:int=0,**kwargs):
     """ process the original_img and return the phy_mask in resized img shape(non-confident--> nan) """
     """ Shape of phy_mask: (2,H,W) H,W is the size of resized img"""
     features, seg,trans_img,compressed_feats=feat_extractor.extract(img)
@@ -287,7 +288,9 @@ def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss
             output_phy.unsqueeze(0).type(torch.float32), size=trans_img.shape[-2:]
         ).squeeze(0)
     if plot_and_save:
-        output_dir=os.path.join(WVN_ROOT_DIR,"results","overlay")
+        time=kwargs.get("time","notime")
+        param=kwargs.get("param",None)
+        output_dir=os.path.join(WVN_ROOT_DIR,"results","overlay",time)
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         channel_num=output_phy.shape[0]
@@ -295,6 +298,8 @@ def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss
             overlay_img=plot_overlay_image(trans_img, overlay_mask=output_phy, channel=i,alpha=0.7)
             # Convert the numpy array to an image
             out_image = PIL.Image.fromarray(overlay_img)
+            # Rotate the image by 180 degrees
+            rotated_image = out_image.rotate(180)
             # Construct a filename
             if i == 0:
                 filename = f"fric_den_pred_step_{step}.jpg"
@@ -302,7 +307,10 @@ def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss
                 filename = f"stiff_den_pred_step_{step}.jpg"
             file_path = os.path.join(output_dir, filename)
             # Save the image
-            out_image.save(file_path)
+            rotated_image.save(file_path)
+        if param is not None:
+            param_path=os.path.join(output_dir,"param.yaml")
+            save_to_yaml(param,param_path)
     return output_phy,trans_img,confidence
 
 def test_extractor():

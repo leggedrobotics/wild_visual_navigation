@@ -1,10 +1,11 @@
 """ 
 This file contains the all configurations for the Wild-Visual-Navigation project.
  """
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field,asdict,is_dataclass
 from typing import Tuple, Dict, List, Optional
 from simple_parsing.helpers import Serializable
 import numpy as np
+import yaml
 @dataclass
 class ParamCollection(Serializable):
     """A collection of parameters."""
@@ -139,3 +140,20 @@ class ParamCollection(Serializable):
         simple_mlp_cfg: SimpleMlpCfgParams = SimpleMlpCfgParams()
     
     model: ModelParams = ModelParams()
+
+def dataclass_to_dict(obj):
+    if is_dataclass(obj):
+        return {k: dataclass_to_dict(v) for k, v in asdict(obj).items()}
+    elif isinstance(obj, (list, tuple)):
+        return [dataclass_to_dict(v) for v in obj]
+    return obj
+
+def save_to_yaml(dataclass_instance, filename):
+    data_dict = dataclass_to_dict(dataclass_instance)
+    with open(filename, 'w') as file:
+        yaml.dump(data_dict, file)
+
+if __name__=="__main__":
+    params=ParamCollection()
+    save_to_yaml(params,'test.yaml')
+    pass

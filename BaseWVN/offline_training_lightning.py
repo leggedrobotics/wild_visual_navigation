@@ -1,11 +1,11 @@
 import torch
 import os
-import PIL.Image
 import cv2
+import datetime
 from BaseWVN import WVN_ROOT_DIR
 from BaseWVN.utils import PhyLoss,FeatureExtractor,concat_feat_dict,plot_overlay_image,compute_phy_mask
 from BaseWVN.model import VD_dataset,get_model
-from BaseWVN.config.wvn_cfg import ParamCollection
+from BaseWVN.config.wvn_cfg import ParamCollection,save_to_yaml
 from torch.utils.data import DataLoader, ConcatDataset, Subset
 from typing import List
 import pytorch_lightning as pl
@@ -36,7 +36,7 @@ class DecoderLightning(pl.LightningModule):
                                confidence_std_factor=loss_params.confidence_std_factor,
                                log_enabled=loss_params.log_enabled,
                                log_folder=loss_params.log_folder)
-    
+        self.time=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         
     def forward(self, x):
         return self.model(x)
@@ -65,7 +65,7 @@ class DecoderLightning(pl.LightningModule):
         res=self.model(xs)
         loss,confidence,loss_dict=self.loss_fn((xs,ys),res,step=self.step,update_generator=False)
         if batch_idx==0 and self.step%20==0:
-            output_phy_resized,trans_img,confidence=compute_phy_mask(self.test_img,self.feat_extractor,self.model,self.loss_fn,self.params.loss.confidence_threshold,True,self.step)
+            output_phy_resized,trans_img,confidence=compute_phy_mask(self.test_img,self.feat_extractor,self.model,self.loss_fn,self.params.loss.confidence_threshold,True,self.step,time=self.time,param=self.params)
             pass
         self.log('val_loss', loss)
 
