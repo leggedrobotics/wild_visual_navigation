@@ -1,6 +1,6 @@
 import torch.nn.functional as F
 import torch
-from typing import Optional
+from typing import Optional,Union
 from torch import nn
 
 from .confidence_generator import ConfidenceGenerator
@@ -31,11 +31,18 @@ class PhyLoss(nn.Module):
         self._confidence_generator.reset()
         
     def forward(
-        self, dataset: VD_dataset, res: torch.Tensor, update_generator: bool = True, step: int = 0, log_step: bool = False,batch_idx:int=None
-    ):
+        self, dataset: Union[VD_dataset, tuple], res: torch.Tensor, update_generator: bool = True, step: int = 0, log_step: bool = False,batch_idx:int=None
+    ):  
+        if isinstance(dataset, tuple):
+            x_label, y_label = dataset
+        elif isinstance(dataset, VD_dataset):
+            x_label=dataset.get_x(batch_idx)
+            y_label=dataset.get_y(batch_idx)
+        else:
+            raise ValueError("dataset must be a tuple or a VD_dataset")
         # Compute reconstruction loss
-        nr_channel_reco = dataset.get_x(batch_idx).shape[1]
-        loss_reco = F.mse_loss(res[:, :nr_channel_reco], dataset.get_x(batch_idx), reduction="none").mean(dim=1)
+        nr_channel_reco = x_label.shape[1]
+        loss_reco = F.mse_loss(res[:, :nr_channel_reco], x_label, reduction="none").mean(dim=1)
         
         with torch.no_grad():
             if update_generator:
@@ -46,14 +53,20 @@ class PhyLoss(nn.Module):
             else:
                 confidence = self._confidence_generator.inference_without_update(x=loss_reco)
         # need to normalize the last two dim of res seperately since their range is different
-        normalized_y=self.normalize_tensor(dataset.get_y(batch_idx))
+        normalized_y=self.normalize_tensor(y_label)
         normalized_res=self.normalize_tensor(res[:, nr_channel_reco:])
         loss_pred_raw=F.mse_loss(normalized_res, normalized_y, reduction="none").mean(dim=1)
 
         loss_final=self._w_pred*loss_pred_raw.mean()+self._w_recon*loss_reco.mean()
         
         return loss_final, confidence,{"loss_pred":loss_pred_raw.mean(),"loss_reco":loss_reco.mean()}
-        
+    
+    def compute_confidence_only(self,res:torch.Tensor,input:torch.Tensor):
+        nr_channel_reco =input.shape[1]
+        loss_reco = F.mse_loss(res[:, :nr_channel_reco], input, reduction="none").mean(dim=1)
+        confidence=self._confidence_generator.inference_without_update(x=loss_reco)
+        return confidence
+    
     def normalize_tensor(self,tensor):
         # Assuming tensor shape is [batch_size, 2]
         
@@ -72,6 +85,5 @@ class PhyLoss(nn.Module):
         return normalized_tensor
     
     def update_node_confidence(self, node):
-        # TODO: When using node.features, maybe need to extract, reorganize or upsample, dep on the model
         reco_loss = F.mse_loss(node.prediction[:, :-2], node.features, reduction="none").mean(dim=1)
         node.confidence = self._confidence_generator.inference_without_update(reco_loss)

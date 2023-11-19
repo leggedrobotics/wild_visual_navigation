@@ -48,6 +48,7 @@ Thumbs.db
 *.mov
 *.wmv
 
+.neptune/
 .git/
 .vscode/
 build/

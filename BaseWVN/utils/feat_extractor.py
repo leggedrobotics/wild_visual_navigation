@@ -244,6 +244,27 @@ class FeatureExtractor:
         sparse_features = torch.stack(sparse_features, dim=1)
         return sparse_features,compressed_feat
 
+def concat_feat_dict(feat_dict: Dict[tuple, torch.Tensor]):
+    """ Concatenate features from different scales, all upsamples to the first scale (expected to be the highest resolution) """
+    """ Return: sparse_features (B,H*W/segs_num,C)
+        feat_height: H
+        feat_width: W
+    """
+    first_shape = list(feat_dict.values())[0].shape
+    scales_h = [  first_shape[2]/feat.shape[2] for feat in feat_dict.values()]
+    scales_w = [ first_shape[3] /feat.shape[3] for feat in feat_dict.values()]
+    # upsampling the feat of each scale
+    resized_feats = [
+        F.interpolate(
+            feat.type(torch.float32), scale_factor=(scale_h, scale_w)
+        )
+        for scale_h, scale_w,feat in zip(scales_h, scales_w,feat_dict.values())
+    ]
+    resized_feats=torch.cat(resized_feats,dim=1)
+    resized_feats=resized_feats.permute(0,2,3,1)
+    sparse_features = resized_feats.reshape(resized_feats.shape[0],resized_feats.shape[1]*resized_feats.shape[2],-1)
+    return sparse_features,first_shape[2],first_shape[3]
+
 def test_extractor():
     import cv2
     import os
@@ -329,11 +350,11 @@ if __name__=="__main__":
         print(resized_seg.numpy(), "\n")
     
     dense_features = {
-        "feat_1":torch.rand((8, 4, 4)).unsqueeze(0),
-        "feat_2":torch.rand((16, 2, 2)).unsqueeze(0),
+        "feat_1":torch.ones((1, 4, 4)).unsqueeze(0),
+        "feat_2":torch.ones((2, 2, 2)).unsqueeze(0)*2,
 
     }
-
+    sparse_features=concat_feat_dict(dense_features)
     test_extractor()
 
    

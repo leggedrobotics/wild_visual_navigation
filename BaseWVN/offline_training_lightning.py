@@ -1,8 +1,9 @@
 import torch
 import os
+import PIL.Image
 import cv2
 from BaseWVN import WVN_ROOT_DIR
-from BaseWVN.utils import PhyLoss,FeatureExtractor
+from BaseWVN.utils import PhyLoss,FeatureExtractor,concat_feat_dict,plot_overlay_image
 from BaseWVN.model import VD_dataset,get_model
 from BaseWVN.config.wvn_cfg import ParamCollection
 from torch.utils.data import DataLoader, ConcatDataset, Subset
@@ -16,7 +17,7 @@ class DecoderLightning(pl.LightningModule):
         super().__init__()
         self.model=model
         self.params=params
-        param=self.params.loss
+        loss_params=self.params.loss
         self.step=0
 
         self.test_img=load_test_image("image","hiking.png")
@@ -29,12 +30,12 @@ class DecoderLightning(pl.LightningModule):
                                              center_crop=self.params.feat.center_crop,
                                              original_width=W,
                                              original_height=H,)
-        self.loss_fn=PhyLoss(w_pred=param.w_pred,
-                               w_reco=param.w_reco,
-                               method=param.method,
-                               confidence_std_factor=param.confidence_std_factor,
-                               log_enabled=param.log_enabled,
-                               log_folder=param.log_folder)
+        self.loss_fn=PhyLoss(w_pred=loss_params.w_pred,
+                               w_reco=loss_params.w_reco,
+                               method=loss_params.method,
+                               confidence_std_factor=loss_params.confidence_std_factor,
+                               log_enabled=loss_params.log_enabled,
+                               log_folder=loss_params.log_folder)
     
         
     def forward(self, x):
@@ -50,7 +51,7 @@ class DecoderLightning(pl.LightningModule):
         res=self.model(xs)
         loss,confidence,loss_dict=self.loss_fn((xs,ys),res,step=self.step)
         
-        self.log('train_loss', loss)
+        self.log('train_loss', loss,on_step=True,prog_bar=True)
         self.step+=1
         return loss
     def validation_step(self, batch, batch_idx):
@@ -62,8 +63,38 @@ class DecoderLightning(pl.LightningModule):
             raise ValueError("xs and ys must have shape of 2")
         res=self.model(xs)
         loss,confidence,loss_dict=self.loss_fn((xs,ys),res,step=self.step,update_generator=False)
-        # TODO: IMAGE loading for inference and upload to neptune
-        self.log('val_loss', loss)
+        # TODO: to plot overlay, upsample the mask.Maybe wrap up the following into function
+        if batch_idx==0:
+            output_dir=os.path.join(WVN_ROOT_DIR,"results","overlay")
+            if not os.path.exists(output_dir):
+                # Create the directory
+                os.makedirs(output_dir)
+                print(f"Created directory: {output_dir}")
+            else:
+                print(f"Directory already exists: {output_dir}")
+            features, seg,trans_img,compressed_feats=self.feat_extractor.extract(self.test_img)
+            feat_input,H,W=concat_feat_dict(compressed_feats)
+            feat_input=feat_input.squeeze(0)
+            output=self.model(feat_input)
+            confidence=self.loss_fn.compute_confidence_only(output,feat_input)
+            confidence=confidence.reshape(H,W)
+            output_phy=output[:,-2:].reshape(H,W,2).permute(2,0,1)
+            mask=confidence<self.params.loss.confidence_threshold
+            mask = mask.unsqueeze(0).repeat(output_phy.shape[0], 1, 1)
+            output_phy[mask] = torch.nan
+            channel_num=output_phy.shape[0]
+            for i in range(channel_num):
+                overlay_img=plot_overlay_image(trans_img, overlay_mask=output_phy, channel=i,alpha=0.7)
+                # Convert the numpy array to an image
+                out_image = PIL.Image.fromarray(overlay_img)
+                # Construct a filename
+                filename = f"dense_prediction_channel_{i}.jpg"
+                file_path = os.path.join(output_dir, filename)
+
+                # Save the image
+                out_image.save(file_path)
+            pass
+        self.log('val_loss', loss,on_step=True)
         self.step+=1
         return loss
     
@@ -100,7 +131,12 @@ def load_test_image(folder, file):
 
 def train_and_evaluate():
     """Train and evaluate the model."""
-    # dataset loading
+    # Initialize the Neptune logger
+    neptune_logger = NeptuneLogger(
+        api_key="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI0MDVkNmYxYi1kZjZjLTRmNmEtOGQ5My0xZmE2YTc0OGVmN2YifQ==",
+        project="swsychen/Decoder-MLP",
+    )
+    
     param=ParamCollection()
     max_epochs=5
     folder='results/manager'
@@ -123,32 +159,10 @@ def train_and_evaluate():
     device=sample_input.device
     feat_dim=sample_input.shape[-1]
     label_dim=sample_output.shape[-1]
-    
-    # model loading
-    step=0
-    total_loss=0
-    model=get_model(param.model).to(device)
-    
-    test_img=load_test_image("image","hiking.png")
-    B,C,H,W=test_img.shape
-    feat_extractor=FeatureExtractor(device=param.run.device,
-                                            segmentation_type=param.feat.segmentation_type,
-                                            input_size=param.feat.input_size,
-                                            feature_type=param.feat.feature_type,
-                                            interp=param.feat.interp,
-                                            center_crop=param.feat.center_crop,
-                                            original_width=W,
-                                            original_height=H,)
-    loss_fn=PhyLoss(w_pred=param.loss.w_pred,
-                            w_reco=param.loss.w_reco,
-                            method=param.loss.method,
-                            confidence_std_factor=param.loss.confidence_std_factor,
-                            log_enabled=param.loss.log_enabled,
-                            log_folder=param.loss.log_folder)
-    optimizer=torch.optim.Adam(model.parameters(), lr=param.optimizer.lr)
-    
-    
-
+    m=get_model(param.model).to(device)
+    model=DecoderLightning(m,param)
+    trainer = Trainer(accelerator="gpu", devices=[0], logger=neptune_logger, max_epochs=max_epochs)
+    trainer.fit(model, train_loader, val_loader)
     pass
 
 if __name__ == "__main__":

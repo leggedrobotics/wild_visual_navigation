@@ -99,6 +99,7 @@ class ParamCollection(Serializable):
         w_reco: float = 0.5
         method: str = "running_mean"
         confidence_std_factor: float = 2
+        confidence_threshold: float = 0.7
         log_enabled: bool = False
         log_folder: str = "/tmp"
         verbose: bool = True
