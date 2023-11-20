@@ -1,8 +1,11 @@
 import torch
+import numpy as np
 import os
 import cv2
+import matplotlib.pyplot as plt
 import datetime
 from BaseWVN import WVN_ROOT_DIR
+from BaseWVN.GraphManager import MainNode
 from BaseWVN.utils import PhyLoss,FeatureExtractor,concat_feat_dict,plot_overlay_image,compute_phy_mask
 from BaseWVN.model import VD_dataset,get_model
 from BaseWVN.config.wvn_cfg import ParamCollection,save_to_yaml
@@ -13,6 +16,7 @@ from pytorch_lightning.loggers.neptune import NeptuneLogger
 from pytorch_lightning import Trainer
 import torch.nn.functional as F
 from torchvision.transforms.functional import to_tensor
+from segment_anything_hq import SamPredictor, sam_model_registry
 class DecoderLightning(pl.LightningModule):
     def __init__(self,model,params:ParamCollection):
         super().__init__()
@@ -172,12 +176,44 @@ def find_latest_checkpoint(parent_dir):
         print("No folders found in the parent directory.")
         return None
 
-def SAM_label_mask_generate(param:ParamCollection):
-    from segment_anything import SamPredictor, sam_model_registry
+def SAM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
+    
     sam = sam_model_registry[param.offline.SAM_type](checkpoint=param.offline.SAM_ckpt)
+    sam.to(param.run.device)
     predictor = SamPredictor(sam)
-    # predictor.set_image(<your_image>)
-    # masks, _, _ = predictor.predict(<input_prompts>)
+    for node in nodes:
+        img=node.image
+        reproj_mask=node.supervision_signal_valid[0]
+        # Find the indices where reproj_mask is True
+        true_indices = torch.where(reproj_mask)
+        true_coords = torch.stack((true_indices[1], true_indices[0]),dim=1).unsqueeze(0) # (x, y) format
+        B, num, _ = true_coords.shape
+        num_points_to_sample = min(10, num)
+        sampled_true_coords = torch.zeros(B, num_points_to_sample, 2)
+
+        for b in range(B):
+            # Generate a random permutation of indices for each batch
+            rand_indices = torch.randperm(num)[:num_points_to_sample]
+            # Use these indices to sample from true_coords
+            sampled_true_coords[b] = true_coords[b][rand_indices]
+        true_coords=sampled_true_coords.to(param.run.device)
+        points_labels=torch.ones((true_coords.shape[0],true_coords.shape[1]),dtype=torch.int64).to(param.run.device)
+        # need to image--> H,W,C uint8 format
+        input_img=(img.squeeze(0).permute(1,2,0).numpy()*255.0).astype(np.uint8)
+        predictor.set_image(input_img)
+        # resized_img=predictor.transform.apply_image_torch(img)
+        # predictor.set_torch_image(resized_img,img.shape[-2:])
+        masks, scores, _ = predictor.predict_torch(point_coords=true_coords,point_labels=points_labels,multimask_output=True)
+        
+        for i, (mask, score) in enumerate(zip(masks.squeeze(0), scores.squeeze(0))):
+            plt.figure(figsize=(10,10))
+            plt.imshow(input_img)
+            show_mask(mask, plt.gca())
+            show_points(true_coords.squeeze(0), points_labels.squeeze(0), plt.gca())
+            plt.title(f"Mask {i+1}, Score: {score:.3f}", fontsize=18)
+            plt.axis('off')
+            plt.show() 
+        pass
 
 def train_and_evaluate():
     """Train and evaluate the model."""
@@ -242,20 +278,45 @@ def train_and_evaluate():
                                             feature_type=param.feat.feature_type,
                                             interp=param.feat.interp,
                                             center_crop=param.feat.center_crop,)
-        test_imgs=load_all_test_images(param.offline.data_folder)
-        for name,img in test_imgs.items():
-            B,C,H,W=img.shape
-            feat_extractor.set_original_size(W,H)
-            compute_phy_mask(img,feat_extractor,
-                             model.model,
-                             model.loss_fn,
-                             param.loss.confidence_threshold,
-                             True,
-                             -1,
-                             time=model.time,
-                             image_name=name,)
-
+        if param.offline.test_images:
+            test_imgs=load_all_test_images(param.offline.data_folder)
+            for name,img in test_imgs.items():
+                B,C,H,W=img.shape
+                feat_extractor.set_original_size(W,H)
+                compute_phy_mask(img,feat_extractor,
+                                model.model,
+                                model.loss_fn,
+                                param.loss.confidence_threshold,
+                                True,
+                                -1,
+                                time=model.time,
+                                image_name=name,)
+        if param.offline.test_nodes:
+            nodes=torch.load(os.path.join(WVN_ROOT_DIR,param.offline.nodes_data))
+            SAM_label_mask_generate(param,nodes)
+        
         pass
+
+def show_mask(mask, ax, random_color=False):
+    if isinstance(mask, torch.Tensor):
+        mask = mask.cpu().numpy()
+    if random_color:
+        color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
+    else:
+        color = np.array([30/255, 144/255, 255/255, 0.6])
+    h, w = mask.shape[-2:]
+    mask_image = mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
+    ax.imshow(mask_image)
+
+def show_points(coords, labels, ax, marker_size=375):
+    if isinstance(coords, torch.Tensor):
+        coords = coords.cpu().numpy()
+    if isinstance(labels, torch.Tensor):
+        labels = labels.cpu().numpy()
+    pos_points = coords[labels==1]
+    neg_points = coords[labels==0]
+    ax.scatter(pos_points[:, 0], pos_points[:, 1], color='green', marker='*', s=marker_size, edgecolor='white', linewidth=1.25)
+    ax.scatter(neg_points[:, 0], neg_points[:, 1], color='red', marker='*', s=marker_size, edgecolor='white', linewidth=1.25)
 
 if __name__ == "__main__":
     train_and_evaluate()

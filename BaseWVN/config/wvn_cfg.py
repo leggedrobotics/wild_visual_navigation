@@ -177,10 +177,14 @@ class ParamCollection(Serializable):
         ckpt_parent_folder='results/overlay'
         data_folder='results/manager'
         train_data='results/manager/train_data.pt'
+        nodes_data='results/manager/train_nodes.pt'
         image_file='image_buffer.pt'
+        test_images:bool=False
+        test_nodes:bool=True
         
         SAM_type='vit_h'
-        SAM_ckpt='/media/chen/UDisk1/sam_vit_h_4b8939.pth'
+        #SAM_ckpt='/media/chen/UDisk1/sam_vit_h_4b8939.pth'
+        SAM_ckpt='/media/chen/UDisk1/sam_hq_vit_h.pth'
     
     offline: OfflineParams = OfflineParams()
 

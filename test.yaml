@@ -1,0 +1,106 @@
+feat:
+  center_crop: false
+  feature_type: dinov2
+  input_size: 1260
+  interp: bilinear
+  physical_dim: 2
+  segmentation_type: pixel
+general:
+  model_path: model
+  name: debug/debug
+  timestamp: true
+graph:
+  cut_threshold: 1.0
+  edge_dist_thr_main_graph: 1
+  extraction_store_folder: LabelExtraction
+  label_ext_mode: true
+  min_samples_for_training: 6
+  random_sample_num: 100
+  update_range_main_graph: 5
+  use_for_training: true
+  vis_node_index: 10
+logger:
+  name: neptune
+  neptune_project_name: RSL/WVN
+loss:
+  confidence_std_factor: 1.0
+  confidence_threshold: 0.5
+  log_enabled: false
+  log_folder: /tmp
+  method: running_mean
+  verbose: true
+  w_pred: 0.1
+  w_reco: 0.9
+model:
+  load_ckpt: null
+  name: SimpleMLP
+  rnd_mlp_cfg:
+    hidden_sizes_pred:
+    - 256
+    - 64
+    hidden_sizes_target:
+    - 256
+    - 64
+    input_size: 384
+    pred_head: 2
+  seperate_mlp_cfg:
+    hidden_sizes:
+    - 256
+    - 64
+    - 256
+    - 2
+    input_size: 384
+  seprnd_mlp_cfg:
+    hidden_sizes_pred:
+    - 256
+    - 64
+    hidden_sizes_target:
+    - 256
+    - 64
+    input_size: 384
+    pred_head: 2
+  simple_mlp_cfg:
+    hidden_sizes:
+    - 256
+    - 64
+    - 256
+    - 2
+    input_size: 384
+    reconstruction: true
+offline:
+  mode: test
+  test_images: false
+optimizer:
+  lr: 0.001
+  name: ADAM
+roscfg:
+  anymal_bag_name: lpc
+  anymal_state_topic: /state_estimator/anymal_state
+  base_frame: base
+  camera_bag_name: jetson
+  camera_info_topic: /v4l2_camera/camera_info_throttle
+  camera_topic: /v4l2_camera/image_raw_throttle/compressed
+  feet_list:
+  - LF_FOOT
+  - RF_FOOT
+  - LH_FOOT
+  - RH_FOOT
+  fixed_frame: odom
+  foot_radius: 0.03269
+  footprint_frame: footprint
+  phy_decoder_input_topic: /debug_info
+  phy_decoder_output_topic: /vd_pipeline/phy_decoder_out
+  robot_height: 0.89
+  robot_length: 0.93
+  robot_max_velocity: 1.2
+  robot_width: 0.53
+run:
+  device: cuda
+  mode: debug
+  palette: husl
+  print_time: true
+thread:
+  image_callback_rate: 1.0
+  learning_rate: 0.5
+  logging_rate: 0.5
+  proprio_callback_rate: 2.0
