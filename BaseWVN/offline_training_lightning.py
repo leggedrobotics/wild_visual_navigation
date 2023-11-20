@@ -177,7 +177,7 @@ def find_latest_checkpoint(parent_dir):
         return None
 
 def SAM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
-    
+    gt_masks=[]
     sam = sam_model_registry[param.offline.SAM_type](checkpoint=param.offline.SAM_ckpt)
     sam.to(param.run.device)
     predictor = SamPredictor(sam)
@@ -188,14 +188,14 @@ def SAM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
         true_indices = torch.where(reproj_mask)
         true_coords = torch.stack((true_indices[1], true_indices[0]),dim=1).unsqueeze(0) # (x, y) format
         B, num, _ = true_coords.shape
-        num_points_to_sample = min(10, num)
-        sampled_true_coords = torch.zeros(B, num_points_to_sample, 2)
-
-        for b in range(B):
-            # Generate a random permutation of indices for each batch
-            rand_indices = torch.randperm(num)[:num_points_to_sample]
-            # Use these indices to sample from true_coords
-            sampled_true_coords[b] = true_coords[b][rand_indices]
+ 
+        num_points_to_sample = min(2, num)
+        
+        sampled_true_coords=sample_furthest_points(true_coords, num_points_to_sample)
+        
+        # sampled_true_coords = torch.zeros(B, num_points_to_sample, 2)
+        # rand_indices = torch.randperm(num)[:num_points_to_sample]
+        # sampled_true_coords=true_coords[:,rand_indices,:]
         true_coords=sampled_true_coords.to(param.run.device)
         true_coords_resized=predictor.transform.apply_coords_torch(true_coords,img.shape[-2:])
         points_labels=torch.ones((true_coords_resized.shape[0],true_coords_resized.shape[1]),dtype=torch.int64).to(param.run.device)
@@ -208,16 +208,29 @@ def SAM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
         # resized_img=predictor.transform.apply_image_torch(img)
         # predictor.set_torch_image(resized_img,img.shape[-2:])
         masks, scores, _ = predictor.predict_torch(point_coords=true_coords_resized,point_labels=points_labels,multimask_output=True)
-        
-        for i, (mask, score) in enumerate(zip(masks.squeeze(0), scores.squeeze(0))):
-            plt.figure(figsize=(10,10))
-            plt.imshow(input_img)
-            show_mask(mask, plt.gca())
-            show_points(true_coords.squeeze(0), points_labels.squeeze(0), plt.gca())
-            plt.title(f"Mask {i+1}, Score: {score:.3f}", fontsize=18)
-            plt.axis('off')
-            plt.show() 
-        pass
+        _, max_score_indices = torch.max(scores, dim=1)
+        gt_mask=masks[:,max_score_indices,:,:]
+        gt_masks.append(gt_mask)
+        plt.figure(figsize=(10,10))
+        plt.imshow(input_img)
+        show_mask(gt_mask.squeeze(0), plt.gca())
+        show_points(true_coords.squeeze(0), points_labels.squeeze(0), plt.gca())
+        plt.axis('off')
+        plt.show() 
+    return torch.cat(gt_masks,dim=0)
+
+def sample_furthest_points(true_coords, num_points_to_sample):
+    
+    B, num, _ = true_coords.shape
+    copy=true_coords.clone().type(torch.float32)
+    # Calculate all pairwise distances
+    pairwise_distances = torch.cdist(copy[0], copy[0])
+
+    if num_points_to_sample == 2:
+        # For two points, simply find the pair with the maximum distance
+        max_dist, indices = torch.max(pairwise_distances, dim=1)
+        furthest_pair = indices[max_dist.argmax()], max_dist.argmax()
+        return true_coords[0][list(furthest_pair),:].unsqueeze(0)
 
 def train_and_evaluate():
     """Train and evaluate the model."""
