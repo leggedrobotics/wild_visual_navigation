@@ -183,8 +183,8 @@ class ParamCollection(Serializable):
         test_nodes:bool=True
         
         SAM_type='vit_h'
-        #SAM_ckpt='/media/chen/UDisk1/sam_vit_h_4b8939.pth'
-        SAM_ckpt='/media/chen/UDisk1/sam_hq_vit_h.pth'
+        SAM_ckpt='/media/chen/UDisk1/sam_vit_h_4b8939.pth'
+        # SAM_ckpt='/media/chen/UDisk1/sam_hq_vit_h.pth'
     
     offline: OfflineParams = OfflineParams()
 

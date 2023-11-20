@@ -16,7 +16,7 @@ from pytorch_lightning.loggers.neptune import NeptuneLogger
 from pytorch_lightning import Trainer
 import torch.nn.functional as F
 from torchvision.transforms.functional import to_tensor
-from segment_anything_hq import SamPredictor, sam_model_registry
+from segment_anything import SamPredictor, sam_model_registry
 class DecoderLightning(pl.LightningModule):
     def __init__(self,model,params:ParamCollection):
         super().__init__()
@@ -182,7 +182,7 @@ def SAM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
     sam.to(param.run.device)
     predictor = SamPredictor(sam)
     for node in nodes:
-        img=node.image
+        img=node.image.to(param.run.device)
         reproj_mask=node.supervision_signal_valid[0]
         # Find the indices where reproj_mask is True
         true_indices = torch.where(reproj_mask)
@@ -197,13 +197,17 @@ def SAM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
             # Use these indices to sample from true_coords
             sampled_true_coords[b] = true_coords[b][rand_indices]
         true_coords=sampled_true_coords.to(param.run.device)
-        points_labels=torch.ones((true_coords.shape[0],true_coords.shape[1]),dtype=torch.int64).to(param.run.device)
+        true_coords_resized=predictor.transform.apply_coords_torch(true_coords,img.shape[-2:])
+        points_labels=torch.ones((true_coords_resized.shape[0],true_coords_resized.shape[1]),dtype=torch.int64).to(param.run.device)
+        
         # need to image--> H,W,C uint8 format
-        input_img=(img.squeeze(0).permute(1,2,0).numpy()*255.0).astype(np.uint8)
+        input_img=(img.squeeze(0).permute(1,2,0).cpu().numpy()*255.0).astype(np.uint8)
+        H,W,C=input_img.shape
         predictor.set_image(input_img)
+
         # resized_img=predictor.transform.apply_image_torch(img)
         # predictor.set_torch_image(resized_img,img.shape[-2:])
-        masks, scores, _ = predictor.predict_torch(point_coords=true_coords,point_labels=points_labels,multimask_output=True)
+        masks, scores, _ = predictor.predict_torch(point_coords=true_coords_resized,point_labels=points_labels,multimask_output=True)
         
         for i, (mask, score) in enumerate(zip(masks.squeeze(0), scores.squeeze(0))):
             plt.figure(figsize=(10,10))

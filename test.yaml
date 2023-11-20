@@ -70,6 +70,7 @@ model:
 offline:
   mode: test
   test_images: false
+  test_nodes: true
 optimizer:
   lr: 0.001
   name: ADAM
