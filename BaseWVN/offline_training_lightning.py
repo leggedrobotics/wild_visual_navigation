@@ -21,7 +21,7 @@ class DecoderLightning(pl.LightningModule):
         loss_params=self.params.loss
         self.step=0
 
-        self.test_img=load_one_test_image("results/manager","image_buffer.pt")
+        self.test_img=load_one_test_image(params.offline.data_folder,params.offline.image_file)
         B,C,H,W=self.test_img.shape
         self.feat_extractor=FeatureExtractor(device=self.params.run.device,
                                              segmentation_type=self.params.feat.segmentation_type,
@@ -90,9 +90,9 @@ class BigDataset(torch.utils.data.Dataset):
         return len(self.data)
 
 
-def load_data(folder, file):
+def load_data(file):
     """Load data from the data folder."""
-    path=os.path.join(WVN_ROOT_DIR, folder, file)
+    path=os.path.join(WVN_ROOT_DIR, file)
     data=torch.load(path)
     return data
 
@@ -172,12 +172,19 @@ def find_latest_checkpoint(parent_dir):
         print("No folders found in the parent directory.")
         return None
 
+def SAM_label_mask_generate(param:ParamCollection):
+    from segment_anything import SamPredictor, sam_model_registry
+    sam = sam_model_registry[param.offline.SAM_type](checkpoint=param.offline.SAM_ckpt)
+    predictor = SamPredictor(sam)
+    # predictor.set_image(<your_image>)
+    # masks, _, _ = predictor.predict(<input_prompts>)
 
 def train_and_evaluate():
     """Train and evaluate the model."""
-    mode="test"
-    parent_folder=os.path.join(WVN_ROOT_DIR,"results/overlay")
     param=ParamCollection()
+    mode=param.offline.mode
+    ckpt_parent_folder=os.path.join(WVN_ROOT_DIR,param.offline.ckpt_parent_folder)
+    
     m=get_model(param.model).to(param.run.device)
     model=DecoderLightning(m,param)
     if mode=="train":
@@ -187,10 +194,7 @@ def train_and_evaluate():
             project="swsychen/Decoder-MLP",
         )
         max_epochs=42
-        folder='results/manager'
-        file='train_data.pt'
-        data=load_data(folder, file)
-        
+        data=load_data(param.offline.train_data)
         combined_dataset = BigDataset(data)
         train_size = int(0.8 * len(combined_dataset))
         test_size = len(combined_dataset) - train_size
@@ -217,9 +221,9 @@ def train_and_evaluate():
                     "phy_loss_state_dict": model.loss_fn.state_dict(),
                     "loss": model.val_loss.item(),
                 },
-                os.path.join(parent_folder,model.time,"last_checkpoint.pt"))
+                os.path.join(ckpt_parent_folder,model.time,"last_checkpoint.pt"))
     else:
-        checkpoint_path = find_latest_checkpoint(parent_folder)
+        checkpoint_path = find_latest_checkpoint(ckpt_parent_folder)
         if checkpoint_path:
             print(f"Latest checkpoint path: {checkpoint_path}")
         else:
@@ -238,7 +242,7 @@ def train_and_evaluate():
                                             feature_type=param.feat.feature_type,
                                             interp=param.feat.interp,
                                             center_crop=param.feat.center_crop,)
-        test_imgs=load_all_test_images("results/manager")
+        test_imgs=load_all_test_images(param.offline.data_folder)
         for name,img in test_imgs.items():
             B,C,H,W=img.shape
             feat_extractor.set_original_size(W,H)

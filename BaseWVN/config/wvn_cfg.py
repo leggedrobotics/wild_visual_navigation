@@ -170,6 +170,19 @@ class ParamCollection(Serializable):
         seprnd_mlp_cfg: SeprndMLPCfgParams = SeprndMLPCfgParams()
     
     model: ModelParams = ModelParams()
+    
+    @dataclass
+    class OfflineParams:
+        mode:str='test'
+        ckpt_parent_folder='results/overlay'
+        data_folder='results/manager'
+        train_data='results/manager/train_data.pt'
+        image_file='image_buffer.pt'
+        
+        SAM_type='vit_h'
+        SAM_ckpt='/media/chen/UDisk1/sam_vit_h_4b8939.pth'
+    
+    offline: OfflineParams = OfflineParams()
 
 def dataclass_to_dict(obj):
     if is_dataclass(obj):

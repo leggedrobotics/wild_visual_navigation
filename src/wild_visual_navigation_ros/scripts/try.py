@@ -11,14 +11,16 @@ c="debug"
 d="debug+label"
 if "debug" in d:
     print("yes")
-model_folder=WVN_ROOT_DIR+"/model"
-manage_folder=WVN_ROOT_DIR+"/results/manager"
-m=torch.load(model_folder+"/last_checkpoint.pt")
-d=torch.load(manage_folder+"/graph_data.pt")
 
 a[0,0]=torch.nan
 e=a.numpy()
 g=np.clip(e,0,1)
 v=[2,255,167,0]
 print(min(v[:-1]))
+
+from segment_anything import SamPredictor, sam_model_registry
+sam = sam_model_registry["vit_h"](checkpoint="/media/chen/UDisk1/sam_vit_h_4b8939.pth")
+predictor = SamPredictor(sam)
+# predictor.set_image(<your_image>)
+# masks, _, _ = predictor.predict(<input_prompts>)
 pass
