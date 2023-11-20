@@ -31,7 +31,7 @@ class PhyLoss(nn.Module):
         self._confidence_generator.reset()
         
     def forward(
-        self, dataset: Union[VD_dataset, tuple], res: torch.Tensor, update_generator: bool = True, step: int = 0, log_step: bool = False,batch_idx:int=None
+        self, dataset: Union[VD_dataset, tuple], res: Union[torch.Tensor,tuple], update_generator: bool = True, step: int = 0, log_step: bool = False,batch_idx:int=None
     ):  
         if isinstance(dataset, tuple):
             x_label, y_label = dataset
@@ -40,6 +40,12 @@ class PhyLoss(nn.Module):
             y_label=dataset.get_y(batch_idx)
         else:
             raise ValueError("dataset must be a tuple or a VD_dataset")
+        
+        if isinstance(res, tuple):
+            # res is a tuple of (target,pred) from RndMLP
+            x_label=res[0]
+            res=res[1]
+        
         # Compute reconstruction loss
         nr_channel_reco = x_label.shape[1]
         loss_reco = F.mse_loss(res[:, :nr_channel_reco], x_label, reduction="none").mean(dim=1)
@@ -61,7 +67,10 @@ class PhyLoss(nn.Module):
         
         return loss_final, confidence,{"loss_pred":loss_pred_raw.mean(),"loss_reco":loss_reco.mean()}
     
-    def compute_confidence_only(self,res:torch.Tensor,input:torch.Tensor):
+    def compute_confidence_only(self,res:Union[torch.Tensor,tuple],input:torch.Tensor):
+        if isinstance(res,tuple):
+            input=res[0]
+            res=res[1]
         nr_channel_reco =input.shape[1]
         loss_reco = F.mse_loss(res[:, :nr_channel_reco], input, reduction="none").mean(dim=1)
         confidence=self._confidence_generator.inference_without_update(x=loss_reco)

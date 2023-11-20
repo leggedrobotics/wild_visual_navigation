@@ -278,7 +278,13 @@ def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss
     output=model(feat_input)
     confidence=loss_fn.compute_confidence_only(output,feat_input)
     confidence=confidence.reshape(H,W)
-    output_phy=output[:,-2:].reshape(H,W,2).permute(2,0,1)
+
+    if isinstance(output,tuple):
+        phy_dim=output[1].shape[1]-output[0].shape[1]
+        output=output[1]
+    else:
+        phy_dim=output.shape[1]-feat_input.shape[1]
+    output_phy=output[:,-phy_dim:].reshape(H,W,2).permute(2,0,1)
     mask=confidence<confidence_threshold
     mask = mask.unsqueeze(0).repeat(output_phy.shape[0], 1, 1)
     output_phy[mask] = torch.nan

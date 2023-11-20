@@ -153,7 +153,7 @@ def find_latest_checkpoint(parent_dir):
 
 def train_and_evaluate():
     """Train and evaluate the model."""
-    mode="test"
+    mode="train"
     parent_folder=os.path.join(WVN_ROOT_DIR,"results/overlay")
     param=ParamCollection()
     m=get_model(param.model).to(param.run.device)
