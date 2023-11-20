@@ -24,8 +24,8 @@ base_frame: base
 footprint_frame: footprint
 
 # Robot size
-robot_length: 0.8 # 0.8
-robot_width: 0.4  # 0.4
+robot_length: 0.9 # 0.8
+robot_width: 0.5  # 0.4
 robot_height: 0.3 # 0.3
 
 # Robot specs

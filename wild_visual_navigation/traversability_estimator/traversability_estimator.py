@@ -358,7 +358,7 @@ class TraversabilityEstimator:
                 return False
 
             mission_nodes = self._mission_graph.get_nodes_within_radius_range(
-                last_mission_node, 0, self._proprio_graph.max_distance, metric="pose"  # pose or dijkstra
+                last_mission_node, 0, self._proprio_graph.max_distance, metric="dijkstra"  # pose or dijkstra
             )
 
             center_nodes = self._mission_graph.get_nodes_within_radius_range(
