@@ -125,7 +125,7 @@ class ParamCollection(Serializable):
     
     @dataclass
     class ModelParams:
-        name: str = "SeprndMLP"  #  SimpleMLP, SeperateMLP,RndMLP,SeprndMLP
+        name: str = "SimpleMLP"  #  SimpleMLP, SeperateMLP,RndMLP,SeprndMLP
         load_ckpt: Optional[str] = None
         
         @dataclass

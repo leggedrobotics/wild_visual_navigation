@@ -34,8 +34,11 @@ class MainProcess(NodeForROS):
         super().__init__()
         self.step=0
         # Timers to control the rate of the callbacks
-        self.last_image_ts = rospy.get_time()
-        self.last_supervision_ts = rospy.get_time()
+        self.start_time = rospy.get_time()
+        self.last_image_ts = self.start_time
+        self.last_supervision_ts =self.start_time
+        self.image_buffer={}
+        self.last_image_saved=self.start_time
         
         # Init feature extractor
         self.feat_extractor = FeatureExtractor(device=self.device,
@@ -98,7 +101,8 @@ class MainProcess(NodeForROS):
             self.learning_thread_stop_event.set()
             self.learning_thread.join()
         if self.manager._label_ext_mode:
-            self.manager.save("results/manager","graph")
+            self.manager.save("results/manager","train")
+            torch.save(self.image_buffer,"results/manager/image_buffer.pt")
             
             
         print("Storing learned checkpoint...", end="")
@@ -285,17 +289,6 @@ class MainProcess(NodeForROS):
                     "value": "cancled due to pose_base_in_world",
                 }
                 return
-            # if self.manager.last_sub_node is not None:
-            #     gap=SE3.from_matrix(torch.from_numpy(pose_base_in_world).to(self.device).inverse() @ self.manager.last_sub_node.pose_base_in_world, normalize=True).log()[:3].norm()
-            #     if gap>self.param.graph.cut_threshold:
-            #         self.system_events["camera_callback_cancled"] = {
-            #         "time": rospy.get_time(),
-            #         "value": "cancled due to graph distance",
-            #     }
-            #         if self.verbose:
-            #             with self.log_data["Lock"]:
-            #                 self.log_data[f"image_callback"] = "skipping"
-            #         return
             
             # transform the camera pose from base to world
             pose_cam_in_base=self.param.roscfg.rear_camera_in_base
@@ -325,13 +318,15 @@ class MainProcess(NodeForROS):
             # msg.resized_K=self.camera_handler["K_scaled"].cpu().numpy().flatten().tolist()
             # msg.resized_height=self.camera_handler["H_scaled"]
             # msg.resized_width=self.camera_handler["W_scaled"]
-            
-            # TODO: the log maybe need to change
-            if self.verbose:
-                with self.log_data["Lock"]:
-                    self.log_data[f"num_images"]+=1
-                    self.log_data[f"time_last_image"]=rospy.get_time()
-                
+           
+            if self.manager._label_ext_mode:
+                if abs(ts-self.last_image_saved)>10.0:
+                    self.image_buffer[ts]=transformed_img
+                    self.last_image_saved=ts
+                    if self.verbose:
+                        with self.log_data["Lock"]:
+                            self.log_data[f"num_images"]+=1
+                            self.log_data[f"time_last_image"]=rospy.get_time()
             main_node = MainNode(
                 timestamp=img_msg.header.stamp.to_sec(),
                 pose_base_in_world=torch.from_numpy(pose_base_in_world).to(self.device),

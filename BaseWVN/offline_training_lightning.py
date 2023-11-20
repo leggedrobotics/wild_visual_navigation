@@ -21,7 +21,7 @@ class DecoderLightning(pl.LightningModule):
         loss_params=self.params.loss
         self.step=0
 
-        self.test_img=load_test_image("image","hiking.png")
+        self.test_img=load_one_test_image("results/manager","image_buffer.pt")
         B,C,H,W=self.test_img.shape
         self.feat_extractor=FeatureExtractor(device=self.params.run.device,
                                              segmentation_type=self.params.feat.segmentation_type,
@@ -96,28 +96,50 @@ def load_data(folder, file):
     data=torch.load(path)
     return data
 
-def load_test_image(folder, file):
+def load_one_test_image(folder, file):
     """ return img in shape (B,C,H,W) """
     image_path = os.path.join(WVN_ROOT_DIR, folder,file)
-    np_img = cv2.imread(image_path)
-    img = torch.from_numpy(cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB))
-    img = img.permute(2, 0, 1)
-    img = (img.type(torch.float32) / 255)[None]
+    if file.lower().endswith('.pt'):
+        is_pt_file=True
+    else:
+        is_pt_file=False
+    if not is_pt_file:
+        np_img = cv2.imread(image_path)
+        img = torch.from_numpy(cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB))
+        img = img.permute(2, 0, 1)
+        img = (img.type(torch.float32) / 255)[None]
+    else:
+        imgs=torch.load(image_path)
+        time,img=next(iter(imgs.items()))
     return img
 
 def load_all_test_images(folder):
     """ Load all images from a folder and return them  """
-    images = {}
+    if "manager" in folder:
+        is_pt_file=True
+    else:
+        is_pt_file=False
+    if not is_pt_file:
+        images = {}
 
-    for file in os.listdir(os.path.join(WVN_ROOT_DIR, folder)):
-        if file.lower().endswith(('.png', '.jpg', '.jpeg')):  # Check for image files
-            image_path = os.path.join(WVN_ROOT_DIR, folder, file)
-            np_img = cv2.imread(image_path)
-            img = torch.from_numpy(cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB))
-            img = img.permute(2, 0, 1)
-            img = (img.type(torch.float32) / 255)[None]
-            images[file] = img
-
+        for file in os.listdir(os.path.join(WVN_ROOT_DIR, folder)):
+            if file.lower().endswith(('.png', '.jpg', '.jpeg')):  # Check for image files
+                image_path = os.path.join(WVN_ROOT_DIR, folder, file)
+                np_img = cv2.imread(image_path)
+                img = torch.from_numpy(cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB))
+                img = img.permute(2, 0, 1)
+                img = (img.type(torch.float32) / 255)[None]
+                images[file] = img
+    else:
+        images={}
+        for file in os.listdir(os.path.join(WVN_ROOT_DIR, folder)):
+            if file.lower().endswith('.pt') and file.lower().startswith('image'):
+                image_path = os.path.join(WVN_ROOT_DIR, folder, file)
+                imgs=torch.load(image_path)
+                for time,img in imgs.items():    
+                    images[time]=img
+                    
+                break
     return images
 
 def find_latest_checkpoint(parent_dir):
@@ -153,7 +175,7 @@ def find_latest_checkpoint(parent_dir):
 
 def train_and_evaluate():
     """Train and evaluate the model."""
-    mode="train"
+    mode="test"
     parent_folder=os.path.join(WVN_ROOT_DIR,"results/overlay")
     param=ParamCollection()
     m=get_model(param.model).to(param.run.device)
@@ -166,7 +188,7 @@ def train_and_evaluate():
         )
         max_epochs=42
         folder='results/manager'
-        file='graph_data.pt'
+        file='train_data.pt'
         data=load_data(folder, file)
         
         combined_dataset = BigDataset(data)
@@ -216,7 +238,7 @@ def train_and_evaluate():
                                             feature_type=param.feat.feature_type,
                                             interp=param.feat.interp,
                                             center_crop=param.feat.center_crop,)
-        test_imgs=load_all_test_images("image/test")
+        test_imgs=load_all_test_images("results/manager")
         for name,img in test_imgs.items():
             B,C,H,W=img.shape
             feat_extractor.set_original_size(W,H)

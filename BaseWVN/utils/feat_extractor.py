@@ -159,6 +159,7 @@ class FeatureExtractor:
         # Generate pixel-wise segmentation
         B, C, H, W = img.shape
         seg = torch.arange(0, H * W, 1).reshape(H, W).to(self._device)
+        # seg = seg.unsqueeze(0).repeat(B, 1, 1)
         return seg
     
     def segment_slic(self, img: torch.tensor, **kwargs):

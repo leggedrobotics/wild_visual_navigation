@@ -283,13 +283,19 @@ class Manager:
         self._pause_training = True
         os.makedirs(manager_path, exist_ok=True)
         output_file = os.path.join(manager_path, filename)
-        if not filename.endswith('.pkl') and not filename.endswith('.pickle'):
-            output_file_graph = output_file+ '.pkl'  # Append .pkl if not already present
+        # if not filename.endswith('.pkl') and not filename.endswith('.pickle'):
+        #     output_file_graph = output_file+ '.pkl'  # Append .pkl if not already present
         # self.change_device("cpu")
         # self._learning_lock = None
         if not filename.endswith('_data.pt') :
             output_file_datasets = output_file+'_data.pt'
         torch.save(self._all_dataset,output_file_datasets)
+        
+        if not filename.endswith('_nodes.pt') :
+            output_file_graph = output_file+'_nodes.pt'
+        torch.save(self._main_graph.get_valid_nodes(),output_file_graph)
+        
+        
         # pickle.dump(self, open(output_file_graph, "wb"))
         
         self._pause_training = False
