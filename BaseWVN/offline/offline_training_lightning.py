@@ -177,16 +177,22 @@ def train_and_evaluate():
             output_dir = os.path.join(WVN_ROOT_DIR, "results", "overlay", model.time)
 
             # Construct the path for gt_masks.pt
-            gt_masks_path = os.path.join(output_dir, 'gt_masks.pt')
+            if param.offline.gt_model=="SEEM":
+                gt_masks_path = os.path.join(output_dir, 'gt_masks_SEEM.pt')
+            elif param.offline.gt_model=="SAM":
+                gt_masks_path = os.path.join(output_dir, 'gt_masks_SAM.pt')
+            # gt_masks_path = os.path.join(output_dir, 'gt_masks.pt')
 
             if os.path.exists(gt_masks_path):
                 # Load the existing gt_masks
                 gt_masks = torch.load(gt_masks_path)
             else:
                 # Generate gt_masks  
-                gt_masks=SAM_label_mask_generate(param,nodes)
+                if param.offline.gt_model=="SAM":
+                    gt_masks=SAM_label_mask_generate(param,nodes)
+                elif param.offline.gt_model=="SEEM":
+                    gt_masks=SEEM_label_mask_generate(param,nodes)
                 torch.save(gt_masks, gt_masks_path)
-            # gt_masks=SEEM_label_mask_generate(param,nodes)
             print("gt_masks shape:{}".format(gt_masks.shape))
             conf_masks=conf_mask_generate(param,nodes,feat_extractor,model).to(param.run.device)
             print("conf_masks shape:{}".format(conf_masks.shape))
