@@ -272,7 +272,10 @@ def concat_feat_dict(feat_dict: Dict[tuple, torch.Tensor]):
 
 def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss_fn:PhyLoss,confidence_threshold=0.8,plot_and_save:bool=False,step:int=0,**kwargs):
     """ process the original_img and return the phy_mask in resized img shape(non-confident--> nan) """
-    """ Shape of phy_mask: (2,H,W) H,W is the size of resized img"""
+    """ Shape of phy_mask: (2,H,W) H,W is the size of resized img
+        Return: conf_mask (1,1,H,W) H,W is the size of resized img
+    
+    """
     features, seg,trans_img,compressed_feats=feat_extractor.extract(img)
     feat_input,H,W=concat_feat_dict(compressed_feats)
     feat_input=feat_input.squeeze(0)
@@ -286,18 +289,22 @@ def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss
     else:
         phy_dim=output.shape[1]-feat_input.shape[1]
     output_phy=output[:,-phy_dim:].reshape(H,W,2).permute(2,0,1)
-    mask=confidence<confidence_threshold
-    mask = mask.unsqueeze(0).repeat(output_phy.shape[0], 1, 1)
+    conf_mask=confidence<confidence_threshold
+    mask = conf_mask.unsqueeze(0).repeat(output_phy.shape[0], 1, 1)
     output_phy[mask] = torch.nan
     if output_phy.shape[-2]!=trans_img.shape[-2] or output_phy.shape[-1]!=trans_img.shape[-1]:
         # upsample the output
         output_phy=F.interpolate(
             output_phy.unsqueeze(0).type(torch.float32), size=trans_img.shape[-2:]
         ).squeeze(0)
+    
+    conf_mask=F.interpolate((~conf_mask).type(torch.float32).unsqueeze(0).unsqueeze(0),size=trans_img.shape[-2:])>0
+    
     if plot_and_save:
         time=kwargs.get("time","notime")
         param=kwargs.get("param",None)
         image_name = kwargs.get("image_name", "anonymous")
+        image_name = image_name.replace(".", "_")
         output_dir=os.path.join(WVN_ROOT_DIR,"results","overlay",time)
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
@@ -320,7 +327,7 @@ def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss
         if param is not None:
             param_path=os.path.join(output_dir,"param.yaml")
             save_to_yaml(param,param_path)
-    return output_phy,trans_img,confidence
+    return output_phy,trans_img,confidence,conf_mask
 
 def test_extractor():
     import cv2

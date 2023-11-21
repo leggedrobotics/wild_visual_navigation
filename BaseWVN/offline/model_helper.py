@@ -167,6 +167,11 @@ def SAM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
 
 
 def SEEM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
+    """ 
+    Using SEEM to generate gt label mask
+    Return: gt_masks in shape (B=node_num,1,H,W)
+    
+    """
     model=init_model().to(param.run.device)
     gt_masks=[]
     for node in nodes:
@@ -186,6 +191,42 @@ def SEEM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
         # plt.axis('off')
         # plt.show()
     return torch.cat(gt_masks,dim=0)
+
+
+def conf_mask_generate(param:ParamCollection,
+                      nodes:List[MainNode],
+                      feat_extractor:FeatureExtractor,
+                      model:pl.LightningModule,
+                      ):
+    conf_masks=[]
+    for node in nodes:
+        img=node.image.to(param.run.device)
+        B,C,H,W=img.shape
+        feat_extractor.set_original_size(W,H)
+        output_phy,trans_img,confidence,conf_mask=compute_phy_mask(img,feat_extractor,
+                                                                    model.model,
+                                                                    model.loss_fn,
+                                                                    param.loss.confidence_threshold,
+                                                                    False,
+                                                                    -1,
+                                                                    time=model.time,
+                                                                    image_name=str(node.timestamp))
+        conf_masks.append(conf_mask)
+    return torch.cat(conf_masks,dim=0)
+
+def masks_stats(gt_masks:torch.Tensor,conf_masks:torch.Tensor):
+    H,W=gt_masks.shape[-2:]
+    delta=conf_masks.type(torch.int)-gt_masks.type(torch.int)
+    diff_mask = torch.clamp(delta, min=0)
+    # Sum over the H and W dimensions to get the count of 1s for each batch
+    ones_count = diff_mask.type(torch.float32).sum(dim=[2, 3]).mean()
+    total_elements = H*W
+    deviation = ones_count / total_elements*100.0
+    print(f'Average Over-confidence: {deviation}%')
+    diff_mask = torch.clamp(delta, max=0)
+    m_ones_count = diff_mask.type(torch.float32).sum(dim=[2, 3]).mean()
+    m_deviation=-m_ones_count / total_elements*100.0
+    print(f'Average Under-confidence: {m_deviation}%')
 
 def show_mask(mask, ax, random_color=False):
     if isinstance(mask, torch.Tensor):
