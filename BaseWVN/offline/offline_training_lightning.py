@@ -72,7 +72,15 @@ class DecoderLightning(pl.LightningModule):
         res=self.model(xs)
         loss,confidence,loss_dict=self.loss_fn((xs,ys),res,step=self.step,update_generator=False)
         if batch_idx==0 and self.step%20==0:
-            output_phy_resized,trans_img,confidence=compute_phy_mask(self.test_img,self.feat_extractor,self.model,self.loss_fn,self.params.loss.confidence_threshold,True,self.step,time=self.time,param=self.params)
+            output_phy_resized,trans_img,confidence,conf_mask=compute_phy_mask(self.test_img,
+                                                                     self.feat_extractor,
+                                                                     self.model,
+                                                                     self.loss_fn,
+                                                                     self.params.loss.confidence_threshold,
+                                                                     True,
+                                                                     self.step,
+                                                                     time=self.time,
+                                                                     param=self.params)
             pass
         self.log('val_loss', loss)
         self.val_loss=loss
@@ -197,7 +205,7 @@ def train_and_evaluate():
             conf_masks=conf_mask_generate(param,nodes,feat_extractor,model).to(param.run.device)
             print("conf_masks shape:{}".format(conf_masks.shape))
             
-            masks_stats(gt_masks,conf_masks)
+            masks_stats(gt_masks,conf_masks,os.path.join(WVN_ROOT_DIR,"results","overlay",model.time,"masks_stats.txt"))
             
             
             

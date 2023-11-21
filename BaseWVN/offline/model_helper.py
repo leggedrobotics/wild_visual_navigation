@@ -297,26 +297,30 @@ def conf_mask_generate(param:ParamCollection,
         conf_masks.append(conf_mask)
     return torch.cat(conf_masks,dim=0)
 
-def masks_stats(gt_masks:torch.Tensor,conf_masks:torch.Tensor):
+def masks_stats(gt_masks:torch.Tensor,conf_masks:torch.Tensor, output_file='stats.txt'):
     H,W=gt_masks.shape[-2:]
     delta=conf_masks.type(torch.int)-gt_masks.type(torch.int)
-    # Calculate over-confidence
-    diff_mask = torch.clamp(delta, min=0)
-    ones_count = diff_mask.type(torch.float32).sum(dim=[2, 3])
-    total_elements = H * W
-    deviation = ones_count / total_elements * 100.0
-    over_conf_mean = deviation.mean().item()
-    over_conf_std = deviation.std().item()
-    print(f'Average Over-confidence: {round(over_conf_mean,3)}%, Std. Dev: {round(over_conf_std,3)}%')
-
-    # Calculate under-confidence
-    diff_mask = torch.clamp(delta, max=0)
-    m_ones_count = diff_mask.type(torch.float32).sum(dim=[2, 3])
-    m_deviation = -m_ones_count / total_elements * 100.0
-    under_conf_mean = m_deviation.mean().item()
-    under_conf_std = m_deviation.std().item()
-    print(f'Average Under-confidence: {round(under_conf_mean,3)}%, Std. Dev: {round(under_conf_std,3)}%')
-
+    with open(output_file, 'w') as file:
+        # Calculate over-confidence
+        diff_mask = torch.clamp(delta, min=0)
+        ones_count = diff_mask.type(torch.float32).sum(dim=[2, 3])
+        total_elements = H * W
+        deviation = ones_count / total_elements * 100.0
+        over_conf_mean = deviation.mean().item()
+        over_conf_std = deviation.std().item()
+        print(f'Average Over-confidence: {round(over_conf_mean,3)}%, Std. Dev: {round(over_conf_std,3)}%')
+        over_conf_stats = f'Average Over-confidence: {round(over_conf_mean, 3)}%, Std. Dev: {round(over_conf_std, 3)}%\n'
+        file.write(over_conf_stats)
+        # Calculate under-confidence
+        diff_mask = torch.clamp(delta, max=0)
+        m_ones_count = diff_mask.type(torch.float32).sum(dim=[2, 3])
+        m_deviation = -m_ones_count / total_elements * 100.0
+        under_conf_mean = m_deviation.mean().item()
+        under_conf_std = m_deviation.std().item()
+        print(f'Average Under-confidence: {round(under_conf_mean,3)}%, Std. Dev: {round(under_conf_std,3)}%')
+        under_conf_stats = f'Average Under-confidence: {round(under_conf_mean, 3)}%, Std. Dev: {round(under_conf_std, 3)}%\n'
+        file.write(under_conf_stats)
+        
 def show_mask(mask, ax, random_color=False):
     if isinstance(mask, torch.Tensor):
         mask = mask.cpu().numpy()

@@ -304,7 +304,7 @@ def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss
         time=kwargs.get("time","notime")
         param=kwargs.get("param",None)
         image_name = kwargs.get("image_name", "anonymous")
-        image_name = image_name.replace(".", "_")
+        
         output_dir=os.path.join(WVN_ROOT_DIR,"results","overlay",time)
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
