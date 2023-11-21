@@ -17,7 +17,7 @@ from pytorch_lightning import Trainer
 import torch.nn.functional as F
 from torchvision.transforms.functional import to_tensor
 from segment_anything import SamPredictor, sam_model_registry
-
+from seem_base import inference,init_model
 def load_data(file):
     """Load data from the data folder."""
     path=os.path.join(WVN_ROOT_DIR, file)
@@ -116,6 +116,11 @@ def sample_furthest_points(true_coords, num_points_to_sample):
         return true_coords[0][list(furthest_pair),:].unsqueeze(0)
 
 def SAM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
+    """ 
+    Using segment anything model to generate gt label mask
+    Return: gt_masks in shape (B=node_num,1,H,W)
+    
+    """
     gt_masks=[]
     sam = sam_model_registry[param.offline.SAM_type](checkpoint=param.offline.SAM_ckpt)
     sam.to(param.run.device)
@@ -150,10 +155,57 @@ def SAM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
         _, max_score_indices = torch.max(scores, dim=1)
         gt_mask=masks[:,max_score_indices,:,:]
         gt_masks.append(gt_mask)
-        plt.figure(figsize=(10,10))
-        plt.imshow(input_img)
+        torch.cuda.empty_cache()
+        # plt.figure(figsize=(10,10))
+        # plt.imshow(input_img)
         # show_mask(gt_mask.squeeze(0), plt.gca())
         # show_points(true_coords.squeeze(0), points_labels.squeeze(0), plt.gca())
-        plt.axis('off')
-        plt.show() 
+        # plt.axis('off')
+        # plt.show() 
     return torch.cat(gt_masks,dim=0)
+
+def SEEM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
+    model=init_model().to(param.run.device)
+
+    gt_masks=[]
+    for node in nodes:
+        img=node.image.to(param.run.device)
+        img=(img*255.0).type(torch.uint8)
+        reproj_mask=node.supervision_signal_valid[0].unsqueeze(0).unsqueeze(0)
+        
+        masks,texts=inference(model,img,reproj_mask)
+        # if has multiple masks, add them into one
+        mask=torch.sum(masks,dim=0)
+        gt_masks.append(mask.unsqueeze(0).unsqueeze(0))
+        
+        plt.figure(figsize=(10,10))
+        input_img=(img.squeeze(0).permute(1,2,0).cpu().numpy())
+        plt.imshow(input_img)
+        show_mask(mask.squeeze(0), plt.gca())
+        show_mask(reproj_mask.squeeze(0), plt.gca(), random_color=True)
+        plt.axis('off')
+        plt.show()
+        
+        pass
+    return torch.cat(gt_masks,dim=0)
+
+def show_mask(mask, ax, random_color=False):
+    if isinstance(mask, torch.Tensor):
+        mask = mask.cpu().numpy()
+    if random_color:
+        color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
+    else:
+        color = np.array([30/255, 144/255, 255/255, 0.6])
+    h, w = mask.shape[-2:]
+    mask_image = mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
+    ax.imshow(mask_image)
+
+def show_points(coords, labels, ax, marker_size=375):
+    if isinstance(coords, torch.Tensor):
+        coords = coords.cpu().numpy()
+    if isinstance(labels, torch.Tensor):
+        labels = labels.cpu().numpy()
+    pos_points = coords[labels==1]
+    neg_points = coords[labels==0]
+    ax.scatter(pos_points[:, 0], pos_points[:, 1], color='green', marker='*', s=marker_size, edgecolor='white', linewidth=1.25)
+    ax.scatter(neg_points[:, 0], neg_points[:, 1], color='red', marker='*', s=marker_size, edgecolor='white', linewidth=1.25)

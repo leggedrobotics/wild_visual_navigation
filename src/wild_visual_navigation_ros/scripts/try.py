@@ -18,9 +18,6 @@ g=np.clip(e,0,1)
 v=[2,255,167,0]
 print(min(v[:-1]))
 
-from segment_anything import SamPredictor, sam_model_registry
-sam = sam_model_registry["vit_h"](checkpoint="/media/chen/UDisk1/sam_vit_h_4b8939.pth")
-predictor = SamPredictor(sam)
-# predictor.set_image(<your_image>)
-# masks, _, _ = predictor.predict(<input_prompts>)
+cc=a.type(torch.float32)
+print(a.max())
 pass
