@@ -164,29 +164,27 @@ def SAM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
         # plt.show() 
     return torch.cat(gt_masks,dim=0)
 
+
+
 def SEEM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
     model=init_model().to(param.run.device)
-
     gt_masks=[]
     for node in nodes:
         img=node.image.to(param.run.device)
         img=(img*255.0).type(torch.uint8)
         reproj_mask=node.supervision_signal_valid[0].unsqueeze(0).unsqueeze(0)
-        
         masks,texts=inference(model,img,reproj_mask)
         # if has multiple masks, add them into one
-        mask=torch.sum(masks,dim=0)
+        mask=torch.sum(masks,dim=0)>0
         gt_masks.append(mask.unsqueeze(0).unsqueeze(0))
         
-        plt.figure(figsize=(10,10))
-        input_img=(img.squeeze(0).permute(1,2,0).cpu().numpy())
-        plt.imshow(input_img)
-        show_mask(mask.squeeze(0), plt.gca())
-        show_mask(reproj_mask.squeeze(0), plt.gca(), random_color=True)
-        plt.axis('off')
-        plt.show()
-        
-        pass
+        # plt.figure(figsize=(10,10))
+        # input_img=(img.squeeze(0).permute(1,2,0).cpu().numpy())
+        # plt.imshow(input_img)
+        # show_mask(mask.squeeze(0), plt.gca())
+        # show_mask(reproj_mask.squeeze(0), plt.gca(), random_color=True)
+        # plt.axis('off')
+        # plt.show()
     return torch.cat(gt_masks,dim=0)
 
 def show_mask(mask, ax, random_color=False):

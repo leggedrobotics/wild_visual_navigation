@@ -173,9 +173,11 @@ def train_and_evaluate():
                                 image_name=name,)
         if param.offline.test_nodes:
             nodes=torch.load(os.path.join(WVN_ROOT_DIR,param.offline.nodes_data))
-            # SAM_label_mask_generate(param,nodes)
-            SEEM_label_mask_generate(param,nodes)
-        
+            gt_masks=SAM_label_mask_generate(param,nodes)
+            # gt_masks=SEEM_label_mask_generate(param,nodes)
+            print("gt_masks shape:{}".format(gt_masks.shape))
+            
+            pass
         pass
 
 
