@@ -206,7 +206,8 @@ def train_and_evaluate():
             print("conf_masks shape:{}".format(conf_masks.shape))
             
             masks_stats(gt_masks,conf_masks,os.path.join(WVN_ROOT_DIR,"results","overlay",model.time,"masks_stats.txt"))
-            
+            # TODO: side by side comparison for gt_masks and conf_masks
+            # TODO: uncertainty histograms
             
             
             pass

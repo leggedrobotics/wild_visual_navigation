@@ -47,6 +47,22 @@ def plot_overlay_image(img, alpha=0.5, overlay_mask=None, channel=0, **kwargs):
     else:
         return img
 
+def concatenate_images(images):
+    """Concatenate a list of images horizontally, assuming they are already np.uint8 arrays."""
+    images_pil = [Image.fromarray(img) for img in images]
+    widths, heights = zip(*(i.size for i in images_pil))
+
+    total_width = sum(widths)
+    max_height = max(heights)
+
+    new_im = Image.new('RGB', (total_width, max_height))
+
+    x_offset = 0
+    for im in images_pil:
+        new_im.paste(im, (x_offset, 0))
+        x_offset += im.size[0]
+
+    return new_im
 
 def plot_image( img, **kwargs):
     """
