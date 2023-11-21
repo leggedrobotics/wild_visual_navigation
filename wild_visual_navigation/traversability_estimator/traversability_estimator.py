@@ -358,11 +358,11 @@ class TraversabilityEstimator:
                 return False
 
             mission_nodes = self._mission_graph.get_nodes_within_radius_range(
-                last_mission_node, 0, self._proprio_graph.max_distance, metric="dijkstra"  # pose or dijkstra
+                last_mission_node, 0, self._proprio_graph.max_distance, metric="dijkstra"  # pose or dijkstra (dijkstra goes along the path)
             )
 
             center_nodes = self._mission_graph.get_nodes_within_radius_range(
-                last_mission_node, 0, self._proprio_graph.max_distance / 2, metric="pose"  # pose or dijkstra
+                last_mission_node, 0, self._proprio_graph.max_distance / 2, metric="dijkstra"  # pose or dijkstra
             )
             center_node = center_nodes[0]
 
@@ -420,7 +420,6 @@ class TraversabilityEstimator:
                 # mnode.update_supervision_signal()   # Accumulate supervision signal, check if features are there
 
                 # print("Save data...")
-
                 if self._mode == WVNMode.EXTRACT_LABELS:
                     # Save mask as torch file
                     mask = torch.nan_to_num(mnode.supervision_mask.nanmean(axis=0)) != 0

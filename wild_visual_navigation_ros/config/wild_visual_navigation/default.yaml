@@ -24,7 +24,7 @@ base_frame: base
 footprint_frame: footprint
 
 # Robot size
-robot_length: 0.9 # 0.8
+robot_length: 2.0 # 0.8
 robot_width: 0.5  # 0.4
 robot_height: 0.3 # 0.3
 
@@ -32,7 +32,7 @@ robot_height: 0.3 # 0.3
 robot_max_velocity: 0.8
 
 # Traversability estimation params
-traversability_radius: 10.0 # meters
+traversability_radius: 3.0 # meters
 image_graph_dist_thr: 0.2 # meters
 proprio_graph_dist_thr: 0.1 # meters
 network_input_image_height: 480

@@ -220,8 +220,31 @@ class ImageProjector:
         points_B = transform_points(T_BW, points)
 
         # Convert from last node base frame to center node base frame
+        # center_pose = None
         if center_pose is not None:
+            # alpha = torch.tensor(0.3)
+            # tf = torch.eye(4, 4)
+            # rotation_matrix = torch.tensor([
+            #     [torch.cos(alpha), -torch.sin(alpha), 0.0],
+            #     [torch.sin(alpha), torch.cos(alpha), 0.0],
+            #     [0.0, 0.0, 1.0]
+            # ])
+            #
+            # tf[:3, :3] = rotation_matrix
+            # tf[:3, 3] = torch.tensor([-1.0, 0.3, 0.0])
+            # T_BW_relative = tf.to("cuda").repeat(B, 1, 1)
+
+            # print("trans", center_pose[0, :3, 3])
+            # print("rot", center_pose[0, :3, :3])
+
+            # tf = torch.eye(4)
+            # tf[:2, :2] = center_pose[0, :2, :2]
+            # tf[:2, 3] = center_pose[0, :2, 3]
+            # tf[:3, 3] = torch.tensor([1.0, 0.0, 0.0])
+
+            # T_BW_relative = tf.to("cuda").repeat(B, 1, 1)
             T_BW_relative = center_pose
+
             points_B = transform_points(T_BW_relative, points_B)
 
         # Remove z dimension
@@ -231,10 +254,13 @@ class ImageProjector:
         # Flip x axis
         # flat_points[:, :, 0] = -flat_points[:, :, 0]
 
-        # Center index of flat_points for first dimentions
-        # Hack to center points
-        # center_patch = flat_points[flat_points.shape[0] // 2, :, :]
+        # Center index of flat_points for first dimensions
+        # print(flat_points.shape[0])
+        # # # Hack to center points
+        # center_patch = flat_points[flat_points.shape[0] - 5, :, :]
         # center = torch.mean(center_patch, dim=0, keepdim=True)
+        # print(center_patch)
+        # print(center)
         # center = center.repeat(flat_points.shape[0], flat_points.shape[1], 1)
         # flat_points = (flat_points - center) / map_resolution + map_size / 2
 
