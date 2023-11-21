@@ -182,7 +182,7 @@ class ParamCollection(Serializable):
         test_images:bool=False
         test_nodes:bool=True
         
-        gt_model='SAM' # 'SEEM' or 'SAM'
+        gt_model='SEEM' # 'SEEM' or 'SAM'
         SAM_type='vit_h'
         SAM_ckpt='/media/chen/UDisk1/sam_vit_h_4b8939.pth'
         # SAM_ckpt='/media/chen/UDisk1/sam_hq_vit_h.pth'

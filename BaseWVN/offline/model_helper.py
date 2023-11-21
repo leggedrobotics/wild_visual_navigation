@@ -131,6 +131,8 @@ def sample_furthest_points(true_coords, num_points_to_sample,given_point=None):
         # Return the furthest point
         return true_coords[0][max_dist_index].unsqueeze(0).unsqueeze(0)
 
+
+
 def SAM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
     """ 
     Using segment anything model to generate gt label mask
@@ -174,12 +176,12 @@ def SAM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
         # resized_img=predictor.transform.apply_image_torch(img)
         # predictor.set_torch_image(resized_img,img.shape[-2:])
         gt_mask_pts=torch.zeros_like(reproj_mask.unsqueeze(0).unsqueeze(0)).type(torch.int)
-        for i in range(num_points_to_sample):
+        for i in range(true_coords_resized.shape[1]):
             current_point_coords = true_coords_resized[:, i, :].unsqueeze(1)
             current_label = points_labels[:, i].unsqueeze(0)
             masks, scores, _ = predictor.predict_torch(point_coords=current_point_coords,point_labels=current_label,multimask_output=True)
             
-            for i in range(masks.shape[1]):
+            for j in range(masks.shape[1]):
                 _, max_score_indices = torch.max(scores, dim=1)
                 gt_mask=masks[:,max_score_indices,:,:]
                 mask_ratio_s=gt_mask.sum()/(H*W)
@@ -221,19 +223,53 @@ def SEEM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
     for node in nodes:
         img=node.image.to(param.run.device)
         img=(img*255.0).type(torch.uint8)
-        reproj_mask=node.supervision_signal_valid[0].unsqueeze(0).unsqueeze(0)
-        masks,texts=inference(model,img,reproj_mask)
-        # if has multiple masks, add them into one
-        mask=torch.sum(masks,dim=0)>0
-        gt_masks.append(mask.unsqueeze(0).unsqueeze(0))
+        reproj_mask=node.supervision_signal_valid[0]
+        
+        # Find the indices where reproj_mask is True
+        true_indices = torch.where(reproj_mask)
+        true_coords = torch.stack((true_indices[1], true_indices[0]),dim=1).unsqueeze(0) # (x, y) format
+        B, num, _ = true_coords.shape
+ 
+        # combine the furtherst points with the randomly sampled points
+        far_coords=sample_furthest_points(true_coords, 2).to(param.run.device)
+        num_points_to_sample = min(3, num)
+        # sampled_true_coords = torch.zeros(B, num_points_to_sample, 2)
+        rand_indices = torch.randperm(num)[:num_points_to_sample]
+        sampled_true_coords=true_coords[:,rand_indices,:].to(param.run.device)
+        pairs=[]
+        for i in range(num_points_to_sample):
+            pair=sample_furthest_points(true_coords, 2, given_point=sampled_true_coords[:,i,:]).to(param.run.device)
+            pairs.append(pair)
+        pairs=torch.cat(pairs,dim=1)
+        true_coords=sampled_true_coords.to(param.run.device)
+        true_coords=torch.cat((true_coords,far_coords,pairs),dim=1)
+        
+        # generate reproj_mask based on true_coords
+        gt_mask_pts=torch.zeros_like(reproj_mask.unsqueeze(0).unsqueeze(0)).type(torch.int)
+        for i in range(true_coords.shape[1]):
+            input_mask=torch.zeros_like(reproj_mask.unsqueeze(0).unsqueeze(0)).type(torch.bool)
+            x,y=true_coords[0,i,:]
+            input_mask[0,0,y,x]=True
+            masks,texts=inference(model,img,input_mask)
+            # if has multiple masks, add them into one
+            gt_mask=(torch.sum(masks,dim=0)>0).unsqueeze(0).unsqueeze(0)
+            gt_mask_pts+=gt_mask.type(torch.int)
+            gt_mask_pts[gt_mask_pts>0]=1
+        gt_mask=gt_mask_pts.type(torch.bool)
+        gt_masks.append(gt_mask)
+        
+        # masks,texts=inference(model,img,reproj_mask)
+        # # if has multiple masks, add them into one
+        # mask=torch.sum(masks,dim=0)>0
+        # gt_masks.append(mask.unsqueeze(0).unsqueeze(0))
         
         # plt.figure(figsize=(10,10))
         # input_img=(img.squeeze(0).permute(1,2,0).cpu().numpy())
         # plt.imshow(input_img)
         # H,W,C=input_img.shape
-        # mask_ratio=mask.sum()/(H*W)
+        # mask_ratio=gt_mask.sum()/(H*W)
         # print("Mask region ratio: ",mask_ratio.item())
-        # show_mask(mask.squeeze(0), plt.gca())
+        # show_mask(gt_mask.squeeze(0), plt.gca())
         # show_mask(reproj_mask.squeeze(0), plt.gca(), random_color=True)
         # plt.axis('off')
         # plt.show()
