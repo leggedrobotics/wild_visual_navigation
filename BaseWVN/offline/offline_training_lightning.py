@@ -174,7 +174,7 @@ def train_and_evaluate():
         if param.offline.test_nodes:
             nodes=torch.load(os.path.join(WVN_ROOT_DIR,param.offline.nodes_data))
             
-            output_dir = os.path.join(WVN_ROOT_DIR, "results", "overlay", model.time)
+            output_dir = os.path.join(WVN_ROOT_DIR, "results", "manager")
 
             # Construct the path for gt_masks.pt
             if param.offline.gt_model=="SEEM":

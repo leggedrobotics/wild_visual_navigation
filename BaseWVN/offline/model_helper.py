@@ -217,16 +217,22 @@ def conf_mask_generate(param:ParamCollection,
 def masks_stats(gt_masks:torch.Tensor,conf_masks:torch.Tensor):
     H,W=gt_masks.shape[-2:]
     delta=conf_masks.type(torch.int)-gt_masks.type(torch.int)
+    # Calculate over-confidence
     diff_mask = torch.clamp(delta, min=0)
-    # Sum over the H and W dimensions to get the count of 1s for each batch
-    ones_count = diff_mask.type(torch.float32).sum(dim=[2, 3]).mean()
-    total_elements = H*W
-    deviation = ones_count / total_elements*100.0
-    print(f'Average Over-confidence: {deviation}%')
+    ones_count = diff_mask.type(torch.float32).sum(dim=[2, 3])
+    total_elements = H * W
+    deviation = ones_count / total_elements * 100.0
+    over_conf_mean = deviation.mean().item()
+    over_conf_std = deviation.std().item()
+    print(f'Average Over-confidence: {round(over_conf_mean,3)}%, Std. Dev: {round(over_conf_std,3)}%')
+
+    # Calculate under-confidence
     diff_mask = torch.clamp(delta, max=0)
-    m_ones_count = diff_mask.type(torch.float32).sum(dim=[2, 3]).mean()
-    m_deviation=-m_ones_count / total_elements*100.0
-    print(f'Average Under-confidence: {m_deviation}%')
+    m_ones_count = diff_mask.type(torch.float32).sum(dim=[2, 3])
+    m_deviation = -m_ones_count / total_elements * 100.0
+    under_conf_mean = m_deviation.mean().item()
+    under_conf_std = m_deviation.std().item()
+    print(f'Average Under-confidence: {round(under_conf_mean,3)}%, Std. Dev: {round(under_conf_std,3)}%')
 
 def show_mask(mask, ax, random_color=False):
     if isinstance(mask, torch.Tensor):
