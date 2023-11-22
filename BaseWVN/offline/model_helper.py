@@ -281,10 +281,19 @@ def conf_mask_generate(param:ParamCollection,
                       feat_extractor:FeatureExtractor,
                       model:pl.LightningModule,
                       ):
+    """ 
+    Here we use the model to generate confidence mask for each node
+    Also the loss_recon is used to compute uncertainty histograms
+    
+    """
     conf_masks=[]
+    reproj_masks=[]
+    losses=[]
     ori_imgs=[]
-    for node in nodes:
+    for i,node in enumerate( nodes):
         img=node.image.to(param.run.device)
+        reproj_mask=node.supervision_signal_valid[0].unsqueeze(0).unsqueeze(0).to(param.run.device)
+        reproj_masks.append(reproj_mask)
         ori_imgs.append(img)
         B,C,H,W=img.shape
         feat_extractor.set_original_size(W,H)
@@ -297,8 +306,78 @@ def conf_mask_generate(param:ParamCollection,
                                 time=model.time,
                                 image_name=str(node.timestamp))
         conf_mask=res_dict['conf_mask']
+        loss_reco=res_dict['loss_reco']
+        calculate_uncertainty_plot(loss_reco,conf_mask,reproj_mask,os.path.join(WVN_ROOT_DIR,'results/overlay',model.time,'hist',f'node_{i}_uncertainty_histogram.png'))
         conf_masks.append(conf_mask)
-    return torch.cat(conf_masks,dim=0),torch.cat(ori_imgs,dim=0)
+        losses.append(loss_reco)
+        torch.cuda.empty_cache()
+    all_reproj_masks=torch.cat(reproj_masks,dim=0)
+    all_losses=torch.cat(losses,dim=0)
+    all_conf_masks=torch.cat(conf_masks,dim=0)
+    
+    calculate_uncertainty_plot(all_losses,all_conf_masks,all_reproj_masks,os.path.join(WVN_ROOT_DIR,'results/overlay',model.time,'hist','all_uncertainty_histogram.png'))
+    
+    return all_conf_masks,torch.cat(ori_imgs,dim=0)
+
+def calculate_uncertainty_plot(all_losses:torch.Tensor,all_conf_masks:torch.Tensor,all_reproj_masks:torch.Tensor,save_path):
+    """ 
+    Calculate a histogram of the uncertainty values (losses) from reproj_masks(should be very certain)
+    and from conf_masks
+    """
+    if not os.path.exists(os.path.dirname(save_path)):
+        os.makedirs(os.path.dirname(save_path))
+    bin_size = 0.05
+    # Flatten the tensors to get the loss values of all pixels
+    flattened_losses = all_losses.flatten().detach().cpu().numpy()
+    flattened_conf_masks = all_conf_masks.flatten().detach().cpu().numpy().astype(bool)
+    flattened_reproj_masks = all_reproj_masks.flatten().detach().cpu().numpy().astype(bool)
+
+    # Use boolean indexing to filter losses
+    conf_mask_losses = flattened_losses[flattened_conf_masks]
+    reproj_mask_losses = flattened_losses[flattened_reproj_masks]
+
+    unconf_mask_losses = flattened_losses[~flattened_conf_masks]
+    # Sample a fixed number of points from all losses to balance the scale
+    # sample_size = min(10000, len(flattened_losses))
+    # losses_sampled = np.random.choice(flattened_losses, sample_size, replace=False)
+
+    # sample_size = min(3000, len(flattened_losses))
+    # conf_sampled = np.random.choice(conf_mask_losses, sample_size, replace=False)
+    # sample_size = min(1000, len(flattened_losses))
+    # reproj_sampled = np.random.choice(reproj_mask_losses, sample_size, replace=False)
+    
+    # Define the bin edges based on the minimum and maximum loss values and the desired bin size
+    min_loss = min(flattened_losses.min(), conf_mask_losses.min(), reproj_mask_losses.min())
+    max_loss = max(flattened_losses.max(), conf_mask_losses.max(), reproj_mask_losses.max())
+    bins = np.arange(min_loss, max_loss + bin_size, bin_size)
+
+    # Plot the histogram
+    plt.figure(figsize=(10, 6))
+    
+    # Histogram for all losses in grey
+    # plt.hist(flattened_losses, bins, color='grey', alpha=1.0, label='Sampled All Losses',density=False)
+    plt.hist(unconf_mask_losses, bins, color='red', alpha=0.7, label='Un-confident Mask',density=False)
+    # Histogram for conf_mask_losses in orange
+    plt.hist(conf_mask_losses, bins, color='orange', alpha=0.7, label='Confidence Mask',density=False)
+
+    # Histogram for reproj_mask_losses in blue
+    plt.hist(reproj_mask_losses, bins, color='blue', alpha=0.5, label='Reprojection Mask',density=False)
+
+
+    # Add labels and title
+    plt.xlabel('Loss Value')
+    plt.ylabel('Frequency')
+    plt.title('Histogram of Uncertainty')
+    plt.legend()
+    plt.grid(True)
+    
+    # Save the plot
+    plt.savefig(save_path)
+    # plt.show()
+    plt.close()
+
+
+
 
 def plot_masks_compare(gt_masks:torch.Tensor,conf_masks:torch.Tensor,images:torch.Tensor,file_path,layout_type='side_by_side'):
     """

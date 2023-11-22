@@ -221,8 +221,6 @@ def train_and_evaluate():
                                layout_type="grid",
                                )
             
-            # TODO: uncertainty histograms
-            
             
             pass
         pass
