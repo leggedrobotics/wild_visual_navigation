@@ -166,6 +166,9 @@ def train_and_evaluate():
                                             feature_type=param.feat.feature_type,
                                             interp=param.feat.interp,
                                             center_crop=param.feat.center_crop,)
+        """ 
+        plot phy_masks (two channels) on a set of test images
+        """
         if param.offline.test_images:
             test_imgs=load_all_test_images(param.offline.data_folder)
             for name,img in test_imgs.items():
@@ -179,6 +182,10 @@ def train_and_evaluate():
                                 -1,
                                 time=model.time,
                                 image_name=name,)
+                
+        """ 
+        test on the recorded main nodes
+        """
         if param.offline.test_nodes:
             nodes=torch.load(os.path.join(WVN_ROOT_DIR,param.offline.nodes_data))
             
@@ -202,11 +209,15 @@ def train_and_evaluate():
                     gt_masks=SEEM_label_mask_generate(param,nodes)
                 torch.save(gt_masks, gt_masks_path)
             print("gt_masks shape:{}".format(gt_masks.shape))
-            conf_masks=conf_mask_generate(param,nodes,feat_extractor,model).to(param.run.device)
+            conf_masks,ori_imgs=conf_mask_generate(param,nodes,feat_extractor,model)
+            conf_masks=conf_masks.to(param.run.device)
+            ori_imgs=ori_imgs.to(param.run.device)
             print("conf_masks shape:{}".format(conf_masks.shape))
             
             masks_stats(gt_masks,conf_masks,os.path.join(WVN_ROOT_DIR,"results","overlay",model.time,"masks_stats.txt"))
             # TODO: side by side comparison for gt_masks and conf_masks
+            plot_masks_compare(gt_masks,conf_masks,ori_imgs,os.path.join(WVN_ROOT_DIR,"results","overlay",model.time))
+            
             # TODO: uncertainty histograms
             
             

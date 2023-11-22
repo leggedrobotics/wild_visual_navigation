@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import datetime
 from .. import WVN_ROOT_DIR
 from ..GraphManager import MainNode
-from ..utils import PhyLoss,FeatureExtractor,concat_feat_dict,plot_overlay_image,compute_phy_mask
+from ..utils import PhyLoss,FeatureExtractor,concat_feat_dict,plot_overlay_image,compute_phy_mask,plot_image,plot_images_side_by_side
 from ..model import VD_dataset,get_model
 from ..config.wvn_cfg import ParamCollection,save_to_yaml
 from torch.utils.data import DataLoader, ConcatDataset, Subset
@@ -282,8 +282,10 @@ def conf_mask_generate(param:ParamCollection,
                       model:pl.LightningModule,
                       ):
     conf_masks=[]
+    ori_imgs=[]
     for node in nodes:
         img=node.image.to(param.run.device)
+        ori_imgs.append(img)
         B,C,H,W=img.shape
         feat_extractor.set_original_size(W,H)
         output_phy,trans_img,confidence,conf_mask=compute_phy_mask(img,feat_extractor,
@@ -295,8 +297,33 @@ def conf_mask_generate(param:ParamCollection,
                                                                     time=model.time,
                                                                     image_name=str(node.timestamp))
         conf_masks.append(conf_mask)
-    return torch.cat(conf_masks,dim=0)
+    return torch.cat(conf_masks,dim=0),torch.cat(ori_imgs,dim=0)
 
+def plot_masks_compare(gt_masks:torch.Tensor,conf_masks:torch.Tensor,images:torch.Tensor,file_path):
+    """ 
+    Plot the gt_masks and conf_masks in one figure side by side
+    """
+    # gt_masks in shape (B=1,1,H,W)
+    # conf_masks in shape (B=1,1,H,W)
+    for i in range(gt_masks.shape[0]):
+        img=plot_image(images[i].squeeze(0))
+        output_gt=plot_overlay_image(images[i].unsqueeze(0),alpha=0.7,
+                           overlay_mask=gt_masks[i],
+                           channel=0,
+                           cmap='coolwarm',
+                           )
+        output_conf=plot_overlay_image(images[i].unsqueeze(0),alpha=0.7,
+                           overlay_mask=conf_masks[i],
+                           channel=0,
+                           cmap='coolwarm'
+                           )
+        img_list=[img,output_gt,output_conf]
+        title_list=['Original Image','GT Mask','Confidence Mask']
+        plot_images_side_by_side(img_list,title_list,save_path=os.path.join(file_path,'node'+str(i)+'.png'))
+        
+        pass
+        
+   
 def masks_stats(gt_masks:torch.Tensor,conf_masks:torch.Tensor, output_file='stats.txt'):
     H,W=gt_masks.shape[-2:]
     delta=conf_masks.type(torch.int)-gt_masks.type(torch.int)

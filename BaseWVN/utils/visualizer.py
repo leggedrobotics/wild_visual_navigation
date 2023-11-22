@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 def plot_overlay_image(img, alpha=0.5, overlay_mask=None, channel=0, **kwargs):
     """ 
     overlay_mask: (C,H,W) mask with C channels
+    img:(1,C,H,W) image with C channels
     output: (H,W,3) RGB image with overlay mask
     
     """
@@ -86,6 +87,30 @@ def plot_image( img, **kwargs):
 
     img = np.uint8(img)
     return img
+
+
+def plot_images_side_by_side(images, titles, save_path='comparison.png'):
+    """
+    Plot a list of images side by side with titles and save the plot.
+
+    Args:
+    images (list of np.array): List of images (H,W,C) to plot. they need to rotate 180 degree for proper display
+    titles (list of str): List of titles for each image.
+    save_path (str): Path to save the image file.
+    """
+    num_images = len(images)
+    fig, axes = plt.subplots(1, num_images, figsize=(num_images * 5, 5))
+
+    for ax, img, title in zip(axes, images, titles):
+        # Display image
+        rotated_img = np.rot90(np.rot90(img))
+        ax.imshow(rotated_img)
+        ax.set_title(title)
+        ax.axis('off')  # Turn off axis
+
+    plt.tight_layout()
+    plt.savefig(save_path)
+    # plt.show()
 
 if __name__ == "__main__":
     # Create a sample image
