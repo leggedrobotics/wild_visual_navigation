@@ -330,7 +330,8 @@ def calculate_uncertainty_plot(all_losses:torch.Tensor,all_conf_masks:torch.Tens
     """
     if not os.path.exists(os.path.dirname(save_path)):
         os.makedirs(os.path.dirname(save_path))
-    bin_size = 0.05
+    # bin_size = 0.05
+    num_bins = 40
     # Flatten the tensors to get the loss values of all pixels
     flattened_losses = all_losses.flatten().detach().cpu().numpy()
     flattened_conf_masks = all_conf_masks.flatten().detach().cpu().numpy().astype(bool)
@@ -353,8 +354,8 @@ def calculate_uncertainty_plot(all_losses:torch.Tensor,all_conf_masks:torch.Tens
     # Define the bin edges based on the minimum and maximum loss values and the desired bin size
     min_loss = min(flattened_losses.min(), conf_mask_losses.min(), reproj_mask_losses.min())
     max_loss = max(flattened_losses.max(), conf_mask_losses.max(), reproj_mask_losses.max())
-    bins = np.arange(min_loss, max_loss + bin_size, bin_size)
-
+    # bins = np.arange(min_loss, max_loss + bin_size, bin_size)
+    bins = np.linspace(min_loss, max_loss, num_bins)
     # Plot the histogram
     plt.figure(figsize=(10, 6))
     
