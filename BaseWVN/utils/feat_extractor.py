@@ -280,9 +280,10 @@ def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss
     feat_input,H,W=concat_feat_dict(compressed_feats)
     feat_input=feat_input.squeeze(0)
     output=model(feat_input)
-    confidence=loss_fn.compute_confidence_only(output,feat_input)
+    confidence,loss_reco=loss_fn.compute_confidence_only(output,feat_input)
     confidence=confidence.reshape(H,W)
-
+    loss_reco=loss_reco.reshape(H,W)
+    
     if isinstance(output,tuple):
         phy_dim=output[1].shape[1]-output[0].shape[1]
         output=output[1]
@@ -297,8 +298,10 @@ def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss
         output_phy=F.interpolate(
             output_phy.unsqueeze(0).type(torch.float32), size=trans_img.shape[-2:]
         ).squeeze(0)
+    conf_mask=~conf_mask
+    conf_mask_resized=F.interpolate(conf_mask.type(torch.float32).unsqueeze(0).unsqueeze(0),size=trans_img.shape[-2:])>0
+    loss_reco_resized=F.interpolate(loss_reco.unsqueeze(0).unsqueeze(0),size=trans_img.shape[-2:])
     
-    conf_mask=F.interpolate((~conf_mask).type(torch.float32).unsqueeze(0).unsqueeze(0),size=trans_img.shape[-2:])>0
     
     if plot_and_save:
         time=kwargs.get("time","notime")
@@ -327,7 +330,13 @@ def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss
         if param is not None:
             param_path=os.path.join(output_dir,"param.yaml")
             save_to_yaml(param,param_path)
-    return output_phy,trans_img,confidence,conf_mask
+    # return output_phy,trans_img,confidence,conf_mask_resized
+    torch.cuda.empty_cache()
+    return {"output_phy":output_phy,
+            "trans_img":trans_img,
+            "confidence":confidence,
+            "conf_mask":conf_mask_resized,
+            "loss_reco":loss_reco_resized,}
 
 def test_extractor():
     import cv2

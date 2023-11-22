@@ -29,7 +29,7 @@ class ConfidenceGenerator(torch.nn.Module):
         self.mean = torch.nn.Parameter(mean, requires_grad=False)
         self.var = torch.nn.Parameter(var, requires_grad=False)
         self.std = torch.nn.Parameter(std, requires_grad=False)
-
+        
         if method == "running_mean":
             running_n = torch.zeros(1, dtype=torch.float64)
             running_sum = torch.zeros(1, dtype=torch.float64)
@@ -63,7 +63,7 @@ class ConfidenceGenerator(torch.nn.Module):
         # Then the confidence is computed as the distance to the center of the Gaussian given factor*sigma
         confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
         confidence[x < self.mean] = 1.0
-
+        
         return confidence.type(torch.float32)
     
     def reset(self):

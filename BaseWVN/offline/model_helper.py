@@ -200,14 +200,14 @@ def SAM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
         gt_masks.append(gt_mask)
         torch.cuda.empty_cache()
         
-        mask_ratio=gt_mask.sum()/(H*W)
-        plt.figure(figsize=(10,10))
-        plt.imshow(input_img)
-        print("Mask region ratio: ",mask_ratio.item())
-        show_mask(gt_mask.squeeze(0), plt.gca())
-        show_points(true_coords.squeeze(0), points_labels.squeeze(0), plt.gca())
-        plt.axis('off')
-        plt.show() 
+        # mask_ratio=gt_mask.sum()/(H*W)
+        # plt.figure(figsize=(10,10))
+        # plt.imshow(input_img)
+        # print("Mask region ratio: ",mask_ratio.item())
+        # show_mask(gt_mask.squeeze(0), plt.gca())
+        # show_points(true_coords.squeeze(0), points_labels.squeeze(0), plt.gca())
+        # plt.axis('off')
+        # plt.show() 
     return torch.cat(gt_masks,dim=0)
 
 
@@ -288,14 +288,15 @@ def conf_mask_generate(param:ParamCollection,
         ori_imgs.append(img)
         B,C,H,W=img.shape
         feat_extractor.set_original_size(W,H)
-        output_phy,trans_img,confidence,conf_mask=compute_phy_mask(img,feat_extractor,
-                                                                    model.model,
-                                                                    model.loss_fn,
-                                                                    param.loss.confidence_threshold,
-                                                                    False,
-                                                                    -1,
-                                                                    time=model.time,
-                                                                    image_name=str(node.timestamp))
+        res_dict=compute_phy_mask(img,feat_extractor,
+                                model.model,
+                                model.loss_fn,
+                                param.loss.confidence_threshold,
+                                False,
+                                -1,
+                                time=model.time,
+                                image_name=str(node.timestamp))
+        conf_mask=res_dict['conf_mask']
         conf_masks.append(conf_mask)
     return torch.cat(conf_masks,dim=0),torch.cat(ori_imgs,dim=0)
 
