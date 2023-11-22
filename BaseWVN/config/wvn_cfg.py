@@ -101,6 +101,7 @@ class ParamCollection(Serializable):
         method: str = "running_mean"
         confidence_std_factor: float = 1.0
         confidence_threshold: float = 0.5
+        confidence_mode: str = "gmm_1d" # gmm_1d,gmm_all,fixed
         log_enabled: bool = False
         log_folder: str = "/tmp"
         verbose: bool = True

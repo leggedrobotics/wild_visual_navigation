@@ -272,13 +272,13 @@ def concat_feat_dict(feat_dict: Dict[tuple, torch.Tensor]):
     sparse_features = resized_feats.reshape(resized_feats.shape[0],resized_feats.shape[1]*resized_feats.shape[2],-1)
     return sparse_features,first_shape[2],first_shape[3]
 
-def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss_fn:PhyLoss,confidence_threshold=0.8,plot_and_save:bool=False,step:int=0,**kwargs):
+def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss_fn:PhyLoss,confidence_threshold=0.8,mode="fixed",plot_and_save:bool=False,step:int=0,**kwargs):
     """ process the original_img and return the phy_mask in resized img shape(non-confident--> nan) """
     """ Shape of phy_mask: (2,H,W) H,W is the size of resized img
         Return: conf_mask (1,1,H,W) H,W is the size of resized img
     
     """
-    mode="gmm_1d"
+
     if mode !="fixed":
         confidence_threshold=None
     
