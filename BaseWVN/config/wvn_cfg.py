@@ -179,7 +179,7 @@ class ParamCollection(Serializable):
         train_data:str='results/manager/train_data.pt'
         nodes_data:str='results/manager/train_nodes.pt'
         image_file:str='image_buffer.pt'
-        test_images:bool=False
+        test_images:bool=True
         test_nodes:bool=True
         
         gt_model:str='SAM' # 'SEEM' or 'SAM'

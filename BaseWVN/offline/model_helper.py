@@ -280,6 +280,7 @@ def conf_mask_generate(param:ParamCollection,
                       nodes:List[MainNode],
                       feat_extractor:FeatureExtractor,
                       model:pl.LightningModule,
+                      gt_masks:torch.Tensor,
                       ):
     """ 
     Here we use the model to generate confidence mask for each node
@@ -308,6 +309,8 @@ def conf_mask_generate(param:ParamCollection,
         conf_mask=res_dict['conf_mask']
         loss_reco=res_dict['loss_reco']
         calculate_uncertainty_plot(loss_reco,conf_mask,reproj_mask,os.path.join(WVN_ROOT_DIR,'results/overlay',model.time,'hist',f'node_{i}_uncertainty_histogram.png'))
+        calculate_uncertainty_plot(loss_reco,gt_masks[i,:,:,:].unsqueeze(0),reproj_mask,os.path.join(WVN_ROOT_DIR,'results/overlay',model.time,'hist/gt',f'node_{i}_gt_uncertainty_histogram.png'))
+
         conf_masks.append(conf_mask)
         losses.append(loss_reco)
         torch.cuda.empty_cache()

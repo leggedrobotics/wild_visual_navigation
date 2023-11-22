@@ -9,6 +9,7 @@ import numpy as np
 from torchvision import transforms as T
 from typing import Union, Dict
 from BaseWVN import WVN_ROOT_DIR
+from sklearn.mixture import GaussianMixture
 import os
 class FeatureExtractor:
     def __init__(
@@ -276,6 +277,12 @@ def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss
         Return: conf_mask (1,1,H,W) H,W is the size of resized img
     
     """
+    # confidence_threshold=None
+    if confidence_threshold is not None:
+        mode="fixed"
+    else:
+        mode="gmm"
+    
     features, seg,trans_img,compressed_feats=feat_extractor.extract(img)
     feat_input,H,W=concat_feat_dict(compressed_feats)
     feat_input=feat_input.squeeze(0)
@@ -290,18 +297,38 @@ def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss
     else:
         phy_dim=output.shape[1]-feat_input.shape[1]
     output_phy=output[:,-phy_dim:].reshape(H,W,2).permute(2,0,1)
-    conf_mask=confidence<confidence_threshold
-    mask = conf_mask.unsqueeze(0).repeat(output_phy.shape[0], 1, 1)
+    
+    if confidence_threshold is not None:
+        # use fixed confidence threshold to segment the phy_mask
+        unconf_mask=confidence<confidence_threshold
+    else:
+        # use 1d GMM with k=2 to segment the phy_mask
+        # Flatten the loss_reco to fit the GMM
+        loss_reco_flat = loss_reco.flatten().detach().cpu().numpy()
+        
+        # Fit a 1D GMM with k=2
+        gmm = GaussianMixture(n_components=2, random_state=0)
+        gmm.fit(loss_reco_flat.reshape(-1, 1))
+        
+        # Predict the clusters for each data point (loss value)
+        gmm_labels = gmm.predict(loss_reco_flat.reshape(-1, 1))
+        # Assume the cluster with the larger mean loss is the unconfident one
+        unconfident_cluster = gmm.means_.argmax()
+        
+        # Create a mask from GMM predictions
+        unconf_mask = (gmm_labels == unconfident_cluster).reshape(H, W)
+        unconf_mask=torch.from_numpy(unconf_mask).to(img.device)
+    
+    mask = unconf_mask.unsqueeze(0).repeat(output_phy.shape[0], 1, 1)
     output_phy[mask] = torch.nan
     if output_phy.shape[-2]!=trans_img.shape[-2] or output_phy.shape[-1]!=trans_img.shape[-1]:
         # upsample the output
         output_phy=F.interpolate(
             output_phy.unsqueeze(0).type(torch.float32), size=trans_img.shape[-2:]
         ).squeeze(0)
-    conf_mask=~conf_mask
+    conf_mask=~unconf_mask
     conf_mask_resized=F.interpolate(conf_mask.type(torch.float32).unsqueeze(0).unsqueeze(0),size=trans_img.shape[-2:])>0
     loss_reco_resized=F.interpolate(loss_reco.unsqueeze(0).unsqueeze(0),size=trans_img.shape[-2:])
-    
     
     if plot_and_save:
         time=kwargs.get("time","notime")
@@ -321,9 +348,9 @@ def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss
             rotated_image = out_image.rotate(180)
             # Construct a filename
             if i == 0:
-                filename = f"{image_name}_fric_den_pred_step_{step}.jpg"
+                filename = f"{image_name}_fric_den_pred_step_{step}_{mode}.jpg"
             elif i==1:
-                filename = f"{image_name}_stiff_den_pred_step_{step}.jpg"
+                filename = f"{image_name}_stiff_den_pred_step_{step}_{mode}.jpg"
             file_path = os.path.join(output_dir, filename)
             # Save the image
             rotated_image.save(file_path)

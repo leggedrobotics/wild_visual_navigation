@@ -209,7 +209,7 @@ def train_and_evaluate():
                     gt_masks=SEEM_label_mask_generate(param,nodes)
                 torch.save(gt_masks, gt_masks_path)
             print("gt_masks shape:{}".format(gt_masks.shape))
-            conf_masks,ori_imgs=conf_mask_generate(param,nodes,feat_extractor,model)
+            conf_masks,ori_imgs=conf_mask_generate(param,nodes,feat_extractor,model,gt_masks)
             conf_masks=conf_masks.to(param.run.device)
             ori_imgs=ori_imgs.to(param.run.device)
             print("conf_masks shape:{}".format(conf_masks.shape))
