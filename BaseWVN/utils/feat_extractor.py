@@ -10,6 +10,7 @@ from torchvision import transforms as T
 from typing import Union, Dict
 from BaseWVN import WVN_ROOT_DIR
 from sklearn.mixture import GaussianMixture
+from sklearn.decomposition import PCA
 import os
 class FeatureExtractor:
     def __init__(
@@ -277,17 +278,15 @@ def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss
         Return: conf_mask (1,1,H,W) H,W is the size of resized img
     
     """
-    # confidence_threshold=None
-    if confidence_threshold is not None:
-        mode="fixed"
-    else:
-        mode="gmm"
+    mode="gmm_1d"
+    if mode !="fixed":
+        confidence_threshold=None
     
     features, seg,trans_img,compressed_feats=feat_extractor.extract(img)
     feat_input,H,W=concat_feat_dict(compressed_feats)
     feat_input=feat_input.squeeze(0)
     output=model(feat_input)
-    confidence,loss_reco=loss_fn.compute_confidence_only(output,feat_input)
+    confidence,loss_reco,loss_reco_raw=loss_fn.compute_confidence_only(output,feat_input)
     confidence=confidence.reshape(H,W)
     loss_reco=loss_reco.reshape(H,W)
     
@@ -302,22 +301,46 @@ def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss
         # use fixed confidence threshold to segment the phy_mask
         unconf_mask=confidence<confidence_threshold
     else:
-        # use 1d GMM with k=2 to segment the phy_mask
-        # Flatten the loss_reco to fit the GMM
-        loss_reco_flat = loss_reco.flatten().detach().cpu().numpy()
-        
-        # Fit a 1D GMM with k=2
-        gmm = GaussianMixture(n_components=2, random_state=0)
-        gmm.fit(loss_reco_flat.reshape(-1, 1))
-        
-        # Predict the clusters for each data point (loss value)
-        gmm_labels = gmm.predict(loss_reco_flat.reshape(-1, 1))
-        # Assume the cluster with the larger mean loss is the unconfident one
-        unconfident_cluster = gmm.means_.argmax()
-        
-        # Create a mask from GMM predictions
-        unconf_mask = (gmm_labels == unconfident_cluster).reshape(H, W)
-        unconf_mask=torch.from_numpy(unconf_mask).to(img.device)
+        if mode=="gmm_1d":
+            # use 1d GMM with k=2 to segment the phy_mask
+            # Flatten the loss_reco to fit the GMM
+            loss_reco_flat = loss_reco.flatten().detach().cpu().numpy().reshape(-1, 1)
+            
+            # Fit a 1D GMM with k=2
+            gmm = GaussianMixture(n_components=2, random_state=0)
+            gmm.fit(loss_reco_flat)
+            
+            # Predict the clusters for each data point (loss value)
+            gmm_labels = gmm.predict(loss_reco_flat)
+            # Assume the cluster with the larger mean loss is the unconfident one
+            unconfident_cluster = gmm.means_.argmax()
+            
+            # Create a mask from GMM predictions
+            unconf_mask = (gmm_labels == unconfident_cluster).reshape(H, W)
+            unconf_mask=torch.from_numpy(unconf_mask).to(img.device)
+        elif mode=="gmm_all":
+            data=loss_reco_raw.detach().cpu().numpy()
+            data_reduced = data[:,:10]
+            gmm = GaussianMixture(n_components=2, covariance_type='full', random_state=0)
+            gmm.fit(data_reduced)
+            # mean_losses = gmm.means_.mean(axis=1)
+
+            # # Determine which cluster has the larger mean across all dimensions
+            # unconfident_cluster = mean_losses.argmax()
+            # Calculate the mean of squared values for each component's mean
+            mean_losses_squared = np.square(gmm.means_).mean(axis=1)
+
+            # Determine the unconfident cluster based on higher mean squared losses
+            unconfident_cluster = mean_losses_squared.argmax()
+
+            # Predict the cluster for each sample
+            gmm_labels = gmm.predict(data_reduced)
+
+            # Create a mask where the unconfident cluster is True
+            unconf_mask = (gmm_labels == unconfident_cluster).reshape(H, W)
+            unconf_mask=torch.from_numpy(unconf_mask).to(img.device)
+            
+            pass
     
     mask = unconf_mask.unsqueeze(0).repeat(output_phy.shape[0], 1, 1)
     output_phy[mask] = torch.nan

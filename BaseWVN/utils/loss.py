@@ -72,9 +72,10 @@ class PhyLoss(nn.Module):
             input=res[0]
             res=res[1]
         nr_channel_reco =input.shape[1]
-        loss_reco = F.mse_loss(res[:, :nr_channel_reco], input, reduction="none").mean(dim=1)
+        loss_reco_raw = F.mse_loss(res[:, :nr_channel_reco], input, reduction="none")
+        loss_reco=loss_reco_raw.mean(dim=1)
         confidence=self._confidence_generator.inference_without_update(x=loss_reco)
-        return confidence,loss_reco
+        return confidence,loss_reco,loss_reco_raw
     
     def normalize_tensor(self,tensor):
         # Assuming tensor shape is [batch_size, 2]
