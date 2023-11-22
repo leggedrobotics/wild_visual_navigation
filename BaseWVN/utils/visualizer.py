@@ -112,6 +112,7 @@ def plot_images_side_by_side(images, titles, save_path='comparison.png'):
     plt.tight_layout()
     plt.savefig(save_path)
     # plt.show()
+    plt.close()
 
 def plot_images_in_grid(images, titles, rows=10,cols=3, save_path='grid_comparison.png', show_plot=False):
     """
@@ -142,12 +143,16 @@ def plot_images_in_grid(images, titles, rows=10,cols=3, save_path='grid_comparis
         ax.imshow(rotated_img)
         if idx < cols:
             ax.set_title(title)
-        
+    
+     # Turn off any unused subplots
+    for ax in axes[num_images:]:
+        ax.axis('off')   
     plt.tight_layout()
     plt.savefig(save_path)
 
     if show_plot:
         plt.show()
+    plt.close()
 
 if __name__ == "__main__":
     # Create a sample image

@@ -342,8 +342,8 @@ def plot_masks_compare(gt_masks:torch.Tensor,conf_masks:torch.Tensor,images:torc
         for i in range(0, len(all_img_list), num_images_per_chunk):
             chunk = all_img_list[i:i + num_images_per_chunk]
             chunk_titles = title_list * rows
-            plot_images_in_grid(chunk, chunk_titles, rows,cols, save_path=os.path.join(file_path, 'chunk' + str(i) + '.png'), show_plot=True)
-        pass
+            plot_images_in_grid(chunk, chunk_titles, rows,cols, save_path=os.path.join(file_path, 'chunk' + str(int(i/cols)) + '.png'), show_plot=False)
+            print("Saved fig for chunk", int(i/cols))
         
    
 def masks_stats(gt_masks:torch.Tensor,conf_masks:torch.Tensor, output_file='stats.txt'):
