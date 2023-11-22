@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import datetime
 from .. import WVN_ROOT_DIR
 from ..GraphManager import MainNode
-from ..utils import PhyLoss,FeatureExtractor,concat_feat_dict,plot_overlay_image,compute_phy_mask,plot_image,plot_images_side_by_side
+from ..utils import PhyLoss,FeatureExtractor,concat_feat_dict,plot_overlay_image,compute_phy_mask,plot_image,plot_images_side_by_side,plot_images_in_grid
 from ..model import VD_dataset,get_model
 from ..config.wvn_cfg import ParamCollection,save_to_yaml
 from torch.utils.data import DataLoader, ConcatDataset, Subset
@@ -299,12 +299,22 @@ def conf_mask_generate(param:ParamCollection,
         conf_masks.append(conf_mask)
     return torch.cat(conf_masks,dim=0),torch.cat(ori_imgs,dim=0)
 
-def plot_masks_compare(gt_masks:torch.Tensor,conf_masks:torch.Tensor,images:torch.Tensor,file_path):
-    """ 
-    Plot the gt_masks and conf_masks in one figure side by side
+def plot_masks_compare(gt_masks:torch.Tensor,conf_masks:torch.Tensor,images:torch.Tensor,file_path,layout_type='side_by_side'):
     """
-    # gt_masks in shape (B=1,1,H,W)
-    # conf_masks in shape (B=1,1,H,W)
+    Plot ground truth masks, confidence masks, and images side by side and save to file.
+
+    Args:
+    gt_masks (torch.Tensor): Ground truth masks (B, 1, H, W).
+    conf_masks (torch.Tensor): Confidence masks (B, 1, H, W).
+    images (torch.Tensor): Corresponding images (B, 3, H, W).
+    file_path (str): Path to save the file.
+    """
+
+    if not os.path.exists(file_path):
+        os.makedirs(file_path)
+    
+    all_img_list=[]
+    
     for i in range(gt_masks.shape[0]):
         img=plot_image(images[i].squeeze(0))
         output_gt=plot_overlay_image(images[i].unsqueeze(0),alpha=0.7,
@@ -319,8 +329,20 @@ def plot_masks_compare(gt_masks:torch.Tensor,conf_masks:torch.Tensor,images:torc
                            )
         img_list=[img,output_gt,output_conf]
         title_list=['Original Image','GT Mask','Confidence Mask']
-        plot_images_side_by_side(img_list,title_list,save_path=os.path.join(file_path,'node'+str(i)+'.png'))
+        if layout_type == 'side_by_side':
+            plot_images_side_by_side(img_list, title_list, save_path=os.path.join(file_path, 'node' + str(i) + '.png'))
+        elif layout_type == 'grid':
+            all_img_list.extend(img_list)
         
+    if layout_type == 'grid':
+    # Assuming all images have the same dimensions
+        rows=5
+        cols = 3  # as there are 3 types of images
+        num_images_per_chunk = rows * cols
+        for i in range(0, len(all_img_list), num_images_per_chunk):
+            chunk = all_img_list[i:i + num_images_per_chunk]
+            chunk_titles = title_list * rows
+            plot_images_in_grid(chunk, chunk_titles, rows,cols, save_path=os.path.join(file_path, 'chunk' + str(i) + '.png'), show_plot=True)
         pass
         
    

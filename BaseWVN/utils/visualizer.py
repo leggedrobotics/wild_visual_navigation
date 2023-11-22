@@ -2,6 +2,7 @@ import numpy as np
 from PIL import Image
 import seaborn as sns
 import matplotlib.pyplot as plt
+from matplotlib import gridspec
 
 def plot_overlay_image(img, alpha=0.5, overlay_mask=None, channel=0, **kwargs):
     """ 
@@ -111,6 +112,42 @@ def plot_images_side_by_side(images, titles, save_path='comparison.png'):
     plt.tight_layout()
     plt.savefig(save_path)
     # plt.show()
+
+def plot_images_in_grid(images, titles, rows=10,cols=3, save_path='grid_comparison.png', show_plot=False):
+    """
+    Plot a list of images in a grid with titles and save the plot.
+
+    Args:
+    images (list of np.array): List of images (H,W,C) to plot. They need to rotate 180 degree for proper display.
+    titles (list of str): List of titles for each image.
+    rows (int): Number of rows in the grid.
+    save_path (str): Path to save the image file.
+    show_plot (bool): Whether to show the plot or not.
+    """
+    num_images = len(images)
+
+    if num_images > cols * rows or num_images == 0:
+        raise ValueError(f"Invalid number of images ({num_images}) for the grid of {rows}x{cols}")
+
+     # Calculate number of columns
+    # gs = gridspec.GridSpec(rows, cols, height_ratios=[1]*rows)
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 5, rows * 3))
+    axes = axes.flatten()  # Flatten the axes array for easy indexing
+
+    for idx, (ax, img, title) in enumerate(zip(axes, images, titles)):
+        # Rotate image by 180 degrees
+        ax.margins(0)
+        ax.axis('off')
+        rotated_img = np.rot90(np.rot90(img))
+        ax.imshow(rotated_img)
+        if idx < cols:
+            ax.set_title(title)
+        
+    plt.tight_layout()
+    plt.savefig(save_path)
+
+    if show_plot:
+        plt.show()
 
 if __name__ == "__main__":
     # Create a sample image

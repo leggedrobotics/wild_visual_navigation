@@ -125,7 +125,7 @@ class ParamCollection(Serializable):
     
     @dataclass
     class ModelParams:
-        name: str = "RndMLP"  #  SimpleMLP, SeperateMLP,RndMLP,SeprndMLP
+        name: str = "SimpleMLP"  #  SimpleMLP, SeperateMLP,RndMLP,SeprndMLP
         load_ckpt: Optional[str] = None
         
         @dataclass
@@ -174,17 +174,17 @@ class ParamCollection(Serializable):
     @dataclass
     class OfflineParams:
         mode:str='test'
-        ckpt_parent_folder='results/overlay'
-        data_folder='results/manager'
-        train_data='results/manager/train_data.pt'
-        nodes_data='results/manager/train_nodes.pt'
-        image_file='image_buffer.pt'
+        ckpt_parent_folder:str='results/overlay'
+        data_folder:str='results/manager'
+        train_data:str='results/manager/train_data.pt'
+        nodes_data:str='results/manager/train_nodes.pt'
+        image_file:str='image_buffer.pt'
         test_images:bool=False
         test_nodes:bool=True
         
-        gt_model='SAM' # 'SEEM' or 'SAM'
-        SAM_type='vit_h'
-        SAM_ckpt='/media/chen/UDisk1/sam_vit_h_4b8939.pth'
+        gt_model:str='SAM' # 'SEEM' or 'SAM'
+        SAM_type:str='vit_h'
+        SAM_ckpt:str='/media/chen/UDisk1/sam_vit_h_4b8939.pth'
         # SAM_ckpt='/media/chen/UDisk1/sam_hq_vit_h.pth'
     
     offline: OfflineParams = OfflineParams()
