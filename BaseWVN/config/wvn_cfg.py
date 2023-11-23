@@ -52,7 +52,7 @@ class ParamCollection(Serializable):
     class ThreadParams:
         """Parameters for the threads."""
         image_callback_rate: float=1.0
-        proprio_callback_rate: float=2.0
+        proprio_callback_rate: float=4.0
         learning_rate: float=0.5
         logging_rate: float=0.5
     
@@ -112,7 +112,7 @@ class ParamCollection(Serializable):
     class GraphParams:
         """Parameters for the graph."""
         update_range_main_graph: float=5
-        cut_threshold: float=3.0
+        cut_threshold: float=5.0
         edge_dist_thr_main_graph: float=1
         min_samples_for_training: int=6
         random_sample_num: int=100

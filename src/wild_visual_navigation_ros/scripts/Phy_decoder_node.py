@@ -246,7 +246,7 @@ class PhyDecoder(NodeForROS):
             marker.scale.x = 0.02
             # uncomment this line if you want to see the plane history
             # marker.id=self.step*len(planes)+i
-            marker.lifetime=rospy.Duration(1)
+            marker.lifetime=rospy.Duration(10)
             rgb_color = self.color_palette[i % len(self.color_palette)]
             rgba_color = (rgb_color[0], rgb_color[1], rgb_color[2], 1.0)  # Add alpha value
 

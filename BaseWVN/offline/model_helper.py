@@ -320,7 +320,7 @@ def conf_mask_generate(param:ParamCollection,
     all_conf_masks=torch.cat(conf_masks,dim=0)
     
     calculate_uncertainty_plot(all_losses,all_conf_masks,all_reproj_masks,os.path.join(WVN_ROOT_DIR,'results/overlay',model.time,'hist','all_uncertainty_histogram.png'))
-    
+    torch.cuda.empty_cache()
     return all_conf_masks,torch.cat(ori_imgs,dim=0)
 
 def calculate_uncertainty_plot(all_losses:torch.Tensor,all_conf_masks:torch.Tensor,all_reproj_masks:torch.Tensor,save_path):
@@ -418,6 +418,7 @@ def plot_masks_compare(gt_masks:torch.Tensor,conf_masks:torch.Tensor,images:torc
             plot_images_side_by_side(img_list, title_list, save_path=os.path.join(file_path, 'node' + str(i) + '.png'))
         elif layout_type == 'grid':
             all_img_list.extend(img_list)
+        torch.cuda.empty_cache()
         
     if layout_type == 'grid':
     # Assuming all images have the same dimensions
