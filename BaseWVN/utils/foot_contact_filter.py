@@ -7,7 +7,7 @@ class FootFilter:
         self.name = name
         self.poses = []
         self.filtered_poses = []
-        self.max_poses_window = 200
+        self.max_poses_window = 50
         self.steps_to_compare=1
         self.min_contact_duration=0.2
         self.last_contact_time=None
