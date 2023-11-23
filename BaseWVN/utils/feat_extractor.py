@@ -272,7 +272,15 @@ def concat_feat_dict(feat_dict: Dict[tuple, torch.Tensor]):
     sparse_features = resized_feats.reshape(resized_feats.shape[0],resized_feats.shape[1]*resized_feats.shape[2],-1)
     return sparse_features,first_shape[2],first_shape[3]
 
-def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss_fn:PhyLoss,confidence_threshold=0.8,mode="fixed",plot_and_save:bool=False,step:int=0,**kwargs):
+def compute_phy_mask(img:torch.Tensor,
+                     feat_extractor:FeatureExtractor=None,
+                     model=None,
+                     loss_fn:PhyLoss=None,
+                     confidence_threshold=0.8,
+                     mode="fixed",
+                     plot_and_save:bool=False,
+                     step:int=0,
+                     **kwargs):
     """ process the original_img and return the phy_mask in resized img shape(non-confident--> nan) """
     """ Shape of phy_mask: (2,H,W) H,W is the size of resized img
         Return: conf_mask (1,1,H,W) H,W is the size of resized img
@@ -281,8 +289,13 @@ def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss
 
     if mode !="fixed":
         confidence_threshold=None
-    
-    features, seg,trans_img,compressed_feats=feat_extractor.extract(img)
+    # in online mode, no need to use extract again, just input these outputs
+    trans_img=kwargs.get("trans_img",None)
+    compressed_feats=kwargs.get("compressed_feats",None)
+    if trans_img is None or compressed_feats is None:
+        if feat_extractor is None:
+            raise ValueError("feat_extractor is None!")
+        features, seg,trans_img,compressed_feats=feat_extractor.extract(img)
     feat_input,H,W=concat_feat_dict(compressed_feats)
     feat_input=feat_input.squeeze(0)
     output=model(feat_input)
@@ -352,9 +365,9 @@ def compute_phy_mask(img:torch.Tensor,feat_extractor:FeatureExtractor,model,loss
     conf_mask=~unconf_mask
     conf_mask_resized=F.interpolate(conf_mask.type(torch.float32).unsqueeze(0).unsqueeze(0),size=trans_img.shape[-2:])>0
     loss_reco_resized=F.interpolate(loss_reco.unsqueeze(0).unsqueeze(0),size=trans_img.shape[-2:])
-    
+    torch.cuda.empty_cache()
     if plot_and_save:
-        time=kwargs.get("time","notime")
+        time=kwargs.get("time","online")
         param=kwargs.get("param",None)
         image_name = kwargs.get("image_name", "anonymous")
         

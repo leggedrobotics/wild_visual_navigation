@@ -122,10 +122,6 @@ class Manager:
         self._model = self._model.to(device)
         self._phy_loss=self._phy_loss.to(device)
     
-    @accumulate_time
-    def update_prediction(self, node: MainNode):
-        # TODO:use MLP to predict here, update_node_confidence, maybe useless here
-        pass
     
     @accumulate_time
     def update_visualization_node(self):

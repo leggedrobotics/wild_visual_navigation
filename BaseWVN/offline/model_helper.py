@@ -232,7 +232,7 @@ def SEEM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
  
         # combine the furtherst points with the randomly sampled points
         far_coords=sample_furthest_points(true_coords, 2).to(param.run.device)
-        num_points_to_sample = min(3, num)
+        num_points_to_sample = min(10, num)
         # sampled_true_coords = torch.zeros(B, num_points_to_sample, 2)
         rand_indices = torch.randperm(num)[:num_points_to_sample]
         sampled_true_coords=true_coords[:,rand_indices,:].to(param.run.device)

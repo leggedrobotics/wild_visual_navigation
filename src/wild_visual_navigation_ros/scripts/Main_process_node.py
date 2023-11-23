@@ -1,7 +1,7 @@
 """ 
 Main node to process ros messages, publish the relevant topics, train the model...
  """
-from BaseWVN.utils import NodeForROS,FeatureExtractor,ConfidenceGenerator,ImageProjector,plot_overlay_image
+from BaseWVN.utils import NodeForROS,FeatureExtractor,ConfidenceGenerator,ImageProjector,plot_overlay_image,compute_phy_mask
 from BaseWVN.GraphManager import Manager,MainNode,SubNode
 import ros_converter as rc
 import message_filters
@@ -266,9 +266,9 @@ class MainProcess(NodeForROS):
                 msg.data=1.0
                 freq_pub.publish(msg)
             
-            # TODO:load MLP and confidence generator params if possible,
-            # don't know if needed
-            self.load_model()
+            # load MLP and confidence generator params if possible,
+            # don't need it, just use the training model to predict, no need for save and reload
+            # self.load_model()
             
             # prepare tf from base to camera
             transform=state_msg.pose
@@ -469,7 +469,33 @@ class MainProcess(NodeForROS):
             
         self.system_events["learning_thread_loop"] = {"time": rospy.get_time(), "value": "finished"}
         self.learning_thread_stop_event.clear()
-            
+    
+    @accumulate_time
+    def update_prediction(self, node: MainNode):
+        img=node.image.to(self.device)
+        B,C,H,W=img.shape
+        self.feat_extractor.set_original_size(W,H)
+        # the image feats in node is on cpu
+        trans_img=node.image.to(self.device)
+        if isinstance(node.features,dict):
+            feats_input={}
+            for key, tensor in node.features.items():
+                feats_input[key] = tensor.to(self.device)
+        else:
+            raise ValueError("The features in node is not a dict, only support dict now!")
+        res_dict=compute_phy_mask(img,self.feat_extractor,
+                                self.manager._model,
+                                self.manager._phy_loss,
+                                self.param.loss.confidence_threshold,
+                                self.param.loss.confidence_mode,
+                                True,
+                                self.manager.step,
+                                image_name=str(node.timestamp),
+                                trans_img=trans_img,
+                                compressed_feats=feats_input,)
+        
+
+         
     @accumulate_time
     def broadcast_tf_from_matrix(self,matrix, parent_frame, child_frame):
         br=self.camera_br
@@ -505,8 +531,9 @@ class MainProcess(NodeForROS):
         """
         try:
             self.step+=1
-            if self.step%100==0:
+            if self.step%10==0:
                 print(f"Loading model from checkpoint {self.step}")
+                
                 pass
         except Exception as e:
             if self.verbose:
