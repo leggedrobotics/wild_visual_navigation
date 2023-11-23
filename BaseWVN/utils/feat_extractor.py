@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 from .dinov2_interface import Dinov2Interface
-from .visualizer import plot_overlay_image
+from .visualizer import plot_overlay_image,plot_tsne
 from ..config import save_to_yaml
 import PIL.Image
 from .loss import PhyLoss
@@ -10,8 +10,8 @@ from torchvision import transforms as T
 from typing import Union, Dict
 from BaseWVN import WVN_ROOT_DIR
 from sklearn.mixture import GaussianMixture
-from sklearn.decomposition import PCA
 import os
+from sklearn.manifold import TSNE
 class FeatureExtractor:
     def __init__(
         self, device: str, segmentation_type: str = "pixel", feature_type: str = "dinov2", input_size: int = 448, **kwargs
@@ -394,13 +394,16 @@ def compute_phy_mask(img:torch.Tensor,
         if param is not None:
             param_path=os.path.join(output_dir,"param.yaml")
             save_to_yaml(param,param_path)
+        
     # return output_phy,trans_img,confidence,conf_mask_resized
     torch.cuda.empty_cache()
     return {"output_phy":output_phy,
             "trans_img":trans_img,
             "confidence":confidence,
             "conf_mask":conf_mask_resized,
-            "loss_reco":loss_reco_resized,}
+            "loss_reco":loss_reco_resized,
+            "loss_reco_raw":loss_reco_raw,
+            "conf_mask_raw":conf_mask,}
 
 def test_extractor():
     import cv2

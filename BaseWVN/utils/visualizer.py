@@ -3,6 +3,54 @@ from PIL import Image
 import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+from openTSNE import TSNE
+import os
+import torch
+
+def plot_tsne(confidence, loss_reco_raw, title='t-SNE with Confidence Highlighting',path=None,sample_size=1000):
+    """
+    Plots a 2D t-SNE visualization of the given data, highlighting points based on a confidence mask.
+
+    :param confidence: A 2D array (HxW) indicating confidence (True/False) for each data point.
+    :param loss_reco_raw: An array of shape NxM where N is the number of samples and M is the number of features.
+    :param title: Title of the plot.
+    """
+    if not os.path.exists(path):
+        os.makedirs(path)
+    if isinstance(loss_reco_raw, torch.Tensor):
+        loss_reco_raw = loss_reco_raw.detach().cpu().numpy()
+    if isinstance(confidence, torch.Tensor):
+        confidence = confidence.cpu().numpy()
+    # Flatten the confidence mask
+    confidence_flat = confidence.flatten()
+
+    # Sampling data if necessary
+    if len(loss_reco_raw) > sample_size:
+        indices = np.random.choice(len(loss_reco_raw), size=sample_size, replace=False)
+        sampled_data = loss_reco_raw[indices]
+        sampled_confidence = confidence_flat[indices]
+    else:
+        sampled_data = loss_reco_raw
+        sampled_confidence = confidence_flat
+    
+    # Apply t-SNE to the data
+    # tsne = TSNE(n_components=2, random_state=0)
+    # data_2d = tsne.fit_transform(loss_reco_raw)
+    data_2d=TSNE().fit(sampled_data)
+    # Assign colors based on confidence
+    colors = ['orange' if conf else 'red' for conf in sampled_confidence]
+
+    # Plotting
+    plt.figure(figsize=(10, 8))
+    for i in range(len(data_2d)):
+        plt.scatter(data_2d[i, 0], data_2d[i, 1], color=colors[i])
+
+    plt.title(title)
+    plt.xlabel('Component 1')
+    plt.ylabel('Component 2')
+    plt.show()
+    plt.savefig(os.path.join(path,title+".png"))
+    plt.close()
 
 def plot_overlay_image(img, alpha=0.5, overlay_mask=None, channel=0, **kwargs):
     """ 
