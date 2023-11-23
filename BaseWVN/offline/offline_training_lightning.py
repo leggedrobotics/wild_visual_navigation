@@ -78,7 +78,7 @@ class DecoderLightning(pl.LightningModule):
                                         self.loss_fn,
                                         self.params.loss.confidence_threshold,
                                         self.params.loss.confidence_mode,
-                                        True,
+                                        self.params.offline.plot_overlay,
                                         self.step,
                                         time=self.time,
                                         param=self.params)

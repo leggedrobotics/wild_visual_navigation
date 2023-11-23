@@ -317,20 +317,22 @@ def conf_mask_generate(param:ParamCollection,
                                 image_name=str(node.timestamp))
         conf_mask=res_dict['conf_mask']
         loss_reco=res_dict['loss_reco']
-        calculate_uncertainty_plot(loss_reco,conf_mask,reproj_mask,os.path.join(WVN_ROOT_DIR,'results/overlay',model.time,'hist',f'node_{i}_uncertainty_histogram.png'))
-        calculate_uncertainty_plot(loss_reco,gt_masks[i,:,:,:].unsqueeze(0),reproj_mask,os.path.join(WVN_ROOT_DIR,'results/overlay',model.time,'hist/gt',f'node_{i}_gt_uncertainty_histogram.png'))
+        if param.offline.plot_hist:
+            calculate_uncertainty_plot(loss_reco,conf_mask,reproj_mask,os.path.join(WVN_ROOT_DIR,'results/overlay',model.time,'hist',f'node_{i}_uncertainty_histogram.png'))
+            calculate_uncertainty_plot(loss_reco,gt_masks[i,:,:,:].unsqueeze(0),reproj_mask,os.path.join(WVN_ROOT_DIR,'results/overlay',model.time,'hist/gt',f'node_{i}_gt_uncertainty_histogram.png'))
         conf_masks.append(conf_mask)
         losses.append(loss_reco)
         torch.cuda.empty_cache()
         
         loss_reco_raw=res_dict['loss_reco_raw']
         conf_mask_raw=res_dict['conf_mask_raw']
-        plot_tsne(conf_mask_raw, loss_reco_raw, title=f'node_{i}_t-SNE with Confidence Highlighting',path=os.path.join(WVN_ROOT_DIR,'results/overlay',model.time,'tsne'))
+        if param.offline.plot_tsne:
+            plot_tsne(conf_mask_raw, loss_reco_raw, title=f'node_{i}_t-SNE with Confidence Highlighting',path=os.path.join(WVN_ROOT_DIR,'results/overlay',model.time,'tsne'))
     all_reproj_masks=torch.cat(reproj_masks,dim=0)
     all_losses=torch.cat(losses,dim=0)
     all_conf_masks=torch.cat(conf_masks,dim=0)
-    
-    calculate_uncertainty_plot(all_losses,all_conf_masks,all_reproj_masks,os.path.join(WVN_ROOT_DIR,'results/overlay',model.time,'hist','all_uncertainty_histogram.png'))
+    if param.offline.plot_hist:
+        calculate_uncertainty_plot(all_losses,all_conf_masks,all_reproj_masks,os.path.join(WVN_ROOT_DIR,'results/overlay',model.time,'hist','all_uncertainty_histogram.png'))
     torch.cuda.empty_cache()
     return all_conf_masks,torch.cat(ori_imgs,dim=0)
 

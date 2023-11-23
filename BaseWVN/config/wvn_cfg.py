@@ -14,6 +14,7 @@ class ParamCollection(Serializable):
         """General parameters for the experiment."""
         name: str='debug/debug'
         timestamp: bool=True
+        plot_overlay_online: bool=True
         model_path: str='model'
         # ... [rest of the attributes]
     general: GeneralParams=GeneralParams()

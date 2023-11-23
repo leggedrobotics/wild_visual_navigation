@@ -493,7 +493,7 @@ class MainProcess(NodeForROS):
                                 self.manager._phy_loss,
                                 self.param.loss.confidence_threshold,
                                 self.param.loss.confidence_mode,
-                                True,
+                                self.param.general.plot_overlay_online,
                                 self.manager.step,
                                 image_name=str(node.timestamp),
                                 trans_img=trans_img,
