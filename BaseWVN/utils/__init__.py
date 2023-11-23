@@ -7,3 +7,4 @@ from .dinov2_interface import Dinov2Interface
 from .plotting import get_img_from_fig
 from .visualizer import plot_overlay_image,plot_image,plot_images_side_by_side,plot_images_in_grid
 from .loss import PhyLoss
+from .foot_contact_filter import FootFilter

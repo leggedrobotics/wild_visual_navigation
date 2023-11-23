@@ -20,4 +20,8 @@ print(min(v[:-1]))
 
 cc=a.type(torch.float32)
 print(a.max())
+
+dd=np.array([1,2,3])
+ee=np.array([4,5,6])
+print(dd+ee)
 pass

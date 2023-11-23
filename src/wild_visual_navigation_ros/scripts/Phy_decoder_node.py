@@ -40,6 +40,9 @@ class PhyDecoder(NodeForROS):
         # Init Decoder handler
         self.decoder_handler = {}
         self.system_events = {}
+        
+        # Init contact filter
+        self.foot_filters = {foot: FootFilter(foot) for foot in self.feet_list}
 
         # Initialize ROS nodes
         self.ros_init()
@@ -122,9 +125,8 @@ class PhyDecoder(NodeForROS):
             foot_contacts=[]
             foot_planes=[]
             for foot in self.feet_list:
-                suc, pose_foot_in_world = rc.ros_tf_to_numpy(
-                    self.query_tf(self.fixed_frame, foot, from_message=anymal_state_msg)
-                )
+                t,r=self.query_tf(self.fixed_frame, foot, from_message=anymal_state_msg)
+                suc, pose_foot_in_world = rc.ros_tf_to_numpy((t,r))
                 if not suc:
                     self.system_events["state_callback_cancled"] = {
                         "time": rospy.get_time(),
@@ -146,7 +148,14 @@ class PhyDecoder(NodeForROS):
                 # Query each feet contacts from AnymalState message
                 for foot_transform in anymal_state_msg.contacts:
                     if foot_transform.name == foot and foot_transform.header.frame_id==self.fixed_frame:
-                        foot_contacts.append(foot_transform.state)
+                        # apply contact filter
+                        t=np.array(t)
+                        r=np.array(r)
+                        input_pose=np.concatenate([t,r])
+                        estimated_contact=foot_transform.state
+                        filtered_contact=int(self.foot_filters[foot].filter(input_pose,estimated_contact,anymal_state_msg.header.stamp.to_sec()))
+                        # print(self.foot_filters[foot].timer)
+                        foot_contacts.append(filtered_contact)
                         break
             
             msg.feet_poses=foot_poses
@@ -245,8 +254,8 @@ class PhyDecoder(NodeForROS):
             marker.action=Marker.ADD
             marker.scale.x = 0.02
             # uncomment this line if you want to see the plane history
-            # marker.id=self.step*len(planes)+i
-            marker.lifetime=rospy.Duration(10)
+            marker.id=self.step*len(planes)+i
+            # marker.lifetime=rospy.Duration(10)
             rgb_color = self.color_palette[i % len(self.color_palette)]
             rgba_color = (rgb_color[0], rgb_color[1], rgb_color[2], 1.0)  # Add alpha value
 

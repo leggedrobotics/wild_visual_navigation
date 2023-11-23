@@ -127,7 +127,7 @@ class FootTracer:
         k = 20
         idx = np.argpartition(-ana[:, 2], -k)[-k:]
         candidate_indices = idx[np.argsort(-ana[idx, 2])][::-1]  # Indices sorted by value from largest to smallest
-
+        # now candidate_indices contains the indices of the 20 lowest points in ascending order
         keep = [candidate_indices[0]]
 
         # Filter temporal
