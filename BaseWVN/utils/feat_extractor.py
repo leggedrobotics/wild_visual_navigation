@@ -83,6 +83,7 @@ class FeatureExtractor:
         dense_features = self.compute_features(transformed_img, **kwargs)
         # Sparsify features
         sparse_features,compressed_feats = self.sparsify_features(dense_features, seg)
+        torch.cuda.empty_cache()
         return sparse_features, seg,transformed_img,compressed_feats
 
     

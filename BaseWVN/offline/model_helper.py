@@ -72,15 +72,23 @@ def load_all_test_images(folder):
 
 def find_latest_checkpoint(parent_dir):
     # List all folders in the parent directory
-    folders = [f for f in os.listdir(parent_dir) if os.path.isdir(os.path.join(parent_dir, f))]
+    valid_folders = []
 
-    # Sort these folders based on datetime in their names
-    try:
-        sorted_folders = sorted(folders, key=lambda x: datetime.datetime.strptime(x, "%Y-%m-%d_%H-%M-%S"), reverse=True)
-    except ValueError:
-        # Handle folders that don't follow the datetime naming convention
-        print("Error: Some folders do not follow the expected datetime naming convention.")
-        return None
+    # Iterate over each folder in the parent directory
+    for folder in os.listdir(parent_dir):
+        if os.path.isdir(os.path.join(parent_dir, folder)):
+            try:
+                # Try parsing the folder name as a datetime object
+                datetime.datetime.strptime(folder, "%Y-%m-%d_%H-%M-%S")
+                # If successful, add it to the valid_folders list
+                valid_folders.append(folder)
+            except ValueError:
+                # Skip folders that don't follow the datetime naming convention
+                continue
+
+    # Sort the valid folders based on datetime in their names
+    sorted_folders = sorted(valid_folders, key=lambda x: datetime.datetime.strptime(x, "%Y-%m-%d_%H-%M-%S"), reverse=True)
+
 
     # Select the latest folder
     latest_folder = sorted_folders[0] if sorted_folders else None

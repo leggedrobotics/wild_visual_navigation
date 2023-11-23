@@ -172,6 +172,7 @@ class MainProcess(NodeForROS):
                 self.log_data[f"num_images"] = 0
                 self.log_data[f"time_last_image"] = -1
                 self.log_data[f"image_callback"] = "N/A"
+                self.log_data["prediction_done"]=0
 
         print("Start waiting for Camera topic being published!")
         # Camera info
@@ -464,6 +465,8 @@ class MainProcess(NodeForROS):
             # save model every 10 steps
             if i % 10 == 0:
                 self.manager.save_ckpt(self.param.general.model_path,f"checkpoint_{step}.pt")
+                # update real-time pred once
+                self.update_prediction(self.manager._main_graph.get_last_node())
             i += 1
             time.sleep(1/self.param.thread.learning_rate)
             
@@ -472,6 +475,8 @@ class MainProcess(NodeForROS):
     
     @accumulate_time
     def update_prediction(self, node: MainNode):
+        if not hasattr(node, "image") or node.image is None:
+            return
         img=node.image.to(self.device)
         B,C,H,W=img.shape
         self.feat_extractor.set_original_size(W,H)
@@ -493,6 +498,8 @@ class MainProcess(NodeForROS):
                                 image_name=str(node.timestamp),
                                 trans_img=trans_img,
                                 compressed_feats=feats_input,)
+        with self.log_data["Lock"]:
+            self.log_data["prediction_done"] +=1
         
 
          
