@@ -33,6 +33,7 @@ class MainProcess(NodeForROS):
     def __init__(self):
         super().__init__()
         self.step=0
+        self.sub_step=0
         # Timers to control the rate of the callbacks
         self.start_time = rospy.get_time()
         self.last_image_ts = self.start_time
@@ -408,6 +409,8 @@ class MainProcess(NodeForROS):
             # add subnode 
             self.manager.add_sub_node(sub_node,logger=self.log_data)
 
+            self.sub_step+=1
+            
             if "debug" in self.mode:
                 self.visualize_sub_node()
             self.system_events["phy_decoder_callback_state"] = {
@@ -520,7 +523,7 @@ class MainProcess(NodeForROS):
         msg.scale.x = 0.2  # size in meters
         msg.scale.y = 0.2
         msg.scale.z = 0.2
-
+        msg.id=self.sub_step
         # Set the color of the marker
         msg.color = ColorRGBA(1.0, 1.0, 0.0, 1.0)
         self.camera_handler["sub_node_pub"].publish(msg)
@@ -535,14 +538,18 @@ class MainProcess(NodeForROS):
         msg.pose=rc.torch_to_ros_pose(pose)
         msg.type=Marker.CUBE
         msg.action=Marker.ADD
-        msg.scale.x = 0.2  # size in meters
-        msg.scale.y = 0.2
-        msg.scale.z = 0.2
-
+        
+        msg.id=self.sub_step
         # Set the color of the marker
         if name=="latest_img":
+            msg.scale.x = 0.2  # size in meters
+            msg.scale.y = 0.2
+            msg.scale.z = 0.2
             msg.color = ColorRGBA(0.0, 1.0, 0.0, 1.0)
         elif name=="latest_phy":
+            msg.scale.x = 0.1  # size in meters
+            msg.scale.y = 0.1
+            msg.scale.z = 0.1
             msg.color = ColorRGBA(1.0, 1.0, 0.0, 1.0)
         handle.publish(msg)
     

@@ -112,7 +112,7 @@ class ParamCollection(Serializable):
     class GraphParams:
         """Parameters for the graph."""
         update_range_main_graph: float=5
-        cut_threshold: float=1.0
+        cut_threshold: float=3.0
         edge_dist_thr_main_graph: float=1
         min_samples_for_training: int=6
         random_sample_num: int=100
@@ -132,7 +132,7 @@ class ParamCollection(Serializable):
         @dataclass
         class SimpleMlpCfgParams:
             input_size: int = 384
-            hidden_sizes: List[int] = field(default_factory=lambda: [256, 64,256, 2])
+            hidden_sizes: List[int] = field(default_factory=lambda: [128, 32,128, 2])
             reconstruction: bool = True
             
             def to_dict(self):
@@ -153,8 +153,8 @@ class ParamCollection(Serializable):
         @dataclass
         class RndMLPCfgParams:
             input_size: int = 384
-            hidden_sizes_target:List[int] = field(default_factory=lambda: [256,64])
-            hidden_sizes_pred:List[int] = field(default_factory=lambda: [256,64])
+            hidden_sizes_target:List[int] = field(default_factory=lambda: [128,32])
+            hidden_sizes_pred:List[int] = field(default_factory=lambda: [128,32])
             pred_head:int=2
             def to_dict(self):
                 return vars(self)
@@ -180,7 +180,7 @@ class ParamCollection(Serializable):
         train_data:str='results/manager/train_data.pt'
         nodes_data:str='results/manager/train_nodes.pt'
         image_file:str='image_buffer.pt'
-        test_images:bool=True
+        test_images:bool=False
         test_nodes:bool=True
         
         gt_model:str='SAM' # 'SEEM' or 'SAM'

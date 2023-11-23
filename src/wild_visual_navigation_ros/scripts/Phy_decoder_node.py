@@ -233,18 +233,20 @@ class PhyDecoder(NodeForROS):
         suc=False
         header=msg.header
         planes=[x.edge_points for x in msg.feet_planes]
-        planes.append(msg.footprint_plane.edge_points)
+        # planes.append(msg.footprint_plane.edge_points)
         names=[x.name for x in msg.feet_planes]
-        names.append(msg.footprint_plane.name)
+        # names.append(msg.footprint_plane.name)
         marker_array = MarkerArray()
         for i, plane in enumerate(planes):
             marker=Marker()
             marker.header=header
             marker.ns=names[i]
             marker.type=Marker.LINE_STRIP
-            marker.lifetime = rospy.Duration(1)
             marker.action=Marker.ADD
             marker.scale.x = 0.02
+            # uncomment this line if you want to see the plane history
+            # marker.id=self.step*len(planes)+i
+            marker.lifetime=rospy.Duration(1)
             rgb_color = self.color_palette[i % len(self.color_palette)]
             rgba_color = (rgb_color[0], rgb_color[1], rgb_color[2], 1.0)  # Add alpha value
 
@@ -260,10 +262,11 @@ class PhyDecoder(NodeForROS):
             marker.color.a = rgba_color[3]
             if names[i] in self.feet_list and msg.feet_contact[i] ==0:
                 marker.color.a = 0.1
+            else:
+                
+                marker.points=plane
 
-            marker.points=plane
-
-            marker_array.markers.append(marker)
+                marker_array.markers.append(marker)
         self.decoder_handler['marker_planes_pub'].publish(marker_array)
         suc=True
         return suc
