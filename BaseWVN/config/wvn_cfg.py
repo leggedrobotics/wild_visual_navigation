@@ -87,8 +87,8 @@ class ParamCollection(Serializable):
     class FeatParams:
         """Parameters for the feature extractor."""
         segmentation_type: str='pixel'
-        feature_type: str='dinov2'
-        input_size:int =1260
+        feature_type: str='focal'  # dinov2, focal
+        input_size:int =1280 #1260 for dinov2 , 1280 for focal
         interp: str='bilinear'
         center_crop: bool=False
         physical_dim:int=2
@@ -132,7 +132,7 @@ class ParamCollection(Serializable):
         
         @dataclass
         class SimpleMlpCfgParams:
-            input_size: int = 384
+            input_size: int = 2880
             hidden_sizes: List[int] = field(default_factory=lambda: [128, 32,128, 2])
             reconstruction: bool = True
             
@@ -175,7 +175,7 @@ class ParamCollection(Serializable):
     
     @dataclass
     class OfflineParams:
-        mode:str='test'
+        mode:str='train'
         ckpt_parent_folder:str='results/overlay'
         data_folder:str='results/manager'
         train_data:str='results/manager/train_data.pt'
@@ -184,7 +184,7 @@ class ParamCollection(Serializable):
         test_images:bool=True
         test_nodes:bool=True
         
-        gt_model:str='SAM' # 'SEEM' or 'SAM'
+        gt_model:str='SEEM' # 'SEEM' or 'SAM'
         SAM_type:str='vit_h'
         SAM_ckpt:str='/media/chen/UDisk1/sam_vit_h_4b8939.pth'
         # SAM_ckpt='/media/chen/UDisk1/sam_hq_vit_h.pth'

@@ -8,3 +8,4 @@ from .plotting import get_img_from_fig
 from .visualizer import plot_overlay_image,plot_image,plot_images_side_by_side,plot_images_in_grid,plot_tsne
 from .loss import PhyLoss
 from .foot_contact_filter import FootFilter
+from .focal_interface import FocalInterface

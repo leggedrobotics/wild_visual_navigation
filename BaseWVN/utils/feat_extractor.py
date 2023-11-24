@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 from .dinov2_interface import Dinov2Interface
+from .focal_interface import FocalInterface
 from .visualizer import plot_overlay_image,plot_tsne
 from ..config import save_to_yaml
 import PIL.Image
@@ -45,6 +46,9 @@ class FeatureExtractor:
         if self._feature_type == "dinov2":
             self.patch_size = 14
             self.extractor=Dinov2Interface(device, **kwargs)
+        elif self._feature_type == "focal":
+            self.patch_size = 32
+            self.extractor=FocalInterface(device, **kwargs)
         else:
             raise ValueError(f"Extractor[{self._feature_type}] not supported!")
         
@@ -184,6 +188,8 @@ class FeatureExtractor:
             ratio_h = H / feat.shape[-2]
             ratio_w = W / feat.shape[-1]
             feat_dict[(ratio_h,ratio_w)]=feat
+        elif self._feature_type=="focal":
+            feat_dict=self.extractor.inference(img_internal)
         else:
             raise ValueError(f"Extractor[{self._feature_type}] not supported!")
         
