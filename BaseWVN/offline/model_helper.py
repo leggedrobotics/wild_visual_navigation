@@ -265,7 +265,7 @@ def SEEM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
             gt_mask_pts[gt_mask_pts>0]=1
         gt_mask=gt_mask_pts.type(torch.bool)
         gt_masks.append(gt_mask)
-        
+        torch.cuda.empty_cache()
         # masks,texts=inference(model,img,reproj_mask)
         # # if has multiple masks, add them into one
         # mask=torch.sum(masks,dim=0)>0
@@ -336,7 +336,7 @@ def conf_mask_generate(param:ParamCollection,
     torch.cuda.empty_cache()
     return all_conf_masks,torch.cat(ori_imgs,dim=0)
 
-def calculate_uncertainty_plot(all_losses:torch.Tensor,all_conf_masks:torch.Tensor,all_reproj_masks:torch.Tensor,save_path):
+def calculate_uncertainty_plot(all_losses:torch.Tensor,all_conf_masks:torch.Tensor,all_reproj_masks:torch.Tensor=None,save_path=None):
     """ 
     Calculate a histogram of the uncertainty values (losses) from reproj_masks(should be very certain)
     and from conf_masks
@@ -348,11 +348,13 @@ def calculate_uncertainty_plot(all_losses:torch.Tensor,all_conf_masks:torch.Tens
     # Flatten the tensors to get the loss values of all pixels
     flattened_losses = all_losses.flatten().detach().cpu().numpy()
     flattened_conf_masks = all_conf_masks.flatten().detach().cpu().numpy().astype(bool)
-    flattened_reproj_masks = all_reproj_masks.flatten().detach().cpu().numpy().astype(bool)
+    if all_reproj_masks is not None:
+        flattened_reproj_masks = all_reproj_masks.flatten().detach().cpu().numpy().astype(bool)
 
     # Use boolean indexing to filter losses
     conf_mask_losses = flattened_losses[flattened_conf_masks]
-    reproj_mask_losses = flattened_losses[flattened_reproj_masks]
+    if all_reproj_masks is not None:
+        reproj_mask_losses = flattened_losses[flattened_reproj_masks]
 
     unconf_mask_losses = flattened_losses[~flattened_conf_masks]
     # Sample a fixed number of points from all losses to balance the scale
@@ -363,10 +365,13 @@ def calculate_uncertainty_plot(all_losses:torch.Tensor,all_conf_masks:torch.Tens
     # conf_sampled = np.random.choice(conf_mask_losses, sample_size, replace=False)
     # sample_size = min(1000, len(flattened_losses))
     # reproj_sampled = np.random.choice(reproj_mask_losses, sample_size, replace=False)
-    
-    # Define the bin edges based on the minimum and maximum loss values and the desired bin size
-    min_loss = min(flattened_losses.min(), conf_mask_losses.min(), reproj_mask_losses.min())
-    max_loss = max(flattened_losses.max(), conf_mask_losses.max(), reproj_mask_losses.max())
+    if all_reproj_masks is not None:
+        # Define the bin edges based on the minimum and maximum loss values and the desired bin size
+        min_loss = min(flattened_losses.min(), conf_mask_losses.min(), reproj_mask_losses.min())
+        max_loss = max(flattened_losses.max(), conf_mask_losses.max(), reproj_mask_losses.max())
+    else:
+        min_loss = min(flattened_losses.min(), conf_mask_losses.min())
+        max_loss = max(flattened_losses.max(), conf_mask_losses.max())
     # bins = np.arange(min_loss, max_loss + bin_size, bin_size)
     bins = np.linspace(min_loss, max_loss, num_bins)
     # Plot the histogram
@@ -378,8 +383,9 @@ def calculate_uncertainty_plot(all_losses:torch.Tensor,all_conf_masks:torch.Tens
     # Histogram for conf_mask_losses in orange
     plt.hist(conf_mask_losses, bins, color='orange', alpha=0.7, label='Confidence Mask',density=False)
 
-    # Histogram for reproj_mask_losses in blue
-    plt.hist(reproj_mask_losses, bins, color='blue', alpha=0.5, label='Reprojection Mask',density=False)
+    if all_reproj_masks is not None:
+        # Histogram for reproj_mask_losses in blue
+        plt.hist(reproj_mask_losses, bins, color='blue', alpha=0.5, label='Reprojection Mask',density=False)
 
 
     # Add labels and title

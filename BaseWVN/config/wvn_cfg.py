@@ -175,7 +175,7 @@ class ParamCollection(Serializable):
     
     @dataclass
     class OfflineParams:
-        mode:str='test'
+        mode:str='train'
         ckpt_parent_folder:str='results/overlay'
         data_folder:str='results/manager'
         train_data:str='results/manager/train_data.pt'

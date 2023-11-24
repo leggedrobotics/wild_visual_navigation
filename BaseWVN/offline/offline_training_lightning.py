@@ -71,7 +71,7 @@ class DecoderLightning(pl.LightningModule):
             raise ValueError("xs and ys must have shape of 2")
         res=self.model(xs)
         loss,confidence,loss_dict=self.loss_fn((xs,ys),res,step=self.step,update_generator=False)
-        if batch_idx==0 and self.step%20==0:
+        if batch_idx==0 and self.step%10==0:
             res_dict=compute_phy_mask(self.test_img,
                                         self.feat_extractor,
                                         self.model,
@@ -82,6 +82,12 @@ class DecoderLightning(pl.LightningModule):
                                         self.step,
                                         time=self.time,
                                         param=self.params)
+            conf_mask=res_dict['conf_mask']
+            loss_reco=res_dict['loss_reco']
+            loss_reco_raw=res_dict['loss_reco_raw']
+            conf_mask_raw=res_dict['conf_mask_raw']
+            calculate_uncertainty_plot(loss_reco,conf_mask,all_reproj_masks=None,save_path=os.path.join(WVN_ROOT_DIR,'results/overlay',self.time,'hist',f'step_{self.step}_uncertainty_histogram.png'))
+            plot_tsne(conf_mask_raw, loss_reco_raw, title=f'step_{self.step}_t-SNE with Confidence Highlighting',path=os.path.join(WVN_ROOT_DIR,'results/overlay',self.time,'tsne'))
             pass
         self.log('val_loss', loss)
         self.val_loss=loss
