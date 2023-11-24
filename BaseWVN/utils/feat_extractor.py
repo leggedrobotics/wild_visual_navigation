@@ -78,13 +78,13 @@ class FeatureExtractor:
         """
         transformed_img=self.transform(img)
         # Compute segmentation
-        seg = self.compute_segments(transformed_img, **kwargs)
+        # seg = self.compute_segments(transformed_img, **kwargs)
         # Compute features
-        dense_features = self.compute_features(transformed_img, **kwargs)
+        compressed_feats = self.compute_features(transformed_img, **kwargs)
         # Sparsify features
-        sparse_features,compressed_feats = self.sparsify_features(dense_features, seg)
+        # sparse_features,compressed_feats = self.sparsify_features(dense_features, seg)
         torch.cuda.empty_cache()
-        return sparse_features, seg,transformed_img,compressed_feats
+        return None, None,transformed_img,compressed_feats
 
     
     def set_original_size(self, original_width: int, original_height: int):
@@ -175,11 +175,19 @@ class FeatureExtractor:
     
     def compute_features(self, img: torch.tensor, **kwargs):
         img_internal=img.clone()
+        B,C,H,W=img_internal.shape
+        
         if self._feature_type=="dinov2":
+            feat_dict={}
             feat=self.extractor.inference(img_internal)
+            # compute ratio of original image size to feature map size
+            ratio_h = H / feat.shape[-2]
+            ratio_w = W / feat.shape[-1]
+            feat_dict[(ratio_h,ratio_w)]=feat
         else:
             raise ValueError(f"Extractor[{self._feature_type}] not supported!")
-        return feat
+        
+        return feat_dict
     
     def sparsify_features(self, dense_features: Union[torch.Tensor, Dict[str, torch.Tensor]], seg: torch.tensor, cumsum_trick=False):
         """ Sparsify features
@@ -296,7 +304,7 @@ def compute_phy_mask(img:torch.Tensor,
     if trans_img is None or compressed_feats is None:
         if feat_extractor is None:
             raise ValueError("feat_extractor is None!")
-        features, seg,trans_img,compressed_feats=feat_extractor.extract(img)
+        _,_,trans_img,compressed_feats=feat_extractor.extract(img)
     feat_input,H,W=concat_feat_dict(compressed_feats)
     feat_input=feat_input.squeeze(0)
     output=model(feat_input)

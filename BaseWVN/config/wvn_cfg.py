@@ -181,7 +181,7 @@ class ParamCollection(Serializable):
         train_data:str='results/manager/train_data.pt'
         nodes_data:str='results/manager/train_nodes.pt'
         image_file:str='image_buffer.pt'
-        test_images:bool=False
+        test_images:bool=True
         test_nodes:bool=True
         
         gt_model:str='SAM' # 'SEEM' or 'SAM'
@@ -189,8 +189,8 @@ class ParamCollection(Serializable):
         SAM_ckpt:str='/media/chen/UDisk1/sam_vit_h_4b8939.pth'
         # SAM_ckpt='/media/chen/UDisk1/sam_hq_vit_h.pth'
         
-        plot_hist:bool=True
-        plot_tsne:bool=True
+        plot_hist:bool=False
+        plot_tsne:bool=False
         plot_overlay:bool=True
     
     offline: OfflineParams = OfflineParams()
