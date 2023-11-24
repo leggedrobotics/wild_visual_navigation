@@ -48,7 +48,7 @@ def plot_tsne(confidence, loss_reco_raw, title='t-SNE with Confidence Highlighti
     plt.title(title)
     plt.xlabel('Component 1')
     plt.ylabel('Component 2')
-    plt.show()
+    # plt.show()
     plt.savefig(os.path.join(path,title+".png"))
     plt.close()
 
