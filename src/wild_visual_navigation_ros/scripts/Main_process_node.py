@@ -51,11 +51,7 @@ class MainProcess(NodeForROS):
         
         # Init graph manager
         self.manager = Manager(device=self.device,
-                               graph_params=self.param.graph,
-                               loss_params=self.param.loss,
-                               model_params=self.param.model,
-                               lr=self.param.optimizer.lr,
-                               phy_dim=self.param.feat.physical_dim,)
+                               param=self.param,)
         
         
         # Init Camera handler

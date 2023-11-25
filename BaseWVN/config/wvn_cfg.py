@@ -97,8 +97,8 @@ class ParamCollection(Serializable):
 
     @dataclass
     class LossParams:
-        w_pred: float = 0.1
-        w_reco: float = 0.9
+        w_pred: float = 0.5
+        w_reco: float = 0.5
         method: str = "running_mean"
         confidence_std_factor: float = 1.0
         confidence_threshold: float = 0.5
@@ -115,6 +115,11 @@ class ParamCollection(Serializable):
         update_range_main_graph: float=5
         cut_threshold: float=5.0
         edge_dist_thr_main_graph: float=1
+        
+        use_sub_graph: bool=True
+        edge_dist_thr_sub_graph: float=0.2
+        max_distance_sub_graph: float=5
+        
         min_samples_for_training: int=6
         random_sample_num: int=100
         

@@ -13,7 +13,7 @@ import torch.nn.functional as F
 import torchvision.transforms as transforms
 import random
 from pytictac import accumulate_time,ClassContextTimer
-
+from typing import List
 from .graphs import (
     BaseGraph,
     DistanceWindowGraph,
@@ -28,10 +28,11 @@ to_tensor = transforms.ToTensor()
 class Manager:
     def __init__(self,
                 device: str = "cuda",
-                graph_params = None,
-                loss_params = None,
-                model_params=None,
+                param=None,
                 **kwargs):
+        graph_params=param.graph
+        loss_params=param.loss
+        model_params=param.model
         self._device = device
         self._label_ext_mode = graph_params.label_ext_mode
         self._vis_node_index = graph_params.vis_node_index
@@ -41,13 +42,15 @@ class Manager:
         self._edge_dist_thr_main_graph=graph_params.edge_dist_thr_main_graph
         self._extraction_store_folder=graph_params.extraction_store_folder
         self._random_sample_num=graph_params.random_sample_num
+        self._phy_dim=param.feat.physical_dim
+        self._lr=param.optimizer.lr
+        self._use_sub_graph=graph_params.use_sub_graph
         
         self.last_sub_node=None
+        if graph_params.use_sub_graph:
+            # self._sub_graph=MaxElementsGraph(edge_distance=graph_params.edge_dist_thr_sub_graph,max_elements=10)
+            self._sub_graph=DistanceWindowGraph(edge_distance=graph_params.edge_dist_thr_sub_graph,max_distance=graph_params.max_distance_sub_graph)
         
-        self._phy_dim=kwargs.get("phy_dim",2)
-        self._lr=kwargs.get("lr",0.001)
-        
-
         if self._label_ext_mode:
             self._all_dataset=[]
             self._main_graph = BaseGraph(edge_distance=self._edge_dist_thr_main_graph)
@@ -65,7 +68,6 @@ class Manager:
         self._pause_main_graph = False
         self._pause_sub_graph = False
         
-        # TODO: self._visualizer = LearningVisualizer()
         #  Init model and optimizer, loss function...
         # Lightning module
         seed_everything(42)
@@ -183,7 +185,19 @@ class Manager:
             return False
         
         self.last_sub_node=subnode
-
+        if self._use_sub_graph:
+            success=self._sub_graph.add_node(subnode)
+            if success:
+                # Print some info
+                total_nodes = self._sub_graph.get_num_nodes()
+                if logger is None:
+                    s = f"adding node [{subnode}], "
+                    s += " " * (48 - len(s)) + f"total nodes [{total_nodes}]"
+                    print(s)
+                else:
+                    with logger["Lock"]:
+                        logger["total sub nodes"]=f"{total_nodes}"
+            
         feet_planes=subnode.feet_planes
         feet_contact=subnode.feet_contact
         
@@ -207,6 +221,7 @@ class Manager:
         C,H,W=last_main_node.supervision_mask.shape
         B=len(main_nodes)
         
+        # TODO: wrap the following code into a function, it will also be used in main graph triggering
         # prepare batches
         K = torch.eye(4, device=self._device).repeat(B, 1, 1)
         supervision_masks=torch.ones((1,C,H,W), device=self._device).repeat(B, 1, 1, 1)
@@ -232,7 +247,7 @@ class Manager:
                 foot_plane=foot_plane.repeat(B,1,1)
                 with ClassContextTimer(parent_obj=self,block_name="reprojection_main_1",parent_method_name="add_sub_node"):
                     mask, _, _, _ = im.project_and_render(pose_camera_in_world, foot_plane, color)
-                print(im.timer)
+                # print(im.timer)
                 mask=mask[:,:self._phy_dim,:,:]*subnode.phy_pred[:,i][None,:,None,None]
                 supervision_masks=torch.fmin(supervision_masks,mask)
         # Update supervision mask per node
@@ -244,6 +259,15 @@ class Manager:
             
         return True
 
+    def project_between_nodes(self,mnodes:List[MainNode],snodes:List[SubNode]):
+        """ 
+        This function will take a list of main nodes and a list of sub nodes as inputs.
+        If the list number of one type of nodes is 1, then the function will project the other type of nodes to the single node.
+        The other type of nodes should have list length larger than 1 to avoid ambiguity.
+        """
+        # TODO
+        pass
+    
     def get_main_nodes(self):
         return self._main_graph.get_nodes()
     
