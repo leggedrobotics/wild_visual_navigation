@@ -30,8 +30,10 @@ class ParamCollection(Serializable):
         phy_decoder_output_topic:str='/vd_pipeline/phy_decoder_out'
 
         camera_bag_name: str='jetson'
-        camera_topic: str='/v4l2_camera/image_raw_throttle/compressed'
-        camera_info_topic: str='/v4l2_camera/camera_info_throttle'
+        # camera_topic: str='/v4l2_camera/image_raw_throttle/compressed'
+        # camera_info_topic: str='/v4l2_camera/camera_info_throttle'
+        camera_topic: str='/wide_angle_camera_rear/image_color_rect/compressed'
+        camera_info_topic: str='/wide_angle_camera_rear/camera_info'
 
         fixed_frame: str='odom'
         base_frame: str='base'
@@ -42,10 +44,18 @@ class ParamCollection(Serializable):
         robot_width: float=0.530
         robot_max_velocity: float=1.2
         foot_radius: float=0.03269
-        rear_camera_in_base= np.array([[ 3.63509049e-06, -1.43680305e-01, -9.89624138e-01,-3.53700000e-01],
+        rear_hdr_camera_in_base= np.array([[ 3.63509049e-06, -1.43680305e-01, -9.89624138e-01,-3.53700000e-01],
                                         [-9.99999820e-01,  1.34923159e-11, -3.67320444e-06,0.00000000e+00],
                                         [ 5.27780582e-07,  9.89623958e-01, -1.43680305e-01,1.63400000e-01],
                                         [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,1.00000000e+00]])
+        rear_wide_angle_camera_in_base=np.array([[ 1.22464680e-16, -1.11022302e-16, -1.00000000e+00,  -4.04490000e-01],
+                                            [ 1.00000000e+00,  2.22044605e-16,  1.14423775e-17,  -5.15576302e-19],
+                                            [ 0.00000000e+00 ,-1.00000000e+00,  0.00000000e+00 , 2.05000000e-02],
+                                            [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00 , 1.00000000e+00]])
+        front_wide_angle_camera_in_base=np.array([[ 0.00000000e+00,  1.11022302e-16,  1.00000000e+00,  4.04490000e-01],
+                                            [-1.00000000e+00, -2.22044605e-16,  1.11022302e-16,  0.00000000e+00],
+                                            [ 0.00000000e+00, -1.00000000e+00,  0.00000000e+00,  2.05000000e-02],
+                                            [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  1.00000000e+00]])
         pass
     roscfg: RosParams=RosParams()
     
@@ -73,6 +83,9 @@ class ParamCollection(Serializable):
     class LoggerParams:
         name: str = "neptune"
         neptune_project_name: str = "RSL/WVN"
+        vis_callback:bool=False
+        vis_mgraph:bool=False
+        vis_snodes:bool=False
 
     logger: LoggerParams = LoggerParams()
 
@@ -88,7 +101,7 @@ class ParamCollection(Serializable):
         """Parameters for the feature extractor."""
         segmentation_type: str='pixel'
         feature_type: str='dinov2'  # dinov2, focal
-        input_size:int =1260 #1260 for dinov2 , 1280 for focal
+        input_size:int =1078 #1260 for dinov2 , 1280 for focal
         interp: str='bilinear'
         center_crop: bool=False
         physical_dim:int=2
@@ -119,6 +132,7 @@ class ParamCollection(Serializable):
         use_sub_graph: bool=True
         edge_dist_thr_sub_graph: float=0.2
         max_distance_sub_graph: float=5
+        update_range_sub_graph: float=5
         
         min_samples_for_training: int=6
         random_sample_num: int=100
@@ -199,6 +213,8 @@ class ParamCollection(Serializable):
         plot_overlay:bool=True
     
     offline: OfflineParams = OfflineParams()
+    
+    
 
 def dataclass_to_dict(obj):
     if is_dataclass(obj):

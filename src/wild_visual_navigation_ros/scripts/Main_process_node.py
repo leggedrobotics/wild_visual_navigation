@@ -278,7 +278,7 @@ class MainProcess(NodeForROS):
                  transform.pose.orientation.w)
             suc, pose_base_in_world = rc.ros_tf_to_numpy((trans,rot))
            
-            if "debug" in self.mode:
+            if self.param.logger.vis_callback:
                self.visualize_callback(pose_base_in_world,ts,self.camera_handler["latest_img_pub"],"latest_img")
            
             if not suc:
@@ -289,7 +289,7 @@ class MainProcess(NodeForROS):
                 return
             
             # transform the camera pose from base to world
-            pose_cam_in_base=self.param.roscfg.rear_camera_in_base
+            pose_cam_in_base=self.camera_in_base
             pose_cam_in_world=np.matmul(pose_base_in_world,pose_cam_in_base)
             self.camera_handler["pose_cam_in_world"]=pose_cam_in_world
 
@@ -341,14 +341,14 @@ class MainProcess(NodeForROS):
             
             # add to main graph
             added_new_node=self.manager.add_main_node(main_node,verbose=self.verbose,logger=self.log_data)
-            if "debug" in self.mode:
+            if self.param.logger.vis_mgraph:
                 # publish the main graph
                 self.visualize_main_graph()
-                if added_new_node:
-                    self.manager.update_visualization_node()
-                with self.log_data["Lock"]:
-                    if self.manager._graph_distance is not None:
-                        self.log_data["head dist of main/sub graph"]="{:.2f}".format(self.manager._graph_distance.item())
+            if added_new_node:
+                self.manager.update_visualization_node()
+            with self.log_data["Lock"]:
+                if self.manager._graph_distance is not None:
+                    self.log_data["head dist of main/sub graph"]="{:.2f}".format(self.manager._graph_distance.item())
             
             self.system_events["image_callback_state"] = {"time": rospy.get_time(), "value": "executed successfully"}
             self.last_image_ts = ts 
@@ -383,7 +383,7 @@ class MainProcess(NodeForROS):
         
             pose_base_in_world = rc.ros_pose_to_torch(phy_output.base_pose, device=self.device)
             
-            if "debug" in self.mode:
+            if self.param.logger.vis_callback:
                self.visualize_callback(pose_base_in_world,ts,self.camera_handler["latest_phy_pub"],"latest_phy")
             
             fric=torch.tensor(phy_output.prediction[:4]).to(self.device)
@@ -408,7 +408,7 @@ class MainProcess(NodeForROS):
 
             self.sub_step+=1
             
-            if "debug" in self.mode:
+            if self.param.logger.vis_snodes:
                 self.visualize_sub_node()
             self.system_events["phy_decoder_callback_state"] = {
                     "time": rospy.get_time(),

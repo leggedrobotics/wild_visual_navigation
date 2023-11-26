@@ -78,6 +78,12 @@ class NodeForROS:
         self.log_folder=self.param.loss.log_folder
         self.verbose=self.param.loss.verbose
 
+        if "v4l2" in self.camera_topic:
+            self.camera_in_base=self.param.roscfg.rear_hdr_camera_in_base
+            self.reverse=True
+        elif "wide_angle" in self.camera_topic:
+            self.camera_in_base=self.param.roscfg.rear_wide_angle_camera_in_base
+            self.reverse=False
     
     
     def query_tf(self, parent_frame: str, child_frame: str, stamp: Optional[rospy.Time] = None, from_message: Optional[AnymalState] = None):
