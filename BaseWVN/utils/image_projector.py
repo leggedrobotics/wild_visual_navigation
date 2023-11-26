@@ -45,12 +45,12 @@ class ImageProjector:
         W = self.camera.width.item()
         # Create output mask
         self.masks = torch.zeros((B, C, H, W), dtype=torch.float32, device=device)
-        self.timer=ClassTimer(
-            objects=[self,
-                     ],
-            names=["Projector"],
-            enabled=True
-        )
+        # self.timer=ClassTimer(
+        #     objects=[self,
+        #              ],
+        #     names=["Projector"],
+        #     enabled=True
+        # )
     @property
     def scaled_camera_matrix(self):
         return self.camera.intrinsics.clone()[:3, :3]
@@ -114,7 +114,7 @@ class ImageProjector:
 
         # Return projected points and validity
         return projected_points, valid_points, valid_z
-    @accumulate_time
+
     def project_and_render(
         self, pose_camera_in_world: torch.tensor, points: torch.tensor, colors: torch.tensor, image: torch.tensor = None
     ):

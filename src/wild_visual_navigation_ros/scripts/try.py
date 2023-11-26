@@ -24,4 +24,11 @@ print(a.max())
 dd=np.array([1,2,3])
 ee=np.array([4,5,6])
 print(dd+ee)
+print(torch.zeros(0, 5, 3).shape)
+
+gg=[]
+if gg:
+    print("empty list is true")
+else:
+    print("empty list is false")
 pass

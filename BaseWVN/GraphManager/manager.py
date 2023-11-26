@@ -30,6 +30,7 @@ class Manager:
                 device: str = "cuda",
                 param=None,
                 **kwargs):
+        self._param=param
         graph_params=param.graph
         loss_params=param.loss
         model_params=param.model
@@ -198,8 +199,8 @@ class Manager:
                     with logger["Lock"]:
                         logger["total sub nodes"]=f"{total_nodes}"
             
-        feet_planes=subnode.feet_planes
-        feet_contact=subnode.feet_contact
+        # feet_planes=subnode.feet_planes
+        # feet_contact=subnode.feet_contact
         
         last_main_node:MainNode=self._main_graph.get_last_node()
         if last_main_node is None:
@@ -214,29 +215,82 @@ class Manager:
                 logger["num_valid_node"]=num_valid_nodes
         if len(main_nodes)<1:
             return False
-       
+
+        self.project_between_nodes(main_nodes,[subnode],logger=logger)
+        # # Set color
+        # color = torch.ones((3,), device=self._device)
+        
+        # C,H,W=last_main_node.supervision_mask.shape
+        # B=len(main_nodes)
+        
+        # # TODO: wrap the following code into a function, it will also be used in main graph triggering
+        # # prepare batches
+        # K = torch.eye(4, device=self._device).repeat(B, 1, 1)
+        # supervision_masks=torch.ones((1,C,H,W), device=self._device).repeat(B, 1, 1, 1)
+        # pose_camera_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
+        # H = last_main_node.image_projector.camera.height
+        # W = last_main_node.image_projector.camera.width
+        
+        # for i, mnode in enumerate(main_nodes):
+        #     K[i] = mnode.image_projector.camera.intrinsics
+        #     pose_camera_in_world[i] = mnode.pose_cam_in_world
+        #     if mnode.supervision_mask is None:
+        #         print("strange")
+        #         pass
+        #     supervision_masks[i] = mnode.supervision_mask
+        # with ClassContextTimer(parent_obj=self,block_name="reprojection_main",parent_method_name="add_sub_node"):
+        #     im=ImageProjector(K,H,W)
+        #     assert feet_planes.shape[0]==4
+        #     for i in range(feet_planes.shape[0]):
+        #         # skip not contacting feet
+        #         if not feet_contact[i]:
+        #             continue
+        #         foot_plane=feet_planes[i].unsqueeze(0)
+        #         foot_plane=foot_plane.repeat(B,1,1)
+        #         with ClassContextTimer(parent_obj=self,block_name="reprojection_main_1",parent_method_name="add_sub_node"):
+        #             mask, _, _, _ = im.project_and_render(pose_camera_in_world, foot_plane, color)
+        #         # print(im.timer)
+        #         mask=mask[:,:self._phy_dim,:,:]*subnode.phy_pred[:,i][None,:,None,None]
+        #         supervision_masks=torch.fmin(supervision_masks,mask)
+        # # Update supervision mask per node
+        # for i, mnode in enumerate(main_nodes):
+        #     mnode.supervision_mask = supervision_masks[i]
+        #     mnode.update_supervision_signal()
+        #     with logger["Lock"]:
+        #         logger[f"mnode {i} reproj_pixels_num"]=(~torch.isnan(mnode.supervision_mask[0])).sum().item()
+            
+        return True
+
+    def project_between_nodes(self,mnodes:List[MainNode],snodes:List[SubNode],logger=None):
+        """ 
+        This function will take a list of main nodes and a list of sub nodes as inputs.
+        If the list number of one type of nodes is 1, then the function will project the other type of nodes to the single node.
+        The other type of nodes should have list length larger than 1 to avoid ambiguity.
+        """
         # Set color
         color = torch.ones((3,), device=self._device)
+        if len(mnodes)>1 and len(snodes)==1:
+            B=len(mnodes)
+        elif len(mnodes)==1 and len(snodes)>1:
+            B=len(snodes)
+        else:
+            raise ValueError("The input nodes should have one list with length 1 and the other list with length larger than 1")
         
-        C,H,W=last_main_node.supervision_mask.shape
-        B=len(main_nodes)
-        
-        # TODO: wrap the following code into a function, it will also be used in main graph triggering
-        # prepare batches
-        K = torch.eye(4, device=self._device).repeat(B, 1, 1)
-        supervision_masks=torch.ones((1,C,H,W), device=self._device).repeat(B, 1, 1, 1)
-        pose_camera_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
-        H = last_main_node.image_projector.camera.height
-        W = last_main_node.image_projector.camera.width
-        
-        for i, mnode in enumerate(main_nodes):
-            K[i] = mnode.image_projector.camera.intrinsics
-            pose_camera_in_world[i] = mnode.pose_cam_in_world
-            if mnode.supervision_mask is None:
-                print("strange")
-                pass
-            supervision_masks[i] = mnode.supervision_mask
-        with ClassContextTimer(parent_obj=self,block_name="reprojection_main",parent_method_name="add_sub_node"):
+        if len(mnodes)>1 and len(snodes)==1:
+            B=len(mnodes)
+            C,H,W=mnodes[-1].supervision_mask.shape
+            K = torch.eye(4, device=self._device).repeat(B, 1, 1)
+            supervision_masks=torch.ones((1,C,H,W), device=self._device).repeat(B, 1, 1, 1)
+            pose_camera_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
+            H = mnodes[-1].image_projector.camera.height
+            W = mnodes[-1].image_projector.camera.width
+            
+            for i, mnode in enumerate(mnodes):
+                K[i] = mnode.image_projector.camera.intrinsics
+                pose_camera_in_world[i] = mnode.pose_cam_in_world
+                supervision_masks[i] = mnode.supervision_mask
+            feet_planes=snodes[-1].feet_planes
+            feet_contact=snodes[-1].feet_contact
             im=ImageProjector(K,H,W)
             assert feet_planes.shape[0]==4
             for i in range(feet_planes.shape[0]):
@@ -245,28 +299,72 @@ class Manager:
                     continue
                 foot_plane=feet_planes[i].unsqueeze(0)
                 foot_plane=foot_plane.repeat(B,1,1)
-                with ClassContextTimer(parent_obj=self,block_name="reprojection_main_1",parent_method_name="add_sub_node"):
+                with ClassContextTimer(parent_obj=self,block_name="reprojection_sub2mains",parent_method_name="add_sub_node"):
                     mask, _, _, _ = im.project_and_render(pose_camera_in_world, foot_plane, color)
                 # print(im.timer)
-                mask=mask[:,:self._phy_dim,:,:]*subnode.phy_pred[:,i][None,:,None,None]
+                mask=mask[:,:self._phy_dim,:,:]*snodes[-1].phy_pred[:,i][None,:,None,None]
                 supervision_masks=torch.fmin(supervision_masks,mask)
-        # Update supervision mask per node
-        for i, mnode in enumerate(main_nodes):
-            mnode.supervision_mask = supervision_masks[i]
-            mnode.update_supervision_signal()
-            with logger["Lock"]:
-                logger[f"mnode {i} reproj_pixels_num"]=(~torch.isnan(mnode.supervision_mask[0])).sum().item()
+            # Update supervision mask per node
+            for i, mnode in enumerate(mnodes):
+                mnode.supervision_mask = supervision_masks[i]
+                mnode.update_supervision_signal()
+                with logger["Lock"]:
+                    logger[f"mnode {i} reproj_pixels_num"]=(~torch.isnan(mnode.supervision_mask[0])).sum().item()
+        elif len(mnodes)==1 and len(snodes)>1:
             
-        return True
+            phy_pred_stacked = torch.stack([snode.phy_pred for snode in snodes]) #shape: B * 2 * 4
+            feet_planes_lists = [[] for _ in self._param.roscfg.feet_list]
+            for i,snode in enumerate(snodes):
+                feet_planes=snode.feet_planes # shape: 4 * n_points * 3
+                feet_contact=snode.feet_contact # shape: 4
+                assert feet_planes.shape[0]==4
+                # Iterate over each foot index
+                for foot_index,_ in enumerate(self._param.roscfg.feet_list):
+                    if feet_contact[foot_index]:
+                        feet_planes_lists[foot_index].append(feet_planes[foot_index])
+            # Stack the feet_planes for each foot separately
+            stacked_feet_planes = [
+                                        torch.stack(feet_planes_list) if feet_planes_list else torch.zeros(0, 1, 3) for feet_planes_list in feet_planes_lists
+                             ]
+            
+            for i, foot_plane in enumerate(stacked_feet_planes):
+                B = foot_plane.shape[0]
+                if B==0:
+                    continue
+                C,H,W=mnodes[-1].supervision_mask.shape
+                K = torch.eye(4, device=self._device).repeat(B, 1, 1)
+                supervision_masks=torch.ones((1,C,H,W), device=self._device).repeat(B, 1, 1, 1)
+                pose_camera_in_world = torch.eye(4, device=self._device).repeat(B, 1, 1)
+                H = mnodes[-1].image_projector.camera.height
+                W = mnodes[-1].image_projector.camera.width
+                
+                K[:]=mnodes[-1].image_projector.camera.intrinsics
+                pose_camera_in_world[:]=mnodes[-1].pose_cam_in_world
+                supervision_masks[:]=mnodes[-1].supervision_mask
+                im=ImageProjector(K,H,W)
+                
+                with ClassContextTimer(parent_obj=self,block_name="reprojection_mainFsubs",parent_method_name="add_sub_node"):
+                    mask, _, _, _ = im.project_and_render(pose_camera_in_world, foot_plane, color)
+                # Extract the phy_pred for the current foot across all snodes
+                # phy_pred_stacked has shape [num_snodes, 2, 4]
+                # We need to select the i-th index (for the i-th foot) from the last dimension
+                current_foot_phy_pred = phy_pred_stacked[:, :, i]
 
-    def project_between_nodes(self,mnodes:List[MainNode],snodes:List[SubNode]):
-        """ 
-        This function will take a list of main nodes and a list of sub nodes as inputs.
-        If the list number of one type of nodes is 1, then the function will project the other type of nodes to the single node.
-        The other type of nodes should have list length larger than 1 to avoid ambiguity.
-        """
-        # TODO
-        pass
+                # Reshape for broadcasting: [num_snodes, 2, 1, 1]
+                current_foot_phy_pred = current_foot_phy_pred.unsqueeze(-1).unsqueeze(-1)
+
+                # Multiply the mask by the phy_pred for the current foot
+                # Mask is of shape [B, 3, H, W], B = num_snodes
+                mask[:, :self._phy_dim, :, :] *= current_foot_phy_pred
+                supervision_masks = torch.fmin(supervision_masks, mask)
+                combined_supervision_mask = torch.amin(supervision_masks, dim=0) #3*H*W
+                mnodes[-1].supervision_mask = combined_supervision_mask
+            mnodes[-1].update_supervision_signal()
+            with logger["Lock"]:
+                logger[f"last mnode reproj_pixels_num"]=(~torch.isnan(mnode[-1].supervision_mask[0])).sum().item()
+        
+        else:
+            raise ValueError("The input nodes should have one list with length 1 and the other list with length larger than 1")    
     
     def get_main_nodes(self):
         return self._main_graph.get_nodes()
