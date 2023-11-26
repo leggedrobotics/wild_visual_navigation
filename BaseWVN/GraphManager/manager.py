@@ -48,6 +48,7 @@ class Manager:
         self._use_sub_graph=graph_params.use_sub_graph
         
         self.last_sub_node=None
+        self.subnodes_update=None
         if graph_params.use_sub_graph:
             # self._sub_graph=MaxElementsGraph(edge_distance=graph_params.edge_dist_thr_sub_graph,max_elements=10)
             self._sub_graph=DistanceWindowGraph(edge_distance=graph_params.edge_dist_thr_sub_graph,max_distance=graph_params.max_distance_sub_graph)
@@ -176,6 +177,7 @@ class Manager:
             
             if self._use_sub_graph:
                 subnodes=self._sub_graph.get_nodes_within_radius_range(node,0,self._update_range_sub_graph)
+                self.subnodes_update=subnodes
                 num_valid_nodes = self._sub_graph.get_num_valid_nodes()
                 with logger["Lock"]:
                     logger["to_be_updated_subnode_num"]=len(subnodes)
@@ -335,7 +337,12 @@ class Manager:
                     logger[f"mainFsubs: valid pixels in mask"]=(~torch.isnan(mask_merge)).sum().item()
                 
                 supervision_masks = torch.fmin(supervision_masks, mask)
-                combined_supervision_mask = torch.amin(supervision_masks, dim=0) #2*H*W
+                
+                supervision_masks_nonan = torch.where(torch.isnan(supervision_masks), 100.0, supervision_masks)
+                combined_supervision_mask = torch.amin(supervision_masks_nonan, dim=0) #2*H*W
+                # Replace 100.0 with NaN in combined_supervision_mask
+                combined_supervision_mask = torch.where(combined_supervision_mask == 100.0, torch.nan, combined_supervision_mask)
+
                 mnodes[-1].supervision_mask = combined_supervision_mask
             mnodes[-1].update_supervision_signal()
             with logger["Lock"]:

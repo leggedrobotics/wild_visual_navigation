@@ -218,6 +218,7 @@ class MainProcess(NodeForROS):
         info_pub=rospy.Publisher('/vd_pipeline/camera_info', CameraInfo, queue_size=10)
         freq_pub=rospy.Publisher('/test', Float32, queue_size=10)
         main_graph_pub=rospy.Publisher('/vd_pipeline/main_graph', Path, queue_size=10)
+        nodes_pub=rospy.Publisher('/vd_pipeline/nodes', Path, queue_size=10)
         sub_node_pub=rospy.Publisher('/vd_pipeline/sub_node', Marker, queue_size=10)
         latest_img_pub=rospy.Publisher('/vd_pipeline/latest_img', Marker, queue_size=10)
         latest_phy_pub=rospy.Publisher('/vd_pipeline/latest_phy', Marker, queue_size=10)
@@ -234,6 +235,7 @@ class MainProcess(NodeForROS):
         self.camera_handler['system_state_pub']=system_state_pub
         self.camera_handler['latest_img_pub']=latest_img_pub
         self.camera_handler['latest_phy_pub']=latest_phy_pub
+        self.camera_handler['nodes_pub']=nodes_pub
         pass
     
     @accumulate_time
@@ -346,6 +348,8 @@ class MainProcess(NodeForROS):
                 self.visualize_main_graph()
             if added_new_node:
                 self.manager.update_visualization_node()
+            if self.manager.subnodes_update is not None:
+                self.visualize_nodes(self.manager.subnodes_update)  
             with self.log_data["Lock"]:
                 if self.manager._graph_distance is not None:
                     self.log_data["head dist of main/sub graph"]="{:.2f}".format(self.manager._graph_distance.item())
@@ -583,6 +587,22 @@ class MainProcess(NodeForROS):
             msg.color = ColorRGBA(1.0, 1.0, 0.0, 1.0)
         handle.publish(msg)
     
+    def visualize_nodes(self,nodes):
+        """Publishes all the visualizations related to the nodes"""
+        now=rospy.Time.from_sec(self.last_image_ts)
+        
+        # publish main graph
+        nodes_msg=Path()
+        nodes_msg.header.frame_id=self.fixed_frame
+        nodes_msg.header.stamp=now
+        
+        for node in nodes:
+            pose = PoseStamped()
+            pose.header.frame_id = self.fixed_frame
+            pose.header.stamp = rospy.Time.from_sec(node.timestamp)
+            pose.pose=rc.torch_to_ros_pose(node.pose_base_in_world)
+            nodes_msg.poses.append(pose)
+        self.camera_handler["nodes_pub"].publish(nodes_msg)
     
     @accumulate_time
     def visualize_main_graph(self):
@@ -615,7 +635,7 @@ class MainProcess(NodeForROS):
             torch_image = vis_node._image
             torch_mask = vis_node._supervision_mask
             for i in range(torch_mask.shape[0]):
-                out=plot_overlay_image(torch_image, overlay_mask=torch_mask, channel=i,alpha=1.0)
+                out=plot_overlay_image(torch_image, overlay_mask=torch_mask, channel=i,alpha=0.5)
                 if not save_local:
                     img_msg=rc.numpy_to_ros_image(out)  
                     if i==0:     

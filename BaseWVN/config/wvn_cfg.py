@@ -83,7 +83,7 @@ class ParamCollection(Serializable):
     class LoggerParams:
         name: str = "neptune"
         neptune_project_name: str = "RSL/WVN"
-        vis_callback:bool=False
+        vis_callback:bool=True
         vis_mgraph:bool=False
         vis_snodes:bool=False
 
@@ -137,7 +137,7 @@ class ParamCollection(Serializable):
         min_samples_for_training: int=6
         random_sample_num: int=100
         
-        vis_node_index: int=10
+        vis_node_index: int=1
         label_ext_mode: bool=False
         extraction_store_folder: str='LabelExtraction'
         use_for_training: bool=True
