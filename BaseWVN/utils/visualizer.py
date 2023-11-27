@@ -117,7 +117,10 @@ def add_color_bar_and_save(new_img,channel,path,**kwargs):
     cmap = sns.color_palette(kwargs.get("cmap", "viridis"), as_cmap=True)
     norm = Normalize(vmin=min_val, vmax=max_val)
     cb = plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), cax=cbar_ax)
-    cb.set_label('Values')
+    if channel==0:
+        cb.set_label('Friction Values')
+    else:
+        cb.set_label('Stiffness Values')
 
     # Save the image with color bar
     plt.savefig(path, bbox_inches='tight',dpi=600)
