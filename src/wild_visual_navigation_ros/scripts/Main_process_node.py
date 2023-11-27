@@ -446,7 +446,9 @@ class MainProcess(NodeForROS):
                 break
             with self.log_data["Lock"]:
                 self.log_data[f"learning_thread_step"] = i
-            
+                
+            if not self.param.general.online_training:
+                self.manager.pause_learning=True
             res=self.manager.train()
             
             with self.log_data["Lock"]:
@@ -466,7 +468,8 @@ class MainProcess(NodeForROS):
             # rate.sleep()
             # save model every 10 steps
             if i % 10 == 0:
-                self.manager.save_ckpt(self.param.general.model_path,f"checkpoint_{step}.pt")
+                if self.param.general.online_training:
+                    self.manager.save_ckpt(self.param.general.model_path,f"checkpoint_{step}.pt")
                 # update real-time pred once
                 self.update_prediction(self.manager._vis_main_node)
             i += 1
