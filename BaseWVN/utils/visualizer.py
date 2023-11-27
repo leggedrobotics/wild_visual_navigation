@@ -121,9 +121,12 @@ def add_color_bar_and_save(new_img,channel,path,**kwargs):
         cb.set_label('Friction Values')
     else:
         cb.set_label('Stiffness Values')
-
+    
+    # Modify path to add "wcolorbar" before the file extension
+    base, ext = os.path.splitext(path)
+    modified_path = f"{base}_wcolorbar{ext}"
     # Save the image with color bar
-    plt.savefig(path, bbox_inches='tight',dpi=600)
+    plt.savefig(modified_path, bbox_inches='tight',dpi=600)
     # plt.show()
     plt.close(fig)
 

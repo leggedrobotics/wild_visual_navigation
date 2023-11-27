@@ -1,7 +1,7 @@
 """ 
 Main node to process ros messages, publish the relevant topics, train the model...
  """
-from BaseWVN.utils import NodeForROS,FeatureExtractor,ConfidenceGenerator,ImageProjector,plot_overlay_image,compute_phy_mask
+from BaseWVN.utils import NodeForROS,FeatureExtractor,ConfidenceGenerator,ImageProjector,plot_overlay_image,compute_phy_mask,add_color_bar_and_save
 from BaseWVN.GraphManager import Manager,MainNode,SubNode
 import ros_converter as rc
 import message_filters
@@ -645,12 +645,14 @@ class MainProcess(NodeForROS):
                 else:
                     # Convert the numpy array to an image
                     out_image = PIL.Image.fromarray(out)
+                    if "v4l2" in self.param.roscfg.camera_topic:
+                        out_image=out_image.rotate(180)
                     # Construct a filename
                     filename = f"channel_{i}.jpg"
                     file_path = os.path.join(output_dir, filename)
-
+                    add_color_bar_and_save(out_image,i,file_path)
                     # Save the image
-                    out_image.save(file_path)
+                    # out_image.save(file_path)
                         
 
 

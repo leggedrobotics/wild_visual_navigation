@@ -406,9 +406,9 @@ def compute_phy_mask(img:torch.Tensor,
                 filename = f"{image_name}_stiff_den_pred_step_{step}_{mode}.jpg"
             file_path = os.path.join(output_dir, filename)
             # Save the image
-            rotated_image.save(file_path)
+            # rotated_image.save(file_path)
             
-            # add colorbar to overlay image
+            # add colorbar to overlay image and then save
             add_color_bar_and_save(rotated_image,i, file_path)
             
         if param is not None:
