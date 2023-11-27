@@ -406,7 +406,7 @@ def compute_phy_mask(img:torch.Tensor,
             # process possible label_mask for plotting if given
             if label_mask is not None:
                 label=label_mask.detach()
-                overlay_label=plot_overlay_image(trans_img, overlay_mask=label, channel=i,alpha=0.7)
+                overlay_label=plot_overlay_image(trans_img, overlay_mask=label, channel=i,alpha=0.9)
                 overlay_label_img = PIL.Image.fromarray(overlay_label)
                 overlay_label_img=rot_or_not(overlay_label_img,param)
             

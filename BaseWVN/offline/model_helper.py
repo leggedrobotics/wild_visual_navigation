@@ -311,10 +311,12 @@ def conf_mask_generate(param:ParamCollection,
                                 model.loss_fn,
                                 param.loss.confidence_threshold,
                                 param.loss.confidence_mode,
-                                False,
-                                -1,
+                                param.offline.plot_nodes,
+                                i,
                                 time=model.time,
-                                image_name=str(node.timestamp))
+                                image_name="node"+str(node.timestamp),
+                                param=param,
+                                label_mask=node._supervision_mask,)
         conf_mask=res_dict['conf_mask']
         loss_reco=res_dict['loss_reco']
         pred_phy_mask=res_dict['output_phy']

@@ -225,7 +225,8 @@ def train_and_evaluate():
             print("conf_masks shape:{}".format(conf_masks.shape))
             
             masks_stats(gt_masks,conf_masks,os.path.join(WVN_ROOT_DIR,"results","overlay",model.time,"masks_stats.txt"))
-            plot_masks_compare(gt_masks,conf_masks,
+            if param.offline.plot_masks_compare:
+                plot_masks_compare(gt_masks,conf_masks,
                                ori_imgs,
                                os.path.join(WVN_ROOT_DIR,"results","overlay",model.time,param.offline.gt_model),
                                layout_type="grid",
