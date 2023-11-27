@@ -84,8 +84,8 @@ class ParamCollection(Serializable):
         name: str = "neptune"
         neptune_project_name: str = "RSL/WVN"
         vis_callback:bool=True
-        vis_mgraph:bool=False
-        vis_snodes:bool=False
+        vis_mgraph:bool=True
+        vis_snodes:bool=True
 
     logger: LoggerParams = LoggerParams()
 
@@ -139,7 +139,7 @@ class ParamCollection(Serializable):
         random_sample_num: int=100
         
         vis_node_index: int=10
-        label_ext_mode: bool=False
+        label_ext_mode: bool=True
         extraction_store_folder: str='LabelExtraction'
         use_for_training: bool=True
         
@@ -209,10 +209,10 @@ class ParamCollection(Serializable):
         SAM_ckpt:str='/media/chen/UDisk1/sam_vit_h_4b8939.pth'
         # SAM_ckpt='/media/chen/UDisk1/sam_hq_vit_h.pth'
         
-        plot_hist:bool=False
+        plot_hist:bool=True
         plot_tsne:bool=False
         plot_overlay:bool=True
-        plot_nodes:bool=True
+        plot_nodes:bool=False
         plot_masks_compare:bool=False
     
     offline: OfflineParams = OfflineParams()

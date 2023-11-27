@@ -409,7 +409,7 @@ def calculate_uncertainty_plot(all_losses:torch.Tensor,all_conf_masks:torch.Tens
 
 
 
-def plot_masks_compare(gt_masks:torch.Tensor,conf_masks:torch.Tensor,images:torch.Tensor,file_path,layout_type='side_by_side'):
+def plot_masks_compare(gt_masks:torch.Tensor,conf_masks:torch.Tensor,images:torch.Tensor,file_path,layout_type='side_by_side',param=None):
     """
     Plot ground truth masks, confidence masks, and images side by side and save to file.
 
@@ -453,7 +453,7 @@ def plot_masks_compare(gt_masks:torch.Tensor,conf_masks:torch.Tensor,images:torc
         for i in range(0, len(all_img_list), num_images_per_chunk):
             chunk = all_img_list[i:i + num_images_per_chunk]
             chunk_titles = title_list * rows
-            plot_images_in_grid(chunk, chunk_titles, rows,cols, save_path=os.path.join(file_path, 'chunk' + str(int(i/cols)) + '.png'), show_plot=False)
+            plot_images_in_grid(chunk, chunk_titles, rows,cols, save_path=os.path.join(file_path, 'chunk' + str(int(i/cols)) + '.png'), show_plot=False,param=param)
             print("Saved fig for chunk", int(i/cols))
         
    

@@ -143,7 +143,7 @@ def add_color_bar_and_save(new_img,channel,path,**kwargs):
     modified_path = f"{base}_wcolorbar{ext}"
 
     # Save the image with color bar
-    plt.savefig(modified_path, bbox_inches='tight', dpi=100)
+    plt.savefig(modified_path, bbox_inches='tight', dpi=200)
     plt.close(fig)
 
   
@@ -189,7 +189,7 @@ def plot_image( img, **kwargs):
     return img
 
 
-def plot_images_side_by_side(images, titles, save_path='comparison.png'):
+def plot_images_side_by_side(images, titles, save_path='comparison.png',param=None):
     """
     Plot a list of images side by side with titles and save the plot.
 
@@ -203,7 +203,10 @@ def plot_images_side_by_side(images, titles, save_path='comparison.png'):
 
     for ax, img, title in zip(axes, images, titles):
         # Display image
-        rotated_img = np.rot90(np.rot90(img))
+        if "v4l2" in param.roscfg.camera_topic:
+            rotated_img = np.rot90(np.rot90(img))
+        else:
+            rotated_img=img
         ax.imshow(rotated_img)
         ax.set_title(title)
         ax.axis('off')  # Turn off axis
@@ -213,7 +216,7 @@ def plot_images_side_by_side(images, titles, save_path='comparison.png'):
     # plt.show()
     plt.close()
 
-def plot_images_in_grid(images, titles, rows=10,cols=3, save_path='grid_comparison.png', show_plot=False):
+def plot_images_in_grid(images, titles, rows=10,cols=3, save_path='grid_comparison.png', show_plot=False,param=None):
     """
     Plot a list of images in a grid with titles and save the plot.
 
@@ -231,14 +234,17 @@ def plot_images_in_grid(images, titles, rows=10,cols=3, save_path='grid_comparis
 
      # Calculate number of columns
     # gs = gridspec.GridSpec(rows, cols, height_ratios=[1]*rows)
-    fig, axes = plt.subplots(rows, cols, figsize=(cols * 5, rows * 3))
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 3, rows * 3))
     axes = axes.flatten()  # Flatten the axes array for easy indexing
 
     for idx, (ax, img, title) in enumerate(zip(axes, images, titles)):
         # Rotate image by 180 degrees
         ax.margins(0)
         ax.axis('off')
-        rotated_img = np.rot90(np.rot90(img))
+        if "v4l2" in param.roscfg.camera_topic:
+            rotated_img = np.rot90(np.rot90(img))
+        else:
+            rotated_img=img
         ax.imshow(rotated_img)
         if idx < cols:
             ax.set_title(title)

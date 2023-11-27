@@ -639,7 +639,7 @@ class MainProcess(NodeForROS):
             torch_image = vis_node._image
             torch_mask = vis_node._supervision_mask
             for i in range(torch_mask.shape[0]):
-                out=plot_overlay_image(torch_image, overlay_mask=torch_mask, channel=i,alpha=0.5)
+                out=plot_overlay_image(torch_image, overlay_mask=torch_mask, channel=i,alpha=0.9)
                 if not save_local:
                     img_msg=rc.numpy_to_ros_image(out)  
                     if i==0:     

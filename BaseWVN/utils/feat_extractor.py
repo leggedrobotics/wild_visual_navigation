@@ -61,6 +61,7 @@ class FeatureExtractor:
         
         # create transform
         self.transform=self._create_transform()
+        self.init_transform=False
 
         # segmentation
         if self._segmentation_type == "pixel":
@@ -97,10 +98,11 @@ class FeatureExtractor:
 
     
     def set_original_size(self, original_width: int, original_height: int):
-        if self.new_width != original_width or self.new_height != original_height:
+        if self.init_transform==False:
             self.original_height = original_height
             self.original_width = original_width
             self.transform=self._create_transform()
+            self.init_transform=True
         return self.original_width, self.original_height
 
     @property

@@ -230,6 +230,7 @@ def train_and_evaluate():
                                ori_imgs,
                                os.path.join(WVN_ROOT_DIR,"results","overlay",model.time,param.offline.gt_model),
                                layout_type="grid",
+                               param=param
                                )
             
             
