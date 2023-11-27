@@ -180,10 +180,12 @@ class Manager:
             if self._use_sub_graph:
                 subnodes=self._sub_graph.get_nodes_within_radius_range(node,0,self._update_range_sub_graph)
                 self.subnodes_update=subnodes
-                num_valid_nodes = self._sub_graph.get_num_valid_nodes()
+                num_valid_snodes = self._sub_graph.get_num_valid_nodes()
+                num_valid_mnodes = self._main_graph.get_num_valid_nodes()
                 with logger["Lock"]:
                     logger["to_be_updated_subnode_num"]=len(subnodes)
-                    logger["num_valid_subnode"]=num_valid_nodes
+                    logger["num_valid_subnode"]=num_valid_snodes
+                    logger["num_valid_mnode"]=num_valid_mnodes
                 if len(subnodes)<1:
                     return False
                 self.project_between_nodes([node],subnodes,logger=logger,sub2mains=False)

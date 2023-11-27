@@ -133,7 +133,7 @@ class ParamCollection(Serializable):
         cut_threshold: float=5.0
         edge_dist_thr_main_graph: float=1
         
-        use_sub_graph: bool=False
+        use_sub_graph: bool=True
         edge_dist_thr_sub_graph: float=0.2
         max_distance_sub_graph: float=5
         update_range_sub_graph: float=5
