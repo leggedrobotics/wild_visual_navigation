@@ -497,7 +497,8 @@ class MainProcess(NodeForROS):
                                 self.manager.step,
                                 image_name=str(node.timestamp),
                                 trans_img=trans_img,
-                                compressed_feats=feats_input,)
+                                compressed_feats=feats_input,
+                                param=self.param,)
         with self.log_data["Lock"]:
             self.log_data["prediction_done"] +=1
         

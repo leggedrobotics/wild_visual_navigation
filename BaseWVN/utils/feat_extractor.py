@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from .dinov2_interface import Dinov2Interface
 from .focal_interface import FocalInterface
-from .visualizer import plot_overlay_image,plot_tsne,add_color_bar_and_save
+from .visualizer import plot_overlay_image,plot_tsne,add_color_bar_and_save,plot_image
 from ..config import save_to_yaml
 import PIL.Image
 from .loss import PhyLoss
@@ -390,10 +390,15 @@ def compute_phy_mask(img:torch.Tensor,
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         channel_num=output_phy.shape[0]
+        trans_img_uint=plot_image(trans_img.squeeze(0))
+        trans_img_pil=PIL.Image.fromarray(trans_img_uint)
+        if "v4l2" in param.roscfg.camera_topic:
+            trans_img_pil=trans_img_pil.rotate(180)
         for i in range(channel_num):
             output_phy=output_phy.detach()
             overlay_img=plot_overlay_image(trans_img, overlay_mask=output_phy, channel=i,alpha=0.7)
             # Convert the numpy array to an image
+            
             out_image = PIL.Image.fromarray(overlay_img)
             if param is not None:
                 if "v4l2" in param.roscfg.camera_topic:
@@ -409,7 +414,7 @@ def compute_phy_mask(img:torch.Tensor,
             # rotated_image.save(file_path)
             
             # add colorbar to overlay image and then save
-            add_color_bar_and_save(rotated_image,i, file_path)
+            add_color_bar_and_save([trans_img_pil,rotated_image],i, file_path)
             
         if param is not None:
             param_path=os.path.join(output_dir,"param.yaml")

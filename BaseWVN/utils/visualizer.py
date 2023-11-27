@@ -99,17 +99,24 @@ def plot_overlay_image(img, alpha=0.5, overlay_mask=None, channel=0, **kwargs):
         return img
 
 def add_color_bar_and_save(new_img,channel,path,**kwargs):
-    fig, ax = plt.subplots(figsize=(6, 4))
-    ax.imshow(new_img, aspect='auto')
-    ax.axis('off')  # Hide axis
+    if not isinstance(new_img, list):
+        images=[new_img]
+    else:
+        images=new_img
+    num_images = len(images)
+    fig, axes = plt.subplots(1, num_images, figsize=(6 * num_images, 4))
 
-    # Get position of the image axis
-    img_ax_pos = ax.get_position()
+    # Plot each image in its subplot
+    for i in range(num_images):
+        ax = axes[i] if num_images > 1 else axes
+        ax.imshow(images[i], aspect='auto')
+        ax.axis('off')  # Hide axis
 
     # Determine value range based on the channel
     min_val, max_val = (0, 1) if channel == 0 else (1, 10)
 
-    # Create an axis for the color bar
+    # Create an axis for the color bar next to the last image
+    img_ax_pos = axes[-1].get_position() if num_images > 1 else axes.get_position()
     cbar_ax_left = img_ax_pos.x1 + 0.02  # Adjust this as necessary
     cbar_ax = fig.add_axes([cbar_ax_left, img_ax_pos.y0, 0.03, img_ax_pos.height])
 
@@ -117,17 +124,17 @@ def add_color_bar_and_save(new_img,channel,path,**kwargs):
     cmap = sns.color_palette(kwargs.get("cmap", "viridis"), as_cmap=True)
     norm = Normalize(vmin=min_val, vmax=max_val)
     cb = plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), cax=cbar_ax)
-    if channel==0:
+    if channel == 0:
         cb.set_label('Friction Values')
     else:
         cb.set_label('Stiffness Values')
-    
+
     # Modify path to add "wcolorbar" before the file extension
     base, ext = os.path.splitext(path)
     modified_path = f"{base}_wcolorbar{ext}"
+
     # Save the image with color bar
-    plt.savefig(modified_path, bbox_inches='tight',dpi=600)
-    # plt.show()
+    plt.savefig(modified_path, bbox_inches='tight', dpi=600)
     plt.close(fig)
 
   
