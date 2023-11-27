@@ -38,6 +38,11 @@ class FeatureExtractor:
         # extract crop info
         self.crop_size=self.center_crop[1:]
         self.center_crop=self.center_crop[0]
+        
+        if self.center_crop:
+            self.target_height=self.crop_size[0]
+        else:
+            self.target_height=self._input_size
 
         # Interpolation type
         if self._input_interp == "bilinear":
@@ -86,7 +91,10 @@ class FeatureExtractor:
             transformed_img (torch.tensor, shape:(B,C,H,W)): Transformed image
             compressed_feats (Dict): only in pixel segmentation, {(scale_h,scale_w):feat-->(B,C,H,W))}
         """
-        transformed_img=self.transform(img)
+        if img.shape[-2]!=self.target_height:
+            transformed_img=self.transform(img)
+        else:
+            transformed_img=img
         # Compute segmentation
         # seg = self.compute_segments(transformed_img, **kwargs)
         # Compute features
@@ -98,7 +106,7 @@ class FeatureExtractor:
 
     
     def set_original_size(self, original_width: int, original_height: int):
-        if self.init_transform==False:
+        if self.init_transform==False and original_height!=self.target_height:
             self.original_height = original_height
             self.original_width = original_width
             self.transform=self._create_transform()

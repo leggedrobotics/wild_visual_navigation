@@ -14,7 +14,7 @@ class ParamCollection(Serializable):
         """General parameters for the experiment."""
         name: str='debug/debug'
         timestamp: bool=True
-        online_training: bool=True
+        online_training: bool=False
         resume_training: bool=True
         resume_training_path: str='model/last_checkpoint_snow_resume_from_hiking.pt'
         plot_overlay_online: bool=True
