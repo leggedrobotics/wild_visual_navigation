@@ -390,20 +390,26 @@ def compute_phy_mask(img:torch.Tensor,
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         channel_num=output_phy.shape[0]
+        # process trans_img for plotting
         trans_img_uint=plot_image(trans_img.squeeze(0))
         trans_img_pil=PIL.Image.fromarray(trans_img_uint)
-        if "v4l2" in param.roscfg.camera_topic:
-            trans_img_pil=trans_img_pil.rotate(180)
+        trans_img_pil=rot_or_not(trans_img_pil,param)
+        # process possible label_mask for plotting if given
+        label_mask=kwargs.get("label_mask",None)
+            
         for i in range(channel_num):
             output_phy=output_phy.detach()
             overlay_img=plot_overlay_image(trans_img, overlay_mask=output_phy, channel=i,alpha=0.7)
-            # Convert the numpy array to an image
-            
             out_image = PIL.Image.fromarray(overlay_img)
-            if param is not None:
-                if "v4l2" in param.roscfg.camera_topic:
-                    # Rotate the image by 180 degrees
-                    rotated_image = out_image.rotate(180)
+            rotated_image=rot_or_not(out_image,param)
+        
+            # process possible label_mask for plotting if given
+            if label_mask is not None:
+                label=label_mask.detach()
+                overlay_label=plot_overlay_image(trans_img, overlay_mask=label, channel=i,alpha=0.7)
+                overlay_label_img = PIL.Image.fromarray(overlay_label)
+                overlay_label_img=rot_or_not(overlay_label_img,param)
+            
             # Construct a filename
             if i == 0:
                 filename = f"{image_name}_fric_den_pred_step_{step}_{mode}.jpg"
@@ -413,8 +419,12 @@ def compute_phy_mask(img:torch.Tensor,
             # Save the image
             # rotated_image.save(file_path)
             
+            vis_imgs=[trans_img_pil]
+            if label_mask is not None:
+                vis_imgs.append(overlay_label_img)
+            vis_imgs.append(rotated_image)
             # add colorbar to overlay image and then save
-            add_color_bar_and_save([trans_img_pil,rotated_image],i, file_path)
+            add_color_bar_and_save(vis_imgs,i, file_path)
             
         if param is not None:
             param_path=os.path.join(output_dir,"param.yaml")
@@ -429,6 +439,13 @@ def compute_phy_mask(img:torch.Tensor,
             "loss_reco":loss_reco_resized,
             "loss_reco_raw":loss_reco_raw,
             "conf_mask_raw":conf_mask,}
+
+def rot_or_not(img,param):
+    if param is not None:
+        if isinstance(img,PIL.Image.Image) and "v4l2" in param.roscfg.camera_topic:
+            # Rotate the image by 180 degrees
+            img = img.rotate(180)
+    return img
 
 def compute_pred_phy_loss(img:torch.Tensor,
                           conf_mask:torch.Tensor,

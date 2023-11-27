@@ -498,7 +498,8 @@ class MainProcess(NodeForROS):
                                 image_name=str(node.timestamp),
                                 trans_img=trans_img,
                                 compressed_feats=feats_input,
-                                param=self.param,)
+                                param=self.param,
+                                label_mask=node._supervision_mask)
         with self.log_data["Lock"]:
             self.log_data["prediction_done"] +=1
         
