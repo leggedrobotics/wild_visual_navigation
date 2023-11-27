@@ -14,6 +14,8 @@ class ParamCollection(Serializable):
         """General parameters for the experiment."""
         name: str='debug/debug'
         timestamp: bool=True
+        resume_training: bool=True
+        resume_training_path: str='model/last_checkpoint.pt'
         plot_overlay_online: bool=True
         model_path: str='model'
         # ... [rest of the attributes]
@@ -139,7 +141,7 @@ class ParamCollection(Serializable):
         random_sample_num: int=100
         
         vis_node_index: int=10
-        label_ext_mode: bool=True
+        label_ext_mode: bool=False
         extraction_store_folder: str='LabelExtraction'
         use_for_training: bool=True
         

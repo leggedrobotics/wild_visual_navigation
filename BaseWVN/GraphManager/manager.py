@@ -84,6 +84,9 @@ class Manager:
                                log_folder=loss_params.log_folder).to(self._device)
         self._loss = torch.tensor([torch.inf])
         self._step = 0
+        
+        if self._param.general.resume_training:
+            self.load_ckpt(self._param.general.resume_training_path)
 
         torch.set_grad_enabled(True)
         
@@ -436,7 +439,7 @@ class Manager:
                     "model_state_dict": self._model.state_dict(),
                     "optimizer_state_dict": self._optimizer.state_dict(),
                     "phy_loss_state_dict": self._phy_loss.state_dict(),
-                    "loss": self._loss.item(),
+                    "loss": self._loss.item() if isinstance(self._loss, torch.Tensor) else self._loss
                 },
                 checkpoint_file,
             )
