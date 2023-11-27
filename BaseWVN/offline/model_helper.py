@@ -299,6 +299,9 @@ def conf_mask_generate(param:ParamCollection,
     reproj_masks=[]
     losses=[]
     ori_imgs=[]
+    all_fric_losses = []
+    all_stiff_losses = []
+    folder_path=os.path.join(WVN_ROOT_DIR,'results/overlay',model.time)
     for i,node in enumerate( nodes):
         img=node.image.to(param.run.device)
         reproj_mask=node.supervision_signal_valid[0].unsqueeze(0).unsqueeze(0).to(param.run.device)
@@ -323,9 +326,11 @@ def conf_mask_generate(param:ParamCollection,
         ori_phy_mask= node._supervision_mask.to(param.run.device)
         # calculate phy loss
         phy_loss_dict=compute_pred_phy_loss(img,conf_mask,pred_phy_mask=pred_phy_mask,ori_phy_mask=ori_phy_mask)
+        all_fric_losses.append(phy_loss_dict['fric_loss_raw'])
+        all_stiff_losses.append(phy_loss_dict['stiff_loss_raw'])
         if param.offline.plot_hist:
-            calculate_uncertainty_plot(loss_reco,conf_mask,reproj_mask,os.path.join(WVN_ROOT_DIR,'results/overlay',model.time,'hist',f'node_{i}_uncertainty_histogram.png'))
-            calculate_uncertainty_plot(loss_reco,gt_masks[i,:,:,:].unsqueeze(0),reproj_mask,os.path.join(WVN_ROOT_DIR,'results/overlay',model.time,'hist/gt',f'node_{i}_gt_uncertainty_histogram.png'))
+            calculate_uncertainty_plot(loss_reco,conf_mask,reproj_mask,os.path.join(folder_path,'hist',f'node_{i}_uncertainty_histogram.png'))
+            calculate_uncertainty_plot(loss_reco,gt_masks[i,:,:,:].unsqueeze(0),reproj_mask,os.path.join(folder_path,'hist/gt',f'node_{i}_gt_uncertainty_histogram.png'))
         conf_masks.append(conf_mask)
         losses.append(loss_reco)
         torch.cuda.empty_cache()
@@ -333,12 +338,30 @@ def conf_mask_generate(param:ParamCollection,
         loss_reco_raw=res_dict['loss_reco_raw']
         conf_mask_raw=res_dict['conf_mask_raw']
         if param.offline.plot_tsne:
-            plot_tsne(conf_mask_raw, loss_reco_raw, title=f'node_{i}_t-SNE with Confidence Highlighting',path=os.path.join(WVN_ROOT_DIR,'results/overlay',model.time,'tsne'))
+            plot_tsne(conf_mask_raw, loss_reco_raw, title=f'node_{i}_t-SNE with Confidence Highlighting',path=os.path.join(folder_path,'tsne'))
     all_reproj_masks=torch.cat(reproj_masks,dim=0)
     all_losses=torch.cat(losses,dim=0)
     all_conf_masks=torch.cat(conf_masks,dim=0)
     if param.offline.plot_hist:
         calculate_uncertainty_plot(all_losses,all_conf_masks,all_reproj_masks,os.path.join(WVN_ROOT_DIR,'results/overlay',model.time,'hist','all_uncertainty_histogram.png'))
+    
+    all_fric_losses = torch.cat(all_fric_losses)
+    all_stiff_losses = torch.cat(all_stiff_losses)
+    fric_mean = torch.mean(all_fric_losses)
+    fric_std = torch.std(all_fric_losses)
+    stiff_mean = torch.mean(all_stiff_losses)
+    stiff_std = torch.std(all_stiff_losses)
+
+    #Save the Results to a Text File
+    file_path = os.path.join(folder_path, 'overall_pred_loss_statistics.txt')
+    with open(file_path, 'w') as file:
+        file.write(f"Overall Friction Error Mean: {fric_mean.item()}, Standard Deviation: {fric_std.item()}\n")
+        file.write(f"Overall Stiffness Error Mean: {stiff_mean.item()}, Standard Deviation: {stiff_std.item()}\n")
+
+    print("Overall loss statistics saved to overall_loss_statistics.txt")
+    
+    
+    
     torch.cuda.empty_cache()
     return all_conf_masks,torch.cat(ori_imgs,dim=0)
 
@@ -460,7 +483,7 @@ def plot_masks_compare(gt_masks:torch.Tensor,conf_masks:torch.Tensor,images:torc
 def masks_stats(gt_masks:torch.Tensor,conf_masks:torch.Tensor, output_file='stats.txt'):
     H,W=gt_masks.shape[-2:]
     delta=conf_masks.type(torch.int)-gt_masks.type(torch.int)
-    with open(output_file, 'w') as file:
+    with open(output_file, 'a') as file:
         # Calculate over-confidence
         diff_mask = torch.clamp(delta, min=0)
         ones_count = diff_mask.type(torch.float32).sum(dim=[2, 3])

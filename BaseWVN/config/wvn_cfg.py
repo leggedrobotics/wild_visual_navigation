@@ -14,9 +14,9 @@ class ParamCollection(Serializable):
         """General parameters for the experiment."""
         name: str='debug/debug'
         timestamp: bool=True
-        online_training: bool=False
+        online_training: bool=True
         resume_training: bool=True
-        resume_training_path: str='model/last_checkpoint.pt'
+        resume_training_path: str='model/last_checkpoint_snow_resume_from_hiking.pt'
         plot_overlay_online: bool=True
         model_path: str='model'
         # ... [rest of the attributes]
@@ -142,7 +142,7 @@ class ParamCollection(Serializable):
         random_sample_num: int=100
         
         vis_node_index: int=10
-        label_ext_mode: bool=False
+        label_ext_mode: bool=True
         extraction_store_folder: str='LabelExtraction'
         use_for_training: bool=True
         
@@ -199,6 +199,7 @@ class ParamCollection(Serializable):
     @dataclass
     class OfflineParams:
         mode:str='test'
+        use_online_ckpt:bool=True
         ckpt_parent_folder:str='results/overlay'
         data_folder:str='results/manager'
         train_data:str='results/manager/train_data.pt'
@@ -212,10 +213,10 @@ class ParamCollection(Serializable):
         SAM_ckpt:str='/media/chen/UDisk1/sam_vit_h_4b8939.pth'
         # SAM_ckpt='/media/chen/UDisk1/sam_hq_vit_h.pth'
         
-        plot_hist:bool=True
+        plot_hist:bool=False
         plot_tsne:bool=False
         plot_overlay:bool=True
-        plot_nodes:bool=False
+        plot_nodes:bool=True
         plot_masks_compare:bool=False
     
     offline: OfflineParams = OfflineParams()

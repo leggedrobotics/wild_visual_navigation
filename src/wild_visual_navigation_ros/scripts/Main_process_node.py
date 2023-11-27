@@ -1,7 +1,7 @@
 """ 
 Main node to process ros messages, publish the relevant topics, train the model...
  """
-from BaseWVN.utils import NodeForROS,FeatureExtractor,ConfidenceGenerator,ImageProjector,plot_overlay_image,compute_phy_mask,add_color_bar_and_save
+from BaseWVN.utils import NodeForROS,FeatureExtractor,ConfidenceGenerator,ImageProjector,plot_overlay_image,compute_phy_mask,add_color_bar_and_save,compute_pred_phy_loss
 from BaseWVN.GraphManager import Manager,MainNode,SubNode
 import ros_converter as rc
 import message_filters
@@ -505,6 +505,11 @@ class MainProcess(NodeForROS):
                                 compressed_feats=feats_input,
                                 param=self.param,
                                 label_mask=node._supervision_mask)
+        conf_mask=res_dict['conf_mask']
+        pred_phy_mask=res_dict['output_phy']
+        ori_phy_mask= node._supervision_mask.to(self.param.run.device)
+        # calculate phy loss
+        phy_loss_dict=compute_pred_phy_loss(img,conf_mask,pred_phy_mask=pred_phy_mask,ori_phy_mask=ori_phy_mask)
         with self.log_data["Lock"]:
             self.log_data["prediction_done"] +=1
         

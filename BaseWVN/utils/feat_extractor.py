@@ -497,8 +497,10 @@ def compute_pred_phy_loss(img:torch.Tensor,
     
     return {"fric_mean_deviat":fric_mean_deviation,
             "fric_std_deviation":fric_std_deviation,
+            "fric_loss_raw":fric_dvalues,
             "stiff_mean_deviat":stiff_mean_deviation,
             "stiff_std_deviation":stiff_std_deviation,
+            "stiff_loss_raw":stiff_dvalues,
             }
     
     

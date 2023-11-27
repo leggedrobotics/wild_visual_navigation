@@ -155,7 +155,10 @@ def train_and_evaluate():
                 },
                 os.path.join(ckpt_parent_folder,model.time,"last_checkpoint.pt"))
     else:
-        checkpoint_path = find_latest_checkpoint(ckpt_parent_folder)
+        if not param.offline.use_online_ckpt:
+            checkpoint_path = find_latest_checkpoint(ckpt_parent_folder)
+        else:
+            checkpoint_path = os.path.join(WVN_ROOT_DIR,param.general.resume_training_path)
         if checkpoint_path:
             print(f"Latest checkpoint path: {checkpoint_path}")
         else:
@@ -165,7 +168,7 @@ def train_and_evaluate():
         model.model.load_state_dict(checkpoint["model_state_dict"])
         model.loss_fn.load_state_dict(checkpoint["phy_loss_state_dict"])
         model.step = checkpoint["step"]
-        model.time = checkpoint["time"]
+        model.time = checkpoint["time"] if not param.offline.use_online_ckpt else "online"
         model.val_loss = checkpoint["loss"]
         model.model.eval()
         feat_extractor=FeatureExtractor(device=param.run.device,
