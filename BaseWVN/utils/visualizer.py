@@ -104,7 +104,7 @@ def add_color_bar_and_save(new_img,channel,path,**kwargs):
     else:
         images=new_img
     num_images = len(images)
-    fig, axes = plt.subplots(1, num_images, figsize=(6 * num_images, 4))
+    fig, axes = plt.subplots(1, num_images, figsize=(4 * num_images, 4))
 
     # Plot each image in its subplot
     for i in range(num_images):
@@ -143,7 +143,7 @@ def add_color_bar_and_save(new_img,channel,path,**kwargs):
     modified_path = f"{base}_wcolorbar{ext}"
 
     # Save the image with color bar
-    plt.savefig(modified_path, bbox_inches='tight', dpi=300)
+    plt.savefig(modified_path, bbox_inches='tight', dpi=100)
     plt.close(fig)
 
   

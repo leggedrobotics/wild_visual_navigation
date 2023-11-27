@@ -32,7 +32,12 @@ class FeatureExtractor:
         self.original_width = kwargs.get('original_width', 1920)  # Default to 1920 if not provided
         self.original_height = kwargs.get('original_height', 1280)  # Default to 1080 if not provided
         self._input_interp=kwargs.get('interp', 'bilinear')
-        self.center_crop=kwargs.get('center_crop', False)
+        self.center_crop=kwargs.get('center_crop', (False,910,910))
+        self.new_height=None
+        self.new_width=None
+        # extract crop info
+        self.crop_size=self.center_crop[1:]
+        self.center_crop=self.center_crop[0]
 
         # Interpolation type
         if self._input_interp == "bilinear":
@@ -92,9 +97,10 @@ class FeatureExtractor:
 
     
     def set_original_size(self, original_width: int, original_height: int):
-        self.original_height = original_height
-        self.original_width = original_width
-        self.transform=self._create_transform()
+        if self.new_width != original_width or self.new_height != original_height:
+            self.original_height = original_height
+            self.original_width = original_width
+            self.transform=self._create_transform()
         return self.original_width, self.original_height
 
     @property
@@ -108,6 +114,10 @@ class FeatureExtractor:
     @property
     def resize_ratio(self):
         return self.resize_ratio_x, self.resize_ratio_y
+    
+    @property
+    def crop_offset(self):
+        return self.crop_offset_x, self.crop_offset_y
     
     @property
     def new_size(self):
@@ -132,18 +142,24 @@ class FeatureExtractor:
         # Resize and then center crop to the expected input size
         transform = T.Compose([
             T.Resize((new_height, new_width),self.interp),
-            T.CenterCrop(self._input_size) if self.center_crop else T.CenterCrop((new_height, new_width)),
+            T.CenterCrop(self.crop_size) if self.center_crop else T.CenterCrop((new_height, new_width)),
             T.ConvertImageDtype(torch.float),
         ])
+        
+        # actual resize ratio along x and y of resize step
+        self.resize_ratio_x = float(new_width) / float(self.original_width)
+        self.resize_ratio_y = float(new_height) / float(self.original_height)
         if not self.center_crop:
             self.new_height=new_height
             self.new_width=new_width    
+            self.crop_offset_x=0
+            self.crop_offset_y=0
         else:
-            self.new_height=self._input_size
-            self.new_width=self._input_size
-        # actual resize ratio along x and y
-        self.resize_ratio_x = float(self.new_width) / float(self.original_width)
-        self.resize_ratio_y = float(self.new_height) / float(self.original_height)
+            self.new_height=self.crop_size[0]
+            self.new_width=self.crop_size[1]
+            self.crop_offset_x = (new_width - self.crop_size[1]) / 2
+            self.crop_offset_y= (new_height - self.crop_size[0]) / 2
+            
         return transform
 
     def change_device(self, device):

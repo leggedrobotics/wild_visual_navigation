@@ -28,7 +28,7 @@ import PIL.Image
 import tf2_ros
 from liegroups.torch import SE3, SO3
 from pytictac import ClassTimer, ClassContextTimer, accumulate_time
-
+import datetime
 class MainProcess(NodeForROS):
     def __init__(self):
         super().__init__()
@@ -40,6 +40,7 @@ class MainProcess(NodeForROS):
         self.last_supervision_ts =self.start_time
         self.image_buffer={}
         self.last_image_saved=self.start_time
+        self.today=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         
         # Init feature extractor
         self.feat_extractor = FeatureExtractor(device=self.device,
@@ -98,8 +99,9 @@ class MainProcess(NodeForROS):
             self.learning_thread_stop_event.set()
             self.learning_thread.join()
         if self.manager._label_ext_mode:
-            self.manager.save("results/manager","train")
-            torch.save(self.image_buffer,"results/manager/image_buffer.pt")
+            self.manager.save(self.param.offline.data_folder,"train")
+            image_buffer_path=os.path.join(self.param.offline.data_folder,self.param.offline.image_file)
+            torch.save(self.image_buffer,image_buffer_path)
             
             
         print("Storing learned checkpoint...", end="")
@@ -185,9 +187,9 @@ class MainProcess(NodeForROS):
         # update size info in the feature extractor
         self.feat_extractor.set_original_size(original_height=H, original_width=W)
         ratio_x,ratio_y=self.feat_extractor.resize_ratio
-
+        offset_x,offset_y=self.feat_extractor.crop_offset
         # scale the intrinsic matrix
-        K_scaled=rc.scale_intrinsic(K,ratio_x,ratio_y)
+        K_scaled=rc.scale_intrinsic(K,ratio_x,ratio_y,offset_x,offset_y)
         W_scaled,H_scaled=self.feat_extractor.new_size
         # update the camera info
         self.camera_handler["K_scaled"] = K_scaled
@@ -466,7 +468,7 @@ class MainProcess(NodeForROS):
             if i % 10 == 0:
                 self.manager.save_ckpt(self.param.general.model_path,f"checkpoint_{step}.pt")
                 # update real-time pred once
-                self.update_prediction(self.manager._main_graph.get_last_node())
+                self.update_prediction(self.manager._vis_main_node)
             i += 1
             time.sleep(1/self.param.thread.learning_rate)
             

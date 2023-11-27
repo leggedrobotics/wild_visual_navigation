@@ -2,7 +2,6 @@
 
 from BaseWVN import WVN_ROOT_DIR
 from pytorch_lightning import seed_everything
-from torch_geometric.data import Data, Batch
 from threading import Lock
 import dataclasses
 import os

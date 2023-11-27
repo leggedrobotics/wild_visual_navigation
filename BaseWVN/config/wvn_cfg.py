@@ -30,10 +30,10 @@ class ParamCollection(Serializable):
         phy_decoder_output_topic:str='/vd_pipeline/phy_decoder_out'
 
         camera_bag_name: str='jetson'
-        camera_topic: str='/v4l2_camera/image_raw_throttle/compressed'
-        camera_info_topic: str='/v4l2_camera/camera_info_throttle'
-        # camera_topic: str='/wide_angle_camera_rear/image_color_rect/compressed'
-        # camera_info_topic: str='/wide_angle_camera_rear/camera_info'
+        # camera_topic: str='/v4l2_camera/image_raw_throttle/compressed'
+        # camera_info_topic: str='/v4l2_camera/camera_info_throttle'
+        camera_topic: str='/wide_angle_camera_rear/image_color_rect/compressed'
+        camera_info_topic: str='/wide_angle_camera_rear/camera_info'
 
         fixed_frame: str='odom'
         base_frame: str='base'
@@ -101,9 +101,10 @@ class ParamCollection(Serializable):
         """Parameters for the feature extractor."""
         segmentation_type: str='pixel'
         feature_type: str='dinov2'  # dinov2, focal
-        input_size:int =1260 #1260 for dinov2 , 1280 for focal,1078 for dinov2-wideangle camera
+        resize: bool=True
+        input_size:int =1078 #1260 for dinov2 , 1280 for focal,1078 for dinov2-wideangle camera
         interp: str='bilinear'
-        center_crop: bool=False
+        center_crop: Tuple[bool,int, int]=(True,910, 910) #crop or not, H,W
         physical_dim:int=2
     
     feat: FeatParams=FeatParams()
@@ -129,7 +130,7 @@ class ParamCollection(Serializable):
         cut_threshold: float=5.0
         edge_dist_thr_main_graph: float=1
         
-        use_sub_graph: bool=True
+        use_sub_graph: bool=False
         edge_dist_thr_sub_graph: float=0.2
         max_distance_sub_graph: float=5
         update_range_sub_graph: float=5
@@ -137,7 +138,7 @@ class ParamCollection(Serializable):
         min_samples_for_training: int=6
         random_sample_num: int=100
         
-        vis_node_index: int=1
+        vis_node_index: int=10
         label_ext_mode: bool=False
         extraction_store_folder: str='LabelExtraction'
         use_for_training: bool=True
