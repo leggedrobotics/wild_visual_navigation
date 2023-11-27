@@ -111,7 +111,16 @@ def add_color_bar_and_save(new_img,channel,path,**kwargs):
         ax = axes[i] if num_images > 1 else axes
         ax.imshow(images[i], aspect='auto')
         ax.axis('off')  # Hide axis
-
+        
+        if i==num_images-1:
+            ax.set_title("Dense Prediction")
+        elif i==0 and num_images>1:
+            ax.set_title("Original Image")
+        elif i==1 and num_images==3:
+            ax.set_title("Label Projection")
+        
+    # Adjust subplot parameters to reduce space between images
+    plt.subplots_adjust(wspace=0.05) 
     # Determine value range based on the channel
     min_val, max_val = (0, 1) if channel == 0 else (1, 10)
 
@@ -134,7 +143,7 @@ def add_color_bar_and_save(new_img,channel,path,**kwargs):
     modified_path = f"{base}_wcolorbar{ext}"
 
     # Save the image with color bar
-    plt.savefig(modified_path, bbox_inches='tight', dpi=600)
+    plt.savefig(modified_path, bbox_inches='tight', dpi=300)
     plt.close(fig)
 
   
