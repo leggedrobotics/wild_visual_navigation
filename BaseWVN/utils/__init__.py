@@ -1,6 +1,6 @@
 from .NodeForROS import NodeForROS
 from .confidence_generator import ConfidenceGenerator
-from .feat_extractor import FeatureExtractor,concat_feat_dict,compute_phy_mask
+from .feat_extractor import *
 from .image_projector import ImageProjector
 from .meshes import make_superquadric,make_plane,make_ellipsoid,make_polygon_from_points
 from .dinov2_interface import Dinov2Interface

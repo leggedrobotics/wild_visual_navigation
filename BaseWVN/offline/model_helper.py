@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import datetime
 from .. import WVN_ROOT_DIR
 from ..GraphManager import MainNode
-from ..utils import PhyLoss,FeatureExtractor,concat_feat_dict,plot_overlay_image,compute_phy_mask,plot_image,plot_images_side_by_side,plot_images_in_grid,plot_tsne
+from ..utils import PhyLoss,FeatureExtractor,concat_feat_dict,plot_overlay_image,compute_phy_mask,plot_image,plot_images_side_by_side,plot_images_in_grid,plot_tsne,compute_pred_phy_loss
 from ..model import VD_dataset,get_model
 from ..config.wvn_cfg import ParamCollection,save_to_yaml
 from torch.utils.data import DataLoader, ConcatDataset, Subset
@@ -317,6 +317,10 @@ def conf_mask_generate(param:ParamCollection,
                                 image_name=str(node.timestamp))
         conf_mask=res_dict['conf_mask']
         loss_reco=res_dict['loss_reco']
+        pred_phy_mask=res_dict['output_phy']
+        ori_phy_mask= node._supervision_mask.to(param.run.device)
+        # calculate phy loss
+        phy_loss_dict=compute_pred_phy_loss(img,conf_mask,pred_phy_mask=pred_phy_mask,ori_phy_mask=ori_phy_mask)
         if param.offline.plot_hist:
             calculate_uncertainty_plot(loss_reco,conf_mask,reproj_mask,os.path.join(WVN_ROOT_DIR,'results/overlay',model.time,'hist',f'node_{i}_uncertainty_histogram.png'))
             calculate_uncertainty_plot(loss_reco,gt_masks[i,:,:,:].unsqueeze(0),reproj_mask,os.path.join(WVN_ROOT_DIR,'results/overlay',model.time,'hist/gt',f'node_{i}_gt_uncertainty_histogram.png'))

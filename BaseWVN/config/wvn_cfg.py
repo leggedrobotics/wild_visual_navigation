@@ -30,10 +30,10 @@ class ParamCollection(Serializable):
         phy_decoder_output_topic:str='/vd_pipeline/phy_decoder_out'
 
         camera_bag_name: str='jetson'
-        # camera_topic: str='/v4l2_camera/image_raw_throttle/compressed'
-        # camera_info_topic: str='/v4l2_camera/camera_info_throttle'
-        camera_topic: str='/wide_angle_camera_rear/image_color_rect/compressed'
-        camera_info_topic: str='/wide_angle_camera_rear/camera_info'
+        camera_topic: str='/v4l2_camera/image_raw_throttle/compressed'
+        camera_info_topic: str='/v4l2_camera/camera_info_throttle'
+        # camera_topic: str='/wide_angle_camera_rear/image_color_rect/compressed'
+        # camera_info_topic: str='/wide_angle_camera_rear/camera_info'
 
         fixed_frame: str='odom'
         base_frame: str='base'
@@ -101,7 +101,7 @@ class ParamCollection(Serializable):
         """Parameters for the feature extractor."""
         segmentation_type: str='pixel'
         feature_type: str='dinov2'  # dinov2, focal
-        input_size:int =1078 #1260 for dinov2 , 1280 for focal
+        input_size:int =1260 #1260 for dinov2 , 1280 for focal,1078 for dinov2-wideangle camera
         interp: str='bilinear'
         center_crop: bool=False
         physical_dim:int=2
@@ -194,7 +194,7 @@ class ParamCollection(Serializable):
     
     @dataclass
     class OfflineParams:
-        mode:str='train'
+        mode:str='test'
         ckpt_parent_folder:str='results/overlay'
         data_folder:str='results/manager'
         train_data:str='results/manager/train_data.pt'
@@ -208,8 +208,8 @@ class ParamCollection(Serializable):
         SAM_ckpt:str='/media/chen/UDisk1/sam_vit_h_4b8939.pth'
         # SAM_ckpt='/media/chen/UDisk1/sam_hq_vit_h.pth'
         
-        plot_hist:bool=True
-        plot_tsne:bool=True
+        plot_hist:bool=False
+        plot_tsne:bool=False
         plot_overlay:bool=True
     
     offline: OfflineParams = OfflineParams()

@@ -2,7 +2,7 @@ import numpy as np
 from PIL import Image
 import seaborn as sns
 import matplotlib.pyplot as plt
-from matplotlib import gridspec
+from matplotlib.colors import Normalize
 from openTSNE import TSNE
 import os
 import torch
@@ -93,9 +93,38 @@ def plot_overlay_image(img, alpha=0.5, overlay_mask=None, channel=0, **kwargs):
 
         img_new = Image.alpha_composite(Image.fromarray(np.uint8(back)), Image.fromarray(fore))
         img_new = img_new.convert("RGB")
+        
         return np.uint8(img_new)
     else:
         return img
+
+def add_color_bar_and_save(new_img,channel,path,**kwargs):
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.imshow(new_img, aspect='auto')
+    ax.axis('off')  # Hide axis
+
+    # Get position of the image axis
+    img_ax_pos = ax.get_position()
+
+    # Determine value range based on the channel
+    min_val, max_val = (0, 1) if channel == 0 else (1, 10)
+
+    # Create an axis for the color bar
+    cbar_ax_left = img_ax_pos.x1 + 0.02  # Adjust this as necessary
+    cbar_ax = fig.add_axes([cbar_ax_left, img_ax_pos.y0, 0.03, img_ax_pos.height])
+
+    # Create a color bar
+    cmap = sns.color_palette(kwargs.get("cmap", "viridis"), as_cmap=True)
+    norm = Normalize(vmin=min_val, vmax=max_val)
+    cb = plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), cax=cbar_ax)
+    cb.set_label('Values')
+
+    # Save the image with color bar
+    plt.savefig(path, bbox_inches='tight',dpi=600)
+    # plt.show()
+    plt.close(fig)
+
+  
 
 def concatenate_images(images):
     """Concatenate a list of images horizontally, assuming they are already np.uint8 arrays."""

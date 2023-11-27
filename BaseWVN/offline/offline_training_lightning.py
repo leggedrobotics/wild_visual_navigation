@@ -86,6 +86,7 @@ class DecoderLightning(pl.LightningModule):
             loss_reco=res_dict['loss_reco']
             loss_reco_raw=res_dict['loss_reco_raw']
             conf_mask_raw=res_dict['conf_mask_raw']
+            
             calculate_uncertainty_plot(loss_reco,conf_mask,all_reproj_masks=None,save_path=os.path.join(WVN_ROOT_DIR,'results/overlay',self.time,'hist',f'step_{self.step}_uncertainty_histogram.png'))
             plot_tsne(conf_mask_raw, loss_reco_raw, title=f'step_{self.step}_t-SNE with Confidence Highlighting',path=os.path.join(WVN_ROOT_DIR,'results/overlay',self.time,'tsne'))
             pass
@@ -189,7 +190,8 @@ def train_and_evaluate():
                                 True,
                                 -1,
                                 time=model.time,
-                                image_name=name,)
+                                image_name=name,
+                                param=param)
                 
         """ 
         test on the recorded main nodes

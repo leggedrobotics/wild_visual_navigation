@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from .dinov2_interface import Dinov2Interface
 from .focal_interface import FocalInterface
-from .visualizer import plot_overlay_image,plot_tsne
+from .visualizer import plot_overlay_image,plot_tsne,add_color_bar_and_save
 from ..config import save_to_yaml
 import PIL.Image
 from .loss import PhyLoss
@@ -395,8 +395,10 @@ def compute_phy_mask(img:torch.Tensor,
             overlay_img=plot_overlay_image(trans_img, overlay_mask=output_phy, channel=i,alpha=0.7)
             # Convert the numpy array to an image
             out_image = PIL.Image.fromarray(overlay_img)
-            # Rotate the image by 180 degrees
-            rotated_image = out_image.rotate(180)
+            if param is not None:
+                if "v4l2" in param.roscfg.camera_topic:
+                    # Rotate the image by 180 degrees
+                    rotated_image = out_image.rotate(180)
             # Construct a filename
             if i == 0:
                 filename = f"{image_name}_fric_den_pred_step_{step}_{mode}.jpg"
@@ -405,6 +407,10 @@ def compute_phy_mask(img:torch.Tensor,
             file_path = os.path.join(output_dir, filename)
             # Save the image
             rotated_image.save(file_path)
+            
+            # add colorbar to overlay image
+            add_color_bar_and_save(rotated_image,i, file_path)
+            
         if param is not None:
             param_path=os.path.join(output_dir,"param.yaml")
             save_to_yaml(param,param_path)
@@ -418,6 +424,46 @@ def compute_phy_mask(img:torch.Tensor,
             "loss_reco":loss_reco_resized,
             "loss_reco_raw":loss_reco_raw,
             "conf_mask_raw":conf_mask,}
+
+def compute_pred_phy_loss(img:torch.Tensor,
+                          conf_mask:torch.Tensor,
+                          ori_phy_mask:torch.Tensor,
+                          pred_phy_mask:torch.Tensor, 
+                          **kwargs):
+    """ 
+    To calculate the mean error of predicted physical params value in confident area of a image
+    conf_mask (1,1,H,W) H,W is the size of resized img
+    phy_mask (2,H,W) H,W is the size of resized img
+    """
+    # check dim of phy_masks first
+    if ori_phy_mask.shape[-2]!=pred_phy_mask.shape[-2] or ori_phy_mask.shape[-1]!=pred_phy_mask.shape[-1]:
+        raise ValueError("ori_phy_mask and pred_phy_mask should have the same shape!")
+    compare_regions=~torch.isnan(ori_phy_mask)
+    regions_in_pred=pred_phy_mask*compare_regions
+    regions_in_pred=torch.where(regions_in_pred==0,torch.nan,regions_in_pred)
+    delta=torch.abs(regions_in_pred-ori_phy_mask)
+    delta_mask=~torch.isnan(delta[0])
+    # parent=torch.sum(delta_mask)
+    # fric_mean_deviat=torch.nansum(delta[0])/parent
+    # stiff_mean_deviat=torch.nansum(delta[1])/parent
+    
+    fric_dvalues=delta[0][delta_mask]
+    fric_mean_deviation=torch.mean(fric_dvalues)
+    fric_std_deviation = torch.std(fric_dvalues)
+    
+    stiff_dvalues=delta[1][delta_mask]
+    stiff_mean_deviation=torch.mean(stiff_dvalues)
+    stiff_std_deviation = torch.std(stiff_dvalues)
+    
+    return {"fric_mean_deviat":fric_mean_deviation,
+            "fric_std_deviation":fric_std_deviation,
+            "stiff_mean_deviat":stiff_mean_deviation,
+            "stiff_std_deviation":stiff_std_deviation,
+            }
+    
+    
+    
+    
 
 def test_extractor():
     import cv2
