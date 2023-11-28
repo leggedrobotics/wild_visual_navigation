@@ -62,3 +62,4 @@ image/hiking_feat.png
 results/
 model/
 src/ros_comm-dev
+check.pt

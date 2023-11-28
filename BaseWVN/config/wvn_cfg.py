@@ -16,7 +16,7 @@ class ParamCollection(Serializable):
         timestamp: bool=True
         online_training: bool=False
         resume_training: bool=True
-        resume_training_path: str='model/last_checkpoint_snow_resume_from_hiking.pt'
+        resume_training_path: str='model/last_checkpoint.pt'
         plot_overlay_online: bool=True
         model_path: str='model'
         # ... [rest of the attributes]
@@ -133,7 +133,7 @@ class ParamCollection(Serializable):
         cut_threshold: float=5.0
         edge_dist_thr_main_graph: float=1
         
-        use_sub_graph: bool=True
+        use_sub_graph: bool=False
         edge_dist_thr_sub_graph: float=0.2
         max_distance_sub_graph: float=5
         update_range_sub_graph: float=5
@@ -199,11 +199,12 @@ class ParamCollection(Serializable):
     @dataclass
     class OfflineParams:
         mode:str='test'
-        use_online_ckpt:bool=True
+        reload_model:bool=False
+        use_online_ckpt:bool=False
         ckpt_parent_folder:str='results/overlay'
         data_folder:str='results/manager'
-        train_data:str='results/manager/train_data.pt'
-        nodes_data:str='results/manager/train_nodes.pt'
+        train_datafile:str='train_data.pt'
+        nodes_datafile:str='train_nodes.pt'
         image_file:str='image_buffer.pt'
         test_images:bool=False
         test_nodes:bool=True
@@ -216,8 +217,8 @@ class ParamCollection(Serializable):
         plot_hist:bool=False
         plot_tsne:bool=False
         plot_overlay:bool=True
-        plot_nodes:bool=True
-        plot_masks_compare:bool=False
+        plot_nodes:bool=False
+        plot_masks_compare:bool=True
     
     offline: OfflineParams = OfflineParams()
     

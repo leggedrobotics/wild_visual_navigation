@@ -280,6 +280,7 @@ class Manager:
                 supervision_masks=torch.fmin(supervision_masks,mask)
             # Update supervision mask per node
             for i, mnode in enumerate(mnodes):
+                # torch.save({"K":mnode.image_projector.camera.intrinsics,"img":mnode.image,"pose_cam_in_world":mnode.pose_cam_in_world,"foot_plane":foot_plane},"check.pt")
                 mnode.supervision_mask = supervision_masks[i]
                 mnode.update_supervision_signal()
                 with logger["Lock"]:

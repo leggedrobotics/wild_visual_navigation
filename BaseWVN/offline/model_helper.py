@@ -301,7 +301,7 @@ def conf_mask_generate(param:ParamCollection,
     ori_imgs=[]
     all_fric_losses = []
     all_stiff_losses = []
-    folder_path=os.path.join(WVN_ROOT_DIR,'results/overlay',model.time)
+    folder_path=os.path.join(WVN_ROOT_DIR,param.offline.ckpt_parent_folder,model.time)
     for i,node in enumerate( nodes):
         img=node.image.to(param.run.device)
         reproj_mask=node.supervision_signal_valid[0].unsqueeze(0).unsqueeze(0).to(param.run.device)

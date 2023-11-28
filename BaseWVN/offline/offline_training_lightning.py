@@ -120,13 +120,31 @@ def train_and_evaluate():
     m=get_model(param.model).to(param.run.device)
     model=DecoderLightning(m,param)
     if mode=="train":
+        if param.offline.reload_model:
+            if not param.offline.use_online_ckpt:
+                checkpoint_path = find_latest_checkpoint(ckpt_parent_folder)
+            else:
+                checkpoint_path = os.path.join(WVN_ROOT_DIR,param.general.resume_training_path)
+            if checkpoint_path:
+                print(f"Latest checkpoint path: {checkpoint_path}")
+            else:
+                print("No checkpoint found.")
+                return
+            checkpoint = torch.load(checkpoint_path)
+            model.model.load_state_dict(checkpoint["model_state_dict"])
+            model.loss_fn.load_state_dict(checkpoint["phy_loss_state_dict"])
+            model.step = checkpoint["step"]
+            model.time = checkpoint["time"] if not param.offline.use_online_ckpt else "online"
+            model.val_loss = checkpoint["loss"]
+            model.model.train()
+            print("Reloaded model from {}".format(checkpoint_path))
         # Initialize the Neptune logger
         neptune_logger = NeptuneLogger(
             api_key="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI0MDVkNmYxYi1kZjZjLTRmNmEtOGQ5My0xZmE2YTc0OGVmN2YifQ==",
             project="swsychen/Decoder-MLP",
         )
         max_epochs=42
-        data=load_data(param.offline.train_data)
+        data=load_data(os.path.join(param.offline.data_folder,param.offline.train_datafile))
         combined_dataset = BigDataset(data)
         train_size = int(0.8 * len(combined_dataset))
         test_size = len(combined_dataset) - train_size
@@ -200,9 +218,9 @@ def train_and_evaluate():
         test on the recorded main nodes
         """
         if param.offline.test_nodes:
-            nodes=torch.load(os.path.join(WVN_ROOT_DIR,param.offline.nodes_data))
+            nodes=torch.load(os.path.join(WVN_ROOT_DIR,param.offline.data_folder,param.offline.nodes_datafile))
             
-            output_dir = os.path.join(WVN_ROOT_DIR, "results", "manager")
+            output_dir = os.path.join(WVN_ROOT_DIR, param.offline.data_folder)
 
             # Construct the path for gt_masks.pt
             if param.offline.gt_model=="SEEM":
@@ -227,11 +245,11 @@ def train_and_evaluate():
             ori_imgs=ori_imgs.to(param.run.device)
             print("conf_masks shape:{}".format(conf_masks.shape))
             
-            masks_stats(gt_masks,conf_masks,os.path.join(WVN_ROOT_DIR,"results","overlay",model.time,"masks_stats.txt"))
+            masks_stats(gt_masks,conf_masks,os.path.join(ckpt_parent_folder,model.time,"masks_stats.txt"))
             if param.offline.plot_masks_compare:
                 plot_masks_compare(gt_masks,conf_masks,
                                ori_imgs,
-                               os.path.join(WVN_ROOT_DIR,"results","overlay",model.time,param.offline.gt_model),
+                               os.path.join(ckpt_parent_folder,model.time,param.offline.gt_model),
                                layout_type="grid",
                                param=param
                                )

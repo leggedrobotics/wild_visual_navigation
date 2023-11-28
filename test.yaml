@@ -15,21 +15,21 @@ general:
   online_training: false
   plot_overlay_online: true
   resume_training: true
-  resume_training_path: model/last_checkpoint_hiking.pt
+  resume_training_path: model/last_checkpoint.pt
   timestamp: true
 graph:
   cut_threshold: 5.0
   edge_dist_thr_main_graph: 1
   edge_dist_thr_sub_graph: 0.2
   extraction_store_folder: LabelExtraction
-  label_ext_mode: false
+  label_ext_mode: true
   max_distance_sub_graph: 5
   min_samples_for_training: 6
   random_sample_num: 100
   update_range_main_graph: 5
   update_range_sub_graph: 5
   use_for_training: true
-  use_sub_graph: true
+  use_sub_graph: false
   vis_node_index: 10
 logger:
   name: neptune
@@ -90,17 +90,18 @@ offline:
   data_folder: results/manager
   gt_model: SAM
   image_file: image_buffer.pt
-  mode: test
-  nodes_data: results/manager/train_nodes.pt
+  mode: train
+  nodes_datafile: train_nodes.pt
   plot_hist: false
-  plot_masks_compare: false
+  plot_masks_compare: true
   plot_nodes: false
   plot_overlay: true
   plot_tsne: false
+  reload_model: false
   test_images: false
   test_nodes: true
-  train_data: results/manager/train_data.pt
-  use_online_ckpt: true
+  train_datafile: train_data.pt
+  use_online_ckpt: false
 optimizer:
   lr: 0.001
   name: ADAM
