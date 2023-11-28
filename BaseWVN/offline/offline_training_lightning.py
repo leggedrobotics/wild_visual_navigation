@@ -59,19 +59,21 @@ class DecoderLightning(pl.LightningModule):
             raise ValueError("xs and ys must have shape of 2")
         res=self.model(xs)
         loss,confidence,loss_dict=self.loss_fn((xs,ys),res,step=self.step)
-        stats_dict=self.validator.go(self,self.feat_extractor)
         self.log('train_loss', loss)
-
-        # upload the error stats calculated by the validator 
-        # for all recorded nodes of the current model
-        self.log('fric_error_mean',stats_dict['fric_mean'])
-        self.log('fric_error_std',stats_dict['fric_std'])
-        self.log('stiff_error_mean',stats_dict['stiffness_mean'])
-        self.log('stiff_error_std',stats_dict['stiffness_std'])
-        self.log('over_conf_mean',stats_dict['over_conf_mean'])
-        self.log('over_conf_std',stats_dict['over_conf_std'])
-        self.log('under_conf_mean',stats_dict['under_conf_mean'])
-        self.log('under_conf_std',stats_dict['under_conf_std'])
+        
+        if self.params.offline.upload_error_stats_in_training:
+            stats_dict=self.validator.go(self,self.feat_extractor)
+            
+            # upload the error stats calculated by the validator 
+            # for all recorded nodes of the current model
+            self.log('fric_error_mean',stats_dict['fric_mean'])
+            self.log('fric_error_std',stats_dict['fric_std'])
+            self.log('stiff_error_mean',stats_dict['stiffness_mean'])
+            self.log('stiff_error_std',stats_dict['stiffness_std'])
+            self.log('over_conf_mean',stats_dict['over_conf_mean'])
+            self.log('over_conf_std',stats_dict['over_conf_std'])
+            self.log('under_conf_mean',stats_dict['under_conf_mean'])
+            self.log('under_conf_std',stats_dict['under_conf_std'])
         
         if batch_idx==0:
             self.step+=1
