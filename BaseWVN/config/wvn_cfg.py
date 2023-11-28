@@ -211,6 +211,8 @@ class ParamCollection(Serializable):
         test_images:bool=False
         test_nodes:bool=True
         
+        random_datasample:Tuple[bool,int]=(True,60)
+        
         gt_model:str='SAM' # 'SEEM' or 'SAM'
         SAM_type:str='vit_h'
         SAM_ckpt:str='/media/chen/UDisk1/sam_vit_h_4b8939.pth'

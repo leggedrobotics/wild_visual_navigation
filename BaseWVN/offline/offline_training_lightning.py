@@ -1,4 +1,5 @@
 import torch
+import random
 import numpy as np
 import os
 import cv2
@@ -100,10 +101,14 @@ class DecoderLightning(pl.LightningModule):
         return optimizer
 
 class BigDataset(torch.utils.data.Dataset):
-    def __init__(self, data:List[VD_dataset]):
+    def __init__(self, data:List[VD_dataset],sample_size: int = None):
         self.data=[]
         for d in data:
             self.data = self.data+d.batches
+        
+        # If a sample size is specified and is less than the total data size
+        if sample_size and sample_size < len(self.data):
+            self.data = random.sample(self.data, sample_size)
 
     def __getitem__(self, index):
         return self.data[index]
@@ -145,7 +150,11 @@ def train_and_evaluate(param:ParamCollection):
         )
         max_epochs=40
         data=load_data(os.path.join(param.offline.data_folder,param.offline.train_datafile))
-        combined_dataset = BigDataset(data)
+        if param.offline.random_datasample[0]:
+            print("Randomly sample {} data from the dataset".format(param.offline.random_datasample[1]))
+            combined_dataset = BigDataset(data,param.offline.random_datasample[1])
+        else:
+            combined_dataset = BigDataset(data)
         train_size = int(0.8 * len(combined_dataset))
         test_size = len(combined_dataset) - train_size
 
@@ -162,7 +171,7 @@ def train_and_evaluate(param:ParamCollection):
         feat_dim=sample_input.shape[-1]
         label_dim=sample_output.shape[-1]
         
-        trainer = Trainer(accelerator="gpu", devices=[0], logger=neptune_logger, max_epochs=max_epochs)
+        trainer = Trainer(accelerator="gpu", devices=[0], logger=neptune_logger, max_epochs=max_epochs,log_every_n_steps=1)
         trainer.fit(model, train_loader, val_loader)
         torch.save({
                     "time": model.time,
@@ -260,6 +269,7 @@ def train_and_evaluate(param:ParamCollection):
 
 
 if __name__ == "__main__":
+
     param=ParamCollection()
     train_and_evaluate(param)
     
