@@ -103,8 +103,8 @@ class DecoderLightning(pl.LightningModule):
             loss_reco_raw=res_dict['loss_reco_raw']
             conf_mask_raw=res_dict['conf_mask_raw']
             
-            calculate_uncertainty_plot(loss_reco,conf_mask,all_reproj_masks=None,save_path=os.path.join(WVN_ROOT_DIR,param.offline.ckpt_parent_folder,self.time,'hist',f'step_{self.step}_uncertainty_histogram.png'))
-            plot_tsne(conf_mask_raw, loss_reco_raw, title=f'step_{self.step}_t-SNE with Confidence Highlighting',path=os.path.join(WVN_ROOT_DIR,param.offline.ckpt_parent_folder,self.time,'tsne'))
+            calculate_uncertainty_plot(loss_reco,conf_mask,all_reproj_masks=None,save_path=os.path.join(WVN_ROOT_DIR,self.params.offline.ckpt_parent_folder,self.time,'hist',f'step_{self.step}_uncertainty_histogram.png'))
+            plot_tsne(conf_mask_raw, loss_reco_raw, title=f'step_{self.step}_t-SNE with Confidence Highlighting',path=os.path.join(WVN_ROOT_DIR,self.params.offline.ckpt_parent_folder,self.time,'tsne'))
             pass
         self.log('val_loss', loss)
         self.val_loss=loss
@@ -149,7 +149,7 @@ def train_and_evaluate(param:ParamCollection):
                 print(f"Latest checkpoint path: {checkpoint_path}")
             else:
                 print("No checkpoint found.")
-                return
+                return None
             checkpoint = torch.load(checkpoint_path)
             model.model.load_state_dict(checkpoint["model_state_dict"])
             model.loss_fn.load_state_dict(checkpoint["phy_loss_state_dict"])
@@ -196,6 +196,7 @@ def train_and_evaluate(param:ParamCollection):
                     "loss": model.val_loss.item(),
                 },
                 os.path.join(ckpt_parent_folder,model.time,"last_checkpoint.pt"))
+        return None
     else:
         if not param.offline.use_online_ckpt:
             checkpoint_path = find_latest_checkpoint(ckpt_parent_folder)
@@ -205,7 +206,7 @@ def train_and_evaluate(param:ParamCollection):
             print(f"Latest checkpoint path: {checkpoint_path}")
         else:
             print("No checkpoint found.")
-            return
+            return None
         checkpoint = torch.load(checkpoint_path)
         model.model.load_state_dict(checkpoint["model_state_dict"])
         model.loss_fn.load_state_dict(checkpoint["phy_loss_state_dict"])
@@ -244,8 +245,9 @@ def train_and_evaluate(param:ParamCollection):
         if param.offline.test_nodes:
             # READ nodes datafile and gt_masks datafile
             validator=Validator(param)
-            validator.go(model,feat_extractor)
-            
+            stats_dict=validator.go(model,feat_extractor)
+            return stats_dict
+        return None
 
 class Validator:
     def __init__(self,param:ParamCollection) -> None:

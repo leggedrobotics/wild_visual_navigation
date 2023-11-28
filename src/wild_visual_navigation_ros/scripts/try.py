@@ -7,7 +7,8 @@ a=torch.tensor([1.0,-2,3]).unsqueeze(0)
 b=torch.tensor([4,5,6]).unsqueeze(0)
 
 print(torch.cat((a,b),dim=1))
-
+gg=None
+print(isinstance(gg,dict))
 c="debug"
 d="debug+label"
 if "debug" in d:

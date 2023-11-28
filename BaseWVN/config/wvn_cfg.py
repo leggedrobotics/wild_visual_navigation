@@ -212,7 +212,7 @@ class ParamCollection(Serializable):
         test_nodes:bool=True
         
         random_datasample:Tuple[bool,int]=(True,60)
-        upload_error_stats_in_training:bool=True
+        upload_error_stats_in_training:bool=False
         
         gt_model:str='SAM' # 'SEEM' or 'SAM'
         SAM_type:str='vit_h'
