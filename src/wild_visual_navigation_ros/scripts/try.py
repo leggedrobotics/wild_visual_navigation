@@ -39,11 +39,15 @@ print(torch.std(a))
 #     print("empty list is false")
 # pass
 
-param=ParamCollection()
-print(param.model.simple_mlp_cfg.hidden_sizes)
-hidden_sizes=param.model.simple_mlp_cfg.hidden_sizes
-hidden_sizes=hidden_sizes.copy()
-hidden_sizes[0]=100
-print(param.model.simple_mlp_cfg.hidden_sizes)
-param=ParamCollection()
-print(param.model.simple_mlp_cfg.hidden_sizes)
+# param=ParamCollection()
+# print(param.model.simple_mlp_cfg.hidden_sizes)
+# hidden_sizes=param.model.simple_mlp_cfg.hidden_sizes
+# hidden_sizes=hidden_sizes.copy()
+# hidden_sizes[0]=100
+# print(param.model.simple_mlp_cfg.hidden_sizes)
+# param=ParamCollection()
+# print(param.model.simple_mlp_cfg.hidden_sizes)
+
+ff=np.array([1])
+ss=np.array([2])
+print(np.mean([ff,ss]))

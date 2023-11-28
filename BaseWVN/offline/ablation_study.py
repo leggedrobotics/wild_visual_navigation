@@ -95,6 +95,69 @@ def memory_test():
     All the results save to a folder named 'memory_test'
     
     """
+    number=2
+    ckpt_parent_folder='results/generalization_test'
+    agenda = [
+        {
+            'name': '1.train_on_hiking', 
+            'ckpt_parent_folder': ckpt_parent_folder, 
+            'reload_model': False, 
+            'use_online_ckpt': False,
+            'dataset_folder': hiking_dataset_folder,
+            'test_only': False
+         },
+        {
+            'name': '2.resume_train_on_snow',
+            'ckpt_parent_folder': ckpt_parent_folder,
+            'reload_model': True,
+            'use_online_ckpt': False,
+            'dataset_folder': snow_dataset_folder,
+            'test_only': False
+        },
+        {
+            'name': '3.retest_on_hiking',
+            'ckpt_parent_folder': ckpt_parent_folder,
+            'reload_model': False,
+            'use_online_ckpt': False,
+            'dataset_folder': hiking_dataset_folder,
+            'test_only': True
+        },
+        {
+            'name': '4.directly_train_on_snow',
+            'ckpt_parent_folder': ckpt_parent_folder,
+            'reload_model': False,
+            'use_online_ckpt': False,
+            'dataset_folder': snow_dataset_folder,
+            'test_only': False
+        },
+        
+    ]
+    
+    aggregate_stats = {scenario['name']: {'fric_mean': [], 'fric_std': [], 'stiffness_mean': [], 'stiffness_std': [], 'over_conf_mean': [], 'over_conf_std': [], 'under_conf_mean': [], 'under_conf_std': []} for scenario in agenda}
+
+    for _ in range(number):  # Assuming you want to repeat the whole process 5 times
+        for scenario in agenda:
+            stats = run_scenario(scenario['name'], 
+                                 scenario['ckpt_parent_folder'], 
+                                 scenario['reload_model'], 
+                                 scenario['use_online_ckpt'], 
+                                 scenario['dataset_folder'], 
+                                 scenario['test_only'])
+            if stats:  # Stats will be None if the mode is 'train'
+                for key in aggregate_stats[scenario['name']]:
+                    aggregate_stats[scenario['name']][key].append(stats[key].detach().cpu().numpy() if isinstance(stats[key], torch.Tensor) else stats[key])
+
+    # Calculate mean and std for each metric
+    for scenario_name in aggregate_stats:
+        for metric in aggregate_stats[scenario_name]:
+            values = aggregate_stats[scenario_name][metric]
+            aggregate_stats[scenario_name][metric] = {
+                'mean': np.mean(values),
+                'std': np.std(values)
+            }
+
+    return aggregate_stats
+    
     param=ParamCollection()
     param.offline.mode='train'
     param.offline.reload_model=False
