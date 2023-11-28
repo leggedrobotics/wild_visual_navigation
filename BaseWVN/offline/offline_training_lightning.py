@@ -245,7 +245,7 @@ def train_and_evaluate():
             ori_imgs=ori_imgs.to(param.run.device)
             print("conf_masks shape:{}".format(conf_masks.shape))
             
-            masks_stats(gt_masks,conf_masks,os.path.join(ckpt_parent_folder,model.time,"masks_stats.txt"))
+            masks_stats(gt_masks,conf_masks,os.path.join(ckpt_parent_folder,model.time,"masks_stats.txt"),param.general.name)
             if param.offline.plot_masks_compare:
                 plot_masks_compare(gt_masks,conf_masks,
                                ori_imgs,

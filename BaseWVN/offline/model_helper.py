@@ -355,6 +355,7 @@ def conf_mask_generate(param:ParamCollection,
     #Save the Results to a Text File
     file_path = os.path.join(folder_path, 'overall_pred_loss_statistics.txt')
     with open(file_path, 'a') as file:
+        file.write(f"{param.general.name}\n")
         file.write(f"Overall Friction Error Mean: {fric_mean.item()}, Standard Deviation: {fric_std.item()}\n")
         file.write(f"Overall Stiffness Error Mean: {stiff_mean.item()}, Standard Deviation: {stiff_std.item()}\n")
 
@@ -480,7 +481,7 @@ def plot_masks_compare(gt_masks:torch.Tensor,conf_masks:torch.Tensor,images:torc
             print("Saved fig for chunk", int(i/cols))
         
    
-def masks_stats(gt_masks:torch.Tensor,conf_masks:torch.Tensor, output_file='stats.txt'):
+def masks_stats(gt_masks:torch.Tensor,conf_masks:torch.Tensor, output_file='stats.txt',name="debug"):
     H,W=gt_masks.shape[-2:]
     delta=conf_masks.type(torch.int)-gt_masks.type(torch.int)
     with open(output_file, 'a') as file:
@@ -491,6 +492,7 @@ def masks_stats(gt_masks:torch.Tensor,conf_masks:torch.Tensor, output_file='stat
         deviation = ones_count / total_elements * 100.0
         over_conf_mean = deviation.mean().item()
         over_conf_std = deviation.std().item()
+        file.write(name+"\n")
         print(f'Average Over-confidence: {round(over_conf_mean,3)}%, Std. Dev: {round(over_conf_std,3)}%')
         over_conf_stats = f'Average Over-confidence: {round(over_conf_mean, 3)}%, Std. Dev: {round(over_conf_std, 3)}%\n'
         file.write(over_conf_stats)
