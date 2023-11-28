@@ -143,7 +143,7 @@ def train_and_evaluate(param:ParamCollection):
             api_key="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI0MDVkNmYxYi1kZjZjLTRmNmEtOGQ5My0xZmE2YTc0OGVmN2YifQ==",
             project="swsychen/Decoder-MLP",
         )
-        max_epochs=42
+        max_epochs=40
         data=load_data(os.path.join(param.offline.data_folder,param.offline.train_datafile))
         combined_dataset = BigDataset(data)
         train_size = int(0.8 * len(combined_dataset))

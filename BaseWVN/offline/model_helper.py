@@ -356,8 +356,8 @@ def conf_mask_generate(param:ParamCollection,
     file_path = os.path.join(folder_path, 'overall_pred_loss_statistics.txt')
     with open(file_path, 'a') as file:
         file.write(f"{param.general.name}\n")
-        file.write(f"Overall Friction Error Mean: {fric_mean.item()}, Standard Deviation: {fric_std.item()}\n")
-        file.write(f"Overall Stiffness Error Mean: {stiff_mean.item()}, Standard Deviation: {stiff_std.item()}\n")
+        file.write(f"Overall Friction Error Mean: {round(fric_mean.item(),3)}, Standard Deviation: {round(fric_std.item(),3)}\n")
+        file.write(f"Overall Stiffness Error Mean: {round(stiff_mean.item(),3)}, Standard Deviation: {round(stiff_std.item(),3)}\n")
 
     print("Overall loss statistics saved to overall_loss_statistics.txt")
     
