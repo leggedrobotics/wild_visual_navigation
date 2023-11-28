@@ -200,7 +200,7 @@ class ParamCollection(Serializable):
     
     @dataclass
     class OfflineParams:
-        mode:str='test'
+        mode:str='train'
         reload_model:bool=False
         use_online_ckpt:bool=False
         ckpt_parent_folder:str='results/overlay'

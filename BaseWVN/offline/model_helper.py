@@ -293,6 +293,8 @@ def conf_mask_generate(param:ParamCollection,
     """ 
     Here we use the model to generate confidence mask for each node
     Also the loss_recon is used to compute uncertainty histograms
+    And the loss of physical param prediction (mean+std) tested on all recorded nodes
+    
     
     """
     conf_masks=[]
@@ -483,6 +485,10 @@ def plot_masks_compare(gt_masks:torch.Tensor,conf_masks:torch.Tensor,images:torc
         
    
 def masks_stats(gt_masks:torch.Tensor,conf_masks:torch.Tensor, output_file='stats.txt',name="debug"):
+    """ 
+    Here we calculate the over-confidence and under-confidence statistics tested on all nodes
+    """
+    
     H,W=gt_masks.shape[-2:]
     delta=conf_masks.type(torch.int)-gt_masks.type(torch.int)
     with open(output_file, 'a') as file:

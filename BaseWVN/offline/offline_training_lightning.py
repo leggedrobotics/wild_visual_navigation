@@ -43,6 +43,7 @@ class DecoderLightning(pl.LightningModule):
                                confidence_std_factor=loss_params.confidence_std_factor,
                                log_enabled=loss_params.log_enabled,
                                log_folder=loss_params.log_folder)
+        self.validator=Validator(params)
         self.val_loss=0.0
         self.time=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         
@@ -58,8 +59,20 @@ class DecoderLightning(pl.LightningModule):
             raise ValueError("xs and ys must have shape of 2")
         res=self.model(xs)
         loss,confidence,loss_dict=self.loss_fn((xs,ys),res,step=self.step)
-        
+        stats_dict=self.validator.go(self,self.feat_extractor)
         self.log('train_loss', loss)
+
+        # upload the error stats calculated by the validator 
+        # for all recorded nodes of the current model
+        self.log('fric_error_mean',stats_dict['fric_mean'])
+        self.log('fric_error_std',stats_dict['fric_std'])
+        self.log('stiff_error_mean',stats_dict['stiffness_mean'])
+        self.log('stiff_error_std',stats_dict['stiffness_std'])
+        self.log('over_conf_mean',stats_dict['over_conf_mean'])
+        self.log('over_conf_std',stats_dict['over_conf_std'])
+        self.log('under_conf_mean',stats_dict['under_conf_mean'])
+        self.log('under_conf_std',stats_dict['under_conf_std'])
+        
         if batch_idx==0:
             self.step+=1
         return loss
@@ -148,7 +161,7 @@ def train_and_evaluate(param:ParamCollection):
             api_key="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI0MDVkNmYxYi1kZjZjLTRmNmEtOGQ5My0xZmE2YTc0OGVmN2YifQ==",
             project="swsychen/Decoder-MLP",
         )
-        max_epochs=40
+        max_epochs=10
         data=load_data(os.path.join(param.offline.data_folder,param.offline.train_datafile))
         if param.offline.random_datasample[0]:
             print("Randomly sample {} data from the dataset".format(param.offline.random_datasample[1]))
@@ -265,11 +278,17 @@ class Validator:
         output_dict=conf_mask_generate(self.param,self.nodes,feat_extractor,model,self.gt_masks)
         conf_masks=output_dict['all_conf_masks']
         ori_imgs=output_dict['ori_imgs']
+        fric_mean,fric_std=output_dict['loss_fric_mean+std']
+        stiffness_mean,stiffness_std=output_dict['loss_stiff_mean+std']
         conf_masks=conf_masks.to(self.param.run.device)
         ori_imgs=ori_imgs.to(self.param.run.device)
         print("conf_masks shape:{}".format(conf_masks.shape))
         
         stats_outputdict=masks_stats(self.gt_masks,conf_masks,os.path.join(self.ckpt_parent_folder,model.time,"masks_stats.txt"),self.param.general.name)
+        over_conf_mean=stats_outputdict['over_conf_mean']
+        over_conf_std=stats_outputdict['over_conf_std']
+        under_conf_mean=stats_outputdict['under_conf_mean']
+        under_conf_std=stats_outputdict['under_conf_std']
         if self.param.offline.plot_masks_compare:
             plot_masks_compare(self.gt_masks,conf_masks,
                             ori_imgs,
@@ -277,7 +296,16 @@ class Validator:
                             layout_type="grid",
                             param=self.param
                             )
-        pass
+        return {
+            'fric_mean':fric_mean,
+            'fric_std':fric_std,
+            'stiffness_mean':stiffness_mean,
+            'stiffness_std':stiffness_std,
+            'over_conf_mean':over_conf_mean,
+            'over_conf_std':over_conf_std,
+            'under_conf_mean':under_conf_mean,
+            'under_conf_std':under_conf_std,
+        }
 
 
 if __name__ == "__main__":
