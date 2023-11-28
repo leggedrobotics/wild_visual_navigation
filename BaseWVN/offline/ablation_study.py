@@ -87,6 +87,21 @@ def memory_test():
     param.general.name='3.retest_on_hiking'
     train_and_evaluate(param)
     
+    param.offline.use_online_ckpt=False
+    param.offline.mode='train'
+    param.offline.reload_model=False
+    param.offline.ckpt_parent_folder='results/memory_test'
+    param.offline.data_folder=snow_dataset_folder
+    param.general.name='4.directly_train_on_snow'
+    train_and_evaluate(param)
+    
+    param.offline.use_online_ckpt=False
+    param.offline.mode='test'
+    param.offline.ckpt_parent_folder='results/memory_test'
+    param.offline.data_folder=snow_dataset_folder
+    param.general.name='4.directly_train_on_snow'
+    train_and_evaluate(param)
+    
 
 if __name__ == "__main__":
     # generalization_test()

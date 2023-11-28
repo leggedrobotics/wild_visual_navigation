@@ -151,7 +151,7 @@ class FeatureExtractor:
 
         # Resize and then center crop to the expected input size
         transform = T.Compose([
-            T.Resize((new_height, new_width),self.interp),
+            T.Resize((new_height, new_width),self.interp,antialias=True),
             T.CenterCrop(self.crop_size) if self.center_crop else T.CenterCrop((new_height, new_width)),
             T.ConvertImageDtype(torch.float),
         ])

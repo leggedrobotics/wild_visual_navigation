@@ -298,7 +298,7 @@ class MainProcess(NodeForROS):
             self.camera_handler["pose_cam_in_world"]=pose_cam_in_world
 
             # send tf , vis in rviz
-            self.broadcast_tf_from_matrix(pose_cam_in_world,self.fixed_frame,"hdr_rear_camera")
+            # self.broadcast_tf_from_matrix(pose_cam_in_world,self.fixed_frame,"hdr_rear_camera")
             
             # prepare image
             img_torch = rc.ros_image_to_torch(img_msg, device=self.device)
