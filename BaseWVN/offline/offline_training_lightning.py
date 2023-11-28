@@ -227,50 +227,10 @@ def train_and_evaluate(param:ParamCollection):
         test on the recorded main nodes
         """
         if param.offline.test_nodes:
+            # READ nodes datafile and gt_masks datafile
             validator=Validator(param)
             validator.go(model,feat_extractor)
-            # nodes=torch.load(os.path.join(WVN_ROOT_DIR,param.offline.data_folder,param.offline.nodes_datafile))
             
-            # output_dir = os.path.join(WVN_ROOT_DIR, param.offline.data_folder)
-
-            # # Construct the path for gt_masks.pt
-            # if param.offline.gt_model=="SEEM":
-            #     gt_masks_path = os.path.join(output_dir, 'gt_masks_SEEM.pt')
-            # elif param.offline.gt_model=="SAM":
-            #     gt_masks_path = os.path.join(output_dir, 'gt_masks_SAM.pt')
-            # # gt_masks_path = os.path.join(output_dir, 'gt_masks.pt')
-
-            # if os.path.exists(gt_masks_path):
-            #     # Load the existing gt_masks
-            #     gt_masks = torch.load(gt_masks_path)
-            # else:
-            #     # Generate gt_masks  
-            #     if param.offline.gt_model=="SAM":
-            #         gt_masks=SAM_label_mask_generate(param,nodes)
-            #     elif param.offline.gt_model=="SEEM":
-            #         gt_masks=SEEM_label_mask_generate(param,nodes)
-            #     torch.save(gt_masks, gt_masks_path)
-            # print("gt_masks shape:{}".format(gt_masks.shape))
-            
-            # output_dict=conf_mask_generate(param,nodes,feat_extractor,model,gt_masks)
-            # conf_masks=output_dict['all_conf_masks']
-            # ori_imgs=output_dict['ori_imgs']
-            # conf_masks=conf_masks.to(param.run.device)
-            # ori_imgs=ori_imgs.to(param.run.device)
-            # print("conf_masks shape:{}".format(conf_masks.shape))
-            
-            # stats_outputdict=masks_stats(gt_masks,conf_masks,os.path.join(ckpt_parent_folder,model.time,"masks_stats.txt"),param.general.name)
-            # if param.offline.plot_masks_compare:
-            #     plot_masks_compare(gt_masks,conf_masks,
-            #                    ori_imgs,
-            #                    os.path.join(ckpt_parent_folder,model.time,param.offline.gt_model),
-            #                    layout_type="grid",
-            #                    param=param
-            #                    )
-            
-            
-            pass
-        pass
 
 class Validator:
     def __init__(self,param:ParamCollection) -> None:
