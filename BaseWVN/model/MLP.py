@@ -1,10 +1,11 @@
 import torch
 import torch.nn.functional as F
-
+import copy
 class SimpleMLP(torch.nn.Module):
     def __init__(self, input_size: int = 64, hidden_sizes: [int] = [255], reconstruction: bool = False):
         super(SimpleMLP, self).__init__()
         layers = []
+        hidden_sizes=hidden_sizes.copy()
         self.nr_sigmoid_layers = hidden_sizes[-1]
 
         if reconstruction:

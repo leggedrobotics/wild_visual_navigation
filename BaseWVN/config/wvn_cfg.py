@@ -35,8 +35,10 @@ class ParamCollection(Serializable):
         camera_bag_name: str='jetson'
         # camera_topic: str='/v4l2_camera/image_raw_throttle/compressed'
         # camera_info_topic: str='/v4l2_camera/camera_info_throttle'
-        camera_topic: str='/wide_angle_camera_rear/image_color_rect/compressed'
-        camera_info_topic: str='/wide_angle_camera_rear/camera_info'
+        # camera_topic: str='/wide_angle_camera_rear/image_color_rect/compressed'
+        # camera_info_topic: str='/wide_angle_camera_rear/camera_info'
+        camera_topic: str='/wide_angle_camera_front/image_color_rect/compressed'
+        camera_info_topic: str='/wide_angle_camera_front/camera_info'
 
         fixed_frame: str='odom'
         base_frame: str='base'
@@ -199,7 +201,7 @@ class ParamCollection(Serializable):
     @dataclass
     class OfflineParams:
         mode:str='test'
-        reload_model:bool=False
+        reload_model:bool=True
         use_online_ckpt:bool=False
         ckpt_parent_folder:str='results/overlay'
         data_folder:str='results/manager'
@@ -218,7 +220,7 @@ class ParamCollection(Serializable):
         plot_tsne:bool=False
         plot_overlay:bool=True
         plot_nodes:bool=False
-        plot_masks_compare:bool=True
+        plot_masks_compare:bool=False
     
     offline: OfflineParams = OfflineParams()
     

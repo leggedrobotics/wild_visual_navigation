@@ -111,9 +111,9 @@ class BigDataset(torch.utils.data.Dataset):
         return len(self.data)
 
 
-def train_and_evaluate():
+def train_and_evaluate(param:ParamCollection):
     """Train and evaluate the model."""
-    param=ParamCollection()
+    
     mode=param.offline.mode
     ckpt_parent_folder=os.path.join(WVN_ROOT_DIR,param.offline.ckpt_parent_folder)
     
@@ -260,5 +260,6 @@ def train_and_evaluate():
 
 
 if __name__ == "__main__":
-    train_and_evaluate()
+    param=ParamCollection()
+    train_and_evaluate(param)
     

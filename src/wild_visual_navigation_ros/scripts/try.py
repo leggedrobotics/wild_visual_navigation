@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import os
 from BaseWVN import WVN_ROOT_DIR
+from BaseWVN.config.wvn_cfg import ParamCollection
 a=torch.tensor([1.0,-2,3]).unsqueeze(0)
 b=torch.tensor([4,5,6]).unsqueeze(0)
 
@@ -36,3 +37,12 @@ print(torch.std(a))
 # else:
 #     print("empty list is false")
 # pass
+
+param=ParamCollection()
+print(param.model.simple_mlp_cfg.hidden_sizes)
+hidden_sizes=param.model.simple_mlp_cfg.hidden_sizes
+hidden_sizes=hidden_sizes.copy()
+hidden_sizes[0]=100
+print(param.model.simple_mlp_cfg.hidden_sizes)
+param=ParamCollection()
+print(param.model.simple_mlp_cfg.hidden_sizes)
