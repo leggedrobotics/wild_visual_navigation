@@ -88,8 +88,8 @@ class DecoderLightning(pl.LightningModule):
             loss_reco_raw=res_dict['loss_reco_raw']
             conf_mask_raw=res_dict['conf_mask_raw']
             
-            calculate_uncertainty_plot(loss_reco,conf_mask,all_reproj_masks=None,save_path=os.path.join(WVN_ROOT_DIR,'results/overlay',self.time,'hist',f'step_{self.step}_uncertainty_histogram.png'))
-            plot_tsne(conf_mask_raw, loss_reco_raw, title=f'step_{self.step}_t-SNE with Confidence Highlighting',path=os.path.join(WVN_ROOT_DIR,'results/overlay',self.time,'tsne'))
+            calculate_uncertainty_plot(loss_reco,conf_mask,all_reproj_masks=None,save_path=os.path.join(WVN_ROOT_DIR,param.offline.ckpt_parent_folder,self.time,'hist',f'step_{self.step}_uncertainty_histogram.png'))
+            plot_tsne(conf_mask_raw, loss_reco_raw, title=f'step_{self.step}_t-SNE with Confidence Highlighting',path=os.path.join(WVN_ROOT_DIR,param.offline.ckpt_parent_folder,self.time,'tsne'))
             pass
         self.log('val_loss', loss)
         self.val_loss=loss
@@ -227,44 +227,96 @@ def train_and_evaluate(param:ParamCollection):
         test on the recorded main nodes
         """
         if param.offline.test_nodes:
-            nodes=torch.load(os.path.join(WVN_ROOT_DIR,param.offline.data_folder,param.offline.nodes_datafile))
+            validator=Validator(param)
+            validator.go(model,feat_extractor)
+            # nodes=torch.load(os.path.join(WVN_ROOT_DIR,param.offline.data_folder,param.offline.nodes_datafile))
             
-            output_dir = os.path.join(WVN_ROOT_DIR, param.offline.data_folder)
+            # output_dir = os.path.join(WVN_ROOT_DIR, param.offline.data_folder)
 
-            # Construct the path for gt_masks.pt
-            if param.offline.gt_model=="SEEM":
-                gt_masks_path = os.path.join(output_dir, 'gt_masks_SEEM.pt')
-            elif param.offline.gt_model=="SAM":
-                gt_masks_path = os.path.join(output_dir, 'gt_masks_SAM.pt')
-            # gt_masks_path = os.path.join(output_dir, 'gt_masks.pt')
+            # # Construct the path for gt_masks.pt
+            # if param.offline.gt_model=="SEEM":
+            #     gt_masks_path = os.path.join(output_dir, 'gt_masks_SEEM.pt')
+            # elif param.offline.gt_model=="SAM":
+            #     gt_masks_path = os.path.join(output_dir, 'gt_masks_SAM.pt')
+            # # gt_masks_path = os.path.join(output_dir, 'gt_masks.pt')
 
-            if os.path.exists(gt_masks_path):
-                # Load the existing gt_masks
-                gt_masks = torch.load(gt_masks_path)
-            else:
-                # Generate gt_masks  
-                if param.offline.gt_model=="SAM":
-                    gt_masks=SAM_label_mask_generate(param,nodes)
-                elif param.offline.gt_model=="SEEM":
-                    gt_masks=SEEM_label_mask_generate(param,nodes)
-                torch.save(gt_masks, gt_masks_path)
-            print("gt_masks shape:{}".format(gt_masks.shape))
-            conf_masks,ori_imgs=conf_mask_generate(param,nodes,feat_extractor,model,gt_masks)
-            conf_masks=conf_masks.to(param.run.device)
-            ori_imgs=ori_imgs.to(param.run.device)
-            print("conf_masks shape:{}".format(conf_masks.shape))
+            # if os.path.exists(gt_masks_path):
+            #     # Load the existing gt_masks
+            #     gt_masks = torch.load(gt_masks_path)
+            # else:
+            #     # Generate gt_masks  
+            #     if param.offline.gt_model=="SAM":
+            #         gt_masks=SAM_label_mask_generate(param,nodes)
+            #     elif param.offline.gt_model=="SEEM":
+            #         gt_masks=SEEM_label_mask_generate(param,nodes)
+            #     torch.save(gt_masks, gt_masks_path)
+            # print("gt_masks shape:{}".format(gt_masks.shape))
             
-            masks_stats(gt_masks,conf_masks,os.path.join(ckpt_parent_folder,model.time,"masks_stats.txt"),param.general.name)
-            if param.offline.plot_masks_compare:
-                plot_masks_compare(gt_masks,conf_masks,
-                               ori_imgs,
-                               os.path.join(ckpt_parent_folder,model.time,param.offline.gt_model),
-                               layout_type="grid",
-                               param=param
-                               )
+            # output_dict=conf_mask_generate(param,nodes,feat_extractor,model,gt_masks)
+            # conf_masks=output_dict['all_conf_masks']
+            # ori_imgs=output_dict['ori_imgs']
+            # conf_masks=conf_masks.to(param.run.device)
+            # ori_imgs=ori_imgs.to(param.run.device)
+            # print("conf_masks shape:{}".format(conf_masks.shape))
+            
+            # stats_outputdict=masks_stats(gt_masks,conf_masks,os.path.join(ckpt_parent_folder,model.time,"masks_stats.txt"),param.general.name)
+            # if param.offline.plot_masks_compare:
+            #     plot_masks_compare(gt_masks,conf_masks,
+            #                    ori_imgs,
+            #                    os.path.join(ckpt_parent_folder,model.time,param.offline.gt_model),
+            #                    layout_type="grid",
+            #                    param=param
+            #                    )
             
             
             pass
+        pass
+
+class Validator:
+    def __init__(self,param:ParamCollection) -> None:
+        nodes=torch.load(os.path.join(WVN_ROOT_DIR,param.offline.data_folder,param.offline.nodes_datafile))    
+        self.nodes=nodes
+        self.param=param
+        self.ckpt_parent_folder=os.path.join(WVN_ROOT_DIR,param.offline.ckpt_parent_folder)
+        output_dir = os.path.join(WVN_ROOT_DIR, param.offline.data_folder)
+
+        # Construct the path for gt_masks.pt
+        if param.offline.gt_model=="SEEM":
+            gt_masks_path = os.path.join(output_dir, 'gt_masks_SEEM.pt')
+        elif param.offline.gt_model=="SAM":
+            gt_masks_path = os.path.join(output_dir, 'gt_masks_SAM.pt')
+        # gt_masks_path = os.path.join(output_dir, 'gt_masks.pt')
+
+        if os.path.exists(gt_masks_path):
+            # Load the existing gt_masks
+            gt_masks = torch.load(gt_masks_path)
+        else:
+            # Generate gt_masks  
+            if param.offline.gt_model=="SAM":
+                gt_masks=SAM_label_mask_generate(param,nodes)
+            elif param.offline.gt_model=="SEEM":
+                gt_masks=SEEM_label_mask_generate(param,nodes)
+            torch.save(gt_masks, gt_masks_path)
+        self.gt_masks=gt_masks
+        print("gt_masks shape:{}".format(gt_masks.shape))
+    
+    def go(self,model:pl.LightningModule,feat_extractor:FeatureExtractor):
+        
+        output_dict=conf_mask_generate(self.param,self.nodes,feat_extractor,model,self.gt_masks)
+        conf_masks=output_dict['all_conf_masks']
+        ori_imgs=output_dict['ori_imgs']
+        conf_masks=conf_masks.to(self.param.run.device)
+        ori_imgs=ori_imgs.to(self.param.run.device)
+        print("conf_masks shape:{}".format(conf_masks.shape))
+        
+        stats_outputdict=masks_stats(self.gt_masks,conf_masks,os.path.join(self.ckpt_parent_folder,model.time,"masks_stats.txt"),self.param.general.name)
+        if self.param.offline.plot_masks_compare:
+            plot_masks_compare(self.gt_masks,conf_masks,
+                            ori_imgs,
+                            os.path.join(self.ckpt_parent_folder,model.time,self.param.offline.gt_model),
+                            layout_type="grid",
+                            param=self.param
+                            )
         pass
 
 

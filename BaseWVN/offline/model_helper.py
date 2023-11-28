@@ -343,7 +343,7 @@ def conf_mask_generate(param:ParamCollection,
     all_losses=torch.cat(losses,dim=0)
     all_conf_masks=torch.cat(conf_masks,dim=0)
     if param.offline.plot_hist:
-        calculate_uncertainty_plot(all_losses,all_conf_masks,all_reproj_masks,os.path.join(WVN_ROOT_DIR,'results/overlay',model.time,'hist','all_uncertainty_histogram.png'))
+        calculate_uncertainty_plot(all_losses,all_conf_masks,all_reproj_masks,os.path.join(folder_path,'hist','all_uncertainty_histogram.png'))
     
     all_fric_losses = torch.cat(all_fric_losses)
     all_stiff_losses = torch.cat(all_stiff_losses)
@@ -360,11 +360,12 @@ def conf_mask_generate(param:ParamCollection,
         file.write(f"Overall Stiffness Error Mean: {round(stiff_mean.item(),3)}, Standard Deviation: {round(stiff_std.item(),3)}\n")
 
     print("Overall loss statistics saved to overall_loss_statistics.txt")
-    
-    
-    
+
     torch.cuda.empty_cache()
-    return all_conf_masks,torch.cat(ori_imgs,dim=0)
+    return {"all_conf_masks":all_conf_masks,
+            "ori_imgs":torch.cat(ori_imgs,dim=0),
+            "loss_fric_mean+std":(fric_mean,fric_std),
+            "loss_stiff_mean+std":(stiff_mean,stiff_std),}
 
 def calculate_uncertainty_plot(all_losses:torch.Tensor,all_conf_masks:torch.Tensor,all_reproj_masks:torch.Tensor=None,save_path=None):
     """ 
@@ -505,6 +506,10 @@ def masks_stats(gt_masks:torch.Tensor,conf_masks:torch.Tensor, output_file='stat
         print(f'Average Under-confidence: {round(under_conf_mean,3)}%, Std. Dev: {round(under_conf_std,3)}%')
         under_conf_stats = f'Average Under-confidence: {round(under_conf_mean, 3)}%, Std. Dev: {round(under_conf_std, 3)}%\n'
         file.write(under_conf_stats)
+    return {"over_conf_mean":over_conf_mean,
+            "over_conf_std":over_conf_std,
+            "under_conf_mean":under_conf_mean,
+            "under_conf_std":under_conf_std,}
         
 def show_mask(mask, ax, random_color=False):
     if isinstance(mask, torch.Tensor):
