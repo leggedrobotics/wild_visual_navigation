@@ -24,10 +24,10 @@ def load_data(file):
     data=torch.load(path)
     return data
 
-def load_one_test_image(folder, file):
+def load_one_test_image(path):
     """ return img in shape (B,C,H,W) """
-    image_path = os.path.join(WVN_ROOT_DIR, folder,file)
-    if file.lower().endswith('.pt'):
+    image_path = path
+    if path.lower().endswith('.pt'):
         is_pt_file=True
     else:
         is_pt_file=False

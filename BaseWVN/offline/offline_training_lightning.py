@@ -27,7 +27,7 @@ class DecoderLightning(pl.LightningModule):
         loss_params=self.params.loss
         self.step=0
 
-        self.test_img=load_one_test_image(params.offline.data_folder,params.offline.image_file)
+        self.test_img=load_one_test_image(os.path.join(WVN_ROOT_DIR,params.offline.data_folder,'val',param.offline.env,params.offline.image_file))
         B,C,H,W=self.test_img.shape
         self.feat_extractor=FeatureExtractor(device=self.params.run.device,
                                              segmentation_type=self.params.feat.segmentation_type,
@@ -163,18 +163,24 @@ def train_and_evaluate(param:ParamCollection):
             api_key="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI0MDVkNmYxYi1kZjZjLTRmNmEtOGQ5My0xZmE2YTc0OGVmN2YifQ==",
             project="swsychen/Decoder-MLP",
         )
+        
         max_epochs=10
-        data=load_data(os.path.join(param.offline.data_folder,param.offline.train_datafile))
+        
+        # load train and val data
+        train_data=load_data(os.path.join(param.offline.data_folder,"train",param.offline.env,param.offline.train_datafile))
         if param.offline.random_datasample[0]:
             print("Randomly sample {} data from the dataset".format(param.offline.random_datasample[1]))
-            combined_dataset = BigDataset(data,param.offline.random_datasample[1])
+            train_dataset = BigDataset(train_data,param.offline.random_datasample[1])
         else:
-            combined_dataset = BigDataset(data)
-        train_size = int(0.8 * len(combined_dataset))
-        test_size = len(combined_dataset) - train_size
-
-        train_dataset = Subset(combined_dataset, range(0, train_size))
-        val_dataset = Subset(combined_dataset, range(train_size, len(combined_dataset)))
+            train_dataset = BigDataset(train_data)
+        
+        val_data=load_data(os.path.join(param.offline.data_folder,"val",param.offline.env,param.offline.train_datafile))
+        if param.offline.random_datasample[0]:
+            print("Randomly sample {} data from the dataset".format(param.offline.random_datasample[1]))
+            val_dataset = BigDataset(val_data,param.offline.random_datasample[1])
+        else:
+            val_dataset = BigDataset(val_data)
+        
         
         batch_size = 1
         train_loader = DataLoader(train_dataset, batch_size=batch_size)
@@ -196,6 +202,7 @@ def train_and_evaluate(param:ParamCollection):
                     "loss": model.val_loss.item(),
                 },
                 os.path.join(ckpt_parent_folder,model.time,"last_checkpoint.pt"))
+        torch.cuda.empty_cache()
         return None
     else:
         if not param.offline.use_online_ckpt:
@@ -224,7 +231,7 @@ def train_and_evaluate(param:ParamCollection):
         plot phy_masks (two channels) on a set of test images
         """
         if param.offline.test_images:
-            test_imgs=load_all_test_images(param.offline.data_folder)
+            test_imgs=load_all_test_images(os.path.join(param.offline.data_folder,'val',param.offline.env))
             for name,img in test_imgs.items():
                 B,C,H,W=img.shape
                 feat_extractor.set_original_size(W,H)
@@ -251,11 +258,11 @@ def train_and_evaluate(param:ParamCollection):
 
 class Validator:
     def __init__(self,param:ParamCollection) -> None:
-        nodes=torch.load(os.path.join(WVN_ROOT_DIR,param.offline.data_folder,param.offline.nodes_datafile))    
+        nodes=torch.load(os.path.join(WVN_ROOT_DIR,param.offline.data_folder,'val',param.offline.env,param.offline.nodes_datafile))    
         self.nodes=nodes
         self.param=param
         self.ckpt_parent_folder=os.path.join(WVN_ROOT_DIR,param.offline.ckpt_parent_folder)
-        output_dir = os.path.join(WVN_ROOT_DIR, param.offline.data_folder)
+        output_dir = os.path.join(WVN_ROOT_DIR, param.offline.data_folder,'val',param.offline.env)
 
         # Construct the path for gt_masks.pt
         if param.offline.gt_model=="SEEM":

@@ -170,9 +170,9 @@ def save_stats_to_file(stats, filename):
         for scenario, scenario_stats in stats.items():
             file.write(f"Scenario: {scenario}\n")
             for metric, values in scenario_stats.items():
-                file.write(f"  {metric}: Mean = {round(values['mean'],3)}, Std = {round(values['std'],3)}\n")
+                file.write("{}: Mean = {:.3f}, Std = {:.3f}\n".format(metric, values['mean'], values['std']))
             file.write("\n")
 
 if __name__ == "__main__":
-    generalization_test()
-    # memory_test()
+    # generalization_test()
+    memory_test()
