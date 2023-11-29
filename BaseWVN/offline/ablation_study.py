@@ -5,7 +5,8 @@ import numpy as np
 from BaseWVN.config.wvn_cfg import ParamCollection,save_to_yaml
 from typing import List
 from BaseWVN.offline.offline_training_lightning import train_and_evaluate
-
+import os 
+from BaseWVN import WVN_ROOT_DIR
 hiking_dataset_folder='results/manager/hiking'
 snow_dataset_folder='results/manager/snow'
 
@@ -86,6 +87,9 @@ def generalization_test():
                 'std': np.std(values)
             }
 
+    time=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    save_stats_to_file(aggregate_stats,os.path.join(WVN_ROOT_DIR,ckpt_parent_folder,f'{time}_stats.txt'))
+    
     return aggregate_stats
     
 def memory_test():
@@ -96,7 +100,7 @@ def memory_test():
     
     """
     number=2
-    ckpt_parent_folder='results/generalization_test'
+    ckpt_parent_folder='results/memory_test'
     agenda = [
         {
             'name': '1.train_on_hiking', 
@@ -156,64 +160,19 @@ def memory_test():
                 'std': np.std(values)
             }
 
+    time=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    save_stats_to_file(aggregate_stats,os.path.join(WVN_ROOT_DIR,ckpt_parent_folder,f'{time}_stats.txt'))
+    
     return aggregate_stats
-    
-    param=ParamCollection()
-    param.offline.mode='train'
-    param.offline.reload_model=False
-    param.offline.use_online_ckpt=False
-    param.offline.ckpt_parent_folder='results/memory_test'
-    param.offline.data_folder=hiking_dataset_folder
-    
-    param.general.name='1.train_on_hiking'
-    train_and_evaluate(param)
-    
-    param.offline.mode='test'
-    param.offline.use_online_ckpt=False
-    param.offline.ckpt_parent_folder='results/memory_test'
-    param.offline.data_folder=hiking_dataset_folder
-    
-    param.general.name='1.train_on_hiking'
-    train_and_evaluate(param)
-    
-    param.offline.use_online_ckpt=False
-    param.offline.mode='train'
-    param.offline.reload_model=True
-    param.offline.ckpt_parent_folder='results/memory_test'
-    param.offline.data_folder=snow_dataset_folder
-    param.general.name='2.resume_train_on_snow'
-    train_and_evaluate(param)
-    
-    param.offline.use_online_ckpt=False
-    param.offline.mode='test'
-    param.offline.ckpt_parent_folder='results/memory_test'
-    param.offline.data_folder=snow_dataset_folder
-    param.general.name='2.resume_train_on_snow'
-    train_and_evaluate(param)
-    
-    param.offline.mode='test'
-    param.offline.use_online_ckpt=False
-    param.offline.ckpt_parent_folder='results/memory_test'
-    param.offline.data_folder=hiking_dataset_folder
-    param.general.name='3.retest_on_hiking'
-    train_and_evaluate(param)
-    
-    param.offline.use_online_ckpt=False
-    param.offline.mode='train'
-    param.offline.reload_model=False
-    param.offline.ckpt_parent_folder='results/memory_test'
-    param.offline.data_folder=snow_dataset_folder
-    param.general.name='4.directly_train_on_snow'
-    train_and_evaluate(param)
-    
-    param.offline.use_online_ckpt=False
-    param.offline.mode='test'
-    param.offline.ckpt_parent_folder='results/memory_test'
-    param.offline.data_folder=snow_dataset_folder
-    param.general.name='4.directly_train_on_snow'
-    train_and_evaluate(param)
-    
+
+def save_stats_to_file(stats, filename):
+    with open(filename, 'w') as file:
+        for scenario, scenario_stats in stats.items():
+            file.write(f"Scenario: {scenario}\n")
+            for metric, values in scenario_stats.items():
+                file.write(f"  {metric}: Mean = {values['mean']}, Std = {values['std']}\n")
+            file.write("\n")
 
 if __name__ == "__main__":
-    generalization_test()
-    # memory_test()
+    # generalization_test()
+    memory_test()
