@@ -43,7 +43,7 @@ def generalization_test():
     All the results save to a folder named 'generalization_test'
     
     """
-    number=2
+    number=5
     ckpt_parent_folder='results/generalization_test'
     agenda = [
         {
@@ -170,9 +170,9 @@ def save_stats_to_file(stats, filename):
         for scenario, scenario_stats in stats.items():
             file.write(f"Scenario: {scenario}\n")
             for metric, values in scenario_stats.items():
-                file.write(f"  {metric}: Mean = {values['mean']}, Std = {values['std']}\n")
+                file.write(f"  {metric}: Mean = {round(values['mean'],3)}, Std = {round(values['std'],3)}\n")
             file.write("\n")
 
 if __name__ == "__main__":
-    # generalization_test()
-    memory_test()
+    generalization_test()
+    # memory_test()

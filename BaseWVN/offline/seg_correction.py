@@ -9,11 +9,11 @@ import re
 import matplotlib.pyplot as plt
 from BaseWVN import WVN_ROOT_DIR
 from BaseWVN.config.wvn_cfg import ParamCollection
+
 api_key = '2fea959a3e8dc0ae5cd55e40d5f60c8e0bdc70d7'
 client = SegmentsClient(api_key)
-dataset_identifier = "swsychen/sp_hiking"
+dataset_identifier = "swsychen/sp_snowadd2"
 name = "v0.1"
-
 client.add_release(dataset_identifier, name)
 def save_imperfect_images(image_batch, mask_batch, imperfect_indexes, save_folder):
     """
@@ -71,8 +71,9 @@ if __name__ == "__main__":
     gt_masks = torch.load(gt_masks_path)
     mask_imgs=torch.load(img_path)
     
-    imperfect_indexes = [5,6,7,8,9,10,11,23,24,26,31,34,35,36,37,38,39,48,49,51,57,63,64,65,66,67,68,69,80]
-    
+    # imperfect_indexes = [5,6,7,8,9,10,11,23,24,26,31,34,35,36,37,38,39,48,49,51,57,63,64,65,66,67,68,69,80]
+    # imperfect_indexes = [17,18,19,20,24,54,56,67]
+    imperfect_indexes = [37,38]
     # save for manual correction
     # save_imperfect_images(mask_imgs, gt_masks, imperfect_indexes, os.path.join(output_dir, 'imperfect_images'))
     download_and_replace_masks(gt_masks,os.path.join(output_dir, 'imperfect_images'))
