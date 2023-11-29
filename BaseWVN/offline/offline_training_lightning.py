@@ -262,6 +262,7 @@ class Validator:
             gt_masks_path = os.path.join(output_dir, 'gt_masks_SEEM.pt')
         elif param.offline.gt_model=="SAM":
             gt_masks_path = os.path.join(output_dir, 'gt_masks_SAM.pt')
+        img_path=os.path.join(output_dir, 'mask_img.pt')
         # gt_masks_path = os.path.join(output_dir, 'gt_masks.pt')
 
         if os.path.exists(gt_masks_path):
@@ -270,7 +271,8 @@ class Validator:
         else:
             # Generate gt_masks  
             if param.offline.gt_model=="SAM":
-                gt_masks=SAM_label_mask_generate(param,nodes)
+                gt_masks,cur_imags=SAM_label_mask_generate(param,nodes)
+                torch.save(cur_imags, img_path)
             elif param.offline.gt_model=="SEEM":
                 gt_masks=SEEM_label_mask_generate(param,nodes)
             torch.save(gt_masks, gt_masks_path)

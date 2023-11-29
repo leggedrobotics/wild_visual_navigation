@@ -148,6 +148,7 @@ def SAM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
     
     """
     gt_masks=[]
+    cor_images=[]
     sam = sam_model_registry[param.offline.SAM_type](checkpoint=param.offline.SAM_ckpt)
     sam.to(param.run.device)
     predictor = SamPredictor(sam)
@@ -180,7 +181,7 @@ def SAM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
         input_img=(img.squeeze(0).permute(1,2,0).cpu().numpy()*255.0).astype(np.uint8)
         H,W,C=input_img.shape
         predictor.set_image(input_img)
-
+        cor_images.append(img)
         # resized_img=predictor.transform.apply_image_torch(img)
         # predictor.set_torch_image(resized_img,img.shape[-2:])
         gt_mask_pts=torch.zeros_like(reproj_mask.unsqueeze(0).unsqueeze(0)).type(torch.int)
@@ -216,7 +217,7 @@ def SAM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
         # show_points(true_coords.squeeze(0), points_labels.squeeze(0), plt.gca())
         # plt.axis('off')
         # plt.show() 
-    return torch.cat(gt_masks,dim=0)
+    return torch.cat(gt_masks,dim=0),torch.cat(cor_images,dim=0)
 
 
 

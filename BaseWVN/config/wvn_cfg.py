@@ -200,7 +200,7 @@ class ParamCollection(Serializable):
     
     @dataclass
     class OfflineParams:
-        mode:str='train'
+        mode:str='test'
         reload_model:bool=False
         use_online_ckpt:bool=False
         ckpt_parent_folder:str='results/overlay'
@@ -223,7 +223,7 @@ class ParamCollection(Serializable):
         plot_tsne:bool=False
         plot_overlay:bool=True
         plot_nodes:bool=False
-        plot_masks_compare:bool=False
+        plot_masks_compare:bool=True
     
     offline: OfflineParams = OfflineParams()
     
