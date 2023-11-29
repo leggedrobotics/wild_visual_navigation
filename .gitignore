@@ -64,3 +64,4 @@ model/
 src/ros_comm-dev
 check.pt
 segments/
+test.yaml

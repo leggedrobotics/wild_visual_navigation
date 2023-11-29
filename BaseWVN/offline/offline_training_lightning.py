@@ -27,7 +27,7 @@ class DecoderLightning(pl.LightningModule):
         loss_params=self.params.loss
         self.step=0
 
-        self.test_img=load_one_test_image(os.path.join(WVN_ROOT_DIR,params.offline.data_folder,'val',param.offline.env,params.offline.image_file))
+        self.test_img=load_one_test_image(os.path.join(WVN_ROOT_DIR,params.offline.data_folder,'val',params.offline.env,params.offline.image_file))
         B,C,H,W=self.test_img.shape
         self.feat_extractor=FeatureExtractor(device=self.params.run.device,
                                              segmentation_type=self.params.feat.segmentation_type,

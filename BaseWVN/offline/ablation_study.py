@@ -9,13 +9,21 @@ import os
 from BaseWVN import WVN_ROOT_DIR
 hiking_dataset_folder='results/manager/hiking'
 snow_dataset_folder='results/manager/snow'
-
+dataset_folder='results/manager'
 def run_scenario(scenario_name, ckpt_parent_folder,reload_model,use_online_ckpt,dataset_folder,test_only):
     """ 
     Return the test stats dict of the scenario.
     
     """
     param=ParamCollection()
+    torch.cuda.empty_cache()
+    if "hiking" in scenario_name:
+        param.offline.env='hiking'
+    elif "snow" in scenario_name:
+        param.offline.env='snow'
+    else:
+        raise ValueError("scenario_name must contain 'hiking' or 'snow'")
+    
     if not test_only:
         param.offline.mode='train'
         param.offline.reload_model=reload_model
@@ -26,7 +34,7 @@ def run_scenario(scenario_name, ckpt_parent_folder,reload_model,use_online_ckpt,
         train_and_evaluate(param)
         # if use_online_ckpt to train, after training, the new model is no longer in online folder
         use_online_ckpt=False
-    
+    torch.cuda.empty_cache()
     param.offline.mode='test'
     param.offline.reload_model=False
     param.offline.use_online_ckpt=use_online_ckpt
@@ -51,15 +59,31 @@ def generalization_test():
             'ckpt_parent_folder': ckpt_parent_folder, 
             'reload_model': False, 
             'use_online_ckpt': False,
-            'dataset_folder': hiking_dataset_folder,
-            'test_only': False
+            'dataset_folder': dataset_folder,
+            'test_only': False,
          },
         {
             'name': '2.test_on_snow',
             'ckpt_parent_folder': ckpt_parent_folder,
             'reload_model': False,
             'use_online_ckpt': False,
-            'dataset_folder': snow_dataset_folder,
+            'dataset_folder': dataset_folder,
+            'test_only': True
+        },
+        {
+            'name': '3.train_on_snow', 
+            'ckpt_parent_folder': ckpt_parent_folder, 
+            'reload_model': False, 
+            'use_online_ckpt': False,
+            'dataset_folder': dataset_folder,
+            'test_only': False,
+         },
+        {
+            'name': '4.test_on_hiking',
+            'ckpt_parent_folder': ckpt_parent_folder,
+            'reload_model': False,
+            'use_online_ckpt': False,
+            'dataset_folder': dataset_folder,
             'test_only': True
         }
     ]
@@ -99,7 +123,7 @@ def memory_test():
     All the results save to a folder named 'memory_test'
     
     """
-    number=2
+    number=5
     ckpt_parent_folder='results/memory_test'
     agenda = [
         {
@@ -107,7 +131,7 @@ def memory_test():
             'ckpt_parent_folder': ckpt_parent_folder, 
             'reload_model': False, 
             'use_online_ckpt': False,
-            'dataset_folder': hiking_dataset_folder,
+            'dataset_folder': dataset_folder,
             'test_only': False
          },
         {
@@ -115,7 +139,7 @@ def memory_test():
             'ckpt_parent_folder': ckpt_parent_folder,
             'reload_model': True,
             'use_online_ckpt': False,
-            'dataset_folder': snow_dataset_folder,
+            'dataset_folder': dataset_folder,
             'test_only': False
         },
         {
@@ -123,7 +147,7 @@ def memory_test():
             'ckpt_parent_folder': ckpt_parent_folder,
             'reload_model': False,
             'use_online_ckpt': False,
-            'dataset_folder': hiking_dataset_folder,
+            'dataset_folder': dataset_folder,
             'test_only': True
         },
         {
@@ -131,7 +155,7 @@ def memory_test():
             'ckpt_parent_folder': ckpt_parent_folder,
             'reload_model': False,
             'use_online_ckpt': False,
-            'dataset_folder': snow_dataset_folder,
+            'dataset_folder': dataset_folder,
             'test_only': False
         },
         

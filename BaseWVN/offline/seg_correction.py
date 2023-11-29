@@ -12,7 +12,7 @@ from BaseWVN.config.wvn_cfg import ParamCollection
 
 api_key = '2fea959a3e8dc0ae5cd55e40d5f60c8e0bdc70d7'
 client = SegmentsClient(api_key)
-dataset_identifier = "swsychen/sp_snowadd2"
+dataset_identifier = "swsychen/val_snow"
 name = "v0.1"
 client.add_release(dataset_identifier, name)
 def save_imperfect_images(image_batch, mask_batch, imperfect_indexes, save_folder):
@@ -63,18 +63,21 @@ def download_and_replace_masks(mask_batch, corrected_mask_paths):
 
 if __name__ == "__main__":
     param=ParamCollection()
-    output_dir = os.path.join(WVN_ROOT_DIR, param.offline.data_folder)
+    output_dir = os.path.join(WVN_ROOT_DIR, param.offline.data_folder,'val',param.offline.env)
 
     gt_masks_path = os.path.join(output_dir, 'gt_masks_SAM.pt')
     img_path=os.path.join(output_dir, 'mask_img.pt')
 
     gt_masks = torch.load(gt_masks_path)
     mask_imgs=torch.load(img_path)
-    
+    imperfect_indexes = [1,2,5,7,8,16,18,20,21,22,23,24,25,26,35,36,39,41,44,45]
+    # imperfect_indexes = [78,79]
+    # imperfect_indexes = [0,1,2,3,4,13,14,15,16,18,19,20,21,25,26,27,28,29,30,31,32,33,34,35,36,39,56,59,60,61,62,63,64,65,75,80,81,82]
     # imperfect_indexes = [5,6,7,8,9,10,11,23,24,26,31,34,35,36,37,38,39,48,49,51,57,63,64,65,66,67,68,69,80]
     # imperfect_indexes = [17,18,19,20,24,54,56,67]
-    imperfect_indexes = [37,38]
+    # imperfect_indexes = [37,38]
     # save for manual correction
     # save_imperfect_images(mask_imgs, gt_masks, imperfect_indexes, os.path.join(output_dir, 'imperfect_images'))
+    
     download_and_replace_masks(gt_masks,os.path.join(output_dir, 'imperfect_images'))
     
