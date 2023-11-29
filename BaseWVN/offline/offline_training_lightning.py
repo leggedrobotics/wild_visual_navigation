@@ -272,9 +272,9 @@ class Validator:
             # Generate gt_masks  
             if param.offline.gt_model=="SAM":
                 gt_masks,cur_imags=SAM_label_mask_generate(param,nodes)
-                torch.save(cur_imags, img_path)
             elif param.offline.gt_model=="SEEM":
-                gt_masks=SEEM_label_mask_generate(param,nodes)
+                gt_masks,cur_imags=SEEM_label_mask_generate(param,nodes)
+            torch.save(cur_imags, img_path)
             torch.save(gt_masks, gt_masks_path)
         self.gt_masks=gt_masks
         print("gt_masks shape:{}".format(gt_masks.shape))

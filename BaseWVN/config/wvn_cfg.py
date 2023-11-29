@@ -17,7 +17,7 @@ class ParamCollection(Serializable):
         online_training: bool=True
         resume_training: bool=False
         resume_training_path: str='model/last_checkpoint.pt'
-        plot_overlay_online: bool=True
+        plot_overlay_online: bool=False
         model_path: str='model'
         # ... [rest of the attributes]
     general: GeneralParams=GeneralParams()
@@ -35,10 +35,10 @@ class ParamCollection(Serializable):
         camera_bag_name: str='jetson'
         # camera_topic: str='/v4l2_camera/image_raw_throttle/compressed'
         # camera_info_topic: str='/v4l2_camera/camera_info_throttle'
-        # camera_topic: str='/wide_angle_camera_rear/image_color_rect/compressed'
-        # camera_info_topic: str='/wide_angle_camera_rear/camera_info'
-        camera_topic: str='/wide_angle_camera_front/image_color_rect/compressed'
-        camera_info_topic: str='/wide_angle_camera_front/camera_info'
+        camera_topic: str='/wide_angle_camera_rear/image_color_rect/compressed'
+        camera_info_topic: str='/wide_angle_camera_rear/camera_info'
+        # camera_topic: str='/wide_angle_camera_front/image_color_rect/compressed'
+        # camera_info_topic: str='/wide_angle_camera_front/camera_info'
 
         fixed_frame: str='odom'
         base_frame: str='base'
@@ -211,7 +211,7 @@ class ParamCollection(Serializable):
         test_images:bool=False
         test_nodes:bool=True
         
-        random_datasample:Tuple[bool,int]=(True,60)
+        random_datasample:Tuple[bool,int]=(True,40)
         upload_error_stats_in_training:bool=False
         
         gt_model:str='SAM' # 'SEEM' or 'SAM'

@@ -11,10 +11,10 @@ from BaseWVN import WVN_ROOT_DIR
 from BaseWVN.config.wvn_cfg import ParamCollection
 api_key = '2fea959a3e8dc0ae5cd55e40d5f60c8e0bdc70d7'
 client = SegmentsClient(api_key)
-dataset_identifier = "swsychen/sp"
+dataset_identifier = "swsychen/sp_hiking"
 name = "v0.1"
 
-# client.add_release(dataset_identifier, name)
+client.add_release(dataset_identifier, name)
 def save_imperfect_images(image_batch, mask_batch, imperfect_indexes, save_folder):
     """
     Save images with imperfect masks to a folder.
@@ -41,7 +41,7 @@ def download_and_replace_masks(mask_batch, corrected_mask_paths):
     :param imperfect_indexes: List of indexes of the masks to replace
     """
     
-    release = client.get_release('swsychen/sp','v0.1')
+    release = client.get_release(dataset_identifier,name)
     dataset = SegmentsDataset(release, labelset='ground-truth')
     for sample in dataset:
         # Extract index from sample name (assuming format 'imperfect_image_INDEX.png')
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     gt_masks = torch.load(gt_masks_path)
     mask_imgs=torch.load(img_path)
     
-    imperfect_indexes = [6,8,9]
+    imperfect_indexes = [5,6,7,8,9,10,11,23,24,26,31,34,35,36,37,38,39,48,49,51,57,63,64,65,66,67,68,69,80]
     
     # save for manual correction
     # save_imperfect_images(mask_imgs, gt_masks, imperfect_indexes, os.path.join(output_dir, 'imperfect_images'))

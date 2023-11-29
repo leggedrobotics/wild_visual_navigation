@@ -229,8 +229,10 @@ def SEEM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
     """
     model=init_model().to(param.run.device)
     gt_masks=[]
+    cor_images=[]
     for node in nodes:
         img=node.image.to(param.run.device)
+        cor_images.append(img)
         img=(img*255.0).type(torch.uint8)
         reproj_mask=node.supervision_signal_valid[0]
         
@@ -282,7 +284,7 @@ def SEEM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
         # show_mask(reproj_mask.squeeze(0), plt.gca(), random_color=True)
         # plt.axis('off')
         # plt.show()
-    return torch.cat(gt_masks,dim=0)
+    return torch.cat(gt_masks,dim=0),torch.cat(cor_images,dim=0)
 
 
 def conf_mask_generate(param:ParamCollection,
@@ -343,6 +345,7 @@ def conf_mask_generate(param:ParamCollection,
         if param.offline.plot_tsne:
             plot_tsne(conf_mask_raw, loss_reco_raw, title=f'node_{i}_t-SNE with Confidence Highlighting',path=os.path.join(folder_path,'tsne'))
     all_reproj_masks=torch.cat(reproj_masks,dim=0)
+    torch.cuda.empty_cache()
     all_losses=torch.cat(losses,dim=0)
     all_conf_masks=torch.cat(conf_masks,dim=0)
     if param.offline.plot_hist:
