@@ -70,3 +70,53 @@ memory_cfg={
         }, 
     ]
     }
+
+conf_cfg={
+    "number":1,
+    "ckpt_parent_folder":'results/conf_test',
+    "agenda":[
+        
+        {
+            'name': '1.train_on_hiking_using_fixed',
+            'reload_model': False,
+            'use_online_ckpt': False,
+            'dataset_folder': dataset_folder,
+            'test_only': False,
+            'other_params':{
+                'loss.confidence_mode': 'fixed',
+                'offline.upload_error_stats_in_training':True
+            }
+        },
+        {
+            'name': '1.train_on_hiking_using_gmm1d', 
+            'reload_model': False, 
+            'use_online_ckpt': False,
+            'dataset_folder': dataset_folder,
+            'test_only': False,
+            'other_params':{
+                'loss.confidence_mode': 'gmm_1d',
+                'offline.upload_error_stats_in_training':True
+            }
+         },
+        ]
+}
+
+model_cfg={
+    "number":1,
+    "ckpt_parent_folder":'results/model_test',
+    "agenda":[
+        
+        {
+            'name': '1.train_on_hiking_RND',
+            'reload_model': False,
+            'use_online_ckpt': False,
+            'dataset_folder': dataset_folder,
+            'test_only': False,
+            'other_params':{
+                'model.name': 'RndMLP',
+                'offline.upload_error_stats_in_training':True
+            }
+        },
+       
+        ]
+}

@@ -297,7 +297,8 @@ def conf_mask_generate(param:ParamCollection,
     Here we use the model to generate confidence mask for each node
     Also the loss_recon is used to compute uncertainty histograms
     And the loss of physical param prediction (mean+std) tested on all recorded nodes
-    
+    mean: mean across all pixels of all tested nodes
+    std: std across all pixels of all tested nodes
     
     """
     conf_masks=[]
@@ -407,8 +408,8 @@ def calculate_uncertainty_plot(all_losses:torch.Tensor,all_conf_masks:torch.Tens
         min_loss = min(flattened_losses.min(), conf_mask_losses.min(), reproj_mask_losses.min())
         max_loss = max(flattened_losses.max(), conf_mask_losses.max(), reproj_mask_losses.max())
     else:
-        min_loss = min(flattened_losses.min(), conf_mask_losses.min())
-        max_loss = max(flattened_losses.max(), conf_mask_losses.max())
+        min_loss = min(flattened_losses.min(), conf_mask_losses.min() if conf_mask_losses.shape[0]>0 else flattened_losses.min())
+        max_loss = max(flattened_losses.max(), conf_mask_losses.max()if conf_mask_losses.shape[0]>0 else flattened_losses.max())
     # bins = np.arange(min_loss, max_loss + bin_size, bin_size)
     bins = np.linspace(min_loss, max_loss, num_bins)
     # Plot the histogram

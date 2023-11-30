@@ -165,7 +165,7 @@ def train_and_evaluate(param:ParamCollection):
             tags=["offline",param.offline.env,param.general.name],
         )
         
-        max_epochs=10
+        max_epochs=7 #10
         
         # load train and val data
         train_data=load_data(os.path.join(param.offline.data_folder,"train",param.offline.env,param.offline.train_datafile))

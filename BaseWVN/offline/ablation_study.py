@@ -8,7 +8,27 @@ from BaseWVN.offline.offline_training_lightning import train_and_evaluate
 import os 
 from BaseWVN import WVN_ROOT_DIR
 
-def run_scenario(scenario_name, ckpt_parent_folder,reload_model,use_online_ckpt,dataset_folder,test_only):
+def set_attr(obj, attr, value):
+    """Set an attribute, handling nested attributes if necessary, with a check for attribute existence."""
+    if '.' in attr:
+        # Split the attribute by dots for nested attributes
+        attrs = attr.split('.')
+        for a in attrs[:-1]:
+            if not hasattr(obj, a):
+                raise AttributeError(f"Attribute {a} not found in object.")
+            obj = getattr(obj, a)
+        
+        final_attr = attrs[-1]
+        if not hasattr(obj, final_attr):
+            raise AttributeError(f"Attribute {final_attr} not found in object.")
+        setattr(obj, final_attr, value)
+    else:
+        # Direct attribute
+        if not hasattr(obj, attr):
+            raise AttributeError(f"Attribute {attr} not found in object.")
+        setattr(obj, attr, value)
+
+def run_scenario(scenario_name, ckpt_parent_folder,reload_model,use_online_ckpt,dataset_folder,test_only,other_params:dict=None):
     """ 
     Return the test stats dict of the scenario.
     
@@ -21,6 +41,15 @@ def run_scenario(scenario_name, ckpt_parent_folder,reload_model,use_online_ckpt,
         param.offline.env='snow'
     else:
         raise ValueError("scenario_name must contain 'hiking' or 'snow'")
+    
+    # Update param with values from param_dict
+    if other_params:
+        for key, value in other_params.items():
+            set_attr(param, key, value)
+            # if hasattr(param, key):
+            #     setattr(param, key, value)
+            # else:
+            #     raise ValueError(f"ParamCollection has no attribute {key}")
     
     if not test_only:
         param.offline.mode='train'
@@ -64,7 +93,8 @@ def test(config:dict):
                                  scenario['reload_model'], 
                                  scenario['use_online_ckpt'], 
                                  scenario['dataset_folder'], 
-                                 scenario['test_only'])
+                                 scenario['test_only'],
+                                 scenario.get('other_params', None))
             if stats:  # Stats will be None if the mode is 'train'
                 for key in aggregate_stats[scenario['name']]:
                     aggregate_stats[scenario['name']][key].append(stats[key].detach().cpu().numpy() if isinstance(stats[key], torch.Tensor) else stats[key])
@@ -92,5 +122,5 @@ def save_stats_to_file(stats, filename):
 
 if __name__ == "__main__":
     from BaseWVN.offline.ablation_cfg import*
-    test(generalization_cfg)
+    test(model_cfg)
    

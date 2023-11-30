@@ -48,6 +48,8 @@ print(torch.std(a))
 # param=ParamCollection()
 # print(param.model.simple_mlp_cfg.hidden_sizes)
 
-ff=np.array([1])
-ss=np.array([2])
-print(np.mean([ff,ss]))
+ff={
+    "try":1
+    
+}
+print(ff.get("try2",None))
