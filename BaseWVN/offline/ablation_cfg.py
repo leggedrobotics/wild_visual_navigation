@@ -37,7 +37,7 @@ generalization_cfg={
     }
     
 memory_cfg={
-        "number":5,
+        "number":1,
         "ckpt_parent_folder":'results/memory_test',
         "agenda":[
         {
@@ -45,29 +45,35 @@ memory_cfg={
             'reload_model': False, 
             'use_online_ckpt': False,
             'dataset_folder': dataset_folder,
-            'test_only': False
+            'test_only': False,
+            'other_params':{
+                'offline.upload_error_stats_in_training':True
+            }
          },
         {
             'name': '2.resume_train_on_hiking',
             'reload_model': True,
             'use_online_ckpt': False,
             'dataset_folder': dataset_folder,
-            'test_only': False
+            'test_only': False,
+            'other_params':{
+                'offline.upload_error_stats_in_training':True
+            }
         },
-        {
-            'name': '3.retest_on_snow',
-            'reload_model': False,
-            'use_online_ckpt': False,
-            'dataset_folder': dataset_folder,
-            'test_only': True
-        },
-        {
-            'name': '4.directly_train_on_hiking',
-            'reload_model': False,
-            'use_online_ckpt': False,
-            'dataset_folder': dataset_folder,
-            'test_only': False
-        }, 
+        # {
+        #     'name': '3.retest_on_snow',
+        #     'reload_model': False,
+        #     'use_online_ckpt': False,
+        #     'dataset_folder': dataset_folder,
+        #     'test_only': True
+        # },
+        # {
+        #     'name': '4.directly_train_on_hiking',
+        #     'reload_model': False,
+        #     'use_online_ckpt': False,
+        #     'dataset_folder': dataset_folder,
+        #     'test_only': False
+        # }, 
     ]
     }
 

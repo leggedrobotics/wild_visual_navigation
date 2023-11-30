@@ -122,5 +122,5 @@ def save_stats_to_file(stats, filename):
 
 if __name__ == "__main__":
     from BaseWVN.offline.ablation_cfg import*
-    test(model_cfg)
+    test(memory_cfg)
    

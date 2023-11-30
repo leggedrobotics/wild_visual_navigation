@@ -17,8 +17,8 @@ underconfidence_files = []
 plt.rcParams.update({'font.size': 12})  # Adjust as needed
 
 # Create figure and GridSpec layout
-fig = plt.figure(figsize=(12, 18))
-gs = gridspec.GridSpec(4, 2, height_ratios=[1, 1, 1, 2])
+fig = plt.figure(figsize=(12, 14))
+gs = gridspec.GridSpec(4, 2, height_ratios=[1, 1, 1, 1.5])
 
 # Metrics to be plotted in each row
 row_metrics = [
@@ -48,8 +48,8 @@ for i, row in enumerate(row_metrics):
                 underconfidence_files.append(label)
             ax.plot(steps, values, label=label)
             ax.set_xlabel('Step')
-            ax.set_ylabel(metric)
-            ax.set_title(f'{metric} Metric')
+            ax.set_ylabel(metric if 'confidence' not in metric else f'{metric} (%)')
+            ax.set_title(f'{metric} Metric' if 'confidence' not in metric else f'{metric} Metric (Values in %)')
             ax.legend()
 
 # Process Confidence Mask Accuracy if both metrics are present
@@ -60,8 +60,8 @@ if overconfidence_data and underconfidence_data:
         ax.plot(steps, cma, label=f'{o_label}')  # label using overconfidence filename
 
     ax.set_xlabel('Step')
-    ax.set_ylabel('Confidence Mask Accuracy')
-    ax.set_title('Confidence Mask Accuracy Over Different Runs')
+    ax.set_ylabel('Confidence Mask Accuracy (%)')
+    ax.set_title('Confidence Mask Accuracy Over Different Runs (Values in %)')
     ax.legend()
 
 plt.tight_layout()
