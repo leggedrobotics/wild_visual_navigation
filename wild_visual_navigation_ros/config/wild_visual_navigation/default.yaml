@@ -32,9 +32,9 @@ robot_height: 0.3 # 0.3
 robot_max_velocity: 0.8
 
 # Traversability estimation params
-traversability_radius: 3.0 # meters
-image_graph_dist_thr: 0.2 # meters
-proprio_graph_dist_thr: 0.1 # meters
+traversability_radius: 6.0 # meters, 3.0
+image_graph_dist_thr: 0.02 # meters, 0.2
+proprio_graph_dist_thr: 0.01 # meters, 0.1
 network_input_image_height: 480
 network_input_image_width: 640
 segmentation_type: "slic"
@@ -60,8 +60,8 @@ mission_name: "test"
 mission_timestamp: True
 
 # Threads
-image_callback_rate: 10 # hertz
-proprio_callback_rate: 4 # hertz
+image_callback_rate: 10 # hertz, 10
+proprio_callback_rate: 4 # hertz, 4
 learning_thread_rate: 10 # hertz
 logging_thread_rate: 2 # hertz
 status_thread_rate: 0.5 # hertz
