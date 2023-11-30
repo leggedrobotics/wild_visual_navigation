@@ -162,6 +162,7 @@ def train_and_evaluate(param:ParamCollection):
         neptune_logger = NeptuneLogger(
             api_key="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI0MDVkNmYxYi1kZjZjLTRmNmEtOGQ5My0xZmE2YTc0OGVmN2YifQ==",
             project="swsychen/Decoder-MLP",
+            tags=["offline",param.offline.env,param.general.name],
         )
         
         max_epochs=10

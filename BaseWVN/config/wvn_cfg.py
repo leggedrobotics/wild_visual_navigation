@@ -222,7 +222,7 @@ class ParamCollection(Serializable):
         
         plot_hist:bool=False
         plot_tsne:bool=False
-        plot_overlay:bool=True
+        plot_overlay:bool=False
         plot_nodes:bool=False
         plot_masks_compare:bool=False
     
