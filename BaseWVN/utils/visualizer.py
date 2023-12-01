@@ -19,6 +19,8 @@ def plot_tsne(confidence, loss_reco_raw, title='t-SNE with Confidence Highlighti
         os.makedirs(path)
     if isinstance(loss_reco_raw, torch.Tensor):
         loss_reco_raw = loss_reco_raw.detach().cpu().numpy()
+    elif loss_reco_raw is None:
+        return
     if isinstance(confidence, torch.Tensor):
         confidence = confidence.cpu().numpy()
     # Flatten the confidence mask

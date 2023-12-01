@@ -116,8 +116,8 @@ class ParamCollection(Serializable):
 
     @dataclass
     class LossParams:
-        w_pred: float = 0.5
-        w_reco: float = 0.5
+        w_pred: float = 0.9
+        w_reco: float = 0.1
         method: str = "running_mean"
         confidence_std_factor: float = 1.0
         confidence_threshold: float = 0.5
@@ -125,6 +125,8 @@ class ParamCollection(Serializable):
         log_enabled: bool = False
         log_folder: str = "/tmp"
         verbose: bool = True
+        
+        reco_loss_type:str='mse' # mse or cosine
 
     loss: LossParams = LossParams()
     
@@ -200,7 +202,7 @@ class ParamCollection(Serializable):
     
     @dataclass
     class OfflineParams:
-        mode:str='train'
+        mode:str='test'
         env:str='snow'
         reload_model:bool=False
         use_online_ckpt:bool=False
@@ -209,13 +211,15 @@ class ParamCollection(Serializable):
         train_datafile:str='train_data.pt'
         nodes_datafile:str='train_nodes.pt'
         image_file:str='image_buffer.pt'
+        img_bag_path:str='/media/chen/UDisk1/vis_rosbag/snow/2022-12-10-15-40-10_anymal-d020-npc_mission_0.bag'
         
-        traindata_option:str= 'all_full' # 'each_full' or 'each_partial' or 'all_full' or 'all_partial'
+        traindata_option:str= 'each_full' # 'each_full' or 'each_partial' or 'all_full' or 'all_partial'
         
-        test_images:bool=True
-        test_nodes:bool=True
+        test_images:bool=False
+        test_nodes:bool=False
+        test_video:bool=True
         
-        random_datasample:Tuple[bool,int]=(True,40)
+        random_datasample:Tuple[bool,int]=(False,40)
         upload_error_stats_in_training:bool=False
         
         gt_model:str='SAM' # 'SEEM' or 'SAM'
@@ -226,7 +230,7 @@ class ParamCollection(Serializable):
         plot_hist:bool=False
         plot_tsne:bool=False
         plot_overlay:bool=True
-        plot_nodes:bool=False
+        plot_nodes:bool=True
         plot_masks_compare:bool=False
     
     offline: OfflineParams = OfflineParams()

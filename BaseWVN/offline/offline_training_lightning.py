@@ -2,6 +2,7 @@ import torch
 import random
 import numpy as np
 import os
+import rosbag
 import cv2
 import matplotlib.pyplot as plt
 import datetime
@@ -43,7 +44,8 @@ class DecoderLightning(pl.LightningModule):
                                method=loss_params.method,
                                confidence_std_factor=loss_params.confidence_std_factor,
                                log_enabled=loss_params.log_enabled,
-                               log_folder=loss_params.log_folder)
+                               log_folder=loss_params.log_folder,
+                               reco_loss_type=loss_params.reco_loss_type,)
         self.validator=Validator(params)
         self.val_loss=0.0
         self.time=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -109,6 +111,8 @@ class DecoderLightning(pl.LightningModule):
             plot_tsne(conf_mask_raw, loss_reco_raw, title=f'step_{self.step}_t-SNE with Confidence Highlighting',path=os.path.join(WVN_ROOT_DIR,self.params.offline.ckpt_parent_folder,self.time,'tsne'))
             pass
         self.log('val_loss', loss)
+        self.log('reco_loss',loss_dict['loss_reco'])
+        self.log('phy_loss',loss_dict['loss_pred'])
         self.val_loss=loss
 
         return loss
@@ -154,21 +158,19 @@ def train_and_evaluate(param:ParamCollection):
         )
         
         max_epochs=3 #10
-        
-        if "each" in param.offline.traindata_option:
-            # load train and val data from online collected dataset (each batch is 100 samples from six nodes)
-            train_data=load_data(os.path.join(param.offline.data_folder,"train",param.offline.env,param.offline.train_datafile))
-            val_data=load_data(os.path.join(param.offline.data_folder,"val",param.offline.env,param.offline.train_datafile))
-        elif "all" in param.offline.traindata_option:
-            train_data_hiking=load_data(os.path.join(param.offline.data_folder,"train",'hiking',param.offline.train_datafile))
-            train_data_snow=load_data(os.path.join(param.offline.data_folder,"train",'snow',param.offline.train_datafile))
-            val_data_hiking=load_data(os.path.join(param.offline.data_folder,"val",'hiking',param.offline.train_datafile))
-            val_data_snow=load_data(os.path.join(param.offline.data_folder,"val",'snow',param.offline.train_datafile))
-            train_data=train_data_hiking+train_data_snow
-            val_data=val_data_hiking+val_data_snow
-        else:
-            raise ValueError("traindata_option must be 'each_full' or 'each_partial' or 'all_full' or 'all_partial'")
         if "partial" in param.offline.traindata_option:
+            if "each" in param.offline.traindata_option:
+                # load train and val data from online collected dataset (each batch is 100 samples from six nodes)
+                train_data=load_data(os.path.join(param.offline.data_folder,"train",param.offline.env,param.offline.train_datafile))
+                val_data=load_data(os.path.join(param.offline.data_folder,"val",param.offline.env,param.offline.train_datafile))
+            elif "all" in param.offline.traindata_option:
+                train_data_hiking=load_data(os.path.join(param.offline.data_folder,"train",'hiking',param.offline.train_datafile))
+                train_data_snow=load_data(os.path.join(param.offline.data_folder,"train",'snow',param.offline.train_datafile))
+                val_data=load_data(os.path.join(param.offline.data_folder,"val",param.offline.env,param.offline.train_datafile))
+                train_data=train_data_hiking+train_data_snow
+
+            else:
+                raise ValueError("Invalid traindata_option")
             if param.offline.random_datasample[0]:
                 print("Randomly sample {} data from the dataset".format(param.offline.random_datasample[1]))
                 train_dataset = BigDataset(train_data,param.offline.random_datasample[1])
@@ -183,16 +185,28 @@ def train_and_evaluate(param:ParamCollection):
             
             # mimic online training fashion
             batch_size = 1
-            shuffle=False
+            shuffle=True
         elif "full" in param.offline.traindata_option:
-            train_data=create_dataset_from_nodes(param,train_data,model.feat_extractor)
+            if "each" in param.offline.traindata_option:
+                # load train and val data from nodes_datafile (should include all pixels of supervision masks)
+                train_data_raw=load_data(os.path.join(param.offline.data_folder,"train",param.offline.env,param.offline.nodes_datafile))
+                val_data_raw=load_data(os.path.join(param.offline.data_folder,"val",param.offline.env,param.offline.nodes_datafile))
+            elif "all" in param.offline.traindata_option:
+                train_data_hiking=load_data(os.path.join(param.offline.data_folder,"train",'hiking',param.offline.nodes_datafile))
+                train_data_snow=load_data(os.path.join(param.offline.data_folder,"train",'snow',param.offline.nodes_datafile))
+                val_data_raw=load_data(os.path.join(param.offline.data_folder,"val",param.offline.env,param.offline.nodes_datafile))
+                train_data_raw=train_data_hiking+train_data_snow
+            else:
+                raise ValueError("Invalid traindata_option")
+            train_data=create_dataset_from_nodes(param,train_data_raw,model.feat_extractor)
             train_dataset = EntireDataset(train_data)
-            val_data=create_dataset_from_nodes(param,val_data,model.feat_extractor)
+            val_data=create_dataset_from_nodes(param,val_data_raw,model.feat_extractor)
             val_dataset = EntireDataset(val_data)
             batch_size = 64
             shuffle=True
         else:
-            raise ValueError("traindata_option must be 'each_full' or 'each_partial' or 'all_full' or 'all_partial'")
+            raise ValueError("Invalid traindata_option")
+        
         train_loader = DataLoader(train_dataset, batch_size=batch_size,shuffle=shuffle)
         val_loader = DataLoader(val_dataset, batch_size=batch_size,shuffle=False)
         # batch in loader is a tuple of (xs, ys)
@@ -265,15 +279,76 @@ def train_and_evaluate(param:ParamCollection):
             validator=Validator(param)
             stats_dict=validator.go(model,feat_extractor)
             return stats_dict
+        
+        """ 
+        output prediction video from rosbag
+        """
+        if param.offline.test_video:
+            import src.wild_visual_navigation_ros.scripts.ros_converter as rc
+            from tqdm import tqdm
+            frames = []
+            i=0 # channel index
+            with rosbag.Bag(param.offline.img_bag_path, 'r') as bag:
+                total_messages = bag.get_message_count(topic_filters=[param.roscfg.camera_topic])
+                progress_bar = tqdm(total=total_messages, desc='Processing ROS Bag')
+
+                for _, msg, _ in bag.read_messages(topics=[param.roscfg.camera_topic]):
+                    # Convert ROS Image message to OpenCV image
+                    img_torch = rc.ros_image_to_torch(msg, device=param.run.device)
+                    img = img_torch[None]
+                    
+                    B,C,H,W=img.shape
+                    feat_extractor.set_original_size(W,H)
+                    out_dict=compute_phy_mask(img,feat_extractor,
+                                    model.model,
+                                    model.loss_fn,
+                                    param.loss.confidence_threshold,
+                                    param.loss.confidence_mode,
+                                    False,
+                                    -1,
+                                    time=model.time,
+                                    param=param,
+                                    use_conf_mask=False)
+                    trans_img=out_dict["trans_img"].detach()
+                    output_phy=out_dict["output_phy"].detach()
+                    overlay_img=plot_overlay_image(trans_img, overlay_mask=output_phy, channel=i,alpha=0.7)
+     
+                    # Convert back to OpenCV image and store
+                    frame = overlay_img
+                    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                    frames.append(frame)
+                    progress_bar.update(1)
+                progress_bar.close()
+
+            
+            # Create a video from processed frames
+            directory = os.path.dirname(param.offline.img_bag_path)
+
+            # Define the output video filename
+            output_video_filename = 'processed_output_video.avi'
+
+            # Create the full output path by joining the directory with the new filename
+            output_video_path = os.path.join(directory, output_video_filename)
+
+            height, width, layers = frames[0].shape
+            size = (width, height)
+            out = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'DIVX'), 15, size)
+
+            for frame in frames:
+                out.write(frame)
+
+            out.release()
+        
         return None
 
 class Validator:
     def __init__(self,param:ParamCollection) -> None:
-        nodes=torch.load(os.path.join(WVN_ROOT_DIR,param.offline.data_folder,'val',param.offline.env,param.offline.nodes_datafile))    
+        mode='train'
+        nodes=torch.load(os.path.join(WVN_ROOT_DIR,param.offline.data_folder,mode,param.offline.env,param.offline.nodes_datafile))    
         self.nodes=nodes
         self.param=param
         self.ckpt_parent_folder=os.path.join(WVN_ROOT_DIR,param.offline.ckpt_parent_folder)
-        output_dir = os.path.join(WVN_ROOT_DIR, param.offline.data_folder,'val',param.offline.env)
+        output_dir = os.path.join(WVN_ROOT_DIR, param.offline.data_folder,mode,param.offline.env)
 
         # Construct the path for gt_masks.pt
         if param.offline.gt_model=="SEEM":

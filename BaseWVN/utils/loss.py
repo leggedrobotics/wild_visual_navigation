@@ -14,7 +14,8 @@ class PhyLoss(nn.Module):
         method: str,
         confidence_std_factor: float,
         log_enabled: bool,
-        log_folder: str,):
+        log_folder: str,
+        **kwargs,):
         super(PhyLoss,self).__init__()
         self._w_pred=w_pred
         self._w_recon=w_reco
@@ -26,7 +27,7 @@ class PhyLoss(nn.Module):
             log_enabled=log_enabled,
             log_folder=log_folder,
         )
-    
+        self.loss_type=kwargs.get("reco_loss_type",'cosine') # mse or cosine
     def reset(self):
         self._confidence_generator.reset()
         
@@ -48,8 +49,17 @@ class PhyLoss(nn.Module):
         
         # Compute reconstruction loss
         nr_channel_reco = x_label.shape[1]
-        loss_reco = F.mse_loss(res[:, :nr_channel_reco], x_label, reduction="none").mean(dim=1)
-        
+        # loss_reco = F.mse_loss(res[:, :nr_channel_reco], x_label, reduction="none").mean(dim=1)
+        if self.loss_type == 'mse':
+            # Mean Squared Error Loss
+            loss_reco = F.mse_loss(res[:, :nr_channel_reco], x_label, reduction="none").mean(dim=1)
+        elif self.loss_type == 'cosine':
+            # Cosine Similarity Loss
+            cosine_sim = F.cosine_similarity(res[:, :nr_channel_reco], x_label, dim=1)
+            loss_reco = 1 - cosine_sim
+        else:
+            raise ValueError("Invalid loss type specified. Choose 'mse' or 'cosine'")
+    
         with torch.no_grad():
             if update_generator:
                 # since we only use the foothold as dataset, so x==x_positive
@@ -72,8 +82,14 @@ class PhyLoss(nn.Module):
             input=res[0]
             res=res[1]
         nr_channel_reco =input.shape[1]
-        loss_reco_raw = F.mse_loss(res[:, :nr_channel_reco], input, reduction="none")
-        loss_reco=loss_reco_raw.mean(dim=1)
+        if self.loss_type == 'mse':
+            loss_reco_raw = F.mse_loss(res[:, :nr_channel_reco], input, reduction="none")
+            loss_reco=loss_reco_raw.mean(dim=1)
+        elif self.loss_type == 'cosine':
+            # Cosine Similarity Loss
+            cosine_sim = F.cosine_similarity(res[:, :nr_channel_reco], input, dim=1)
+            loss_reco = 1 - cosine_sim
+            loss_reco_raw=None
         confidence=self._confidence_generator.inference_without_update(x=loss_reco)
         return confidence,loss_reco,loss_reco_raw
     
@@ -94,6 +110,6 @@ class PhyLoss(nn.Module):
 
         return normalized_tensor
     
-    def update_node_confidence(self, node):
-        reco_loss = F.mse_loss(node.prediction[:, :-2], node.features, reduction="none").mean(dim=1)
-        node.confidence = self._confidence_generator.inference_without_update(reco_loss)
+    # def update_node_confidence(self, node):
+    #     reco_loss = F.mse_loss(node.prediction[:, :-2], node.features, reduction="none").mean(dim=1)
+    #     node.confidence = self._confidence_generator.inference_without_update(reco_loss)

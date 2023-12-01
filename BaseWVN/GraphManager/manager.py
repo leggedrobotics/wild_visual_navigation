@@ -81,7 +81,8 @@ class Manager:
                                method=loss_params.method,
                                confidence_std_factor=loss_params.confidence_std_factor,
                                log_enabled=loss_params.log_enabled,
-                               log_folder=loss_params.log_folder).to(self._device)
+                               log_folder=loss_params.log_folder,
+                               reco_loss_type=loss_params.reco_loss_type).to(self._device)
         self._loss = torch.tensor([torch.inf])
         self._step = 0
         
