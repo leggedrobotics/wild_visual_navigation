@@ -109,6 +109,13 @@ class FeatureExtractor:
         if self.init_transform==False and original_height!=self.target_height:
             self.original_height = original_height
             self.original_width = original_width
+            
+            # somtimes the input image is already processed but we still want a smaller one for a new feat_extractor
+            # so we need to recompute the transform and not scaling the processed image back to large
+            if self.original_height<self._input_size:
+                print("The input image is in height of {}, smaller than the planned (scale to) input H size {}, changed to the image size!".format(self.original_height,self._input_size))
+                self._input_size=self.original_height
+            
             self.transform=self._create_transform()
             self.init_transform=True
         return self.original_width, self.original_height
@@ -136,7 +143,7 @@ class FeatureExtractor:
     def _create_transform(self):
         # Calculate aspect ratio preserving size
         aspect_ratio = self.original_width / self.original_height
-        if aspect_ratio > 1:  # If width > height, scale by height (1280 -> 448)
+        if aspect_ratio >= 1:  # If width > height, scale by height (1280 -> 448)
             new_height = self._input_size
             new_width = int(new_height * aspect_ratio)
             # check if new_width is a multiple of self.patch_size
