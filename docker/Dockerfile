@@ -41,40 +41,38 @@ RUN apt update \
 # Install python packages
 # ==
 RUN pip3 install --no-cache-dir \
-         torch==1.13.1+cu117 torchvision==0.14.1+cu117 torchaudio==0.13.1 --extra-index-url https://download.pytorch.org/whl/cu117
+         torch==2.1.0+cu118 torchvision --extra-index-url https://download.pytorch.org/whl/cu118
 
 RUN pip3 install --no-cache-dir \
-         jupyter \
-         ruamel.yaml \
          black \
          flake8 \
-         shapely==1.7.1 \
-         pillow==9.2 \
+         jupyter \
          wget \
-         colorama \
-         simple-parsing \
-         kornia \
+         numpy \
+         tqdm \
+         kornia>=0.6.5 \
+         torchmetrics \
+         pytorch_lightning==1.6.5 \
          pytest \
          scipy \
          scikit-image \
          scikit-learn \
+         matplotlib \
          seaborn \
          pandas \
-         fast_slic \
-         neptune-client[optuna] \
-         wandb \
-         wget \
-         hydra-core \
-         pytorch_lightning==1.6.5 \
-         colorama \
-         fast_slic \
-         git+https://github.com/lucasb-eyer/pydensecrf.git#egg=pydensecrf \
-         git+https://github.com/kornia/kornia#egg=kornia \
-         git+https://github.com/mmattamala/liegroups#egg=liegroups \
-         git+https://github.com/leggedrobotics/stego.git#egg=stego==0.0.1 \
          pytictac \
+         torch_geometric \
+         omegaconf \
+         optuna \
+         neptune \
+         fast-slic \
+         hydra-core \
          prettytable \
-         termcolor
+         termcolor \
+         pydensecrf@git+https://github.com/lucasb-eyer/pydensecrf.git#egg=pydensecrf \
+         liegroups@git+https://github.com/mmattamala/liegroups#egg=liegroups \
+         stego@git+https://github.com/leggedrobotics/stego.git#egg=stego==0.0.1 \
+         opencv-python>=4.6
 
 # ==
 # Remove cache and extra files

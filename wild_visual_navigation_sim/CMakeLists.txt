@@ -19,3 +19,7 @@ catkin_package(
 #                                 scripts/smart_carrot.py
 #                                 scripts/rosbag_play.sh
 #                       DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
+install(DIRECTORY launch Media worlds
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)

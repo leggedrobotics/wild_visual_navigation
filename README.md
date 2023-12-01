@@ -57,8 +57,8 @@ git clone git@github.com:leggedrobotics/wild_visual_navigation.git
 # Install virutal environment
 sudo apt -y install python3-venv 
 # Create vitual envrionment
-python -m venv ~/git/wild_visual_navigation/assets/virutal_env/wvn
-echo 'alias venv_wvn="source ~/git/wild_visual_navigation/assets/virutal_env/wvn/bin/activate"' >> ~/.bashrc
+python -m venv ~/git/wild_visual_navigation/assets/virtual_env/wvn
+echo 'alias venv_wvn="source ~/git/wild_visual_navigation/assets/virtual_env/wvn/bin/activate"' >> ~/.bashrc
 source ~/.bashrc
 # Source virtual envrionment
 venv_wvn
@@ -149,7 +149,7 @@ source /opt/ros/noetic/setup.bash
 source ~/catkin_ws/devel/setup.bash
 ```
 
-When using the virtual environment make sure that your shell correctly sources the virtual envrionment and then the catkin workspace.
+When using the virtual environment make sure that your shell correctly sources the virtual environment and then the catkin workspace.
 ```shell
 venv_wvn; catkin_ws
 ... # Run the wild_visual_navigation code
