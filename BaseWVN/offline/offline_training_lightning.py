@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import datetime
 from BaseWVN import WVN_ROOT_DIR
 from BaseWVN.offline.model_helper import *
+from BaseWVN.offline.dataset_cls import *
 from BaseWVN.GraphManager import MainNode
 from BaseWVN.utils import PhyLoss,FeatureExtractor,concat_feat_dict,plot_overlay_image,compute_phy_mask
 from BaseWVN.model import VD_dataset,get_model
@@ -87,7 +88,8 @@ class DecoderLightning(pl.LightningModule):
             raise ValueError("xs and ys must have shape of 2")
         res=self.model(xs)
         loss,confidence,loss_dict=self.loss_fn((xs,ys),res,step=self.step,update_generator=False)
-        if batch_idx==0 and self.step%10==0:
+        # if batch_idx==0 and self.step%10==0:
+        if batch_idx==0:
             res_dict=compute_phy_mask(self.test_img,
                                         self.feat_extractor,
                                         self.model,
@@ -115,20 +117,6 @@ class DecoderLightning(pl.LightningModule):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.params.optimizer.lr)
         return optimizer
 
-class BigDataset(torch.utils.data.Dataset):
-    def __init__(self, data:List[VD_dataset],sample_size: int = None):
-        self.data=[]
-        for d in data:
-            self.data = self.data+d.batches
-        
-        # If a sample size is specified and is less than the total data size
-        if sample_size and sample_size < len(self.data):
-            self.data = random.sample(self.data, sample_size)
-
-    def __getitem__(self, index):
-        return self.data[index]
-    def __len__(self):
-        return len(self.data)
 
 
 def train_and_evaluate(param:ParamCollection):
@@ -165,27 +153,48 @@ def train_and_evaluate(param:ParamCollection):
             tags=["offline",param.offline.env,param.general.name],
         )
         
-        max_epochs=7 #10
+        max_epochs=3 #10
         
-        # load train and val data
-        train_data=load_data(os.path.join(param.offline.data_folder,"train",param.offline.env,param.offline.train_datafile))
-        if param.offline.random_datasample[0]:
-            print("Randomly sample {} data from the dataset".format(param.offline.random_datasample[1]))
-            train_dataset = BigDataset(train_data,param.offline.random_datasample[1])
+        if "each" in param.offline.traindata_option:
+            # load train and val data from online collected dataset (each batch is 100 samples from six nodes)
+            train_data=load_data(os.path.join(param.offline.data_folder,"train",param.offline.env,param.offline.train_datafile))
+            val_data=load_data(os.path.join(param.offline.data_folder,"val",param.offline.env,param.offline.train_datafile))
+        elif "all" in param.offline.traindata_option:
+            train_data_hiking=load_data(os.path.join(param.offline.data_folder,"train",'hiking',param.offline.train_datafile))
+            train_data_snow=load_data(os.path.join(param.offline.data_folder,"train",'snow',param.offline.train_datafile))
+            val_data_hiking=load_data(os.path.join(param.offline.data_folder,"val",'hiking',param.offline.train_datafile))
+            val_data_snow=load_data(os.path.join(param.offline.data_folder,"val",'snow',param.offline.train_datafile))
+            train_data=train_data_hiking+train_data_snow
+            val_data=val_data_hiking+val_data_snow
         else:
-            train_dataset = BigDataset(train_data)
-        
-        val_data=load_data(os.path.join(param.offline.data_folder,"val",param.offline.env,param.offline.train_datafile))
-        if param.offline.random_datasample[0]:
-            print("Randomly sample {} data from the dataset".format(param.offline.random_datasample[1]))
-            val_dataset = BigDataset(val_data,param.offline.random_datasample[1])
+            raise ValueError("traindata_option must be 'each_full' or 'each_partial' or 'all_full' or 'all_partial'")
+        if "partial" in param.offline.traindata_option:
+            if param.offline.random_datasample[0]:
+                print("Randomly sample {} data from the dataset".format(param.offline.random_datasample[1]))
+                train_dataset = BigDataset(train_data,param.offline.random_datasample[1])
+            else:
+                train_dataset = BigDataset(train_data)
+            
+            if param.offline.random_datasample[0]:
+                print("Randomly sample {} data from the dataset".format(param.offline.random_datasample[1]))
+                val_dataset = BigDataset(val_data,param.offline.random_datasample[1])
+            else:
+                val_dataset = BigDataset(val_data)
+            
+            # mimic online training fashion
+            batch_size = 1
+            shuffle=False
+        elif "full" in param.offline.traindata_option:
+            train_data=create_dataset_from_nodes(param,train_data,model.feat_extractor)
+            train_dataset = EntireDataset(train_data)
+            val_data=create_dataset_from_nodes(param,val_data,model.feat_extractor)
+            val_dataset = EntireDataset(val_data)
+            batch_size = 64
+            shuffle=True
         else:
-            val_dataset = BigDataset(val_data)
-        
-        
-        batch_size = 1
-        train_loader = DataLoader(train_dataset, batch_size=batch_size)
-        val_loader = DataLoader(val_dataset, batch_size=batch_size)
+            raise ValueError("traindata_option must be 'each_full' or 'each_partial' or 'all_full' or 'all_partial'")
+        train_loader = DataLoader(train_dataset, batch_size=batch_size,shuffle=shuffle)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size,shuffle=False)
         # batch in loader is a tuple of (xs, ys)
         # xs:(1, 100, feat_dim), ys:(1, 100, 2)
         sample_input, sample_output = next(iter(train_loader))
@@ -245,7 +254,8 @@ def train_and_evaluate(param:ParamCollection):
                                 -1,
                                 time=model.time,
                                 image_name=name,
-                                param=param)
+                                param=param,
+                                use_conf_mask=False)
                 
         """ 
         test on the recorded main nodes

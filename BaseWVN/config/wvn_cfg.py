@@ -200,7 +200,7 @@ class ParamCollection(Serializable):
     
     @dataclass
     class OfflineParams:
-        mode:str='test'
+        mode:str='train'
         env:str='snow'
         reload_model:bool=False
         use_online_ckpt:bool=False
@@ -209,7 +209,10 @@ class ParamCollection(Serializable):
         train_datafile:str='train_data.pt'
         nodes_datafile:str='train_nodes.pt'
         image_file:str='image_buffer.pt'
-        test_images:bool=False
+        
+        traindata_option:str= 'all_full' # 'each_full' or 'each_partial' or 'all_full' or 'all_partial'
+        
+        test_images:bool=True
         test_nodes:bool=True
         
         random_datasample:Tuple[bool,int]=(True,40)
@@ -222,7 +225,7 @@ class ParamCollection(Serializable):
         
         plot_hist:bool=False
         plot_tsne:bool=False
-        plot_overlay:bool=False
+        plot_overlay:bool=True
         plot_nodes:bool=False
         plot_masks_compare:bool=False
     

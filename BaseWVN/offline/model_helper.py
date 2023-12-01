@@ -286,7 +286,25 @@ def SEEM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
         # plt.show()
     return torch.cat(gt_masks,dim=0),torch.cat(cor_images,dim=0)
 
-
+def create_dataset_from_nodes(param:ParamCollection,nodes:List[MainNode],feat_extractor:FeatureExtractor):
+    # use new_features if we want to test new feat_extractor
+    # output dataset
+    
+    for node in nodes:
+        img=node.image.to(param.run.device)
+        if param.feat.feature_type!=node.feature_type:
+            B,C,H,W=img.shape
+            feat_extractor.set_original_size(W,H)
+            _,_,trans_img,compressed_feats=feat_extractor.extract(img)
+            feat_input,H,W=concat_feat_dict(compressed_feats)
+            feat_input=feat_input.reshape(1,H,W,-1)
+            feat_input=feat_input.permute(0,3,1,2)
+            new_features={list(compressed_feats.keys())[0]:feat_input}
+            node.features=new_features
+    batch_list=[mnode.query_valid_batch() for mnode in nodes]
+    dataset=VD_dataset(batch_list,combine_batches=True,random_num=1e10)
+    return dataset           
+        
 def conf_mask_generate(param:ParamCollection,
                       nodes:List[MainNode],
                       feat_extractor:FeatureExtractor,

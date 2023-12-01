@@ -210,6 +210,10 @@ class MainNode(BaseNode):
     def confidence(self, confidence):
         self._confidence = confidence
 
+    @features.setter
+    def features(self, features):
+        self._features = features
+    
     @feature_type.setter
     def feature_type(self, feature_type):
         self._feature_type = feature_type
