@@ -218,6 +218,7 @@ class ParamCollection(Serializable):
         test_images:bool=False
         test_nodes:bool=False
         test_video:bool=True
+        process_option:str='first_100' # 'all' or 'first_half' or 'first_100
         
         random_datasample:Tuple[bool,int]=(False,40)
         upload_error_stats_in_training:bool=False

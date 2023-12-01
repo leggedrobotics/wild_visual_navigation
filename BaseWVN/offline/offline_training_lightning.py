@@ -288,11 +288,23 @@ def train_and_evaluate(param:ParamCollection):
             from tqdm import tqdm
             frames = []
             i=0 # channel index
+            use_conf_mask=True
+            process_option = param.offline.process_option
             with rosbag.Bag(param.offline.img_bag_path, 'r') as bag:
                 total_messages = bag.get_message_count(topic_filters=[param.roscfg.camera_topic])
-                progress_bar = tqdm(total=total_messages, desc='Processing ROS Bag')
-
+                # Determine the number of messages to process based on the selected option
+                if process_option == 'all':
+                    messages_to_process = total_messages
+                elif process_option == 'first_half':
+                    messages_to_process = total_messages // 2
+                elif process_option == 'first_100':
+                    messages_to_process = min(100, total_messages)
+                else:
+                    raise ValueError("Invalid process option")
+                progress_bar = tqdm(total=messages_to_process, desc='Processing ROS Bag')
                 for _, msg, _ in bag.read_messages(topics=[param.roscfg.camera_topic]):
+                    if progress_bar.n >= messages_to_process:
+                        break
                     # Convert ROS Image message to OpenCV image
                     img_torch = rc.ros_image_to_torch(msg, device=param.run.device)
                     img = img_torch[None]
@@ -308,7 +320,7 @@ def train_and_evaluate(param:ParamCollection):
                                     -1,
                                     time=model.time,
                                     param=param,
-                                    use_conf_mask=False)
+                                    use_conf_mask=use_conf_mask)
                     trans_img=out_dict["trans_img"].detach()
                     output_phy=out_dict["output_phy"].detach()
                     overlay_img=plot_overlay_image(trans_img, overlay_mask=output_phy, channel=i,alpha=0.7)
@@ -319,14 +331,20 @@ def train_and_evaluate(param:ParamCollection):
                     frames.append(frame)
                     progress_bar.update(1)
                 progress_bar.close()
-
-            
             # Create a video from processed frames
             directory = os.path.dirname(param.offline.img_bag_path)
-
             # Define the output video filename
-            output_video_filename = 'processed_output_video.avi'
-
+            output_video_filename = 'prediction_video'
+            if i == 0:
+                output_video_filename += '_friction'
+            elif i == 1:
+                output_video_filename += '_stiffness'
+            else:
+                raise ValueError("Invalid channel index")  
+            if use_conf_mask:
+                output_video_filename += '_w_conf_mask.avi'
+            else:
+                output_video_filename += '_wo_conf_mask.avi'
             # Create the full output path by joining the directory with the new filename
             output_video_path = os.path.join(directory, output_video_filename)
 
