@@ -297,11 +297,13 @@ def train_and_evaluate(param:ParamCollection):
                     messages_to_process = total_messages
                 elif process_option == 'first_half':
                     messages_to_process = total_messages // 2
-                elif process_option == 'first_100':
-                    messages_to_process = min(100, total_messages)
+                elif process_option == 'first_1000':
+                    messages_to_process = min(1000, total_messages)
                 else:
                     raise ValueError("Invalid process option")
                 progress_bar = tqdm(total=messages_to_process, desc='Processing ROS Bag')
+                # Set up video writer
+                first_frame = True
                 for _, msg, _ in bag.read_messages(topics=[param.roscfg.camera_topic]):
                     if progress_bar.n >= messages_to_process:
                         break
@@ -324,40 +326,40 @@ def train_and_evaluate(param:ParamCollection):
                     trans_img=out_dict["trans_img"].detach()
                     output_phy=out_dict["output_phy"].detach()
                     overlay_img=plot_overlay_image(trans_img, overlay_mask=output_phy, channel=i,alpha=0.7)
-     
+                    ori_img=plot_overlay_image(trans_img)
                     # Convert back to OpenCV image and store
-                    frame = overlay_img
+                    frame = np.concatenate((ori_img,overlay_img), axis=1)
                     frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                    frames.append(frame)
+                    # frames.append(frame)
+                    # Initialize video writer with the first frame's size
+                    if first_frame:
+                        height, width, layers = frame.shape
+                        size = (width, height)
+                        output_video_path = get_output_video_path(param, os.path.dirname(param.offline.img_bag_path), i, use_conf_mask)  # assuming get_output_video_path is a function you define
+                        out = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'DIVX'), 15, size)
+                        first_frame = False
+                    out.write(frame)
                     progress_bar.update(1)
                 progress_bar.close()
-            # Create a video from processed frames
-            directory = os.path.dirname(param.offline.img_bag_path)
-            # Define the output video filename
-            output_video_filename = 'prediction_video'
-            if i == 0:
-                output_video_filename += '_friction'
-            elif i == 1:
-                output_video_filename += '_stiffness'
-            else:
-                raise ValueError("Invalid channel index")  
-            if use_conf_mask:
-                output_video_filename += '_w_conf_mask.avi'
-            else:
-                output_video_filename += '_wo_conf_mask.avi'
-            # Create the full output path by joining the directory with the new filename
-            output_video_path = os.path.join(directory, output_video_filename)
-
-            height, width, layers = frames[0].shape
-            size = (width, height)
-            out = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'DIVX'), 15, size)
-
-            for frame in frames:
-                out.write(frame)
 
             out.release()
         
         return None
+
+# Helper function to get output video path
+def get_output_video_path(param, directory, channel_index, use_conf_mask):
+    output_video_filename = 'prediction_video'
+    if channel_index == 0:
+        output_video_filename += '_friction'
+    elif channel_index == 1:
+        output_video_filename += '_stiffness'
+    else:
+        raise ValueError("Invalid channel index")  
+    if use_conf_mask:
+        output_video_filename += '_w_conf_mask.avi'
+    else:
+        output_video_filename += '_wo_conf_mask.avi'
+    return os.path.join(directory, output_video_filename)
 
 class Validator:
     def __init__(self,param:ParamCollection) -> None:

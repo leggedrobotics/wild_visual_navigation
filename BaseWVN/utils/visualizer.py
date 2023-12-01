@@ -62,7 +62,8 @@ def plot_overlay_image(img, alpha=0.5, overlay_mask=None, channel=0, **kwargs):
     
     """
     # Apply your existing plot_image function
-    overlay_mask = overlay_mask.cpu().numpy()
+    if overlay_mask is not None:
+        overlay_mask = overlay_mask.cpu().numpy()
     img = plot_image(img.squeeze(0))  
     H, W = img.shape[:2]
 
