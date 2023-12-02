@@ -590,26 +590,46 @@ def calculate_mask_values(mask):
     return max_val, mean_val
 
 def overlay_values_on_section(frame, max_val, mean_val, start_x):
-    # Positions for displaying the text
-    x_position = start_x + 10  # 10 pixels from the left edge of the section
-    y_max = 60  # Position for max value text
-    y_mean = 90  # Position for mean value text
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 0.7
+    font_thickness = 2
+    text_color = (0, 0, 0)  # Black text
+    outline_color = (255, 255, 255)  # White outline
+    outline_thickness = 4
 
-    # Overlay the text
-    cv2.putText(frame, f"Max: {max_val:.2f}", (x_position, y_max), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-    cv2.putText(frame, f"Mean: {mean_val:.2f}", (x_position, y_mean), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+    texts = [f"Max: {max_val:.2f}", f"Mean: {mean_val:.2f}"]
+    positions = [(start_x + 10, 60), (start_x + 10, 90)]  # Text positions
+
+    for text, position in zip(texts, positions):
+        # First, draw the outline
+        cv2.putText(frame, text, position, font, font_scale, outline_color, outline_thickness, lineType=cv2.LINE_AA)
+
+        # Then, draw the text
+        cv2.putText(frame, text, position, font, font_scale, text_color, font_thickness, lineType=cv2.LINE_AA)
 
     return frame
+
 def add_headers_to_frame(frame, headers, section_width):
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 1.0
+    font_thickness = 2
+    text_color = (0, 0, 0)  # Black text
+    outline_color = (255, 255, 255)  # White outline
+    outline_thickness = 4
+
     for i, header in enumerate(headers):
         # Calculate the position of the header
         x_position = i * section_width + 10  # 10 pixels from the left edge of each section
         y_position = 30  # 30 pixels from the top
 
-        # Overlay the header on the frame
-        cv2.putText(frame, header, (x_position, y_position), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        # First, draw the outline
+        cv2.putText(frame, header, (x_position, y_position), font, font_scale, outline_color, outline_thickness, lineType=cv2.LINE_AA)
+
+        # Then, draw the text
+        cv2.putText(frame, header, (x_position, y_position), font, font_scale, text_color, font_thickness, lineType=cv2.LINE_AA)
 
     return frame
+
 
 
 # Helper function to get output video path

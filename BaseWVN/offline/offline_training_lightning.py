@@ -286,7 +286,7 @@ def train_and_evaluate(param:ParamCollection):
         if param.offline.test_video:
             import src.wild_visual_navigation_ros.scripts.ros_converter as rc
             from tqdm import tqdm
-            frames = []
+            
             i=0 # channel index
             use_conf_mask=False
             process_option = param.offline.process_option
@@ -346,7 +346,7 @@ def train_and_evaluate(param:ParamCollection):
                     # Convert back to OpenCV image and store
                     frame = np.concatenate((ori_img,overlay_img,overlay_img_wm), axis=1)
                     frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                    # frames.append(frame)
+
                     # Initialize video writer with the first frame's size
                     if first_frame:
                         height, width, layers = frame.shape
