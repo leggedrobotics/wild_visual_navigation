@@ -262,6 +262,9 @@ def plot_images_in_grid(images, titles, rows=10,cols=3, save_path='grid_comparis
         plt.show()
     plt.close()
 
+
+
+
 if __name__ == "__main__":
     # Create a sample image
     sample_image = np.random.rand(100, 100, 3)

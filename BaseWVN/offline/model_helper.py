@@ -573,3 +573,56 @@ def show_points(coords, labels, ax, marker_size=375):
     neg_points = coords[labels==0]
     ax.scatter(pos_points[:, 0], pos_points[:, 1], color='green', marker='*', s=marker_size, edgecolor='white', linewidth=1.25)
     ax.scatter(neg_points[:, 0], neg_points[:, 1], color='red', marker='*', s=marker_size, edgecolor='white', linewidth=1.25)
+
+def calculate_mask_values(mask):
+    if mask is None:
+        return 0, 0  # Or handle this case as you see fit
+    if isinstance(mask, torch.Tensor):
+        mask = mask.detach().cpu().numpy()
+    
+     # Create a mask for non-NaN values
+    non_nan_mask = ~np.isnan(mask)
+
+    # Assuming mask is a single-channel image
+    max_val = np.nanmax(mask[non_nan_mask]) if np.any(non_nan_mask) else 0
+    mean_val = np.nanmean(mask[non_nan_mask]) if np.any(non_nan_mask) else 0
+
+    return max_val, mean_val
+
+def overlay_values_on_section(frame, max_val, mean_val, start_x):
+    # Positions for displaying the text
+    x_position = start_x + 10  # 10 pixels from the left edge of the section
+    y_max = 60  # Position for max value text
+    y_mean = 90  # Position for mean value text
+
+    # Overlay the text
+    cv2.putText(frame, f"Max: {max_val:.2f}", (x_position, y_max), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+    cv2.putText(frame, f"Mean: {mean_val:.2f}", (x_position, y_mean), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+
+    return frame
+def add_headers_to_frame(frame, headers, section_width):
+    for i, header in enumerate(headers):
+        # Calculate the position of the header
+        x_position = i * section_width + 10  # 10 pixels from the left edge of each section
+        y_position = 30  # 30 pixels from the top
+
+        # Overlay the header on the frame
+        cv2.putText(frame, header, (x_position, y_position), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+    return frame
+
+
+# Helper function to get output video path
+def get_output_video_path(param, directory, channel_index, use_conf_mask):
+    output_video_filename = 'prediction_video'
+    if channel_index == 0:
+        output_video_filename += '_friction'
+    elif channel_index == 1:
+        output_video_filename += '_stiffness'
+    else:
+        raise ValueError("Invalid channel index")  
+    if use_conf_mask:
+        output_video_filename += '_w_conf_mask.avi'
+    else:
+        output_video_filename += '_wo_conf_mask.avi'
+    return os.path.join(directory, output_video_filename)
