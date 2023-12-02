@@ -234,7 +234,7 @@ class ParamCollection(Serializable):
         plot_nodes:bool=True
         plot_masks_compare:bool=False
         
-        fake_phy:bool=True
+        fake_phy:bool=False
         
     
     offline: OfflineParams = OfflineParams()

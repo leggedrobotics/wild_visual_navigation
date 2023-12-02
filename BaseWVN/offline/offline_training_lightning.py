@@ -340,6 +340,7 @@ def train_and_evaluate(param:ParamCollection):
                                     use_conf_mask=True)
                     trans_img=out_dict["trans_img"].detach()
                     output_phy=out_dict["output_phy"].detach()
+                    max_val, mean_val = calculate_mask_values(output_phy[i])
                     overlay_img_wm=plot_overlay_image(trans_img, overlay_mask=output_phy, channel=i,alpha=1.0)
                     
                     # Convert back to OpenCV image and store
@@ -353,6 +354,18 @@ def train_and_evaluate(param:ParamCollection):
                         output_video_path = get_output_video_path(param, os.path.dirname(param.offline.img_bag_path), i, use_conf_mask)  # assuming get_output_video_path is a function you define
                         out = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'DIVX'), 15, size)
                         first_frame = False
+                    # Define headers for each section
+                    headers = ["Original Image", "Dense Pred Raw", "Dense Pred w. Mask"]
+
+                    # Calculate the width of each section (assuming all sections are equal width)
+                    section_width = frame.shape[1] // len(headers)
+
+                    # Add headers to the concatenated frame
+                    frame = add_headers_to_frame(frame, headers, section_width)
+                    start_x_right_section = 2 * section_width
+
+                    # Overlay these values on the right section of the frame
+                    frame = overlay_values_on_section(frame, max_val, mean_val, start_x_right_section)
                     out.write(frame)
                     progress_bar.update(1)
                 progress_bar.close()
@@ -360,6 +373,44 @@ def train_and_evaluate(param:ParamCollection):
             out.release()
         
         return None
+
+def calculate_mask_values(mask):
+    if mask is None:
+        return 0, 0  # Or handle this case as you see fit
+    if isinstance(mask, torch.Tensor):
+        mask = mask.detach().cpu().numpy()
+    
+     # Create a mask for non-NaN values
+    non_nan_mask = ~np.isnan(mask)
+
+    # Assuming mask is a single-channel image
+    max_val = np.nanmax(mask[non_nan_mask]) if np.any(non_nan_mask) else 0
+    mean_val = np.nanmean(mask[non_nan_mask]) if np.any(non_nan_mask) else 0
+
+    return max_val, mean_val
+
+def overlay_values_on_section(frame, max_val, mean_val, start_x):
+    # Positions for displaying the text
+    x_position = start_x + 10  # 10 pixels from the left edge of the section
+    y_max = 60  # Position for max value text
+    y_mean = 90  # Position for mean value text
+
+    # Overlay the text
+    cv2.putText(frame, f"Max: {max_val:.2f}", (x_position, y_max), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+    cv2.putText(frame, f"Mean: {mean_val:.2f}", (x_position, y_mean), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+
+    return frame
+def add_headers_to_frame(frame, headers, section_width):
+    for i, header in enumerate(headers):
+        # Calculate the position of the header
+        x_position = i * section_width + 10  # 10 pixels from the left edge of each section
+        y_position = 30  # 30 pixels from the top
+
+        # Overlay the header on the frame
+        cv2.putText(frame, header, (x_position, y_position), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+    return frame
+
 
 # Helper function to get output video path
 def get_output_video_path(param, directory, channel_index, use_conf_mask):
