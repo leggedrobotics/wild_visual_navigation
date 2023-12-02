@@ -314,7 +314,7 @@ def create_dataset_from_nodes(param:ParamCollection,nodes:List[MainNode],feat_ex
             feat_input=feat_input.permute(0,3,1,2)
             new_features={list(compressed_feats.keys())[0]:feat_input}
             node.features=new_features
-    batch_list=[mnode.query_valid_batch() for mnode in nodes]
+    batch_list=[mnode.query_valid_batch() for i, mnode in enumerate(nodes)]
     dataset=VD_dataset(batch_list,combine_batches=True,random_num=1e10)
     return dataset           
         

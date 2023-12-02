@@ -213,11 +213,11 @@ class ParamCollection(Serializable):
         image_file:str='image_buffer.pt'
         img_bag_path:str='/media/chen/UDisk1/vis_rosbag/snow/2022-12-10-15-40-10_anymal-d020-npc_mission_0.bag'
         
-        traindata_option:str= 'each_full' # 'each_full' or 'each_partial' or 'all_full' or 'all_partial'
+        traindata_option:str= 'each_partial' # 'each_full' or 'each_partial' or 'all_full' or 'all_partial'
         
         test_images:bool=False
-        test_nodes:bool=False
-        test_video:bool=True
+        test_nodes:bool=True
+        test_video:bool=False
         process_option:str='all' # 'all' or 'first_half' or 'first_100
         
         random_datasample:Tuple[bool,int]=(False,40)
@@ -235,7 +235,6 @@ class ParamCollection(Serializable):
         plot_masks_compare:bool=False
         
         fake_phy:bool=False
-        
     
     offline: OfflineParams = OfflineParams()
     
