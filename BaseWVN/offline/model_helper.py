@@ -286,12 +286,25 @@ def SEEM_label_mask_generate(param:ParamCollection,nodes:List[MainNode]):
         # plt.show()
     return torch.cat(gt_masks,dim=0),torch.cat(cor_images,dim=0)
 
-def create_dataset_from_nodes(param:ParamCollection,nodes:List[MainNode],feat_extractor:FeatureExtractor):
+def create_dataset_from_nodes(param:ParamCollection,nodes:List[MainNode],feat_extractor:FeatureExtractor,fake_phy:bool=False):
     # use new_features if we want to test new feat_extractor
     # output dataset
-    
+    first_timestamp=nodes[0].timestamp
     for node in nodes:
         img=node.image.to(param.run.device)
+        if fake_phy:
+            # fake phy mask using maunally assigned values
+            if node.timestamp-first_timestamp<90:
+                fake_val=0.8
+            else:
+                fake_val=0.4
+            # Create a mask for non-NaN values
+            non_nan_mask = ~torch.isnan(node.supervision_mask)
+            
+            # Assign fake val to non-NaN positions
+            node.supervision_mask[non_nan_mask] = fake_val
+            
+                
         if param.feat.feature_type!=node.feature_type:
             B,C,H,W=img.shape
             feat_extractor.set_original_size(W,H)

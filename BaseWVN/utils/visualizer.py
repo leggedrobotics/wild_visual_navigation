@@ -88,7 +88,7 @@ def plot_overlay_image(img, alpha=0.5, overlay_mask=None, channel=0, **kwargs):
         norm_mask[valid_mask] = (mask_channel[valid_mask] - min_val) / (max_val - min_val)
         
         cmap = sns.color_palette(kwargs.get("cmap", "viridis"), as_cmap=True)
-        colored_mask = plt.cm.ScalarMappable(cmap=cmap).to_rgba(norm_mask, bytes=True)[:,:,:3]
+        colored_mask = plt.cm.ScalarMappable(cmap=cmap).to_rgba(norm_mask,bytes=True,norm=False)[:,:,:3]
 
         fore = np.zeros((H, W, 4), dtype=np.uint8)
         fore[:, :, :3] = colored_mask

@@ -198,9 +198,9 @@ def train_and_evaluate(param:ParamCollection):
                 train_data_raw=train_data_hiking+train_data_snow
             else:
                 raise ValueError("Invalid traindata_option")
-            train_data=create_dataset_from_nodes(param,train_data_raw,model.feat_extractor)
+            train_data=create_dataset_from_nodes(param,train_data_raw,model.feat_extractor,fake_phy=param.offline.fake_phy)
             train_dataset = EntireDataset(train_data)
-            val_data=create_dataset_from_nodes(param,val_data_raw,model.feat_extractor)
+            val_data=create_dataset_from_nodes(param,val_data_raw,model.feat_extractor,fake_phy=param.offline.fake_phy)
             val_dataset = EntireDataset(val_data)
             batch_size = 64
             shuffle=True
@@ -325,7 +325,7 @@ def train_and_evaluate(param:ParamCollection):
                                     use_conf_mask=use_conf_mask)
                     trans_img=out_dict["trans_img"].detach()
                     output_phy=out_dict["output_phy"].detach()
-                    overlay_img=plot_overlay_image(trans_img, overlay_mask=output_phy, channel=i,alpha=0.7)
+                    overlay_img=plot_overlay_image(trans_img, overlay_mask=output_phy, channel=i,alpha=1.0)
                     ori_img=plot_overlay_image(trans_img)
                     # Convert back to OpenCV image and store
                     frame = np.concatenate((ori_img,overlay_img), axis=1)

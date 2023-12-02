@@ -617,6 +617,4 @@ if __name__=="__main__":
     }
     sparse_features=concat_feat_dict(dense_features)
     test_extractor()
-
    
-  
