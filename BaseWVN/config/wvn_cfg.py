@@ -216,7 +216,7 @@ class ParamCollection(Serializable):
         traindata_option:str= 'each_full' # 'each_full' or 'each_partial' or 'all_full' or 'all_partial'
         
         test_images:bool=False
-        test_nodes:bool=True
+        test_nodes:bool=False
         test_video:bool=True
         process_option:str='first_half' # 'all' or 'first_half' or 'first_100
         
@@ -235,6 +235,8 @@ class ParamCollection(Serializable):
         plot_masks_compare:bool=False
         
         fake_phy:bool=False
+        
+        analyze_path:str='results/analyze'
     
     offline: OfflineParams = OfflineParams()
     

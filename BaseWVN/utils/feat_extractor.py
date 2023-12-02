@@ -13,6 +13,7 @@ from BaseWVN import WVN_ROOT_DIR
 from sklearn.mixture import GaussianMixture
 import os
 from sklearn.manifold import TSNE
+import time as ttt
 class FeatureExtractor:
     def __init__(
         self, device: str, segmentation_type: str = "pixel", feature_type: str = "dinov2", input_size: int = 448, **kwargs
@@ -369,20 +370,36 @@ def compute_phy_mask(img:torch.Tensor,
                 # Flatten the loss_reco to fit the GMM
                 loss_reco_flat = loss_reco.flatten().detach().cpu().numpy().reshape(-1, 1)
                 
+                # start_time = ttt.time()
                 # fit a 1D GMM with k=1
                 gmm_k1 = GaussianMixture(n_components=1, random_state=0)
                 gmm_k1.fit(loss_reco_flat)
-                
+                # end_time = ttt.time()
+                # print(f"Execution time for GMM with k=1: {end_time - start_time:.2f} seconds")
+
+                # start_time = ttt.time()
                 # Fit a 1D GMM with k=2
                 gmm_k2 = GaussianMixture(n_components=2, random_state=0)
                 gmm_k2.fit(loss_reco_flat)
-                
+                # end_time = ttt.time()
+                # print(f"Execution time for GMM with k=2: {end_time - start_time:.2f} seconds")
+
                 # Compare the losses
                 if abs(gmm_k1.lower_bound_ - gmm_k2.lower_bound_)<0.1:
-                    # single gaussian distribution, use the confidence threshold
+                    # k=3, observing that there are 3 clusters when not clearly seperated into 2
+                    gmm_k3 = GaussianMixture(n_components=3, random_state=0)
+                    gmm_k3.fit(loss_reco_flat)
+                    # Determine the cluster to use (e.g., based on some criteria like the smallest mean)
+                    selected_cluster = gmm_k3.means_.argmin()
+                    # Create a mask from GMM predictions for the selected cluster
+                    gmm_labels_k3 = gmm_k3.predict(loss_reco_flat)
+                    conf_mask = (gmm_labels_k3 == selected_cluster).reshape(H, W)
+                    unconf_mask=torch.from_numpy(~conf_mask).to(img.device)
+                    # (discarded)single gaussian distribution, use the confidence threshold
                     # std factor need tuning
-                    unconf_mask=confidence<preserved
-                    unconf_mask=unconf_mask.to(img.device)
+                    # ss=gmm_k3.lower_bound_
+                    # unconf_mask=confidence<preserved
+                    # unconf_mask=unconf_mask.to(img.device)
                 else:
                     # Predict the clusters for each data point (loss value)
                     gmm_labels = gmm_k2.predict(loss_reco_flat)
