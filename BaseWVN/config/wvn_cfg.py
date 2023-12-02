@@ -119,7 +119,7 @@ class ParamCollection(Serializable):
         w_pred: float = 0.5
         w_reco: float = 0.5
         method: str = "running_mean"
-        confidence_std_factor: float = 1.0
+        confidence_std_factor: float = 3.0
         confidence_threshold: float = 0.5
         confidence_mode: str = "gmm_1d" # gmm_1d,gmm_all,fixed
         log_enabled: bool = False
@@ -213,12 +213,12 @@ class ParamCollection(Serializable):
         image_file:str='image_buffer.pt'
         img_bag_path:str='/media/chen/UDisk1/vis_rosbag/snow/2022-12-10-15-40-10_anymal-d020-npc_mission_0.bag'
         
-        traindata_option:str= 'each_partial' # 'each_full' or 'each_partial' or 'all_full' or 'all_partial'
+        traindata_option:str= 'each_full' # 'each_full' or 'each_partial' or 'all_full' or 'all_partial'
         
         test_images:bool=False
         test_nodes:bool=True
-        test_video:bool=False
-        process_option:str='all' # 'all' or 'first_half' or 'first_100
+        test_video:bool=True
+        process_option:str='first_half' # 'all' or 'first_half' or 'first_100
         
         random_datasample:Tuple[bool,int]=(False,40)
         upload_error_stats_in_training:bool=False
@@ -228,7 +228,7 @@ class ParamCollection(Serializable):
         SAM_ckpt:str='/media/chen/UDisk1/sam_vit_h_4b8939.pth'
         # SAM_ckpt='/media/chen/UDisk1/sam_hq_vit_h.pth'
         
-        plot_hist:bool=False
+        plot_hist:bool=True
         plot_tsne:bool=False
         plot_overlay:bool=True
         plot_nodes:bool=True

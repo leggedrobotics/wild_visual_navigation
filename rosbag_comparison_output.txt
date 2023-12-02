@@ -1,0 +1,399 @@
+Dimension 0:
+  Bag 1 - Min: -2.10, Max: 2.10
+  Bag 2 - Min: -1.76, Max: 2.25
+Dimension 1:
+  Bag 1 - Min: -1.05, Max: 1.00
+  Bag 2 - Min: -0.98, Max: 1.38
+Dimension 2:
+  Bag 1 - Min: -2.04, Max: 1.95
+  Bag 2 - Min: -2.25, Max: 2.25
+Dimension 3:
+  Bag 1 - Min: -0.27, Max: 1.34
+  Bag 2 - Min: -0.62, Max: 0.66
+Dimension 4:
+  Bag 1 - Min: -0.30, Max: 0.42
+  Bag 2 - Min: -0.76, Max: 0.58
+Dimension 5:
+  Bag 1 - Min: -0.18, Max: -0.00
+  Bag 2 - Min: -0.07, Max: -0.00
+Dimension 6:
+  Bag 1 - Min: -3.11, Max: 2.96
+  Bag 2 - Min: -2.83, Max: 3.21
+Dimension 7:
+  Bag 1 - Min: -1.48, Max: 1.58
+  Bag 2 - Min: -1.66, Max: 2.40
+Dimension 8:
+  Bag 1 - Min: -1.55, Max: 0.83
+  Bag 2 - Min: -1.45, Max: 1.00
+Dimension 9:
+  Bag 1 - Min: -3.59, Max: 2.83
+  Bag 2 - Min: -6.18, Max: 3.58
+Dimension 10:
+  Bag 1 - Min: -2.04, Max: 1.36
+  Bag 2 - Min: -1.86, Max: 2.52
+Dimension 11:
+  Bag 1 - Min: -2.92, Max: 2.75
+  Bag 2 - Min: -3.08, Max: 3.16
+Dimension 12:
+  Bag 1 - Min: -1.04, Max: 0.83
+  Bag 2 - Min: -0.85, Max: 1.08
+Dimension 13:
+  Bag 1 - Min: -0.93, Max: 2.37
+  Bag 2 - Min: -1.63, Max: 2.37
+Dimension 14:
+  Bag 1 - Min: -2.65, Max: 1.20
+  Bag 2 - Min: -3.51, Max: 0.87
+Dimension 15:
+  Bag 1 - Min: -0.30, Max: 1.03
+  Bag 2 - Min: -1.16, Max: 1.15
+Dimension 16:
+  Bag 1 - Min: -0.97, Max: 3.02
+  Bag 2 - Min: -1.19, Max: 2.74
+Dimension 17:
+  Bag 1 - Min: -3.22, Max: 0.06
+  Bag 2 - Min: -3.47, Max: 0.74
+Dimension 18:
+  Bag 1 - Min: -1.05, Max: 0.39
+  Bag 2 - Min: -0.93, Max: 1.10
+Dimension 19:
+  Bag 1 - Min: -1.73, Max: 1.10
+  Bag 2 - Min: -3.22, Max: 1.79
+Dimension 20:
+  Bag 1 - Min: -0.82, Max: 2.46
+  Bag 2 - Min: -1.15, Max: 2.88
+Dimension 21:
+  Bag 1 - Min: -0.53, Max: 1.05
+  Bag 2 - Min: -0.74, Max: 1.16
+Dimension 22:
+  Bag 1 - Min: -1.48, Max: 2.03
+  Bag 2 - Min: -2.93, Max: 1.99
+Dimension 23:
+  Bag 1 - Min: -0.81, Max: 2.54
+  Bag 2 - Min: -1.55, Max: 3.14
+Dimension 24:
+  Bag 1 - Min: -2.39, Max: 2.68
+  Bag 2 - Min: -3.82, Max: 3.09
+Dimension 25:
+  Bag 1 - Min: -2.80, Max: 3.10
+  Bag 2 - Min: -3.25, Max: 3.37
+Dimension 26:
+  Bag 1 - Min: -2.57, Max: 2.56
+  Bag 2 - Min: -3.26, Max: 2.69
+Dimension 27:
+  Bag 1 - Min: -4.00, Max: 2.33
+  Bag 2 - Min: -2.61, Max: 3.82
+Dimension 28:
+  Bag 1 - Min: -3.17, Max: 2.92
+  Bag 2 - Min: -3.31, Max: 3.39
+Dimension 29:
+  Bag 1 - Min: -2.73, Max: 2.66
+  Bag 2 - Min: -3.30, Max: 2.66
+Dimension 30:
+  Bag 1 - Min: -2.50, Max: 2.15
+  Bag 2 - Min: -3.83, Max: 2.89
+Dimension 31:
+  Bag 1 - Min: -3.07, Max: 2.72
+  Bag 2 - Min: -3.43, Max: 3.46
+Dimension 32:
+  Bag 1 - Min: -2.64, Max: 2.86
+  Bag 2 - Min: -2.73, Max: 2.96
+Dimension 33:
+  Bag 1 - Min: -1.95, Max: 2.36
+  Bag 2 - Min: -2.57, Max: 3.68
+Dimension 34:
+  Bag 1 - Min: -3.22, Max: 3.03
+  Bag 2 - Min: -3.41, Max: 3.71
+Dimension 35:
+  Bag 1 - Min: -2.66, Max: 2.66
+  Bag 2 - Min: -2.71, Max: 3.16
+Dimension 36:
+  Bag 1 - Min: -3.21, Max: 3.22
+  Bag 2 - Min: -3.97, Max: 3.93
+Dimension 37:
+  Bag 1 - Min: -4.66, Max: 3.43
+  Bag 2 - Min: -4.24, Max: 4.15
+Dimension 38:
+  Bag 1 - Min: -3.29, Max: 4.59
+  Bag 2 - Min: -5.85, Max: 4.77
+Dimension 39:
+  Bag 1 - Min: -4.06, Max: 4.01
+  Bag 2 - Min: -4.17, Max: 4.16
+Dimension 40:
+  Bag 1 - Min: -3.45, Max: 5.02
+  Bag 2 - Min: -3.70, Max: 4.19
+Dimension 41:
+  Bag 1 - Min: -4.01, Max: 4.35
+  Bag 2 - Min: -4.18, Max: 3.96
+Dimension 42:
+  Bag 1 - Min: -3.78, Max: 4.39
+  Bag 2 - Min: -4.82, Max: 3.33
+Dimension 43:
+  Bag 1 - Min: -3.95, Max: 3.87
+  Bag 2 - Min: -4.76, Max: 3.97
+Dimension 44:
+  Bag 1 - Min: -4.18, Max: 3.25
+  Bag 2 - Min: -3.72, Max: 3.81
+Dimension 45:
+  Bag 1 - Min: -3.25, Max: 3.72
+  Bag 2 - Min: -4.39, Max: 4.06
+Dimension 46:
+  Bag 1 - Min: -4.74, Max: 4.60
+  Bag 2 - Min: -4.09, Max: 4.28
+Dimension 47:
+  Bag 1 - Min: -4.04, Max: 3.25
+  Bag 2 - Min: -7.94, Max: 6.21
+Dimension 48:
+  Bag 1 - Min: -6.45, Max: 14.95
+  Bag 2 - Min: -14.27, Max: 22.60
+Dimension 49:
+  Bag 1 - Min: -5.09, Max: 17.57
+  Bag 2 - Min: -10.15, Max: 22.60
+Dimension 50:
+  Bag 1 - Min: -5.03, Max: 16.25
+  Bag 2 - Min: -18.54, Max: 22.60
+Dimension 51:
+  Bag 1 - Min: -7.85, Max: 13.98
+  Bag 2 - Min: -15.56, Max: 22.60
+Dimension 52:
+  Bag 1 - Min: -1.50, Max: 1.50
+  Bag 2 - Min: -1.50, Max: 1.50
+Dimension 53:
+  Bag 1 - Min: -1.50, Max: 1.50
+  Bag 2 - Min: -1.50, Max: 1.50
+Dimension 54:
+  Bag 1 - Min: -1.50, Max: 1.50
+  Bag 2 - Min: -1.50, Max: 1.50
+Dimension 55:
+  Bag 1 - Min: -1.50, Max: 1.50
+  Bag 2 - Min: -1.50, Max: 1.50
+Dimension 56:
+  Bag 1 - Min: -1.50, Max: 1.50
+  Bag 2 - Min: -1.50, Max: 1.50
+Dimension 57:
+  Bag 1 - Min: -1.50, Max: 1.50
+  Bag 2 - Min: -1.50, Max: 1.50
+Dimension 58:
+  Bag 1 - Min: -1.50, Max: 1.50
+  Bag 2 - Min: -1.50, Max: 1.50
+Dimension 59:
+  Bag 1 - Min: -1.50, Max: 1.50
+  Bag 2 - Min: -1.50, Max: 1.50
+Dimension 60:
+  Bag 1 - Min: -2.48, Max: 2.49
+  Bag 2 - Min: -3.04, Max: 3.03
+Dimension 61:
+  Bag 1 - Min: -5.15, Max: 3.93
+  Bag 2 - Min: -5.00, Max: 4.64
+Dimension 62:
+  Bag 1 - Min: -4.98, Max: 6.96
+  Bag 2 - Min: -8.51, Max: 7.13
+Dimension 63:
+  Bag 1 - Min: -3.14, Max: 3.10
+  Bag 2 - Min: -3.19, Max: 3.24
+Dimension 64:
+  Bag 1 - Min: -3.80, Max: 5.58
+  Bag 2 - Min: -4.37, Max: 4.80
+Dimension 65:
+  Bag 1 - Min: -5.92, Max: 6.19
+  Bag 2 - Min: -5.99, Max: 5.91
+Dimension 66:
+  Bag 1 - Min: -2.88, Max: 3.39
+  Bag 2 - Min: -3.93, Max: 2.70
+Dimension 67:
+  Bag 1 - Min: -4.41, Max: 4.26
+  Bag 2 - Min: -5.60, Max: 4.60
+Dimension 68:
+  Bag 1 - Min: -6.00, Max: 4.96
+  Bag 2 - Min: -5.47, Max: 5.72
+Dimension 69:
+  Bag 1 - Min: -2.53, Max: 2.84
+  Bag 2 - Min: -3.43, Max: 3.13
+Dimension 70:
+  Bag 1 - Min: -5.57, Max: 5.12
+  Bag 2 - Min: -4.87, Max: 4.95
+Dimension 71:
+  Bag 1 - Min: -5.76, Max: 4.96
+  Bag 2 - Min: -11.35, Max: 9.09
+Dimension 72:
+  Bag 1 - Min: -2.47, Max: 2.47
+  Bag 2 - Min: -3.05, Max: 3.02
+Dimension 73:
+  Bag 1 - Min: -5.18, Max: 3.81
+  Bag 2 - Min: -4.71, Max: 4.62
+Dimension 74:
+  Bag 1 - Min: -4.70, Max: 6.56
+  Bag 2 - Min: -8.36, Max: 6.81
+Dimension 75:
+  Bag 1 - Min: -3.12, Max: 3.09
+  Bag 2 - Min: -3.21, Max: 3.20
+Dimension 76:
+  Bag 1 - Min: -3.84, Max: 5.57
+  Bag 2 - Min: -4.11, Max: 4.66
+Dimension 77:
+  Bag 1 - Min: -5.73, Max: 6.22
+  Bag 2 - Min: -5.98, Max: 5.65
+Dimension 78:
+  Bag 1 - Min: -2.91, Max: 3.37
+  Bag 2 - Min: -3.71, Max: 2.56
+Dimension 79:
+  Bag 1 - Min: -4.39, Max: 4.30
+  Bag 2 - Min: -5.29, Max: 4.41
+Dimension 80:
+  Bag 1 - Min: -5.97, Max: 4.64
+  Bag 2 - Min: -5.32, Max: 5.44
+Dimension 81:
+  Bag 1 - Min: -2.50, Max: 2.86
+  Bag 2 - Min: -3.38, Max: 3.12
+Dimension 82:
+  Bag 1 - Min: -5.27, Max: 5.11
+  Bag 2 - Min: -4.55, Max: 4.76
+Dimension 83:
+  Bag 1 - Min: -5.78, Max: 4.64
+  Bag 2 - Min: -11.34, Max: 8.87
+Dimension 84:
+  Bag 1 - Min: -2.48, Max: 2.77
+  Bag 2 - Min: -3.91, Max: 3.64
+Dimension 85:
+  Bag 1 - Min: -2.93, Max: 3.22
+  Bag 2 - Min: -3.51, Max: 3.38
+Dimension 86:
+  Bag 1 - Min: -2.47, Max: 2.84
+  Bag 2 - Min: -3.28, Max: 2.72
+Dimension 87:
+  Bag 1 - Min: -4.21, Max: 2.40
+  Bag 2 - Min: -3.07, Max: 3.77
+Dimension 88:
+  Bag 1 - Min: -3.39, Max: 3.02
+  Bag 2 - Min: -3.39, Max: 3.30
+Dimension 89:
+  Bag 1 - Min: -2.87, Max: 2.55
+  Bag 2 - Min: -3.43, Max: 2.62
+Dimension 90:
+  Bag 1 - Min: -2.66, Max: 2.20
+  Bag 2 - Min: -3.56, Max: 2.86
+Dimension 91:
+  Bag 1 - Min: -3.19, Max: 2.53
+  Bag 2 - Min: -3.46, Max: 3.50
+Dimension 92:
+  Bag 1 - Min: -2.75, Max: 2.68
+  Bag 2 - Min: -2.77, Max: 2.96
+Dimension 93:
+  Bag 1 - Min: -2.05, Max: 2.44
+  Bag 2 - Min: -2.52, Max: 3.64
+Dimension 94:
+  Bag 1 - Min: -3.35, Max: 3.00
+  Bag 2 - Min: -3.30, Max: 3.81
+Dimension 95:
+  Bag 1 - Min: -2.81, Max: 2.65
+  Bag 2 - Min: -2.76, Max: 3.18
+Dimension 96:
+  Bag 1 - Min: -2.44, Max: 2.64
+  Bag 2 - Min: -3.85, Max: 3.21
+Dimension 97:
+  Bag 1 - Min: -2.81, Max: 3.09
+  Bag 2 - Min: -3.24, Max: 3.36
+Dimension 98:
+  Bag 1 - Min: -2.56, Max: 2.56
+  Bag 2 - Min: -3.07, Max: 2.70
+Dimension 99:
+  Bag 1 - Min: -3.67, Max: 2.32
+  Bag 2 - Min: -2.54, Max: 3.73
+Dimension 100:
+  Bag 1 - Min: -3.06, Max: 2.90
+  Bag 2 - Min: -3.31, Max: 3.37
+Dimension 101:
+  Bag 1 - Min: -2.60, Max: 2.50
+  Bag 2 - Min: -2.93, Max: 2.69
+Dimension 102:
+  Bag 1 - Min: -2.51, Max: 2.15
+  Bag 2 - Min: -3.90, Max: 2.84
+Dimension 103:
+  Bag 1 - Min: -3.07, Max: 2.58
+  Bag 2 - Min: -3.41, Max: 3.44
+Dimension 104:
+  Bag 1 - Min: -2.62, Max: 2.77
+  Bag 2 - Min: -2.71, Max: 2.88
+Dimension 105:
+  Bag 1 - Min: -1.94, Max: 2.34
+  Bag 2 - Min: -2.43, Max: 3.66
+Dimension 106:
+  Bag 1 - Min: -3.22, Max: 2.99
+  Bag 2 - Min: -3.36, Max: 3.72
+Dimension 107:
+  Bag 1 - Min: -2.63, Max: 2.61
+  Bag 2 - Min: -2.74, Max: 3.10
+Dimension 108:
+  Bag 1 - Min: -1.51, Max: 1.07
+  Bag 2 - Min: -1.32, Max: 1.39
+Dimension 109:
+  Bag 1 - Min: -0.67, Max: 2.24
+  Bag 2 - Min: -1.84, Max: 2.63
+Dimension 110:
+  Bag 1 - Min: -3.39, Max: 2.93
+  Bag 2 - Min: -4.52, Max: 1.76
+Dimension 111:
+  Bag 1 - Min: -0.61, Max: 1.41
+  Bag 2 - Min: -1.22, Max: 1.41
+Dimension 112:
+  Bag 1 - Min: -0.69, Max: 3.00
+  Bag 2 - Min: -1.66, Max: 3.00
+Dimension 113:
+  Bag 1 - Min: -4.57, Max: 1.31
+  Bag 2 - Min: -4.03, Max: 1.65
+Dimension 114:
+  Bag 1 - Min: -1.85, Max: 0.76
+  Bag 2 - Min: -1.46, Max: 1.22
+Dimension 115:
+  Bag 1 - Min: -2.13, Max: 1.69
+  Bag 2 - Min: -3.53, Max: 1.85
+Dimension 116:
+  Bag 1 - Min: -1.89, Max: 3.30
+  Bag 2 - Min: -2.26, Max: 3.15
+Dimension 117:
+  Bag 1 - Min: -0.64, Max: 1.44
+  Bag 2 - Min: -0.96, Max: 1.82
+Dimension 118:
+  Bag 1 - Min: -2.03, Max: 1.94
+  Bag 2 - Min: -3.57, Max: 1.83
+Dimension 119:
+  Bag 1 - Min: -2.04, Max: 3.06
+  Bag 2 - Min: -3.65, Max: 3.77
+Dimension 120:
+  Bag 1 - Min: -1.51, Max: 1.07
+  Bag 2 - Min: -1.32, Max: 1.39
+Dimension 121:
+  Bag 1 - Min: -0.67, Max: 2.24
+  Bag 2 - Min: -1.84, Max: 2.63
+Dimension 122:
+  Bag 1 - Min: -3.39, Max: 2.93
+  Bag 2 - Min: -4.52, Max: 1.76
+Dimension 123:
+  Bag 1 - Min: -0.61, Max: 1.41
+  Bag 2 - Min: -1.22, Max: 1.41
+Dimension 124:
+  Bag 1 - Min: -0.69, Max: 3.00
+  Bag 2 - Min: -1.66, Max: 3.00
+Dimension 125:
+  Bag 1 - Min: -4.57, Max: 1.31
+  Bag 2 - Min: -4.03, Max: 1.65
+Dimension 126:
+  Bag 1 - Min: -1.85, Max: 0.76
+  Bag 2 - Min: -1.46, Max: 1.22
+Dimension 127:
+  Bag 1 - Min: -2.13, Max: 1.69
+  Bag 2 - Min: -3.53, Max: 1.85
+Dimension 128:
+  Bag 1 - Min: -1.89, Max: 3.30
+  Bag 2 - Min: -2.26, Max: 3.15
+Dimension 129:
+  Bag 1 - Min: -0.64, Max: 1.44
+  Bag 2 - Min: -0.96, Max: 1.82
+Dimension 130:
+  Bag 1 - Min: -2.03, Max: 1.94
+  Bag 2 - Min: -3.57, Max: 1.83
+Dimension 131:
+  Bag 1 - Min: -2.04, Max: 3.06
+  Bag 2 - Min: -3.65, Max: 3.77
+Dimension 132:
+  Bag 1 - Min: 0.00, Max: 2.60
+  Bag 2 - Min: 0.00, Max: 2.60

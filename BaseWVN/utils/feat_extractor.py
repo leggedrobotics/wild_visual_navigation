@@ -336,6 +336,7 @@ def compute_phy_mask(img:torch.Tensor,
     """
 
     if mode !="fixed":
+        preserved=confidence_threshold
         confidence_threshold=None
     # in online mode, no need to use extract again, just input these outputs
     trans_img=kwargs.get("trans_img",None)
@@ -368,18 +369,29 @@ def compute_phy_mask(img:torch.Tensor,
                 # Flatten the loss_reco to fit the GMM
                 loss_reco_flat = loss_reco.flatten().detach().cpu().numpy().reshape(-1, 1)
                 
+                # fit a 1D GMM with k=1
+                gmm_k1 = GaussianMixture(n_components=1, random_state=0)
+                gmm_k1.fit(loss_reco_flat)
+                
                 # Fit a 1D GMM with k=2
-                gmm = GaussianMixture(n_components=2, random_state=0)
-                gmm.fit(loss_reco_flat)
+                gmm_k2 = GaussianMixture(n_components=2, random_state=0)
+                gmm_k2.fit(loss_reco_flat)
                 
-                # Predict the clusters for each data point (loss value)
-                gmm_labels = gmm.predict(loss_reco_flat)
-                # Assume the cluster with the larger mean loss is the unconfident one
-                unconfident_cluster = gmm.means_.argmax()
-                
-                # Create a mask from GMM predictions
-                unconf_mask = (gmm_labels == unconfident_cluster).reshape(H, W)
-                unconf_mask=torch.from_numpy(unconf_mask).to(img.device)
+                # Compare the losses
+                if abs(gmm_k1.lower_bound_ - gmm_k2.lower_bound_)<0.1:
+                    # single gaussian distribution, use the confidence threshold
+                    # std factor need tuning
+                    unconf_mask=confidence<preserved
+                    unconf_mask=unconf_mask.to(img.device)
+                else:
+                    # Predict the clusters for each data point (loss value)
+                    gmm_labels = gmm_k2.predict(loss_reco_flat)
+                    # Assume the cluster with the larger mean loss is the unconfident one
+                    unconfident_cluster = gmm_k2.means_.argmax()
+                    
+                    # Create a mask from GMM predictions
+                    unconf_mask = (gmm_labels == unconfident_cluster).reshape(H, W)
+                    unconf_mask=torch.from_numpy(unconf_mask).to(img.device)
             elif mode=="gmm_all":
                 data=loss_reco_raw.detach().cpu().numpy()
                 data_reduced = data[:,:10]
