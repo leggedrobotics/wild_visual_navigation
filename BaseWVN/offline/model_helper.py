@@ -294,7 +294,7 @@ def create_dataset_from_nodes(param:ParamCollection,nodes:List[MainNode],feat_ex
         img=node.image.to(param.run.device)
         if fake_phy:
             # fake phy mask using maunally assigned values
-            if node.timestamp-first_timestamp<90:
+            if node.timestamp<1670683306.890737:
                 fake_val=0.8
             else:
                 fake_val=0.4

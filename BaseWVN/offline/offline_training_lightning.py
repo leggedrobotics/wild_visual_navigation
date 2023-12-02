@@ -288,7 +288,7 @@ def train_and_evaluate(param:ParamCollection):
             from tqdm import tqdm
             frames = []
             i=0 # channel index
-            use_conf_mask=True
+            use_conf_mask=False
             process_option = param.offline.process_option
             with rosbag.Bag(param.offline.img_bag_path, 'r') as bag:
                 total_messages = bag.get_message_count(topic_filters=[param.roscfg.camera_topic])
@@ -322,13 +322,28 @@ def train_and_evaluate(param:ParamCollection):
                                     -1,
                                     time=model.time,
                                     param=param,
-                                    use_conf_mask=use_conf_mask)
+                                    use_conf_mask=False)
                     trans_img=out_dict["trans_img"].detach()
                     output_phy=out_dict["output_phy"].detach()
                     overlay_img=plot_overlay_image(trans_img, overlay_mask=output_phy, channel=i,alpha=1.0)
                     ori_img=plot_overlay_image(trans_img)
+                    
+                    out_dict=compute_phy_mask(img,feat_extractor,
+                                    model.model,
+                                    model.loss_fn,
+                                    param.loss.confidence_threshold,
+                                    param.loss.confidence_mode,
+                                    False,
+                                    -1,
+                                    time=model.time,
+                                    param=param,
+                                    use_conf_mask=True)
+                    trans_img=out_dict["trans_img"].detach()
+                    output_phy=out_dict["output_phy"].detach()
+                    overlay_img_wm=plot_overlay_image(trans_img, overlay_mask=output_phy, channel=i,alpha=1.0)
+                    
                     # Convert back to OpenCV image and store
-                    frame = np.concatenate((ori_img,overlay_img), axis=1)
+                    frame = np.concatenate((ori_img,overlay_img,overlay_img_wm), axis=1)
                     frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
                     # frames.append(frame)
                     # Initialize video writer with the first frame's size

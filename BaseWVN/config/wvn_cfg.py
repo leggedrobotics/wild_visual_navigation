@@ -116,8 +116,8 @@ class ParamCollection(Serializable):
 
     @dataclass
     class LossParams:
-        w_pred: float = 0.999
-        w_reco: float = 0.001
+        w_pred: float = 0.5
+        w_reco: float = 0.5
         method: str = "running_mean"
         confidence_std_factor: float = 1.0
         confidence_threshold: float = 0.5
@@ -202,7 +202,7 @@ class ParamCollection(Serializable):
     
     @dataclass
     class OfflineParams:
-        mode:str='train'
+        mode:str='test'
         env:str='snow'
         reload_model:bool=False
         use_online_ckpt:bool=False
@@ -216,8 +216,8 @@ class ParamCollection(Serializable):
         traindata_option:str= 'each_full' # 'each_full' or 'each_partial' or 'all_full' or 'all_partial'
         
         test_images:bool=False
-        test_nodes:bool=True
-        test_video:bool=False
+        test_nodes:bool=False
+        test_video:bool=True
         process_option:str='all' # 'all' or 'first_half' or 'first_100
         
         random_datasample:Tuple[bool,int]=(False,40)
