@@ -1,6 +1,3 @@
-""" 
-Main node to process ros messages, publish the relevant topics, train the model...
- """
 from BaseWVN.utils import *
 from Phy_Decoder import initialize_models,prepare_padded_input,RNNInputBuffer
 
@@ -25,10 +22,15 @@ class PhyDecoder(NodeForROS):
     def __init__(self):
         super().__init__()
         
+        original_version_path='/home/chen/Phy_Decoder/Phy_Decoder/models/model_fric_RNN_parallel_InputWidth341_weighted_None_2023_10_26_1146.pth'
+        noise0_1_version_path='/home/chen/Phy_Decoder/Phy_Decoder/models/model_fric_RNN_parallel_InputWidth341_weighted_None_2023_12_03_2037.pth'
+        gym_noise_version_path='/home/chen/Phy_Decoder/Phy_Decoder/models/model_fric_RNN_parallel_InputWidth341_weighted_None_2023_12_03_1725.pth'
         # Init for PHYSICS DECODERs
         self.step=0
         self.env_num=1
-        self.fric_predictor,self.stiff_predictor,self.predictor_cfg=initialize_models()
+        self.fric_predictor,self.stiff_predictor,self.predictor_cfg=initialize_models(fric_model_path=original_version_path)
+        self.fric_predictor_noise0_1,self.stiff_predictor_noise0_1,self.predictor_cfg_noise0_1=initialize_models(fric_model_path=noise0_1_version_path)
+        self.fric_predictor_gym_noise,self.stiff_predictor_gym_noise,self.predictor_cfg_gym_noise=initialize_models(fric_model_path=gym_noise_version_path)
         self.fric_hidden = self.fric_predictor.init_hidden(self.env_num)
         self.stiff_hidden = self.stiff_predictor.init_hidden(self.env_num)
         self.input_buffers = {0: RNNInputBuffer()}
@@ -70,12 +72,15 @@ class PhyDecoder(NodeForROS):
 
         # Results publisher
         phy_decoder_pub=rospy.Publisher('/vd_pipeline/phy_decoder_out', PhyDecoderOutput, queue_size=10)
+        phy_decoder_pub_noise0_1=rospy.Publisher('/vd_pipeline/phy_decoder_out_noise0_1', PhyDecoderOutput, queue_size=10)
+        phy_decoder_pub_gym_noise=rospy.Publisher('/vd_pipeline/phy_decoder_out_gym_noise', PhyDecoderOutput, queue_size=10)
         marker_array_pub = rospy.Publisher('/vd_pipeline/visualization_planes', MarkerArray, queue_size=10)
         # stamped_debug_info_pub=rospy.Publisher('/stamped_debug_info', StampedFloat32MultiArray, queue_size=10)
         # Fill in handler
         self.decoder_handler['phy_decoder_pub']=phy_decoder_pub
         self.decoder_handler['marker_planes_pub']=marker_array_pub
-    
+        self.decoder_handler['phy_decoder_pub_noise0_1']=phy_decoder_pub_noise0_1
+        self.decoder_handler['phy_decoder_pub_gym_noise']=phy_decoder_pub_gym_noise
         
     def state_callback(self, anymal_state_msg:AnymalState, phy_decoder_input_msg:Float32MultiArray):
         """ 
@@ -168,9 +173,10 @@ class PhyDecoder(NodeForROS):
             phy_decoder_input = torch.tensor(phy_decoder_input_msg.data, device=self.device).unsqueeze(0)
             obs, hidden = torch.split(phy_decoder_input, [341, 100], dim=1)
             input_data=obs[:,:341]
-            # debug
-            # foot_scan=obs[:,133:341]
-            # mean_foot_scan=torch.mean(foot_scan)
+            # block proprio
+            # input_data[:,0:133]=0
+            # block height scan
+            # input_data[:,133:341]=0
             padded_inputs = prepare_padded_input(input_data, self.input_buffers, self.step, self.env_num)    
             padded_input = torch.stack(padded_inputs, dim=0)
             if self.predictor_cfg['reset_hidden_each_epoch']:
@@ -178,19 +184,39 @@ class PhyDecoder(NodeForROS):
                 self.stiff_hidden = self.stiff_predictor.init_hidden(self.env_num)
             with torch.no_grad():
                 # Predict using the friction predictor
-                fric_pred, self.fric_hidden = self.fric_predictor.get_unnormalized_recon(padded_input, self.fric_hidden)           
+                fric_pred, _ = self.fric_predictor.get_unnormalized_recon(padded_input, self.fric_hidden)           
                 fric_pred = torch.clamp(fric_pred, min=0, max=1)
+                
+                fric_pred_noise0_1, _ = self.fric_predictor_noise0_1.get_unnormalized_recon(padded_input, self.fric_hidden)
+                fric_pred_noise0_1=torch.clamp(fric_pred_noise0_1, min=0, max=1)
+                
+                fric_pred_gym_noise, _ = self.fric_predictor_gym_noise.get_unnormalized_recon(padded_input, self.fric_hidden)
+                fric_pred_gym_noise=torch.clamp(fric_pred_gym_noise, min=0, max=1)
                 # Predict using the stiffness predictor
-                stiff_pred, self.stiff_hidden = self.stiff_predictor.get_unnormalized_recon(padded_input, self.stiff_hidden)
+                stiff_pred, _ = self.stiff_predictor.get_unnormalized_recon(padded_input, self.stiff_hidden)
                 stiff_pred = torch.clamp(stiff_pred, min=1, max=10)
+                
+                # TODO
+                stiff_pred_noise0_1=stiff_pred
+                stiff_pred_gym_noise=stiff_pred
+                
             self.input_buffers[0].add(input_data[0].unsqueeze(0))
             # pub fric and stiff together
             new_priv=torch.cat([fric_pred,stiff_pred],dim=-1)
             new_priv=new_priv[:,-1,:].squeeze(0).cpu().numpy()
             msg.prediction=new_priv
-
             # Publish results
             self.decoder_handler['phy_decoder_pub'].publish(msg)
+            
+            noise_priv=torch.cat([fric_pred_noise0_1,stiff_pred_noise0_1],dim=-1)
+            noise_priv=noise_priv[:,-1,:].squeeze(0).cpu().numpy()
+            msg.prediction=noise_priv
+            self.decoder_handler['phy_decoder_pub_noise0_1'].publish(msg)
+            
+            gym_priv=torch.cat([fric_pred_gym_noise,stiff_pred_gym_noise],dim=-1)
+            gym_priv=gym_priv[:,-1,:].squeeze(0).cpu().numpy()
+            msg.prediction=gym_priv
+            self.decoder_handler['phy_decoder_pub_gym_noise'].publish(msg)
             if "debug" in self.mode:
                 self.visualize_plane(msg)
             
@@ -284,7 +310,7 @@ class PhyDecoder(NodeForROS):
         return suc
  
 if __name__ == "__main__":
-    node_name = "Phy_decoder_node"
+    node_name = "Phy_decoder_node_test"
     rospy.set_param("/use_sim_time", True)
     rospy.init_node(node_name)
     phy_node = PhyDecoder()

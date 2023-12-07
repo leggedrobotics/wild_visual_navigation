@@ -26,7 +26,10 @@ def publish_transform():
     static_transformStamped.transform.rotation.z = -0.072
     static_transformStamped.transform.rotation.w = 0.0
     
-
+    x, y, z = 0.3537, 0.0, 0.1634
+    translation_matrix = tf.transformations.translation_matrix((x, y, z))
+    rotation_matrix_in_parent_wf = tf.transformations.quaternion_matrix((0.997,0.0,-0.072,0.0))
+    rotation_matrix_in_parent_wf=translation_matrix@rotation_matrix_in_parent_wf
    
 
     static_transformStamped_2 = TransformStamped()
@@ -46,6 +49,17 @@ def publish_transform():
     static_transformStamped_2.transform.rotation.z = quaternion[2]
     static_transformStamped_2.transform.rotation.w = quaternion[3]
 
+    x,y,z=0.0,0.0,0.0
+    translation_matrix = tf.transformations.translation_matrix((x, y, z))
+    roll, pitch, yaw = -1.5708, 0.0, -1.5708
+    quaternion = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
+    rotation_matrix_in_parent_fo = tf.transformations.quaternion_matrix(quaternion)
+    rotation_matrix_in_parent_fo=translation_matrix@rotation_matrix_in_parent_fo
+    
+    ok=rotation_matrix_in_parent_wf@rotation_matrix_in_parent_fo
+    print("hdr front")
+    print(ok)
+    
     T_0=np.array([[-1,0,0,0],
                   [0,-1,0,0],
                   [0,0,1,0],
@@ -224,10 +238,10 @@ def publish_transform():
     ok=rotation_matrix_in_parent_wf@rotation_matrix_in_parent_fo
     print(ok)
     
-    transformation_matrix =np.array([[ 1.22464680e-16, -1.11022302e-16, -1.00000000e+00,  -4.04490000e-01],
-                                            [ 1.00000000e+00,  2.22044605e-16,  1.14423775e-17,  -5.15576302e-19],
-                                            [ 0.00000000e+00 ,-1.00000000e+00,  0.00000000e+00 , 2.05000000e-02],
-                                            [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00 , 1.00000000e+00]])
+    transformation_matrix =np.array([[-3.63509055e-06 , 1.43680318e-01 , 9.89624154e-01  ,3.53700000e-01],
+                                            [ 1.00000000e+00, -1.34923184e-11 , 3.67320510e-06  ,0.00000000e+00],
+                                            [ 5.27780629e-07 , 9.89624154e-01 ,-1.43680318e-01 , 1.63400000e-01],
+                                            [ 0.00000000e+00 , 0.00000000e+00 , 0.00000000e+00 , 1.00000000e+00]])
     static_transformStamped_7 = TransformStamped()
 
     # Extract translation from the transformation matrix

@@ -84,6 +84,8 @@ class NodeForROS:
             self.camera_in_base=self.param.roscfg.rear_wide_angle_camera_in_base
         elif "wide_angle" in self.camera_topic and "front" in self.camera_topic:
             self.camera_in_base=self.param.roscfg.front_wide_angle_camera_in_base
+        elif 'hdr' in self.camera_topic:
+            self.camera_in_base=self.param.roscfg.front_hdr_camera_in_base
     
     
     def query_tf(self, parent_frame: str, child_frame: str, stamp: Optional[rospy.Time] = None, from_message: Optional[AnymalState] = None):

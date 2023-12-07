@@ -118,7 +118,7 @@ class DecoderLightning(pl.LightningModule):
         return loss
     
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.params.optimizer.lr)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.params.optimizer.lr,weight_decay=self.params.optimizer.weight_decay)
         return optimizer
 
 
@@ -216,7 +216,7 @@ def train_and_evaluate(param:ParamCollection):
         feat_dim=sample_input.shape[-1]
         label_dim=sample_output.shape[-1]
         
-        trainer = Trainer(accelerator="gpu", devices=[0], logger=neptune_logger, max_epochs=max_epochs,log_every_n_steps=1)
+        trainer = Trainer(accelerator="gpu", devices=[0], logger=neptune_logger, max_epochs=max_epochs,log_every_n_steps=1,limit_train_batches=0.5,limit_val_batches=0.5)
         trainer.fit(model, train_loader, val_loader)
         torch.save({
                     "time": model.time,

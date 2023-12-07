@@ -33,6 +33,8 @@ class ParamCollection(Serializable):
         phy_decoder_output_topic:str='/vd_pipeline/phy_decoder_out'
 
         camera_bag_name: str='jetson'
+        # camera_topic: str='/hdr_camera/image_raw/compressed'
+        # camera_info_topic: str='/hdr_camera/camera_info'
         # camera_topic: str='/v4l2_camera/image_raw_throttle/compressed'
         # camera_info_topic: str='/v4l2_camera/camera_info_throttle'
         # camera_topic: str='/wide_angle_camera_rear/image_color_rect/compressed'
@@ -49,6 +51,11 @@ class ParamCollection(Serializable):
         robot_width: float=0.530
         robot_max_velocity: float=1.2
         foot_radius: float=0.03269
+        front_hdr_camera_in_base= np.array([[-3.63509055e-06 , 1.43680318e-01 , 9.89624154e-01  ,3.53700000e-01],
+                                            [ 1.00000000e+00, -1.34923184e-11 , 3.67320510e-06  ,0.00000000e+00],
+                                            [ 5.27780629e-07 , 9.89624154e-01 ,-1.43680318e-01 , 1.63400000e-01],
+                                            [ 0.00000000e+00 , 0.00000000e+00 , 0.00000000e+00 , 1.00000000e+00]])
+        
         rear_hdr_camera_in_base= np.array([[ 3.63509049e-06, -1.43680305e-01, -9.89624138e-01,-3.53700000e-01],
                                         [-9.99999820e-01,  1.34923159e-11, -3.67320444e-06,0.00000000e+00],
                                         [ 5.27780582e-07,  9.89623958e-01, -1.43680305e-01,1.63400000e-01],
@@ -97,7 +104,8 @@ class ParamCollection(Serializable):
     @dataclass
     class OptimizerParams:
         name: str = "ADAM"
-        lr: float = 0.001
+        lr: float = 0.0001
+        weight_decay: float = 0.001
 
     optimizer: OptimizerParams = OptimizerParams()
 
@@ -116,10 +124,10 @@ class ParamCollection(Serializable):
 
     @dataclass
     class LossParams:
-        w_pred: float = 0.5
-        w_reco: float = 0.5
+        w_pred: float = 0.1
+        w_reco: float = 0.9
         method: str = "running_mean"
-        confidence_std_factor: float = 3.0
+        confidence_std_factor: float = 1.0
         confidence_threshold: float = 0.5
         confidence_mode: str = "gmm_1d" # gmm_1d,gmm_all,fixed
         log_enabled: bool = False
@@ -234,7 +242,8 @@ class ParamCollection(Serializable):
         plot_nodes:bool=True
         plot_masks_compare:bool=False
         
-        fake_phy:bool=False
+        fake_phy:bool=True
+        augment:bool=True
         
         analyze_path:str='results/analyze'
     

@@ -18,6 +18,14 @@ import torch.nn.functional as F
 from torchvision.transforms.functional import to_tensor
 from segment_anything import SamPredictor, sam_model_registry
 from seem_base import inference,init_model
+from torchvision import transforms
+# Define the transformations
+transform_pipeline = transforms.Compose([
+    transforms.RandomApply([transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5)], p=0.5),
+    transforms.RandomApply([transforms.GaussianBlur(kernel_size=(5, 5), sigma=(0.1, 2))], p=0.5),
+    # Add any other tensor transformations here if needed
+])
+
 def load_data(file):
     """Load data from the data folder."""
     path=os.path.join(WVN_ROOT_DIR, file)
@@ -294,7 +302,7 @@ def create_dataset_from_nodes(param:ParamCollection,nodes:List[MainNode],feat_ex
         img=node.image.to(param.run.device)
         if fake_phy:
             # fake phy mask using maunally assigned values
-            if node.timestamp<1670683306.890737:
+            if node.timestamp<1670683304:
                 fake_val=0.8
             else:
                 fake_val=0.4
@@ -304,10 +312,18 @@ def create_dataset_from_nodes(param:ParamCollection,nodes:List[MainNode],feat_ex
             # Assign fake val to non-NaN positions
             node.supervision_mask[non_nan_mask] = fake_val
             
+            if node.timestamp>1670683300 and node.timestamp<1670683301:
+                H,W=node.supervision_mask.shape[-2:]
+                end_idx= 2 * H // 3
+                non_nan_mask_bottom_third =~torch.isnan(node.supervision_mask[:,:end_idx,:])
+                node.supervision_mask[:,:end_idx,:][non_nan_mask_bottom_third] = 0.4
                 
-        if param.feat.feature_type!=node.feature_type:
+                
+        if param.feat.feature_type!=node.feature_type or param.offline.augment:
             B,C,H,W=img.shape
             feat_extractor.set_original_size(W,H)
+            if param.offline.augment:
+                img=transform_pipeline(img)
             _,_,trans_img,compressed_feats=feat_extractor.extract(img)
             feat_input,H,W=concat_feat_dict(compressed_feats)
             feat_input=feat_input.reshape(1,H,W,-1)
