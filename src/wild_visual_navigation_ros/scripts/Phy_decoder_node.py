@@ -71,11 +71,12 @@ class PhyDecoder(NodeForROS):
         # Results publisher
         phy_decoder_pub=rospy.Publisher('/vd_pipeline/phy_decoder_out', PhyDecoderOutput, queue_size=10)
         marker_array_pub = rospy.Publisher('/vd_pipeline/visualization_planes', MarkerArray, queue_size=10)
+        test_pub=rospy.Publisher('/vd_pipeline/test', Float32, queue_size=10)
         # stamped_debug_info_pub=rospy.Publisher('/stamped_debug_info', StampedFloat32MultiArray, queue_size=10)
         # Fill in handler
         self.decoder_handler['phy_decoder_pub']=phy_decoder_pub
         self.decoder_handler['marker_planes_pub']=marker_array_pub
-    
+        self.decoder_handler['test_pub']=test_pub
         
     def state_callback(self, anymal_state_msg:AnymalState, phy_decoder_input_msg:Float32MultiArray):
         """ 
@@ -169,8 +170,14 @@ class PhyDecoder(NodeForROS):
             obs, hidden = torch.split(phy_decoder_input, [341, 100], dim=1)
             input_data=obs[:,:341]
             # debug
+            # if not foot_contacts[0]:
+            #     A=1
             # foot_scan=obs[:,133:341]
             # mean_foot_scan=torch.mean(foot_scan)
+            # mean_lf_scan=torch.mean(foot_scan[:,:52])
+            # testmsg=Float32()
+            # testmsg.data=mean_lf_scan
+            # self.decoder_handler['test_pub'].publish(testmsg)
             padded_inputs = prepare_padded_input(input_data, self.input_buffers, self.step, self.env_num)    
             padded_input = torch.stack(padded_inputs, dim=0)
             if self.predictor_cfg['reset_hidden_each_epoch']:

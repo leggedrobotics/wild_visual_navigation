@@ -103,7 +103,9 @@ def plot_heatmap(data, title, vmin, vmax,folder, timestep_limit=6000):
 
 bag_feature_pairs = [
     ('/media/chen/UDisk1/vis_rosbag/snow/2022-12-10-15-40-10_anymal-d020-lpc_mission_0.bag', 'SnowDodo'),
+    ('/media/chen/UDisk1/vis_rosbag/single_test/2023-09-20-09-43-57_anymal-d020-lpc_0-001.bag','HikingDodo'),
     ('/media/chen/UDisk1/catkin_rosbag/2021-05-03-19-18-21.bag', 'FoamCC'),
+    
     # Add more bags as needed
 ]
 
