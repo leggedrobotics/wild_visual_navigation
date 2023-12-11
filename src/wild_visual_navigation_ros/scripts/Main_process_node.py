@@ -471,7 +471,10 @@ class MainProcess(NodeForROS):
                 if self.param.general.online_training:
                     self.manager.save_ckpt(self.param.general.model_path,f"checkpoint_{step}.pt")
                 # update real-time pred once
-                self.update_prediction(self.manager._vis_main_node)
+                # self.update_prediction(self.manager._vis_main_node)
+                linodes=self.manager._main_graph.get_valid_nodes()
+                if len(linodes)>0:
+                    self.update_prediction(linodes[0])
             i += 1
             time.sleep(1/self.param.thread.learning_rate)
             

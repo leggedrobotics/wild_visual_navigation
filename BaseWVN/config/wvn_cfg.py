@@ -17,7 +17,7 @@ class ParamCollection(Serializable):
         online_training: bool=True
         resume_training: bool=False
         resume_training_path: str='model/last_checkpoint.pt'
-        plot_overlay_online: bool=False
+        plot_overlay_online: bool=True
         model_path: str='model'
         # ... [rest of the attributes]
     general: GeneralParams=GeneralParams()
@@ -37,10 +37,10 @@ class ParamCollection(Serializable):
         # camera_info_topic: str='/hdr_camera/camera_info'
         # camera_topic: str='/v4l2_camera/image_raw_throttle/compressed'
         # camera_info_topic: str='/v4l2_camera/camera_info_throttle'
-        # camera_topic: str='/wide_angle_camera_rear/image_color_rect/compressed'
-        # camera_info_topic: str='/wide_angle_camera_rear/camera_info'
-        camera_topic: str='/wide_angle_camera_front/image_color_rect/compressed'
-        camera_info_topic: str='/wide_angle_camera_front/camera_info'
+        camera_topic: str='/wide_angle_camera_rear/image_color_rect/compressed'
+        camera_info_topic: str='/wide_angle_camera_rear/camera_info'
+        # camera_topic: str='/wide_angle_camera_front/image_color_rect/compressed'
+        # camera_info_topic: str='/wide_angle_camera_front/camera_info'
 
         fixed_frame: str='odom'
         base_frame: str='base'
@@ -104,8 +104,8 @@ class ParamCollection(Serializable):
     @dataclass
     class OptimizerParams:
         name: str = "ADAM"
-        lr: float = 0.0001
-        weight_decay: float = 0.001
+        lr: float = 0.001 #0.0001
+        weight_decay: float = 0 #0.001
 
     optimizer: OptimizerParams = OptimizerParams()
 
@@ -124,8 +124,8 @@ class ParamCollection(Serializable):
 
     @dataclass
     class LossParams:
-        w_pred: float = 0.1
-        w_reco: float = 0.9
+        w_pred: float = 0.1 #0.1
+        w_reco: float = 0.9 #0.9
         method: str = "running_mean"
         confidence_std_factor: float = 1.0
         confidence_threshold: float = 0.5
@@ -210,7 +210,7 @@ class ParamCollection(Serializable):
     
     @dataclass
     class OfflineParams:
-        mode:str='test'
+        mode:str='train'
         env:str='snow'
         reload_model:bool=False
         use_online_ckpt:bool=False

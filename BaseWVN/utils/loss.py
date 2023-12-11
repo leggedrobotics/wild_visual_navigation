@@ -100,11 +100,11 @@ class PhyLoss(nn.Module):
         dim0 = tensor[:, 0]  # First dimension (already 0-1)--friction
         dim1 = tensor[:, 1]  # Second dimension (1-10)--stiffness
 
-        # Normalize the second dimension
-        min_val = 1.0  # Minimum value in the second dimension
-        max_val = 10.0  # Maximum value in the second dimension
-        dim1_normalized = (dim1 - min_val) / (max_val - min_val)
-
+        # # Normalize the second dimension
+        # min_val = 1.0  # Minimum value in the second dimension
+        # max_val = 10.0  # Maximum value in the second dimension
+        # dim1_normalized = (dim1 - min_val) / (max_val - min_val)
+        dim1_normalized=dim1/10.0
         # Combine the dimensions back into a tensor
         normalized_tensor = torch.stack((dim0, dim1_normalized), dim=1)
 

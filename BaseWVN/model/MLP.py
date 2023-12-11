@@ -24,6 +24,8 @@ class SimpleMLP(torch.nn.Module):
         # Checked data is correctly memory aligned and can be reshaped
         # If you change something in the dataloader make sure this is still working
         x = self.layers(x)
+        # scale the stiffness values by 10x, to make it easier for the network to learn
+        x[:,-1]=x[:,-1]*10
         return x
     
     
