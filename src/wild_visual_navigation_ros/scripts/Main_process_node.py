@@ -511,6 +511,8 @@ class MainProcess(NodeForROS):
         conf_mask=res_dict['conf_mask']
         pred_phy_mask=res_dict['output_phy']
         ori_phy_mask= node._supervision_mask.to(self.param.run.device)
+        
+        
         # calculate phy loss
         phy_loss_dict=compute_pred_phy_loss(img,conf_mask,pred_phy_mask=pred_phy_mask,ori_phy_mask=ori_phy_mask)
         with self.log_data["Lock"]:

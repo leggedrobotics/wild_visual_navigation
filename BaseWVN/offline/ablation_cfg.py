@@ -60,20 +60,20 @@ memory_cfg={
                 'offline.upload_error_stats_in_training':True
             }
         },
-        # {
-        #     'name': '3.retest_on_snow',
-        #     'reload_model': False,
-        #     'use_online_ckpt': False,
-        #     'dataset_folder': dataset_folder,
-        #     'test_only': True
-        # },
-        # {
-        #     'name': '4.directly_train_on_hiking',
-        #     'reload_model': False,
-        #     'use_online_ckpt': False,
-        #     'dataset_folder': dataset_folder,
-        #     'test_only': False
-        # }, 
+        {
+            'name': '3.retest_on_snow',
+            'reload_model': False,
+            'use_online_ckpt': False,
+            'dataset_folder': dataset_folder,
+            'test_only': True
+        },
+        {
+            'name': '4.directly_train_on_hiking',
+            'reload_model': False,
+            'use_online_ckpt': False,
+            'dataset_folder': dataset_folder,
+            'test_only': False
+        }, 
     ]
     }
 

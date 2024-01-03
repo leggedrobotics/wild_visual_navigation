@@ -23,10 +23,11 @@ print(torch.std(a))
 # g=np.clip(e,0,1)
 # v=[2,255,167,0]
 # print(min(v[:-1]))
-
+g=torch.rand((1,2,3))
+print(g[...,...])
 # cc=a.type(torch.float32)
 # print(a.max())
-
+print(torch.Tensor((g[0,0,0],g[0,1,1])))
 # dd=np.array([1,2,3])
 # ee=np.array([4,5,6])
 # print(dd+ee)

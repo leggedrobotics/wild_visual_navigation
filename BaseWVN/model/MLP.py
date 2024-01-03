@@ -108,6 +108,7 @@ class RndMLP(torch.nn.Module):
     def forward(self, x) -> torch.Tensor:
         target=self.target(x)
         pred=self.predictor(x)
+        pred[:,-1]=pred[:,-1]*10
         return target,pred
         
 class SeprndMLP(torch.nn.Module):

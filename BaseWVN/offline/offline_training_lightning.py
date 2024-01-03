@@ -29,7 +29,12 @@ class DecoderLightning(pl.LightningModule):
         loss_params=self.params.loss
         self.step=0
 
-        self.test_img=load_one_test_image(os.path.join(WVN_ROOT_DIR,params.offline.data_folder,'val',params.offline.env,params.offline.image_file))
+        try:
+            # Attempt to load the image from the 'val' directory
+            self.test_img = load_one_test_image(os.path.join(WVN_ROOT_DIR, params.offline.data_folder, 'val', params.offline.env, params.offline.image_file))
+        except FileNotFoundError:
+            # If the image is not found in the 'val' directory, try the 'train' directory
+            self.test_img = load_one_test_image(os.path.join(WVN_ROOT_DIR, params.offline.data_folder, 'train', params.offline.env, params.offline.image_file))
         B,C,H,W=self.test_img.shape
         self.feat_extractor=FeatureExtractor(device=self.params.run.device,
                                              segmentation_type=self.params.feat.segmentation_type,
@@ -77,7 +82,23 @@ class DecoderLightning(pl.LightningModule):
             self.log('over_conf_std',stats_dict['over_conf_std'])
             self.log('under_conf_mean',stats_dict['under_conf_mean'])
             self.log('under_conf_std',stats_dict['under_conf_std'])
-        
+        # if self.params.offline.plot_hist:
+        #     res_dict=compute_phy_mask(self.test_img,
+        #                             self.feat_extractor,
+        #                             self.model,
+        #                             self.loss_fn,
+        #                             self.params.loss.confidence_threshold,
+        #                             self.params.loss.confidence_mode,
+        #                             self.params.offline.plot_overlay,
+        #                             self.step,
+        #                             time=self.time,
+        #                             param=self.params)
+        #     conf_mask=res_dict['conf_mask']
+        #     loss_reco=res_dict['loss_reco']
+        #     loss_reco_raw=res_dict['loss_reco_raw']
+        #     conf_mask_raw=res_dict['conf_mask_raw']
+            
+        #     calculate_uncertainty_plot(loss_reco,conf_mask,all_reproj_masks=None,save_path=os.path.join(WVN_ROOT_DIR,self.params.offline.ckpt_parent_folder,self.time,'hist',f'trainstep_{self.step}_uncertainty_histogram.png'))
         if batch_idx==0:
             self.step+=1
         return loss
@@ -157,7 +178,7 @@ def train_and_evaluate(param:ParamCollection):
             tags=["offline",param.offline.env,param.general.name],
         )
         
-        max_epochs=3 #10
+        max_epochs=3 #8
         if "partial" in param.offline.traindata_option:
             if "each" in param.offline.traindata_option:
                 # load train and val data from online collected dataset (each batch is 100 samples from six nodes)
@@ -185,12 +206,15 @@ def train_and_evaluate(param:ParamCollection):
             
             # mimic online training fashion
             batch_size = 1
-            shuffle=True
+            shuffle=False
         elif "full" in param.offline.traindata_option:
             if "each" in param.offline.traindata_option:
                 # load train and val data from nodes_datafile (should include all pixels of supervision masks)
                 train_data_raw=load_data(os.path.join(param.offline.data_folder,"train",param.offline.env,param.offline.nodes_datafile))
-                val_data_raw=load_data(os.path.join(param.offline.data_folder,"val",param.offline.env,param.offline.nodes_datafile))
+                try:
+                    val_data_raw=load_data(os.path.join(param.offline.data_folder,"val",param.offline.env,param.offline.nodes_datafile))
+                except FileNotFoundError:
+                    val_data_raw=load_data(os.path.join(param.offline.data_folder,"train",param.offline.env,param.offline.nodes_datafile))
             elif "all" in param.offline.traindata_option:
                 train_data_hiking=load_data(os.path.join(param.offline.data_folder,"train",'hiking',param.offline.nodes_datafile))
                 train_data_snow=load_data(os.path.join(param.offline.data_folder,"train",'snow',param.offline.nodes_datafile))

@@ -426,6 +426,7 @@ def calculate_uncertainty_plot(all_losses:torch.Tensor,all_conf_masks:torch.Tens
     Calculate a histogram of the uncertainty values (losses) from reproj_masks(should be very certain)
     and from conf_masks
     """
+
     if not os.path.exists(os.path.dirname(save_path)):
         os.makedirs(os.path.dirname(save_path))
     # bin_size = 0.05
@@ -474,10 +475,10 @@ def calculate_uncertainty_plot(all_losses:torch.Tensor,all_conf_masks:torch.Tens
 
 
     # Add labels and title
-    plt.xlabel('Loss Value')
-    plt.ylabel('Frequency')
-    plt.title('Histogram of Uncertainty')
-    plt.legend()
+    plt.xlabel('Loss Value', fontsize=18)
+    plt.ylabel('Frequency', fontsize=18)
+    plt.title('Histogram of Uncertainty', fontsize=18)
+    plt.legend(fontsize=18)
     plt.grid(True)
     
     # Save the plot
@@ -607,14 +608,14 @@ def calculate_mask_values(mask):
 
 def overlay_values_on_section(frame, max_val, mean_val, start_x):
     font = cv2.FONT_HERSHEY_SIMPLEX
-    font_scale = 0.7
+    font_scale = 1.4
     font_thickness = 2
     text_color = (0, 0, 0)  # Black text
     outline_color = (255, 255, 255)  # White outline
-    outline_thickness = 4
+    outline_thickness = 8
 
     texts = [f"Max: {max_val:.2f}", f"Mean: {mean_val:.2f}"]
-    positions = [(start_x + 10, 60), (start_x + 10, 90)]  # Text positions
+    positions = [(start_x + 10, 110), (start_x + 10, 155)]  # Text positions
 
     for text, position in zip(texts, positions):
         # First, draw the outline
@@ -627,16 +628,16 @@ def overlay_values_on_section(frame, max_val, mean_val, start_x):
 
 def add_headers_to_frame(frame, headers, section_width):
     font = cv2.FONT_HERSHEY_SIMPLEX
-    font_scale = 1.0
+    font_scale = 2.0
     font_thickness = 2
     text_color = (0, 0, 0)  # Black text
     outline_color = (255, 255, 255)  # White outline
-    outline_thickness = 4
+    outline_thickness = 8
 
     for i, header in enumerate(headers):
         # Calculate the position of the header
         x_position = i * section_width + 10  # 10 pixels from the left edge of each section
-        y_position = 30  # 30 pixels from the top
+        y_position = 60  # 30 pixels from the top
 
         # First, draw the outline
         cv2.putText(frame, header, (x_position, y_position), font, font_scale, outline_color, outline_thickness, lineType=cv2.LINE_AA)

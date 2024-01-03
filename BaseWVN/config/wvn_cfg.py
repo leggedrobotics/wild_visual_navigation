@@ -17,7 +17,7 @@ class ParamCollection(Serializable):
         online_training: bool=True
         resume_training: bool=False
         resume_training_path: str='model/last_checkpoint.pt'
-        plot_overlay_online: bool=True
+        plot_overlay_online: bool=False
         model_path: str='model'
         # ... [rest of the attributes]
     general: GeneralParams=GeneralParams()
@@ -37,10 +37,10 @@ class ParamCollection(Serializable):
         # camera_info_topic: str='/hdr_camera/camera_info'
         # camera_topic: str='/v4l2_camera/image_raw_throttle/compressed'
         # camera_info_topic: str='/v4l2_camera/camera_info_throttle'
-        camera_topic: str='/wide_angle_camera_rear/image_color_rect/compressed'
-        camera_info_topic: str='/wide_angle_camera_rear/camera_info'
-        # camera_topic: str='/wide_angle_camera_front/image_color_rect/compressed'
-        # camera_info_topic: str='/wide_angle_camera_front/camera_info'
+        # camera_topic: str='/wide_angle_camera_rear/image_color_rect/compressed'
+        # camera_info_topic: str='/wide_angle_camera_rear/camera_info'
+        camera_topic: str='/wide_angle_camera_front/image_color_rect/compressed'
+        camera_info_topic: str='/wide_angle_camera_front/camera_info'
 
         fixed_frame: str='odom'
         base_frame: str='base'
@@ -104,8 +104,8 @@ class ParamCollection(Serializable):
     @dataclass
     class OptimizerParams:
         name: str = "ADAM"
-        lr: float = 0.001 #0.0001
-        weight_decay: float = 0 #0.001
+        lr: float = 0.0001 #0.0001 ,0.001
+        weight_decay: float = 0.001 #0.001 ,0
 
     optimizer: OptimizerParams = OptimizerParams()
 
@@ -210,7 +210,7 @@ class ParamCollection(Serializable):
     
     @dataclass
     class OfflineParams:
-        mode:str='train'
+        mode:str='test'
         env:str='snow'
         reload_model:bool=False
         use_online_ckpt:bool=False
@@ -220,7 +220,7 @@ class ParamCollection(Serializable):
         nodes_datafile:str='train_nodes.pt'
         image_file:str='image_buffer.pt'
         img_bag_path:str='/media/chen/UDisk1/vis_rosbag/snow/2022-12-10-15-40-10_anymal-d020-npc_mission_0.bag'
-        
+        # img_bag_path:str='/media/chen/Chen/rosbag_lee/2023-12-03-11-57-12_anymal-d020-npc_1-004.bag'
         traindata_option:str= 'each_full' # 'each_full' or 'each_partial' or 'all_full' or 'all_partial'
         
         test_images:bool=False
@@ -236,13 +236,13 @@ class ParamCollection(Serializable):
         SAM_ckpt:str='/media/chen/UDisk1/sam_vit_h_4b8939.pth'
         # SAM_ckpt='/media/chen/UDisk1/sam_hq_vit_h.pth'
         
-        plot_hist:bool=True
+        plot_hist:bool=False
         plot_tsne:bool=False
         plot_overlay:bool=True
         plot_nodes:bool=True
         plot_masks_compare:bool=False
         
-        fake_phy:bool=True
+        fake_phy:bool=False
         augment:bool=True
         
         analyze_path:str='results/analyze'

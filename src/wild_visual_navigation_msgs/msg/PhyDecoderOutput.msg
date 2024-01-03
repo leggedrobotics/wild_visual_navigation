@@ -4,6 +4,8 @@
 std_msgs/Header header
 geometry_msgs/Pose base_pose
 float32[] prediction
+float32[] prediction_var
+float32[] recon_loss
 geometry_msgs/Pose[] feet_poses
 bool[] feet_contact
 wild_visual_navigation_msgs/PlaneEdge[] feet_planes
