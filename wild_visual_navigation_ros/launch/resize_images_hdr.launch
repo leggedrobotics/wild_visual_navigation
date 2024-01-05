@@ -1,0 +1,14 @@
+<launch>
+  <!-- Launch the image_proc nodelet -->
+  <node pkg="nodelet" type="nodelet" name="standalone_nodelet" args="manager"/>
+  <node pkg="nodelet" type="nodelet" name="image_proc_nodelet_hdr" args="load image_proc/resize standalone_nodelet">
+    <remap from="camera_info" to="/hdr_camera/camera_info" />
+    <remap from="~camera_info" to="/hdr_camera_resize/camera_info" />
+    <remap from="image" to="/hdr_camera/image_color" />
+    <remap from="~image" to="/hdr_camera/image_color_resize" />
+    <param name="scale_width" value="0.2074077" />
+    <param name="scale_height" value="0.2074077" />
+  </node>
+  <node name="dynparam_width_hdr" pkg="dynamic_reconfigure" type="dynparam" args="set /image_proc_nodelet_hdr scale_width 0.2074077" />
+  <node name="dynparam_height_hdr" pkg="dynamic_reconfigure" type="dynparam" args="set /image_proc_nodelet_hdr scale_height 0.2074077" />
+</launch>

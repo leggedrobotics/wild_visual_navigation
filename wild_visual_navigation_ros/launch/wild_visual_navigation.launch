@@ -1,11 +1,12 @@
 <launch>
   <!-- Arguments -->
-  <arg name="camera"            default="wide_angle_front"/> <!-- alphasense, wide_angle_front, realsense_front, realsense_rear -->
+  <arg name="camera"            default="hdr"/> <!-- alphasense, wide_angle_front, realsense_front, realsense_rear, hdr -->
   <arg name="stack"             default="anybotics"/> <!-- rsl or anybotics  $(eval arg('camera') == 'wide_angle_front_resize')  $(eval arg('camera') == 'alphasense_resize') -->  
   <arg name="params_file"       default="$(find wild_visual_navigation_ros)/config/wild_visual_navigation/default.yaml"/>
   <arg name="overlay_images"    default="True"/>
   <arg name="resize_images_alphasense"     default="False"/>
-  <arg name="resize_images_wide_angle_front"     default="True"/>
+  <arg name="resize_images_wide_angle_front"     default="False"/>
+  <arg name="resize_images_hdr"     default="True"/>
   <arg name="reload_default_params"    default="False"/>
 
   <!-- Load parameters -->
@@ -30,7 +31,8 @@
   </node>
 
   <include if="$(arg resize_images_alphasense)" file="$(find wild_visual_navigation_ros)/launch/resize_images_alphasense.launch"/> 
-  <include if="$(arg resize_images_wide_angle_front)" file="$(find wild_visual_navigation_ros)/launch/resize_images_wide_angle_front.launch"/> 
+  <include if="$(arg resize_images_wide_angle_front)" file="$(find wild_visual_navigation_ros)/launch/resize_images_wide_angle_front.launch"/>
+  <include if="$(arg resize_images_hdr)" file="$(find wild_visual_navigation_ros)/launch/resize_images_hdr.launch"/>
 
   <!-- Nice visualization overlay-->
   <include if="$(arg overlay_images)" file="$(find wild_visual_navigation_ros)/launch/overlay_images.launch"/> 

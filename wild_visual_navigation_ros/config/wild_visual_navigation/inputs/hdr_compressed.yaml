@@ -1,0 +1,11 @@
+camera_topics:
+  front:
+    image_topic: "/hdr_camera/image_raw/compressed"
+    info_topic: "/hdr_camera/camera_info"
+    use_for_training: true
+    publish_confidence: true
+    publish_input_image: true
+
+# Provides 1080 (height) x 1920 (width) images
+network_input_image_height: 448 # 448
+network_input_image_width: 448 # 448
