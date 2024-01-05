@@ -361,6 +361,7 @@ class WvnLearning:
             self.robot_state_sub.registerCallback(self.robot_state_callback)
 
             self.camera_handler = {}
+
             # Image callback
             for cam in self.camera_topics:
                 # Initialize camera handler for given cam
