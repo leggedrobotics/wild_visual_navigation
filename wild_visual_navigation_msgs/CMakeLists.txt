@@ -15,6 +15,7 @@ add_message_files(
   RobotState.msg
   SystemState.msg
   ImageFeatures.msg
+  ChannelInfo.msg
 )
 
 add_service_files(

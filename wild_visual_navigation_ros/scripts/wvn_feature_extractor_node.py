@@ -9,6 +9,7 @@ import wild_visual_navigation_ros.ros_converter as rc
 from wild_visual_navigation.learning.model import get_model
 from wild_visual_navigation.utils import ConfidenceGenerator
 from wild_visual_navigation.learning.utils import AnomalyLoss
+from wild_visual_navigation_msgs.msg import ChannelInfo
 
 import rospy
 from sensor_msgs.msg import Image, CameraInfo, CompressedImage
@@ -197,6 +198,7 @@ class WvnFeatureExtractor:
             msg.P = image_projector.scaled_camera_matrix[0, :3, :4].cpu().numpy().flatten().tolist()
 
             self.camera_topics[cam]["camera_info_msg_out"] = msg
+            self.camera_topics[cam]["channel_info_msg_out"] = ChannelInfo()
             self.camera_topics[cam]["image_projector"] = image_projector
 
             # Set subscribers
@@ -220,8 +222,12 @@ class WvnFeatureExtractor:
             # Set publishers
             trav_pub = rospy.Publisher(f"/wild_visual_navigation_node/{cam}/traversability", Image, queue_size=10)
             info_pub = rospy.Publisher(f"/wild_visual_navigation_node/{cam}/camera_info", CameraInfo, queue_size=10)
+            channel_info_pub = rospy.Publisher(
+                f"/wild_visual_navigation_node/{cam}/channel_info", ChannelInfo, queue_size=10
+            )
             self.camera_handler[cam]["trav_pub"] = trav_pub
             self.camera_handler[cam]["info_pub"] = info_pub
+            self.camera_handler[cam]["channel_info_pub"] = channel_info_pub
             if self.anomaly_detection and self.camera_topics[cam]["publish_confidence"]:
                 print(colored("Warning force set public confidence to false", "red"))
                 self.camera_topics[cam]["publish_confidence"] = False
@@ -316,6 +322,11 @@ class WvnFeatureExtractor:
         msg.header = image_msg.header
         self.camera_handler[cam]["info_pub"].publish(msg)
 
+        msg = self.camera_topics[cam]["channel_info_msg_out"]
+        msg.channels = ["anomaly"]
+        msg.header = image_msg.header
+        self.camera_handler[cam]["channel_info_pub"].publish(msg)
+
         # Publish image
         if self.camera_topics[cam]["publish_input_image"]:
             msg = rc.numpy_to_ros_image((torch_image.permute(1, 2, 0) * 255).cpu().numpy().astype(np.uint8), "rgb8")
@@ -405,7 +416,6 @@ if __name__ == "__main__":
         )
         print(
             f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/hdr_compressed.yaml wvn_feature_extractor_node"
-        )
 
     wvn = WvnFeatureExtractor()
     rospy.spin()
