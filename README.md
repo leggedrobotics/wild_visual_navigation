@@ -21,15 +21,38 @@ If you encounter any errors, please follow the error message to install the miss
 ```bash
 pip install .
 ```
+
+### Build this repo with ROS:
+```bash
+catkin build
+source devel/setup.bash
+```
+
 ## Vision pipeline - offline training
 All configs are set in `BaseWVN/config/wvn_config.py`, for all the training/testing, you should pay attention to path-related settings.
 ### Offline Dataset
 It is generated from the online rosbag playing. By setting `label_ext_mode: bool=True` you can record the dataset. The corresponding settings and paths are in config file.
 ```bash
+roslaunch wild_visual_navigation_ros play.launch # start rosbag playing
 python src/wild_visual_navigation_ros/scripts/Phy_decoder_node.py  # start phy decoders
 python src/wild_visual_navigation_ros/scripts/Main_process_node.py # start main process
 ```
 `ctrl+c` to stop/finish the recording.
+
+The default saving path is `~/BaseWVN/results/manager` with the following files:
+
+- `image_buffer.pt`: only store all the camera image tensors of the main nodes
+
+- `train_data.pt`: only store the training data pairs, which are the same for an online training
+
+- `train_nodes.pt`:store all main nodes with all information
+
+After running offline training for the first time, you will get additional files:
+
+- `gt_masks_SAM.pt`: all the automatically generated GT masks from SAM
+- `mask_img.pt`: the corresponding color image of the GT masks above
+  
+You can put the above files into seperate folders, like `~/BaseWVN/results/manager/train/snow`
 
 ### Manual correction of GT masks
 Beacause the automatically generated GT masks (from SAM or SEEM) are not perfect, we need to manually correct them with segments.ai . 
