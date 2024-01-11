@@ -210,7 +210,7 @@ class ParamCollection(Serializable):
     
     @dataclass
     class OfflineParams:
-        mode:str='test'
+        mode:str='train'
         env:str='snow'
         reload_model:bool=False
         use_online_ckpt:bool=False
@@ -223,9 +223,9 @@ class ParamCollection(Serializable):
         # img_bag_path:str='/media/chen/Chen/rosbag_lee/2023-12-03-11-57-12_anymal-d020-npc_1-004.bag'
         traindata_option:str= 'each_full' # 'each_full' or 'each_partial' or 'all_full' or 'all_partial'
         
-        test_images:bool=False
-        test_nodes:bool=False
-        test_video:bool=True
+        test_images:bool=False # output vis for image_buffer
+        test_nodes:bool=False # output vis for node data
+        test_video:bool=True # output dense pred video
         process_option:str='first_half' # 'all' or 'first_half' or 'first_100
         
         random_datasample:Tuple[bool,int]=(False,40)
@@ -236,6 +236,7 @@ class ParamCollection(Serializable):
         SAM_ckpt:str='/media/chen/UDisk1/sam_vit_h_4b8939.pth'
         # SAM_ckpt='/media/chen/UDisk1/sam_hq_vit_h.pth'
         
+        # vis options
         plot_hist:bool=False
         plot_tsne:bool=False
         plot_overlay:bool=True

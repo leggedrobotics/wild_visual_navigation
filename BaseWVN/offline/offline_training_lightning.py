@@ -173,8 +173,8 @@ def train_and_evaluate(param:ParamCollection):
             print("Reloaded model from {}".format(checkpoint_path))
         # Initialize the Neptune logger
         neptune_logger = NeptuneLogger(
-            api_key="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI0MDVkNmYxYi1kZjZjLTRmNmEtOGQ5My0xZmE2YTc0OGVmN2YifQ==",
-            project="swsychen/Decoder-MLP",
+            api_key=os.getenv('NEPTUNE_API_TOKEN', 'default_api_token_if_not_set'),
+            project=os.getenv('NEPTUNE_PROJECT', 'default_project_if_not_set'),
             tags=["offline",param.offline.env,param.general.name],
         )
         

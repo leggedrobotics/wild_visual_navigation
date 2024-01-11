@@ -17,6 +17,13 @@ pip install -r requirements.txt
 ```
 If you encounter any errors, please follow the error message to install the missing dependencies.
 
+Set you neptune api token , username and project name in the system file `.bashrc`:
+```bash
+export NEPTUNE_API_TOKEN="your_neptune_api_token"
+export NEPTUNE_USERNAME="your_neptune_username"
+export NEPTUNE_PROJECT="your_neptune_username/your_neptune_project_name"
+```
+
 ### Install this repo:
 ```bash
 pip install .
