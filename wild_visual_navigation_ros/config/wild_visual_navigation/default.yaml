@@ -57,7 +57,7 @@ print_image_callback_time: false
 print_proprio_callback_time: false
 log_time: false
 log_confidence: false
-verbose: false
+verbose: true
 debug_supervision_node_index_from_last: 10
 use_debug_for_desired: false
 

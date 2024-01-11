@@ -370,7 +370,7 @@ class WvnLearning:
                 self.camera_topics[cam]["name"] = cam
 
                 # Set subscribers
-                if self.mode == WVNMode.DEBUG:
+                if self.mode == WVNMode.DEBUG or self.mode == WVNMode.ONLINE:
                     # In debug mode additionally send the image to the callback function
                     self._visualizer = LearningVisualizer()
 
@@ -628,7 +628,6 @@ class WvnLearning:
         if self.verbose:
             print(f"\nImage callback: {camera_options['name']}... ", end="")
         try:
-
             # Run the callback so as to match the desired rate
             ts = imagefeat_msg.header.stamp.to_sec()
             if abs(ts - self.last_image_ts) < 1.0 / self.image_callback_rate:
@@ -677,7 +676,7 @@ class WvnLearning:
             torch_image = torch.zeros((3, h_small, w_small), device=self.device, dtype=torch.float32)
 
             # convert image message to torch image
-            if self.mode == WVNMode.DEBUG:
+            if self.mode == WVNMode.DEBUG or self.mode == WVNMode.ONLINE:
                 torch_image = rc.ros_image_to_torch(
                     image_msg, desired_encoding="passthrough", device=self.device
                 ).clone()
@@ -702,7 +701,7 @@ class WvnLearning:
             # Add node to graph
             added_new_node = self.traversability_estimator.add_mission_node(mission_node, update_features=False)
 
-            if self.mode == WVNMode.DEBUG:
+            if self.mode == WVNMode.DEBUG or self.mode == WVNMode.ONLINE:
                 # Publish current predictions
                 self.visualize_mission_graph()
                 # Publish supervision data depending on the mode
@@ -876,7 +875,7 @@ if __name__ == "__main__":
         wvn_path = rospack.get_path("wild_visual_navigation_ros")
         os.system(f"rosparam load {wvn_path}/config/wild_visual_navigation/default.yaml wvn_learning_node")
         os.system(
-            f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/wide_angle_front_compressed.yaml wvn_learning_node"
+            f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/hdr_compressed.yaml wvn_learning_node"
         )
 
     wvn = WvnLearning()
