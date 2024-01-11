@@ -36,7 +36,9 @@ source devel/setup.bash
 ```
 
 ## Vision pipeline - offline training
-All configs are set in `BaseWVN/config/wvn_config.py`, for all the training/testing, you should pay attention to path-related settings.
+All configs are set in `BaseWVN/config/wvn_config.py`, for all the training/testing, you should pay attention to path-related settings. 
+
+Download segment_anything model checkpoint from [here](https://drive.google.com/file/d/1TU3asknvo1UKdhx0z50ghHDt1C_McKJu/view?usp=drive_link) and speicify the path in the config file.
 ### Offline Dataset
 It is generated from the online rosbag playing. By setting `label_ext_mode: bool=True` you can record the dataset. The corresponding settings and paths are in config file.
 ```bash
@@ -80,3 +82,8 @@ python src/wild_visual_navigation_ros/scripts/Phy_decoder_node.py  # start phy d
 python src/wild_visual_navigation_ros/scripts/Main_process_node.py # start main process
 ```
 
+It is also possible to run the commands with speicifying the python version in conda env, when you have to use the system ros:
+```bash
+/home/path/to/your/python src/wild_visual_navigation_ros/scripts/Phy_decoder_node.py
+...
+```
