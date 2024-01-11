@@ -17,6 +17,6 @@ prettytable
 termcolor
 opentsne
 git+https://github.com/utiasSTARS/liegroups.git
-git+https://github.com/your-username/Phy-decoder.git
+git+https://swsychen@bitbucket.org/chengym/phy_decoder.git
 git+https://github.com/facebookresearch/segment-anything.git
 
