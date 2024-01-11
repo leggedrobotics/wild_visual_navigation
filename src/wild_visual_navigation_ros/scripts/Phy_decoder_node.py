@@ -214,8 +214,10 @@ class PhyDecoder(NodeForROS):
                 new_priv_var=torch.cat([fric_pred_var,stiff_pred_var],dim=-1)
                 new_priv_var=new_priv_var[:,-1,:].squeeze(0).cpu().numpy()
                 msg.prediction_var=new_priv_var
-                
-                recon_loss=torch.Tensor([fric_recon_loss,stiff_recon_loss])
+                if fric_recon_loss.shape[0]>1:
+                    recon_loss=torch.cat([fric_recon_loss,stiff_recon_loss],dim=-1)
+                else:
+                    recon_loss=torch.Tensor([fric_recon_loss,stiff_recon_loss])
                 recon_loss=recon_loss.cpu().numpy()
                 msg.recon_loss=recon_loss
 
