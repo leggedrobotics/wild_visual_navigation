@@ -104,8 +104,8 @@ class ParamCollection(Serializable):
     @dataclass
     class OptimizerParams:
         name: str = "ADAM"
-        lr: float = 0.0001 #0.0001 ,0.001
-        weight_decay: float = 0.001 #0.001 ,0
+        lr: float = 0.001 #0.0001 ,0.001
+        weight_decay: float = 0 #0.001 ,0
 
     optimizer: OptimizerParams = OptimizerParams()
 
@@ -145,7 +145,7 @@ class ParamCollection(Serializable):
         cut_threshold: float=5.0
         edge_dist_thr_main_graph: float=1
         
-        use_sub_graph: bool=False
+        use_sub_graph: bool=False  # only use when the robot is walking reversely
         edge_dist_thr_sub_graph: float=0.2
         max_distance_sub_graph: float=5
         update_range_sub_graph: float=5
