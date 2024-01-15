@@ -416,6 +416,6 @@ if __name__ == "__main__":
         )
         print(
             f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/hdr_compressed.yaml wvn_feature_extractor_node"
-
+        )
     wvn = WvnFeatureExtractor()
     rospy.spin()

@@ -5,7 +5,7 @@
   <arg name="params_file"       default="$(find wild_visual_navigation_ros)/config/wild_visual_navigation/default.yaml"/>
   <arg name="overlay_images"    default="True"/>
   <arg name="resize_images_alphasense"     default="False"/>
-  <arg name="resize_images_wide_angle_front"     default="True"/>
+  <arg name="resize_images_wide_angle_front"     default="False"/>
   <arg name="resize_images_hdr"     default="True"/>
   <arg name="reload_default_params"    default="False"/>
 

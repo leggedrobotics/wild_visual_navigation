@@ -1,7 +1,7 @@
 <launch>
   <!-- Launch the image_proc nodelet -->
-  <node pkg="nodelet" type="nodelet" name="standalone_nodelet" args="manager"/>
-  <node pkg="nodelet" type="nodelet" name="image_proc_nodelet_hdr" args="load image_proc/resize standalone_nodelet">
+  <node pkg="nodelet" type="nodelet" name="standalone_nodelet_hdr" args="manager"/>
+  <node pkg="nodelet" type="nodelet" name="image_proc_nodelet_hdr" args="load image_proc/resize standalone_nodelet_hdr">
     <remap from="camera_info" to="/hdr_camera/camera_info" />
     <remap from="~camera_info" to="/hdr_camera_resize/camera_info" />
     <remap from="image" to="/hdr_camera/image_color" />
