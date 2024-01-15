@@ -1,17 +1,18 @@
-<!--
-  Outdoor scenario from HRATC repository:
-  https://github.com/ras-sight/hratc2014_framework
--->
-<?xml version="1.0" encoding="UTF-8"?>
-<sdf version="1.4">
-	<world name="default">
-		<scene>
-			<ambient>0.5 0.5 0.5 1</ambient>
-			<background>0.5 0.5 0.5 1</background>
-			<shadows>false</shadows>
-		</scene>
-		<physics type="ode">
-			<gravity>0 0 -9.81</gravity>
+<?xml version="1.0"?>
+<sdf version='1.6'>
+  <world name='small_outdoor'>
+    <scene>
+      <ambient>0.2 0.2 0.2 1</ambient>
+      <shadows>1</shadows>
+      <grid>0</grid>
+      <sky>
+        <clouds>
+          <speed>4</speed>
+        </clouds>
+      </sky>
+      <background>0.7 0.7 0.7 1</background>
+    </scene>
+    <physics type="ode">
 			<ode>
 				<solver>
 					<type>quick</type>
@@ -27,41 +28,95 @@
 			</ode>
 			<max_step_size>0.001</max_step_size>
 		</physics>
-		<light type="directional" name="directional_light_1">
-			<pose>0 20 20 0.1 0.1 0</pose>
-			<diffuse>1 1 1 1</diffuse>
-			<specular>1 1 1 1</specular>
-			<attenuation>
-				<range>300</range>
-			</attenuation>
-			<direction>0.1 0.1 -1</direction>
-			<cast_shadows>false</cast_shadows>
-		</light>
-		<model name="terrain">
-			<link name="terrain_link">
-				<pose>-15.0 -15.0 0.5 0 0 0</pose>
-				<collision name="terrain_collision">
-					<geometry>
-						<mesh>
-							<uri>file://scenario.dae</uri>
-							<scale>1 1 0.4</scale>
-						</mesh>
-					</geometry>
-				</collision>
-				<visual name="terrain">
-					<geometry>
-						<mesh>
-							<uri>file://scenario.dae</uri>
-							<scale>1 1 0.4</scale>
-						</mesh>
-					</geometry>
-					<cast_shadows>false</cast_shadows>
-				</visual>
-			</link>
-			<static>true</static>
-		</model>
+    <gravity>0 0 -9.81</gravity>
+    <light name='sun' type='directional'>
+      <cast_shadows>1</cast_shadows>
+      <pose frame=''>0 0 100 0 -0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.9 0.9 0.9 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.1</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>0.2 0.2 -0.9</direction>
+    </light>
+    <model name='heightmap_terrain'>
+      <static>1</static>
+      <link name='link'>
+        <collision name='collision'>
+          <geometry>
+            <heightmap>
+              <uri>
+                file://heightmap.png</uri>
+              <size>30 30 12</size>
+              <pos>0 0 -1</pos>
+              <texture>
+                <size>10</size>
+                <diffuse>__default__</diffuse>
+                <normal>__default__</normal>
+              </texture>
+              <blend>
+                <min_height>0</min_height>
+                <fade_dist>0</fade_dist>
+              </blend>
+            </heightmap>
+          </geometry>
+          <max_contacts>10</max_contacts>
+          <surface>
+            <contact>
+              <ode />
+            </contact>
+            <bounce />
+            <friction>
+              <torsional>
+                <ode />
+              </torsional>
+              <ode />
+            </friction>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <geometry>
+            <heightmap>
+              <texture>
+                <diffuse>file://media/materials/textures/dirt_diffusespecular.png</diffuse>
+                <normal>file://media/materials/textures/flat_normal.png</normal>
+                <size>7</size>
+              </texture>
+              <texture>
+                <diffuse>file://media/materials/textures/grass_diffusespecular.png</diffuse>
+                <normal>file://media/materials/textures/flat_normal.png</normal>
+                <size>3</size>
+              </texture>
+              <texture>
+                <diffuse>file://media/materials/textures/fungus_diffusespecular.png</diffuse>
+                <normal>file://media/materials/textures/flat_normal.png</normal>
+                <size>4</size>
+              </texture>
+              <blend>
+                <min_height>0</min_height>
+                <fade_dist>0.05</fade_dist>
+              </blend>
+              <blend>
+                <min_height>-1</min_height>
+                <fade_dist>7</fade_dist>
+              </blend>
+              <uri>
+                file://heightmap.png</uri>
+              <size>30 30 12</size>
+              <pos>0 0 -1</pos>
+            </heightmap>
+          </geometry>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+    </model>
 
-		<!-- Trees!!! -->
+    <!-- Trees!!! -->
 		<model name="tree1">
 			<static>true</static>
 			<link name="tree1_link">
@@ -185,7 +240,7 @@
 		<model name="tree6">
 			<static>true</static>
 			<link name="tree6_link">
-				<pose>-6 -7 1.02 0 0 0.5</pose>
+				<pose>-6 -1 1.02 0 0 0.5</pose>
 				<collision name="tree6_collision">
 					<geometry>
 						<mesh>
@@ -209,7 +264,7 @@
 		<model name="tree7">
 			<static>true</static>
 			<link name="tree7_link">
-				<pose>-1 -6 0.8 0 0 0.2</pose>
+				<pose>-1 1 0.8 0 0 0.2</pose>
 				<collision name="tree7_collision">
 					<geometry>
 						<mesh>
@@ -257,7 +312,7 @@
 		<model name="tree9">
 			<static>true</static>
 			<link name="tree9_link">
-				<pose>6 -10 0.8 0 0 0.5</pose>
+				<pose>6 -0.5 0.8 0 0 0.5</pose>
 				<collision name="tree9_collision">
 					<geometry>
 						<mesh>
@@ -277,6 +332,5 @@
 				</visual>
 			</link>
 		</model>
-
-	</world>
+  </world>
 </sdf>

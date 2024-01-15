@@ -20,6 +20,7 @@ catkin_package(
 #                                 scripts/rosbag_play.sh
 #                       DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
+message(${CATKIN_PACKAGE_SHARE_DESTINATION})
 install(DIRECTORY launch Media worlds
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )

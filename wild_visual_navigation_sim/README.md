@@ -5,11 +5,16 @@ Simulation environment to test Wild Visual Navigation (WVN). We use a modified C
 ## Requirements
 
 ```sh
-sudo apt install ros-noetic-jackal-simulator
+$ sudo apt update 
+$ sudo apt install -y \
+        ros-noetic-jackal-simulator \
+        ros-noetic-jackal-desktop \
+        ros-noetic-teleop-twist-keyboard \
+        ros-noetic-rqt-robot-steering \
 ```
 
 ## Running
 
 ```sh
-roslaunch wild_visual_navigation_sim sim.launch
+$ roslaunch wild_visual_navigation_sim sim.launch
 ```

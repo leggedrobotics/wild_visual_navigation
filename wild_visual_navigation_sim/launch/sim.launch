@@ -8,11 +8,8 @@
     <arg name="use_sim_time" default="true" />
     <arg name="gui" default="true" />
     <arg name="headless" default="false" />
-    <arg name="world_name" default="$(find wild_visual_navigation_sim)/worlds/scenario.world" />
+    <arg name="world_name" default="$(find wild_visual_navigation_sim)/worlds/outdoor.world" />
     <arg name="jackal_config" value="front_flea3" /> <!-- add camera -->
-
-    <!-- Optionally enable teleop for the simulation -->
-    <arg name="joystick" default="false" />
   
     <!-- Launch Gazebo with the specified world -->
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -30,7 +27,7 @@
       <arg name="z" value="1.0" />
       <arg name="yaw" value="0" />
       <arg name="config" value="$(arg jackal_config)" />
-      <arg name="joystick" value="$(arg joystick)" />
+      <arg name="joystick" value="false" />
     </include>
 
     
