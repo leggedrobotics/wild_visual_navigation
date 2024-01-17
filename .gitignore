@@ -62,6 +62,7 @@ image/hiking_feat.png
 results/
 model/
 src/ros_comm-dev
+src/footcontact_history
 check.pt
 segments/
 test.yaml
