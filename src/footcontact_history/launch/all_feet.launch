@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="ISO-8859-15"?>
-<launch>
-    <rosparam command="load" file="$(find footcontact_history)/cfg/params.yml" />
-    <node pkg="footcontact_history" name="footcontact_history" type="footcontact_history_node.py" output="screen" />
-</launch> 
