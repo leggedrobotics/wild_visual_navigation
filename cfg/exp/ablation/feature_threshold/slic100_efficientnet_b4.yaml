@@ -1,8 +1,0 @@
-ablation_data_module:
-  feature_key: slic100_efficientnet_b4
-general:
-  use_threshold: False
-loss:
-  anomaly_balanced: False
-  w_reco: 0.0
-  confidence_std_factor: 1.0

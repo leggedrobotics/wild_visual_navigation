@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+    
+    <node name="rosbag_merge_play" pkg="wild_visual_navigation_ros" type="play_rosbags.sh" output="screen" />
+
+    <!-- Run RViz with specified configuration -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d /home/chen/BaseWVN/src/wild_visual_navigation_ros/launch/play.rviz" />
+	
+	<!-- Include another launch file -->
+    <!--<include file="$(find footcontact_history)/launch/all_feet.launch"/>-->
+    
+    <!-- Run anymal description node with a delay -->
+    <node name="load_config_node" pkg="anymal_d" type="load_config.py" output="screen" />
+
+    <!-- Include anymal_tf_publisher.launch, if no tf is published -->
+    <include file="$(find anymal_tf_publisher)/launch/anymal_tf_publisher.launch"/>
+
+
+</launch>
+
