@@ -8,10 +8,15 @@ services:
     stdin_open: true
     tty: true
     network_mode: "host"
-    environment:
-     - NVIDIA_VISIBLE_DEVICES=all
-     - NVIDIA_DRIVER_CAPABILITIES=all
-    runtime: nvidia
     volumes:
       - ../../wild_visual_navigation:/root/catkin_ws/src/wild_visual_navigation
-    command: '/bin/bash'
+      - ../../self_supervised_segmentation:/root/catkin_ws/src/self_supervised_segmentation
+    environment:
+      - ROS_IP=127.0.0.1
+    command: "/bin/bash"
+    # command: >
+    #   /bin/bash -c "pip3 install -e /root/catkin_ws/src/wild_visual_navigation
+    #           && pip3 install -e /root/catkin_ws/src/self_supervised_segmentation
+    #           && cd /root/catkin_ws && catkin build
+    #           && cd /root
+    #           && source /root/catkin_ws/devel/setup.bash"
