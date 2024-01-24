@@ -16,9 +16,9 @@
   <arg name="uncompress_alphasense_cam4"     default="False"/>
   <arg name="uncompress_alphasense_cam5"     default="False"/>
   <arg name="uncompress_wide_angle_front"     default="False"/>
-  <arg name="uncompress_wide_angle_rear"     default="True"/>
+  <arg name="uncompress_wide_angle_rear"     default="False"/>
   <arg name="resize_images_wide_angle_front"     default="False"/>
-  <arg name="resize_images_wide_angle_rear"     default="True"/>
+  <arg name="resize_images_wide_angle_rear"     default="False"/>
 
 
   <!-- Set sim time to true -->

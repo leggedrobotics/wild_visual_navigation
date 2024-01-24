@@ -875,7 +875,7 @@ if __name__ == "__main__":
         wvn_path = rospack.get_path("wild_visual_navigation_ros")
         os.system(f"rosparam load {wvn_path}/config/wild_visual_navigation/default.yaml wvn_learning_node")
         os.system(
-            f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/wide_angle_rear_compressed.yaml wvn_learning_node"
+            f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/hdr_compressed.yaml wvn_learning_node"
         )
 
     wvn = WvnLearning()
