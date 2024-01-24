@@ -3,6 +3,7 @@ from wild_visual_navigation.feature_extractor import (
     DinoInterface,
     SegmentExtractor,
     TorchVisionInterface,
+    Dino2Interface,
 )
 from pytictac import Timer
 import skimage
@@ -38,8 +39,9 @@ class FeatureExtractor:
             self.extractor = StegoInterface(device=device, input_size=input_size)
         elif self._feature_type == "dino":
             self._feature_dim = 90
-
             self.extractor = DinoInterface(device=device, input_size=input_size, patch_size=kwargs.get("patch_size", 8), dim=kwargs.get("dino_dim", 384))
+        elif self._feature_type == "dino2":
+            self.extractor = Dino2Interface(device=device, model_type="vit_base")
         elif self._feature_type == "sift":
             self._feature_dim = 128
             self.extractor = DenseSIFTDescriptor().to(device)
@@ -224,6 +226,9 @@ class FeatureExtractor:
         elif self._feature_type == "dino":
             feat = self.compute_dino(img, seg, center, **kwargs)
 
+        elif self._feature_type == "dino2":
+            feat = self.compute_dino2(img, seg, center, **kwargs)
+
         elif self._feature_type == "stego":
             feat = self.compute_stego(img, seg, center, **kwargs)
 
@@ -253,6 +258,12 @@ class FeatureExtractor:
 
     @torch.no_grad()
     def compute_dino(self, img: torch.tensor, seg: torch.tensor, center: torch.tensor, **kwargs):
+        img_internal = img.clone()
+        features = self.extractor.inference(img_internal)
+        return features
+
+    @torch.no_grad()
+    def compute_dino2(self, img: torch.tensor, seg: torch.tensor, center: torch.tensor, **kwargs):
         img_internal = img.clone()
         features = self.extractor.inference(img_internal)
         return features

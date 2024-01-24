@@ -1,6 +1,6 @@
 camera_topics:
   front:
-    image_topic: "/wide_angle_camera_front/image_color"
+    image_topic: "/wide_angle_camera_front/image_color_rect"
     info_topic: "/wide_angle_camera_front/camera_info"
     use_for_training: true
     publish_confidence: true
