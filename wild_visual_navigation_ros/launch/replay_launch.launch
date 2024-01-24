@@ -4,6 +4,7 @@
   <arg name="params_file"       default="$(find wild_visual_navigation_ros)/config/wild_visual_navigation/default.yaml"/>
   <arg name="rviz_config"       default="anymal_dodo.rviz" />
   <arg name="anymal_config"     default="/home/rschmid/RosBags/uetliberg/dodo_params.yaml" />
+  <arg name="reload_default_params"    value="False"/>
 
   <arg name="anymal_converter"  default="True"/>
   <arg name="anymal_rsl_launch" default="True"/>
@@ -14,8 +15,10 @@
   <arg name="uncompress_alphasense_cam3"     default="False"/>
   <arg name="uncompress_alphasense_cam4"     default="False"/>
   <arg name="uncompress_alphasense_cam5"     default="False"/>
-  <arg name="uncompress_wide_angle_front"     default="True"/>
-  <arg name="resize_images_wide_angle_front"     default="True"/>
+  <arg name="uncompress_wide_angle_front"     default="False"/>
+  <arg name="uncompress_wide_angle_rear"     default="True"/>
+  <arg name="resize_images_wide_angle_front"     default="False"/>
+  <arg name="resize_images_wide_angle_rear"     default="True"/>
 
 
   <!-- Set sim time to true -->
@@ -76,8 +79,11 @@
   <node if="$(arg uncompress_alphasense_cam4)" name="uncompress_cam4" pkg="image_transport" type="republish" args="compressed in:=/alphasense_driver_ros/cam4/debayered raw out:=/alphasense_driver_ros/cam4/debayered" />
   <node if="$(arg uncompress_alphasense_cam5)" name="uncompress_cam5" pkg="image_transport" type="republish" args="compressed in:=/alphasense_driver_ros/cam5/debayered raw out:=/alphasense_driver_ros/cam5/debayered" />
 
-  <node if="$(arg uncompress_wide_angle_front)" name="uncompress_wide_angle_front" pkg="image_transport" type="republish" args="compressed in:=/wide_angle_camera_rear/image_color_rect raw out:=/wide_angle_camera_rear/image_color" />
+  <node if="$(arg uncompress_wide_angle_front)" name="uncompress_wide_angle_front" pkg="image_transport" type="republish" args="compressed in:=/wide_angle_camera_front/image_color_rect raw out:=/wide_angle_camera_front/image_color" />
   <include if="$(arg resize_images_wide_angle_front)" file="$(find wild_visual_navigation_ros)/launch/resize_images_wide_angle_front.launch"/>
+
+  <node if="$(arg uncompress_wide_angle_rear)" name="uncompress_wide_angle_rear" pkg="image_transport" type="republish" args="compressed in:=/wide_angle_camera_rear/image_color_rect raw out:=/wide_angle_camera_rear/image_color" />
+  <include if="$(arg resize_images_wide_angle_rear)" file="$(find wild_visual_navigation_ros)/launch/resize_images_wide_angle_rear.launch"/>
 
 
 </launch>
