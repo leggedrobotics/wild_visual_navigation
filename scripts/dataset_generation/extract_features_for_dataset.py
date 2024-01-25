@@ -62,7 +62,13 @@ if __name__ == "__main__":
     # )
 
     fes["slic200_dino112_8"] = FeatureExtractor(
-        device, "slic", "dino", 112, model_type="vit_small", patch_size=8, slic_num_components=200
+        device,
+        "slic",
+        "dino",
+        112,
+        model_type="vit_small",
+        patch_size=8,
+        slic_num_components=200,
     )
     fes["grid32_dino112_8"] = FeatureExtractor(
         device, "slic", "dino", 112, model_type="vit_small", patch_size=8, cell_size=32
@@ -87,7 +93,13 @@ if __name__ == "__main__":
 
     form = "{desc:<13}{percentage:3.0f}%|{bar:20}{r_bar}"
 
-    with tqdm(total=len(needed_images), desc="Total", colour="green", position=1, bar_format=form) as pbar:
+    with tqdm(
+        total=len(needed_images),
+        desc="Total",
+        colour="green",
+        position=1,
+        bar_format=form,
+    ) as pbar:
         for m_nr, mission in enumerate(mission_folders):
             assert os.path.isdir(
                 os.path.join(mission, "image")
@@ -208,7 +220,8 @@ if __name__ == "__main__":
                             from wild_visual_navigation.visu import LearningVisualizer
 
                             visu = LearningVisualizer(
-                                p_visu=os.path.join(WVN_ROOT_DIR, "results/extract_features"), store=True
+                                p_visu=os.path.join(WVN_ROOT_DIR, "results/extract_features"),
+                                store=True,
                             )
                             visu.plot_sparse_optical_flow(
                                 pre_pos,
@@ -260,7 +273,12 @@ if __name__ == "__main__":
                         feature_edges_buffer[name] = edges
                         feature_buffer[name] = feat
                     else:
-                        data = Data(x=feat, edge_index=edges, y=supervision_signal, y_valid=supervision_signal_valid)
+                        data = Data(
+                            x=feat,
+                            edge_index=edges,
+                            y=supervision_signal,
+                            y_valid=supervision_signal_valid,
+                        )
 
                     filename = os.path.join(mission, "features", name, "graph", key + ".pt")
                     if store and store_idx:

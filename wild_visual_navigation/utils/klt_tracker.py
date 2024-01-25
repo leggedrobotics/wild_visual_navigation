@@ -1,6 +1,5 @@
 import torch
 import kornia
-from pytictac import Timer
 
 
 def interp2_torch_batch(v, xq, yq):
@@ -48,11 +47,17 @@ class KLTTrackerOpenCV(torch.nn.Module):
     def __init__(self, device="cpu", window_size=25, levels=15) -> None:
         super().__init__()
         self.lk_params = dict(
-            winSize=(7, 7), maxLevel=2, criteria=(cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 0.03)
+            winSize=(7, 7),
+            maxLevel=2,
+            criteria=(cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 0.03),
         )
 
     def forward(
-        self, t_startXs: torch.Tensor, t_startYs: torch.Tensor, img_prev: torch.Tensor, img_next: torch.Tensor
+        self,
+        t_startXs: torch.Tensor,
+        t_startYs: torch.Tensor,
+        img_prev: torch.Tensor,
+        img_next: torch.Tensor,
     ) -> torch.Tensor:
         """_summary_
 
@@ -82,11 +87,16 @@ class KLTTracker(torch.nn.Module):
         self.window_size = torch.tensor(window_size, device=device)
         self.levels = levels
         self.t_mesh_x, self.t_mesh_y = torch.meshgrid(
-            torch.arange(self.window_size, device=self.device), torch.arange(self.window_size, device=self.device)
+            torch.arange(self.window_size, device=self.device),
+            torch.arange(self.window_size, device=self.device),
         )
 
     def forward(
-        self, t_startXs: torch.Tensor, t_startYs: torch.Tensor, img_prev: torch.Tensor, img_next: torch.Tensor
+        self,
+        t_startXs: torch.Tensor,
+        t_startYs: torch.Tensor,
+        img_prev: torch.Tensor,
+        img_next: torch.Tensor,
     ) -> torch.Tensor:
         """_summary_
 
@@ -113,7 +123,12 @@ class KLTTracker(torch.nn.Module):
         t_newYs = torch.full(t_startYs_flat.shape, -1, dtype=torch.float32, device=self.device)
 
         t_newXs, t_newYs = self.estimateFeatureTranslationBatch(
-            t_startXs_flat, t_startYs_flat, t_Ix, t_Iy, (t_img_prev_gray * 255)[0], (t_img_next_gray * 255)[0]
+            t_startXs_flat,
+            t_startYs_flat,
+            t_Ix,
+            t_Iy,
+            (t_img_prev_gray * 255)[0],
+            (t_img_next_gray * 255)[0],
         )
 
         t_newXs = torch.reshape(t_newXs, t_startXs.shape)
@@ -149,7 +164,9 @@ class KLTTracker(torch.nn.Module):
 
             t_coor = torch.stack((t_mesh_x_flat, t_mesh_y_flat), dim=1)
             t_I2_value = interp2_torch_batch(
-                t_img2_gray.clone(), t_coor[:, 0, :].contiguous(), t_coor[:, 1, :].contiguous()
+                t_img2_gray.clone(),
+                t_coor[:, 0, :].contiguous(),
+                t_coor[:, 1, :].contiguous(),
             ).contiguous()
 
             t_Ip = (t_I2_value - t_I1_value)[:, :, None]
@@ -162,10 +179,6 @@ class KLTTracker(torch.nn.Module):
 
 
 if __name__ == "__main__":
-    import cv2 as cv
-    from PIL import Image, ImageDraw
-    import numpy as np
-
     # TODO write a test for it
     pre = torch.load("/home/jonfrey/git/wild_visual_navigation/previous.pt")
     cur = torch.load("/home/jonfrey/git/wild_visual_navigation/current.pt")

@@ -30,7 +30,9 @@ def test_feature_extractor():
     adj, feat, seg, center = fe.extract(transform(img.clone()))
 
     p = PurePath(WVN_ROOT_DIR).joinpath(
-        "results", "test_feature_extractor", f"forest_clean_graph_{segmentation_type}.png"
+        "results",
+        "test_feature_extractor",
+        f"forest_clean_graph_{segmentation_type}.png",
     )
     Path(p.parent).mkdir(parents=True, exist_ok=True)
 

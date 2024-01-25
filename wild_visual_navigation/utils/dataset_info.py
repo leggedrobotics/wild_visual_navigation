@@ -133,7 +133,7 @@ def dataset_play(env="forest", mode="train", nr=0, rate=1.0, ignore_tf=False, ot
     stop = d["stop"]
     duration = stop - start
     bags = os.path.join(ROOT_DIR, d["name"]) + "/*.bag"
-    comment = d["comment"]
+    # comment = d["comment"]
     if bool(ignore_tf):
         bags += " /tf:=/tf_trash"
     cmd = f"rosbag play -s {start} -u {duration} -r {rate} {other_args} {bags}"
@@ -153,5 +153,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     dataset_play(
-        env=args.env, mode=args.mode, nr=args.nr, rate=args.rate, ignore_tf=args.ignore_tf, other_args=args.other_args
+        env=args.env,
+        mode=args.mode,
+        nr=args.nr,
+        rate=args.rate,
+        ignore_tf=args.ignore_tf,
+        other_args=args.other_args,
     )

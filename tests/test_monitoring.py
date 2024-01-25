@@ -26,7 +26,12 @@ def test_monitoring():
     # Create objects
     my_test = MyTest()
     gpu_monitor = SystemLevelGpuMonitor(
-        objects=[my_test], names=["test"], enabled=True, device="cuda", store_samples=True, skip_n_samples=1
+        objects=[my_test],
+        names=["test"],
+        enabled=True,
+        device="cuda",
+        store_samples=True,
+        skip_n_samples=1,
     )
     time_monitor = SystemLevelTimer(
         objects=[my_test],

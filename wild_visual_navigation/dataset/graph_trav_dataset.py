@@ -1,14 +1,12 @@
-from torch_geometric.data import InMemoryDataset, DataListLoader, DataLoader
+from torch_geometric.data import InMemoryDataset, DataLoader
 from torch_geometric.data import LightningDataset
 
 from wild_visual_navigation import WVN_ROOT_DIR
 import os
 import torch
-from pathlib import Path
 from torch_geometric.data import Dataset
 from torchvision import transforms as T
 from typing import Optional, Callable
-from torch_geometric.data import Data
 import random
 
 
@@ -186,13 +184,28 @@ def get_ablation_module(
                 )
             ]
         else:
-            val_dataset = get_test_dataset(perugia_root, env, feature_key, test_all_datasets, training_data_percentage)
+            val_dataset = get_test_dataset(
+                perugia_root,
+                env,
+                feature_key,
+                test_all_datasets,
+                training_data_percentage,
+            )
 
         train_loader = DataLoader(
-            dataset=train_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=False
+            dataset=train_dataset,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            pin_memory=False,
         )
         val_loader = [
-            DataLoader(dataset=v, batch_size=batch_size, num_workers=num_workers, pin_memory=False) for v in val_dataset
+            DataLoader(
+                dataset=v,
+                batch_size=batch_size,
+                num_workers=num_workers,
+                pin_memory=False,
+            )
+            for v in val_dataset
         ]
 
     else:
@@ -212,9 +225,20 @@ def get_ablation_module(
                 )
             ]
         else:
-            test_dataset = get_test_dataset(perugia_root, env, feature_key, test_all_datasets, training_data_percentage)
+            test_dataset = get_test_dataset(
+                perugia_root,
+                env,
+                feature_key,
+                test_all_datasets,
+                training_data_percentage,
+            )
         test_loader = [
-            DataLoader(dataset=t, batch_size=batch_size, num_workers=num_workers, pin_memory=False)
+            DataLoader(
+                dataset=t,
+                batch_size=batch_size,
+                num_workers=num_workers,
+                pin_memory=False,
+            )
             for t in test_dataset
         ]
     else:

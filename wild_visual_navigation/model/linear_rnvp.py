@@ -1,9 +1,6 @@
 import copy
-import itertools
-from abc import abstractmethod, ABC
 import torch
 from torch import nn, distributions
-import numpy as np
 from torch_geometric.data import Data
 
 
@@ -71,7 +68,14 @@ class LinearCouplingLayer(nn.Module):
     The inverse is trivially [(x1 - t(x2))*exp(-s(x2)); x2].
     """
 
-    def __init__(self, input_dim, mask, network_topology, conditioning_size=None, single_function=True):
+    def __init__(
+        self,
+        input_dim,
+        mask,
+        network_topology,
+        conditioning_size=None,
+        single_function=True,
+    ):
         super().__init__()
 
         if conditioning_size is None:
@@ -84,7 +88,10 @@ class LinearCouplingLayer(nn.Module):
 
         self.dim = input_dim
 
-        self.s = [nn.Linear(input_dim + conditioning_size, network_topology[0]), nn.ReLU()]
+        self.s = [
+            nn.Linear(input_dim + conditioning_size, network_topology[0]),
+            nn.ReLU(),
+        ]
 
         for i in range(len(network_topology)):
             t = network_topology[i]

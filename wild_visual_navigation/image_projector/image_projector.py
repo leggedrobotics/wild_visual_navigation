@@ -147,7 +147,11 @@ class ImageProjector:
         return projected_points, valid_points, valid_z
 
     def project_and_render(
-        self, pose_camera_in_world: torch.tensor, points: torch.tensor, colors: torch.tensor, image: torch.tensor = None
+        self,
+        pose_camera_in_world: torch.tensor,
+        points: torch.tensor,
+        colors: torch.tensor,
+        image: torch.tensor = None,
     ):
         """Projects the points and returns an image with the projection
 
@@ -197,8 +201,9 @@ def run_image_projector():
     """Projects 3D points to example images and returns an image with the projection"""
 
     from wild_visual_navigation.visu import get_img_from_fig
-    from pytictac import Timer
-    from wild_visual_navigation.utils import make_plane, make_box, make_dense_plane, make_polygon_from_points
+    from wild_visual_navigation.utils import (
+        make_polygon_from_points,
+    )
     from PIL import Image
     import matplotlib.pyplot as plt
     import torch
@@ -269,7 +274,7 @@ def run_image_projector():
                 for x in range(-3, 3, 1):
                     try:
                         k_points_overlay[:, idx[1].item() + y, idx[0].item() + x] = torch.tensor([0, 255, 0])
-                    except Exception as e:
+                    except Exception:
                         continue
 
         ax[i, 0].imshow(tensor_to_image(k_img[i]))
@@ -285,7 +290,14 @@ def run_image_projector():
 
     # Store results to test directory
     img = get_img_from_fig(fig)
-    img.save(join(WVN_ROOT_DIR, "results", "test_image_projector", "forest_clean_image_projector.png"))
+    img.save(
+        join(
+            WVN_ROOT_DIR,
+            "results",
+            "test_image_projector",
+            "forest_clean_image_projector.png",
+        )
+    )
 
 
 if __name__ == "__main__":

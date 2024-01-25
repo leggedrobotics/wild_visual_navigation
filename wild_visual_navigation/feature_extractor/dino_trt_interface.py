@@ -55,7 +55,9 @@ class TrtModel:
 
 class DinoTrtInterface:
     def __init__(
-        self, trt_model_path: str = os.path.join(WVN_ROOT_DIR, "assets/dino/dino_exported.trt"), device: str = "cuda"
+        self,
+        trt_model_path: str = os.path.join(WVN_ROOT_DIR, "assets/dino/dino_exported.trt"),
+        device: str = "cuda",
     ):
         self.device = device
         self.dim = 90

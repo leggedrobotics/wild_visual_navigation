@@ -8,9 +8,7 @@ import torch
 from wild_visual_navigation.cfg import ExperimentParams
 from wild_visual_navigation.general import training_routine
 from wild_visual_navigation.utils import get_neptune_run
-from wild_visual_navigation.utils import load_yaml
-from wild_visual_navigation import WVN_ROOT_DIR
-from omegaconf import read_write
+from omegaconf import read_write, OmegaConf
 
 
 def objective(trial, params: ExperimentParams):
@@ -42,7 +40,10 @@ if __name__ == "__main__":
     with read_write():
         params.general.name = os.path.join(args.name, params.general.name)
 
-    run = get_neptune_run(neptune_project_name=params.logger.neptune_project_name, tags=["optuna", args.name])
+    run = get_neptune_run(
+        neptune_project_name=params.logger.neptune_project_name,
+        tags=["optuna", args.name],
+    )
 
     neptune_callback = optuna_utils.NeptuneCallback(
         run,

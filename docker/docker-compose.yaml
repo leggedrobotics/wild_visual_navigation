@@ -11,6 +11,7 @@ services:
     volumes:
       - ../../wild_visual_navigation:/root/catkin_ws/src/wild_visual_navigation
       - ../../self_supervised_segmentation:/root/catkin_ws/src/self_supervised_segmentation
+      - ../../segment-anything:/root/catkin_ws/src/segment-anything
     environment:
       - ROS_IP=127.0.0.1
     command: "/bin/bash"

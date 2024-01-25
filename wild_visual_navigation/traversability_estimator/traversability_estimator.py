@@ -14,20 +14,14 @@ from wild_visual_navigation.utils import WVNMode
 from wild_visual_navigation.utils import TraversabilityLoss, AnomalyLoss
 from wild_visual_navigation.visu import LearningVisualizer
 
-
-from wild_visual_navigation import WVN_ROOT_DIR
 from pytorch_lightning import seed_everything
 from torch_geometric.data import Data, Batch
 from threading import Lock
-import dataclasses
 import os
 import pickle
-import time
 import torch
-import torch.nn.functional as F
 import torchvision.transforms as transforms
 from torchmetrics import ROC
-import random
 
 to_tensor = transforms.ToTensor()
 
@@ -303,7 +297,11 @@ class TraversabilityEstimator:
             node.update_supervision_signal()
 
             if self._mode == WVNMode.EXTRACT_LABELS:
-                p = os.path.join(self._extraction_store_folder, "image", str(node.timestamp).replace(".", "_") + ".pt")
+                p = os.path.join(
+                    self._extraction_store_folder,
+                    "image",
+                    str(node.timestamp).replace(".", "_") + ".pt",
+                )
                 torch.save(node.image, p)
 
             return True
@@ -481,7 +479,12 @@ class TraversabilityEstimator:
         i = 0
         for node in mission_nodes:
             if node.is_valid():
-                node.save(mission_path, i, graph_only=False, previous_node=self._mission_graph.get_previous_node(node))
+                node.save(
+                    mission_path,
+                    i,
+                    graph_only=False,
+                    previous_node=self._mission_graph.get_previous_node(node),
+                )
                 i += 1
         self._pause_training = False
 

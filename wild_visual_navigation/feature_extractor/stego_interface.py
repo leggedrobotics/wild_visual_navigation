@@ -3,45 +3,53 @@ import os
 from os.path import join
 import torch.nn.functional as F
 import torch
-import wget
 from torchvision import transforms as T
-from stego.src import LitUnsupervisedSegmenter
+from omegaconf import OmegaConf
 
-# from stego.src import get_transform
-from stego.src import dense_crf
+from stego import STEGO_ROOT_DIR
+from stego.stego import Stego
+from stego.data import create_cityscapes_colormap
 
 
 class StegoInterface:
-    def __init__(self, device: str, input_size: int = 448, input_interp: str = "bilinear"):
-        self.model = self.load()
-        self.model.to(device)
-        self.device = device
-        self._input_size = input_size
-        self._input_interp = input_interp
+    def __init__(
+        self,
+        device: str,
+        input_size: int = 448,
+        model_path: str = f"{STEGO_ROOT_DIR}/models/stego_cocostuff27_vit_base_5_cluster_linear_fine_tuning.ckpt",
+        run_crf: bool = True,
+        run_clustering: bool = False,
+        cfg: OmegaConf = OmegaConf.create({}),
+    ):
+        # Load config
+        if cfg.is_empty():
+            self._cfg = OmegaConf.create(
+                {
+                    "model_path": model_path,
+                    "input_size": input_size,
+                    "run_crf": run_crf,
+                    "run_clustering": run_clustering,
+                }
+            )
+        else:
+            self._cfg = cfg
 
-        if self._input_interp == "bilinear":
-            interp = T.InterpolationMode.BILINEAR
-        elif self._input_interp == "nearest":
-            interp = T.InterpolationMode.NEAREST
+        self._model = Stego.load_from_checkpoint(self._cfg.model_path)
+        self._model.eval().to(device)
+        self._device = device
 
-        # Transformation for testing
-        self.transform = T.Compose(
+        # Colormap
+        self._cmap = create_cityscapes_colormap()
+
+        # Other
+        normalization = T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        self._transform = T.Compose(
             [
-                T.Resize(self._input_size, interp),
-                T.CenterCrop(self._input_size),
-                T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+                T.Resize(input_size, T.InterpolationMode.NEAREST),
+                T.CenterCrop(input_size),
+                normalization,
             ]
         )
-
-        self.crop = T.Compose(
-            [
-                T.Resize(self._input_size, interp),
-                T.CenterCrop(self._input_size),
-            ]
-        )
-
-        # Just normalization
-        self.norm = T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
         # Internal variables to access internal data
         self._features = None
@@ -53,25 +61,8 @@ class StegoInterface:
         Args:
             device (str): new device
         """
-        self.model.to(device)
-        self.device = device
-
-    def load(self):
-        """Loads model.
-
-        Returns:
-            model (stego.src.train_segmentation.LitUnsupervisedSegmenter): Pretrained model
-        """
-        model_name = "cocostuff27_vit_base_5.ckpt"
-        model_path = join(WVN_ROOT_DIR, "assets", "stego", model_name)
-        if not os.path.exists(model_path):
-            os.makedirs(join(WVN_ROOT_DIR, "assets", "stego"), exist_ok=True)
-            saved_model_url_root = "https://marhamilresearch4.blob.core.windows.net/stego-public/saved_models/"
-            saved_model_name = model_name
-            wget.download(saved_model_url_root + saved_model_name, model_path)
-
-        model = LitUnsupervisedSegmenter.load_from_checkpoint(model_path)
-        return model
+        self._model.to(device)
+        self._device = device
 
     @torch.no_grad()
     def inference(self, img: torch.tensor):
@@ -83,47 +74,42 @@ class StegoInterface:
             linear_probs (torch.tensor, dtype=torch.float32, shape=(BS,C,H,W)): Linear prediction
             cluster_probs (torch.tensor, dtype=torch.float32, shape=(BS,C,H,W)): Cluster prediction
         """
-        assert 1 == img.shape[0]
+        # assert 1 == img.shape[0]
 
-        img = self.norm(img).to(self.device)
-        code1 = self.model(img)
-        code2 = self.model(img.flip(dims=[3]))
-        code = (code1 + code2.flip(dims=[3])) / 2
-        code = F.interpolate(code, img.shape[-2:], mode="bilinear", align_corners=False)
-        linear_probs = torch.log_softmax(self.model.linear_probe(code), dim=1)
-        cluster_probs = self.model.cluster_probe(code, 2, log_probs=True)
+        # Resize image and normalize
+        resized_img = self._transform(img).to(self._device)
 
-        # Save segments
-        self._code = code
-        self._segments = linear_probs
+        # Run STEGO
+        self._code = self._model.get_code(resized_img)
+        self._cluster_pred, self._linear_pred = self._model.postprocess(
+            code=self._code,
+            img=resized_img,
+            use_crf_cluster=self._cfg.run_crf,
+            use_crf_linear=self._cfg.run_crf,
+            image_clustering=self._cfg.run_clustering,
+        )
 
-        return linear_probs, cluster_probs
+        # resize and interpolate features
+        B, D, H, W = img.shape
+        new_features_size = (H, H)
+        # pad = int((W - H) / 2)
+        self._code = F.interpolate(self._code, new_features_size, mode="bilinear", align_corners=True)
+        self._cluster_pred = F.interpolate(self._cluster_pred[None].float(), new_features_size, mode="nearest").int()
+        self._linear_pred = F.interpolate(self._linear_pred[None].float(), new_features_size, mode="nearest").int()
 
-    @torch.no_grad()
-    def inference_crf(self, img: torch.tensor):
-        """
-        Args:
-            img (torch.tensor, dtype=type.torch.float32): Input image
+        return self._linear_pred[0], self._cluster_pred[0]
 
-        Returns:
-            linear_pred (torch.tensor, dtype=torch.int64): Linear prediction
-            cluster_pred (torch.tensor, dtype=torch.int64): Cluster prediction
-        """
+    @property
+    def model(self):
+        return self._model
 
-        linear_probs, cluster_probs = self.inference(img)
-        single_img = img[0].cpu()
-        self._linear_pred = dense_crf(single_img, linear_probs[0]).argmax(0)
-        self._cluster_pred = dense_crf(single_img, cluster_probs[0]).argmax(0)
-
-        return self._linear_pred, self._cluster_pred
+    @property
+    def cmap(self):
+        return self._cmap
 
     @property
     def input_size(self):
-        return self._input_size
-
-    @property
-    def input_interpolation(self):
-        return self._input_interp
+        return self._cfg.input_size
 
     @property
     def linear_segments(self):
@@ -143,8 +129,8 @@ def run_stego_interfacer():
 
     from pytictac import Timer
     from wild_visual_navigation.visu import get_img_from_fig
+    from stego.utils import remove_axes
     import matplotlib.pyplot as plt
-    from stego.src import unnorm, remove_axes
     import cv2
 
     # Create test directory
@@ -153,25 +139,32 @@ def run_stego_interfacer():
     # Inference model
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    si = StegoInterface(device=device, input_size=448, input_interp="bilinear")
+    si = StegoInterface(
+        device=device,
+        input_size=448,
+        run_crf=True,
+        run_clustering=False,
+    )
 
     p = join(WVN_ROOT_DIR, "assets/images/forest_clean.png")
     np_img = cv2.imread(p)
-    img = torch.from_numpy(cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB)).to(device)
+    np_img = cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB)
+    img = torch.from_numpy(np_img).to(device)
     img = img.permute(2, 0, 1)
     img = (img.type(torch.float32) / 255)[None]
+    img = F.interpolate(img, scale_factor=0.25)
 
-    with Timer(f"Stego (input {si.input_size}, interp: {si.input_interpolation})"):
-        linear_pred, cluster_pred = si.inference_crf(si.crop(img))
+    with Timer(f"Stego (input {si.input_size}"):
+        linear_pred, cluster_pred = si.inference(img)
 
     # Plot result as in colab
     fig, ax = plt.subplots(1, 3, figsize=(5 * 3, 5))
 
-    ax[0].imshow(si.crop(img).permute(0, 2, 3, 1)[0].cpu())
+    ax[0].imshow(img[0].permute(1, 2, 0).cpu().numpy())
     ax[0].set_title("Image")
-    ax[1].imshow(si.model.label_cmap[cluster_pred])
+    ax[1].imshow(si.cmap[cluster_pred[0].cpu() % si.cmap.shape[0]])
     ax[1].set_title("Cluster Predictions")
-    ax[2].imshow(si.model.label_cmap[linear_pred])
+    ax[2].imshow(si.cmap[linear_pred[0].cpu()])
     ax[2].set_title("Linear Probe Predictions")
     remove_axes(ax)
 
@@ -182,7 +175,7 @@ def run_stego_interfacer():
             WVN_ROOT_DIR,
             "results",
             "test_stego_interfacer",
-            f"forest_clean_stego_{si.input_size}_{si.input_interpolation}.png",
+            f"forest_clean_stego_{si.input_size}.png",
         )
     )
 

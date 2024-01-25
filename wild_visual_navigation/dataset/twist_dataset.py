@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 from pathlib import Path
-from torch.utils.data import Dataset, DataLoader, random_split
-from typing import Optional, Callable
+from torch.utils.data import Dataset, DataLoader
+from typing import Optional
 
 
 class TwistDataset(Dataset):
@@ -78,7 +78,12 @@ class TwistDataset(Dataset):
         # Find closest samples
         tol = pd.Timedelta(ts_matching_thr)
         merged_df = pd.merge_asof(
-            left=current_df, right=desired_df, right_index=True, left_index=True, direction="nearest", tolerance=tol
+            left=current_df,
+            right=desired_df,
+            right_index=True,
+            left_index=True,
+            direction="nearest",
+            tolerance=tol,
         )
         # Reindex to integer indices
         self.size = merged_df.index.size
@@ -129,7 +134,12 @@ class TwistDataset(Dataset):
 
 class TwistDataModule(pl.LightningDataModule):
     def __init__(
-        self, root: str, current_filename: str, desired_filename: str, seq_size: int = 16, batch_size: int = 32
+        self,
+        root: str,
+        current_filename: str,
+        desired_filename: str,
+        seq_size: int = 16,
+        batch_size: int = 32,
     ):
         super().__init__()
         self.root = root
@@ -138,10 +148,18 @@ class TwistDataModule(pl.LightningDataModule):
         self.seq_size = seq_size
         self.batch_size = batch_size
         self.data_train = TwistDataset(
-            self.root, self.current_filename, self.desired_filename, mode="train", seq_size=self.seq_size
+            self.root,
+            self.current_filename,
+            self.desired_filename,
+            mode="train",
+            seq_size=self.seq_size,
         )
         self.data_val = TwistDataset(
-            self.root, self.current_filename, self.desired_filename, mode="val", seq_size=self.seq_size
+            self.root,
+            self.current_filename,
+            self.desired_filename,
+            mode="val",
+            seq_size=self.seq_size,
         )
 
     def prepare_data(self):

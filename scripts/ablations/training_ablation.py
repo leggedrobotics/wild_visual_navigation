@@ -2,8 +2,6 @@ raise ValueError("TODO: Not tested with new configuration!")
 import os
 import torch
 from pathlib import Path
-import yaml
-import time
 import pickle
 import copy
 from wild_visual_navigation import WVN_ROOT_DIR
@@ -12,11 +10,9 @@ from wild_visual_navigation.cfg import ExperimentParams
 from wild_visual_navigation.general import training_routine
 from wild_visual_navigation.utils import override_params
 import argparse
-import logging
 import shutil
 
 from dataclasses import asdict
-import copy
 
 if __name__ == "__main__":
     """Test how much time and data it takes for a model to convergee on a scene.
@@ -30,16 +26,30 @@ if __name__ == "__main__":
     """
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ablation_type", type=str, default="network", help="Folder containing the ablation configs.")
+    parser.add_argument(
+        "--ablation_type",
+        type=str,
+        default="network",
+        help="Folder containing the ablation configs.",
+    )
     parser.add_argument("--number_training_runs", type=int, default=1, help="Number of run per config.")
     parser.add_argument(
-        "--test_all_datasets", dest="test_all_datasets", action="store_true", help="Test on all datasets."
+        "--test_all_datasets",
+        dest="test_all_datasets",
+        action="store_true",
+        help="Test on all datasets.",
     )
     parser.add_argument(
-        "--store_final_model", dest="store_final_model", action="store_true", help="store_final_model on all datasets."
+        "--store_final_model",
+        dest="store_final_model",
+        action="store_true",
+        help="store_final_model on all datasets.",
     )
     parser.add_argument(
-        "--scenes", default="forest,hilly,grassland", type=str, help="List of scenes seperated by comma without spaces."
+        "--scenes",
+        default="forest,hilly,grassland",
+        type=str,
+        help="List of scenes seperated by comma without spaces.",
     )
     parser.add_argument("--special_key", type=str, default="", help="Test on all datasets.")
     parser.set_defaults(test_all_datasets=False)
@@ -123,7 +133,7 @@ if __name__ == "__main__":
     try:
         os.remove(p)
     except OSError as error:
-        pass
+        print(error)
 
     with open(p, "wb") as handle:
         pickle.dump(results_epoch, handle, protocol=pickle.HIGHEST_PROTOCOL)

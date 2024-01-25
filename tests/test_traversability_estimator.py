@@ -1,4 +1,7 @@
-from wild_visual_navigation.traversability_estimator import run_base_state, run_base_graph
+from wild_visual_navigation.traversability_estimator import (
+    run_base_state,
+    run_base_graph,
+)
 
 
 def test_base_state():

@@ -2,7 +2,6 @@ from wild_visual_navigation.model import get_model
 import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
-from os.path import join
 from wild_visual_navigation.visu import LearningVisualizer
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 from torch_geometric.data import Data
@@ -10,7 +9,6 @@ from torchmetrics import ROC
 
 from wild_visual_navigation.utils import TraversabilityLoss, MetricLogger
 import os
-import pickle
 
 
 class LightningTrav(pl.LightningModule):
@@ -70,8 +68,20 @@ class LightningTrav(pl.LightningModule):
 
         for k, v in loss_aux.items():
             if k.find("loss") != -1:
-                self.log(f"{self._mode}_{k}", v.item(), on_epoch=True, prog_bar=True, batch_size=BS)
-        self.log(f"{self._mode}_loss", loss.item(), on_epoch=True, prog_bar=True, batch_size=BS)
+                self.log(
+                    f"{self._mode}_{k}",
+                    v.item(),
+                    on_epoch=True,
+                    prog_bar=True,
+                    batch_size=BS,
+                )
+        self.log(
+            f"{self._mode}_loss",
+            loss.item(),
+            on_epoch=True,
+            prog_bar=True,
+            batch_size=BS,
+        )
 
         self.visu(graph, res_updated, loss_aux["confidence"])
 
@@ -112,9 +122,21 @@ class LightningTrav(pl.LightningModule):
 
         for k, v in loss_aux.items():
             if k.find("loss") != -1:
-                self.log(f"{self._mode}_{k}", v.item(), on_epoch=True, prog_bar=True, batch_size=BS)
+                self.log(
+                    f"{self._mode}_{k}",
+                    v.item(),
+                    on_epoch=True,
+                    prog_bar=True,
+                    batch_size=BS,
+                )
 
-        self.log(f"{self._mode}_loss", loss.item(), on_epoch=True, prog_bar=True, batch_size=BS)
+        self.log(
+            f"{self._mode}_loss",
+            loss.item(),
+            on_epoch=True,
+            prog_bar=True,
+            batch_size=BS,
+        )
         self.visu(graph, res_updated, loss_aux["confidence"])
 
         return loss
@@ -133,7 +155,7 @@ class LightningTrav(pl.LightningModule):
                 fpr, tpr, thresholds = self._auxiliary_training_roc.compute()
                 index = torch.where(fpr > 0.15)[0][0]
                 self.threshold[0] = thresholds[index]
-            except:
+            except Exception:
                 pass
         else:
             self.threshold[0] = 0.5
@@ -158,13 +180,25 @@ class LightningTrav(pl.LightningModule):
 
         for k, v in loss_aux.items():
             if k.find("loss") != -1:
-                self.log(f"{self._mode}_{k}", v.item(), on_epoch=True, prog_bar=True, batch_size=BS)
-        self.log(f"{self._mode}_loss", loss.item(), on_epoch=True, prog_bar=True, batch_size=BS)
+                self.log(
+                    f"{self._mode}_{k}",
+                    v.item(),
+                    on_epoch=True,
+                    prog_bar=True,
+                    batch_size=BS,
+                )
+        self.log(
+            f"{self._mode}_loss",
+            loss.item(),
+            on_epoch=True,
+            prog_bar=True,
+            batch_size=BS,
+        )
         self.visu(graph, res_updated, loss_aux["confidence"])
         return loss
 
     def test_epoch_end(self, outputs: any, plot=False):
-        ################ NEW VERSION ################
+        # NEW VERSION
         res = self._metric_logger.get_epoch_results("test")
         dic2 = {
             "trainer_logged_metric" + k: v.item()
@@ -199,7 +233,7 @@ class LightningTrav(pl.LightningModule):
                 on_epoch=True,
                 batch_size=graph.ptr.shape[0] - 1,
             )
-        except:
+        except Exception:
             pass
 
         for b in range(graph.ptr.shape[0] - 1):
@@ -232,14 +266,22 @@ class LightningTrav(pl.LightningModule):
 
                 # Visualize Graph with Segmentation
                 t1 = self._visualizer.plot_traversability_graph_on_seg(
-                    pred[:, 0], seg, graph[b], center, img, not_log=True, colorize_invalid_centers=True
+                    pred[:, 0],
+                    seg,
+                    graph[b],
+                    center,
+                    img,
+                    not_log=True,
+                    colorize_invalid_centers=True,
                 )
                 t2 = self._visualizer.plot_traversability_graph_on_seg(
                     graph[b].y, seg, graph[b], center, img, not_log=True
                 )
                 t_img = self._visualizer.plot_image(img, not_log=True)
                 self._visualizer.plot_list(
-                    imgs=[t1, t2, t_img], tag=f"C{c}_{self._mode}_GraphTrav", store_folder=f"{self._mode}/graph_trav"
+                    imgs=[t1, t2, t_img],
+                    tag=f"C{c}_{self._mode}_GraphTrav",
+                    store_folder=f"{self._mode}/graph_trav",
                 )
 
                 nr_channel_reco = graph[b].x.shape[1]
@@ -248,14 +290,27 @@ class LightningTrav(pl.LightningModule):
 
                 # # Visualize Graph with Segmentation
                 c1 = self._visualizer.plot_traversability_graph_on_seg(
-                    conf, seg, graph[b], center, img, not_log=True, colorize_invalid_centers=True
+                    conf,
+                    seg,
+                    graph[b],
+                    center,
+                    img,
+                    not_log=True,
+                    colorize_invalid_centers=True,
                 )
                 c2 = self._visualizer.plot_traversability_graph_on_seg(
-                    graph[b].y_valid.type(torch.float32), seg, graph[b], center, img, not_log=True
+                    graph[b].y_valid.type(torch.float32),
+                    seg,
+                    graph[b],
+                    center,
+                    img,
+                    not_log=True,
                 )
                 c_img = self._visualizer.plot_image(img, not_log=True)
                 self._visualizer.plot_list(
-                    imgs=[c1, c2, c_img], tag=f"C{c}_{self._mode}_GraphConf", store_folder=f"{self._mode}/graph_conf"
+                    imgs=[c1, c2, c_img],
+                    tag=f"C{c}_{self._mode}_GraphConf",
+                    store_folder=f"{self._mode}/graph_conf",
                 )
 
                 # if self._mode == "test":
@@ -316,10 +371,18 @@ class LightningTrav(pl.LightningModule):
             reco_loss = F.mse_loss(pred[:, -nr_channel_reco:], graph[b].x, reduction="none").mean(dim=1)
 
             self._visualizer.plot_histogram(
-                reco_loss, graph[b].y, mean, std, tag=f"C{c}_{self._mode}__confidence_generator_prop"
+                reco_loss,
+                graph[b].y,
+                mean,
+                std,
+                tag=f"C{c}_{self._mode}__confidence_generator_prop",
             )
 
             if hasattr(graph[b], "y_gt"):
                 self._visualizer.plot_histogram(
-                    reco_loss, graph[b].y_gt, mean, std, tag=f"C{c}_{self._mode}__confidence_generator_gt"
+                    reco_loss,
+                    graph[b].y_gt,
+                    mean,
+                    std,
+                    tag=f"C{c}_{self._mode}__confidence_generator_gt",
                 )

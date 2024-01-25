@@ -61,9 +61,9 @@ class ConfidenceGenerator(torch.nn.Module):
 
             self._update = self.update_running_mean
             self._reset = self.reset_running_mean
-        elif method == "latest_measurment":
-            self._update = self.update_latest_measurment
-            self._reset = self.reset_latest_measurment
+        elif method == "latest_measurement":
+            self._update = self.update_latest_measurement
+            self._reset = self.reset_latest_measurement
         elif method == "moving_average":
             window_size = 5
             self.data_window = deque(maxlen=window_size)
@@ -72,13 +72,13 @@ class ConfidenceGenerator(torch.nn.Module):
         else:
             raise ValueError("Unknown method")
 
-    def update_latest_measurment(self, x: torch.Tensor, x_positive: torch.Tensor):
+    def update_latest_measurement(self, x: torch.Tensor, x_positive: torch.Tensor):
         # Then the confidence is computed as the distance to the center of the Gaussian given factor*sigma
         self.mean[0] = x_positive.mean()
         self.std[0] = x_positive.std()
         return self.inference_without_update(x)
 
-    def reset_latest_measurment(self, x: torch.Tensor, x_positive: torch.Tensor):
+    def reset_latest_measurement(self, x: torch.Tensor, x_positive: torch.Tensor):
         self.mean[0] = 0
         self.var[0] = 1
         self.std[0] = 1
@@ -133,7 +133,7 @@ class ConfidenceGenerator(torch.nn.Module):
             self.var[0, 0] = var[0, 0]
             self.mean[0] = mean[0]
 
-            assert torch.isnan(self.mean).any() == False, "Nan Value in mean detected"
+            assert not torch.isnan(self.mean).any(), "Nan Value in mean detected"
         self.std[0] = torch.sqrt(self.var)[0, 0]
 
         # Then the confidence is computed as the distance to the center of the Gaussian given factor*sigma
@@ -142,7 +142,13 @@ class ConfidenceGenerator(torch.nn.Module):
 
         return confidence.type(torch.float32)
 
-    def update(self, x: torch.tensor, x_positive: torch.tensor, step: int, log_step: bool = False):
+    def update(
+        self,
+        x: torch.tensor,
+        x_positive: torch.tensor,
+        step: int,
+        log_step: bool = False,
+    ):
         """Input a tensor with multiple error predictions.
         Returns the estimated confidence score within 2 standard deviations based on the running mean and variance.
 
@@ -160,7 +166,12 @@ class ConfidenceGenerator(torch.nn.Module):
 
             with torch.no_grad():
                 torch.save(
-                    {"x": x.cpu(), "x_positive": x_positive.cpu(), "mean": self.mean.cpu(), "std": self.std.cpu()},
+                    {
+                        "x": x.cpu(),
+                        "x_positive": x_positive.cpu(),
+                        "mean": self.mean.cpu(),
+                        "std": self.std.cpu(),
+                    },
                     os.path.join(base_folder, f"samples_{step:06}.pt"),
                 )
 

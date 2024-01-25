@@ -46,7 +46,14 @@ for d in perguia_dataset:
         p = str(os.path.join(ouput_dir, d["name"].replace("mission_data/", ""), "image", dele))
         if os.path.exists(p):
             os.remove(p)
-        p = str(os.path.join(ouput_dir, d["name"].replace("mission_data/", ""), "supervision_mask", dele))
+        p = str(
+            os.path.join(
+                ouput_dir,
+                d["name"].replace("mission_data/", ""),
+                "supervision_mask",
+                dele,
+            )
+        )
         if os.path.exists(p):
             os.remove(p)
 

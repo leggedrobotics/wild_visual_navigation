@@ -83,19 +83,37 @@ class MetricLogger(torch.nn.Module):
         self.auroc_self_image[mode](preds=bp, target=bpro.type(torch.long))
 
         self.log_handel(
-            f"{mode}_auroc_gt_image", self.auroc_gt_image[mode], on_epoch=True, on_step=False, batch_size=BS
+            f"{mode}_auroc_gt_image",
+            self.auroc_gt_image[mode],
+            on_epoch=True,
+            on_step=False,
+            batch_size=BS,
         )
         self.log_handel(
-            f"{mode}_auroc_self_image", self.auroc_self_image[mode], on_epoch=True, on_step=False, batch_size=BS
+            f"{mode}_auroc_self_image",
+            self.auroc_self_image[mode],
+            on_epoch=True,
+            on_step=False,
+            batch_size=BS,
         )
 
         # GT
         self.acc_gt_image[mode](preds=bp > threshold, target=graph.label.type(torch.long))
         self.acc_self_image[mode](preds=bp > threshold, target=bpro.type(torch.long))
 
-        self.log_handel(f"{mode}_acc_gt_image", self.acc_gt_image[mode], on_epoch=True, on_step=False, batch_size=BS)
         self.log_handel(
-            f"{mode}_acc_self_image", self.acc_self_image[mode], on_epoch=True, on_step=False, batch_size=BS
+            f"{mode}_acc_gt_image",
+            self.acc_gt_image[mode],
+            on_epoch=True,
+            on_step=False,
+            batch_size=BS,
+        )
+        self.log_handel(
+            f"{mode}_acc_self_image",
+            self.acc_self_image[mode],
+            on_epoch=True,
+            on_step=False,
+            batch_size=BS,
         )
 
     @torch.no_grad()
@@ -110,7 +128,7 @@ class MetricLogger(torch.nn.Module):
         bpro = graph.label.clone().type(torch.float32).flatten()
         buffer_conf = graph.label.clone().type(torch.float32).flatten()
 
-        bp = res[seg_pixel_index, 0].reshape(BS, H, W)
+        bp = res[seg_pixel_index, 0].reshape(BS, H, W)  # noqa: F841
         bpro = graph.y[seg_pixel_index].reshape(BS, H, W)
         buffer_conf = confidence[seg_pixel_index].reshape(BS, H, W)
 
@@ -134,7 +152,11 @@ class MetricLogger(torch.nn.Module):
         self.acc_anomaly_gt_image[mode](preds=buffer_conf, target=graph.label.type(torch.long))
         self.acc_anomaly_self_image[mode](preds=buffer_conf, target=bpro.type(torch.long))
         self.log_handel(
-            f"{mode}_acc_anomaly_gt_image", self.acc_anomaly_gt_image[mode], on_epoch=True, on_step=False, batch_size=BS
+            f"{mode}_acc_anomaly_gt_image",
+            self.acc_anomaly_gt_image[mode],
+            on_epoch=True,
+            on_step=False,
+            batch_size=BS,
         )
         self.log_handel(
             f"{mode}_acc_anomaly_self_image",

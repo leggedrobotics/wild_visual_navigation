@@ -1,10 +1,14 @@
 from wild_visual_navigation.image_projector import ImageProjector
-from wild_visual_navigation.utils import make_box, make_plane, make_polygon_from_points, make_dense_plane
+from wild_visual_navigation.utils import (
+    make_box,
+    make_plane,
+    make_polygon_from_points,
+    make_dense_plane,
+)
 from liegroups.torch import SE3, SO3
 from torch_geometric.data import Data
 import os
 import torch
-import torch.nn.functional as F
 from typing import Optional
 
 
@@ -74,7 +78,10 @@ class BaseNode:
         """
         # Compute pose difference, then log() to get a vector, then extract position coordinates, finally get norm
         return (
-            SE3.from_matrix(self.pose_base_in_world.inverse() @ other.pose_base_in_world, normalize=True)
+            SE3.from_matrix(
+                self.pose_base_in_world.inverse() @ other.pose_base_in_world,
+                normalize=True,
+            )
             .log()[:3]
             .norm()
         )
@@ -182,7 +189,12 @@ class MissionNode(BaseNode):
         if self._confidence is not None:
             self._confidence = self._confidence.to(device)
 
-    def as_pyg_data(self, previous_node: Optional[BaseNode] = None, anomaly_detection: bool = False, aux: bool = False):
+    def as_pyg_data(
+        self,
+        previous_node: Optional[BaseNode] = None,
+        anomaly_detection: bool = False,
+        aux: bool = False,
+    ):
         if aux:
             return Data(x=self.features, edge_index=self._feature_edges)
         if previous_node is None:
@@ -351,7 +363,13 @@ class MissionNode(BaseNode):
     def use_for_training(self, use_for_training):
         self._use_for_training = use_for_training
 
-    def save(self, output_path: str, index: int, graph_only: bool = False, previous_node: Optional[BaseNode] = None):
+    def save(
+        self,
+        output_path: str,
+        index: int,
+        graph_only: bool = False,
+        previous_node: Optional[BaseNode] = None,
+    ):
         if self._feature_positions is not None:
             graph_data = self.as_pyg_data(previous_node)
             path = os.path.join(output_path, "graph", f"graph_{index:06d}.pt")
@@ -366,10 +384,17 @@ class MissionNode(BaseNode):
                 p = path.replace("graph", "seg")
                 torch.save(self._feature_segments.cpu(), p)
 
-    def project_footprint(self, footprint: torch.tensor, color: torch.tensor = torch.FloatTensor([1.0, 1.0, 1.0])):
-        mask, image_overlay, projected_points, valid_points = self._image_projector.project_and_render(
-            self._pose_cam_in_world[None], footprint, color
-        )
+    def project_footprint(
+        self,
+        footprint: torch.tensor,
+        color: torch.tensor = torch.FloatTensor([1.0, 1.0, 1.0]),
+    ):
+        (
+            mask,
+            image_overlay,
+            projected_points,
+            valid_points,
+        ) = self._image_projector.project_and_render(self._pose_cam_in_world[None], footprint, color)
 
         return mask, image_overlay, projected_points, valid_points
 
@@ -418,7 +443,8 @@ class MissionNode(BaseNode):
 
 class SupervisionNode(BaseNode):
     """Local node stores all the information required for traversability estimation and debugging
-    All the information matches a real frame that must be respected to keep consistency"""
+    All the information matches a real frame that must be respected to keep consistency
+    """
 
     _name = "supervision_node"
 
@@ -472,14 +498,21 @@ class SupervisionNode(BaseNode):
         self._supervision_state = self._supervision_state.to(device)
 
     def get_bounding_box_points(self):
-        return make_box(self._length, self._width, self._height, pose=self._pose_base_in_world, grid_size=5).to(
-            self._pose_base_in_world.device
-        )
+        return make_box(
+            self._length,
+            self._width,
+            self._height,
+            pose=self._pose_base_in_world,
+            grid_size=5,
+        ).to(self._pose_base_in_world.device)
 
     def get_footprint_points(self):
-        return make_plane(x=self._length, y=self._width, pose=self._pose_footprint_in_world, grid_size=25).to(
-            self._pose_footprint_in_world.device
-        )
+        return make_plane(
+            x=self._length,
+            y=self._width,
+            pose=self._pose_footprint_in_world,
+            grid_size=25,
+        ).to(self._pose_footprint_in_world.device)
 
     def get_side_points(self):
         return make_plane(x=0.0, y=self._width, pose=self._pose_footprint_in_world, grid_size=2).to(
@@ -499,7 +532,11 @@ class SupervisionNode(BaseNode):
 
         # Prepare transformation of plane in base frame
         rho = torch.FloatTensor(
-            [0.5 * self._length * motion_direction[0], 0.5 * self._length * motion_direction[1], -self._height / 2]
+            [
+                0.5 * self._length * motion_direction[0],
+                0.5 * self._length * motion_direction[1],
+                -self._height / 2,
+            ]
         )  # Translation vector (x, y, z)
         phi = torch.FloatTensor([0.0, 0.0, z_angle])  # roll-pitch-yaw
         R_BP = SO3.from_rpy(phi)
@@ -507,9 +544,12 @@ class SupervisionNode(BaseNode):
         pose_plane_in_world = self._pose_base_in_world @ pose_plane_in_base  # Pose of plane in world frame
 
         # Make plane
-        return make_dense_plane(y=0.5 * self._width, z=self._height, pose=pose_plane_in_world, grid_size=grid_size).to(
-            device
-        )
+        return make_dense_plane(
+            y=0.5 * self._width,
+            z=self._height,
+            pose=pose_plane_in_world,
+            grid_size=grid_size,
+        ).to(device)
 
     def make_footprint_with_node(self, other: BaseNode, grid_size: int = 10):
         if self.is_untraversable:

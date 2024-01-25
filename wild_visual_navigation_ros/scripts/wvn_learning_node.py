@@ -18,7 +18,7 @@ from wild_visual_navigation.cfg import ExperimentParams, RosLearningNodeParams
 from std_srvs.srv import SetBool, Trigger, TriggerResponse
 from geometry_msgs.msg import PoseStamped, Point, TwistStamped
 from nav_msgs.msg import Path
-from sensor_msgs.msg import Image, CameraInfo, CompressedImage
+from sensor_msgs.msg import Image, CameraInfo
 from std_msgs.msg import ColorRGBA, Float32
 from visualization_msgs.msg import Marker
 import tf2_ros
@@ -31,7 +31,6 @@ from threading import Thread, Event
 import os
 import seaborn as sns
 import torch
-import dataclasses
 import numpy as np
 from typing import Optional
 import traceback
@@ -105,7 +104,12 @@ class WvnLearning:
                 self.traversability_estimator._visualizer,
                 self.supervision_generator,
             ],
-            names=["WVN", "TraversabilityEstimator", "Visualizer", "SupervisionGenerator"],
+            names=[
+                "WVN",
+                "TraversabilityEstimator",
+                "Visualizer",
+                "SupervisionGenerator",
+            ],
             enabled=(
                 self.ros_params.print_image_callback_time
                 or self.ros_params.print_supervision_callback_time
@@ -169,7 +173,10 @@ class WvnLearning:
         i = 0
         # Learning loop
         while True:
-            self.system_events["learning_thread_loop"] = {"time": rospy.get_time(), "value": "running"}
+            self.system_events["learning_thread_loop"] = {
+                "time": rospy.get_time(),
+                "value": "running",
+            }
             self.learning_thread_stop_event.wait(timeout=0.01)
             if self.learning_thread_stop_event.is_set():
                 rospy.logwarn("Stopped learning thread")
@@ -202,10 +209,14 @@ class WvnLearning:
                 if self.ros_params.scale_traversability:
                     if self.traversability_estimator._auxiliary_training_roc._update_count != 0:
                         try:
-                            fpr, tpr, thresholds = self.traversability_estimator._auxiliary_training_roc.compute()
+                            (
+                                fpr,
+                                tpr,
+                                thresholds,
+                            ) = self.traversability_estimator._auxiliary_training_roc.compute()
                             index = torch.where(fpr > self.ros_params.scale_traversability_max_fpr)[0][0]
                             traversability_threshold = thresholds[index]
-                        except:
+                        except Exception:
                             traversability_threshold = 0.5
                     else:
                         traversability_threshold = 0.5
@@ -218,7 +229,10 @@ class WvnLearning:
                 torch.save(res, f"{WVN_ROOT_DIR}/tmp_state_dict2.pt")
             i += 1
 
-        self.system_events["learning_thread_loop"] = {"time": rospy.get_time(), "value": "finished"}
+        self.system_events["learning_thread_loop"] = {
+            "time": rospy.get_time(),
+            "value": "finished",
+        }
         self.learning_thread_stop_event.clear()
 
     def logging_thread_loop(self):
@@ -279,8 +293,14 @@ class WvnLearning:
                 self.ros_params.supervision_callback_rate = 4
                 self.ros_params.image_graph_dist_thr = 0.2
                 self.ros_params.supervision_graph_dist_thr = 0.1
-            os.makedirs(os.path.join(self.ros_params.extraction_store_folder, "image"), exist_ok=True)
-            os.makedirs(os.path.join(self.ros_params.extraction_store_folder, "supervision_mask"), exist_ok=True)
+            os.makedirs(
+                os.path.join(self.ros_params.extraction_store_folder, "image"),
+                exist_ok=True,
+            )
+            os.makedirs(
+                os.path.join(self.ros_params.extraction_store_folder, "supervision_mask"),
+                exist_ok=True,
+            )
 
         self.step = -1
         self.step_time = rospy.get_time()
@@ -295,9 +315,9 @@ class WvnLearning:
 
             # Robot state callback
             robot_state_sub = message_filters.Subscriber(self.ros_params.robot_state_topic, RobotState)
-            cache1 = message_filters.Cache(robot_state_sub, 10)
+            cache1 = message_filters.Cache(robot_state_sub, 10)  # noqa: F841
             desired_twist_sub = message_filters.Subscriber(self.ros_params.desired_twist_topic, TwistStamped)
-            cache2 = message_filters.Cache(desired_twist_sub, 10)
+            cache2 = message_filters.Cache(desired_twist_sub, 10)  # noqa: F841
 
             self.robot_state_sub = message_filters.ApproximateTimeSynchronizer(
                 [robot_state_sub, desired_twist_sub], queue_size=10, slop=0.5
@@ -333,7 +353,9 @@ class WvnLearning:
                     sync.registerCallback(self.imagefeat_callback, self.ros_params.camera_topics[cam])
 
                     last_image_overlay_pub = rospy.Publisher(
-                        f"/wild_visual_navigation_node/{cam}/debug/last_node_image_overlay", Image, queue_size=10
+                        f"/wild_visual_navigation_node/{cam}/debug/last_node_image_overlay",
+                        Image,
+                        queue_size=10,
                     )
 
                     self.camera_handler[cam]["debug"] = {}
@@ -359,7 +381,9 @@ class WvnLearning:
         )
         # 1D outputs
         self.pub_instant_traversability = rospy.Publisher(
-            "/wild_visual_navigation_node/instant_traversability", Float32, queue_size=10
+            "/wild_visual_navigation_node/instant_traversability",
+            Float32,
+            queue_size=10,
         )
         self.pub_system_state = rospy.Publisher("/wild_visual_navigation_node/system_state", SystemState, queue_size=10)
 
@@ -457,9 +481,18 @@ class WvnLearning:
 
         try:
             res = self.tf_buffer.lookup_transform(parent_frame, child_frame, stamp, timeout=rospy.Duration(0.03))
-            trans = (res.transform.translation.x, res.transform.translation.y, res.transform.translation.z)
+            trans = (
+                res.transform.translation.x,
+                res.transform.translation.y,
+                res.transform.translation.z,
+            )
             rot = np.array(
-                [res.transform.rotation.x, res.transform.rotation.y, res.transform.rotation.z, res.transform.rotation.w]
+                [
+                    res.transform.rotation.x,
+                    res.transform.rotation.y,
+                    res.transform.rotation.z,
+                    res.transform.rotation.w,
+                ]
             )
             rot /= np.linalg.norm(rot)
             return (trans, tuple(rot))
@@ -477,7 +510,10 @@ class WvnLearning:
             state_msg (wild_visual_navigation_msgs/RobotState): Robot state message
             desired_twist_msg (geometry_msgs/TwistStamped): Desired twist message
         """
-        self.system_events["robot_state_callback_received"] = {"time": rospy.get_time(), "value": "message received"}
+        self.system_events["robot_state_callback_received"] = {
+            "time": rospy.get_time(),
+            "value": "message received",
+        }
         try:
             ts = state_msg.header.stamp.to_sec()
             if abs(ts - self.last_supervision_ts) < 1.0 / self.ros_params.supervision_callback_rate:
@@ -490,7 +526,11 @@ class WvnLearning:
 
             # Query transforms from TF
             suc, pose_base_in_world = rc.ros_tf_to_torch(
-                self.query_tf(self.ros_params.fixed_frame, self.ros_params.base_frame, state_msg.header.stamp),
+                self.query_tf(
+                    self.ros_params.fixed_frame,
+                    self.ros_params.base_frame,
+                    state_msg.header.stamp,
+                ),
                 device=self.ros_params.device,
             )
             if not suc:
@@ -501,7 +541,11 @@ class WvnLearning:
                 return
 
             suc, pose_footprint_in_base = rc.ros_tf_to_torch(
-                self.query_tf(self.ros_params.base_frame, self.ros_params.footprint_frame, state_msg.header.stamp),
+                self.query_tf(
+                    self.ros_params.base_frame,
+                    self.ros_params.footprint_frame,
+                    state_msg.header.stamp,
+                ),
                 device=self.ros_params.device,
             )
             if not suc:
@@ -522,7 +566,11 @@ class WvnLearning:
             desired_twist_tensor = rc.twist_stamped_to_torch(desired_twist_msg, device=self.ros_params.device)
 
             # Update traversability
-            traversability, traversability_var, is_untraversable = self.supervision_generator.update_velocity_tracking(
+            (
+                traversability,
+                traversability_var,
+                is_untraversable,
+            ) = self.supervision_generator.update_velocity_tracking(
                 current_twist_tensor, desired_twist_tensor, velocities=["vx", "vy"]
             )
 
@@ -581,7 +629,10 @@ class WvnLearning:
             assert len(args) == 3
             imagefeat_msg, info_msg, camera_options = tuple(args)
 
-        self.system_events["image_callback_received"] = {"time": rospy.get_time(), "value": "message received"}
+        self.system_events["image_callback_received"] = {
+            "time": rospy.get_time(),
+            "value": "message received",
+        }
         if self.ros_params.verbose:
             print(f"\nImage callback: {camera_options['name']}... ", end="")
         try:
@@ -598,7 +649,11 @@ class WvnLearning:
 
             # Query transforms from TF
             suc, pose_base_in_world = rc.ros_tf_to_torch(
-                self.query_tf(self.ros_params.fixed_frame, self.ros_params.base_frame, imagefeat_msg.header.stamp),
+                self.query_tf(
+                    self.ros_params.fixed_frame,
+                    self.ros_params.base_frame,
+                    imagefeat_msg.header.stamp,
+                ),
                 device=self.ros_params.device,
             )
             if not suc:
@@ -608,7 +663,11 @@ class WvnLearning:
                 }
                 return
             suc, pose_cam_in_base = rc.ros_tf_to_torch(
-                self.query_tf(self.ros_params.base_frame, imagefeat_msg.header.frame_id, imagefeat_msg.header.stamp),
+                self.query_tf(
+                    self.ros_params.base_frame,
+                    imagefeat_msg.header.frame_id,
+                    imagefeat_msg.header.stamp,
+                ),
                 device=self.ros_params.device,
             )
 
@@ -630,16 +689,24 @@ class WvnLearning:
             # Add image to base node
             # convert image message to torch image
             feature_segments = rc.ros_image_to_torch(
-                imagefeat_msg.feature_segments, desired_encoding="passthrough", device=self.ros_params.device
+                imagefeat_msg.feature_segments,
+                desired_encoding="passthrough",
+                device=self.ros_params.device,
             ).clone()
             h_small, w_small = feature_segments.shape[1:3]
 
-            torch_image = torch.zeros((3, h_small, w_small), device=self.ros_params.device, dtype=torch.float32)
+            torch_image = torch.zeros(
+                (3, h_small, w_small),
+                device=self.ros_params.device,
+                dtype=torch.float32,
+            )
 
             # convert image message to torch image
             if self.ros_params.mode == WVNMode.DEBUG:
                 torch_image = rc.ros_image_to_torch(
-                    image_msg, desired_encoding="passthrough", device=self.ros_params.device
+                    image_msg,
+                    desired_encoding="passthrough",
+                    device=self.ros_params.device,
                 ).clone()
 
             # Create mission node for the graph
@@ -675,12 +742,18 @@ class WvnLearning:
             if self.ros_params.print_image_callback_time:
                 print(self.timer)
 
-            self.system_events["image_callback_state"] = {"time": rospy.get_time(), "value": "executed successfully"}
+            self.system_events["image_callback_state"] = {
+                "time": rospy.get_time(),
+                "value": "executed successfully",
+            }
 
         except Exception as e:
             traceback.print_exc()
             print("error image callback", e)
-            self.system_events["image_callback_state"] = {"time": rospy.get_time(), "value": f"failed to execute {e}"}
+            self.system_events["image_callback_state"] = {
+                "time": rospy.get_time(),
+                "value": f"failed to execute {e}",
+            }
             raise Exception("Error in image callback")
 
     @accumulate_time
@@ -732,7 +805,9 @@ class WvnLearning:
             if None in last_points:
                 for i in range(2):
                     last_points[i] = Point(
-                        x=side_points[i, 0].item(), y=side_points[i, 1].item(), z=side_points[i, 2].item()
+                        x=side_points[i, 0].item(),
+                        y=side_points[i, 1].item(),
+                        z=side_points[i, 2].item(),
                     )
                 continue
             else:
@@ -747,14 +822,20 @@ class WvnLearning:
                     points_to_add.append(lp)
                 # Add first from new side points
                 points_to_add.append(
-                    Point(x=side_points[i, 0].item(), y=side_points[i, 1].item(), z=side_points[i, 2].item())
+                    Point(
+                        x=side_points[i, 0].item(),
+                        y=side_points[i, 1].item(),
+                        z=side_points[i, 2].item(),
+                    )
                 )
                 # Add last of last points
                 points_to_add.append(last_points[0])
                 # Add new side points and update last points
                 for i in range(2):
                     last_points[i] = Point(
-                        x=side_points[i, 0].item(), y=side_points[i, 1].item(), z=side_points[i, 2].item()
+                        x=side_points[i, 0].item(),
+                        y=side_points[i, 1].item(),
+                        z=side_points[i, 2].item(),
                     )
                     points_to_add.append(last_points[i])
 
@@ -767,7 +848,14 @@ class WvnLearning:
             if node.is_untraversable:
                 untraversable_plane = node.get_untraversable_plane(grid_size=2)
                 N, D = untraversable_plane.shape
-                for n in [0, 1, 3, 2, 0, 3]:  # this is a hack to show the triangles correctly
+                for n in [
+                    0,
+                    1,
+                    3,
+                    2,
+                    0,
+                    3,
+                ]:  # this is a hack to show the triangles correctly
                     p = Point()
                     p.x = untraversable_plane[n, 0]
                     p.y = untraversable_plane[n, 1]
@@ -785,7 +873,10 @@ class WvnLearning:
 
         # Publish latest traversability
         self.pub_instant_traversability.publish(self.supervision_generator.traversability)
-        self.system_events["visualize_supervision"] = {"time": rospy.get_time(), "value": f"executed successfully"}
+        self.system_events["visualize_supervision"] = {
+            "time": rospy.get_time(),
+            "value": f"executed successfully",
+        }
 
     @accumulate_time
     def visualize_mission_graph(self):

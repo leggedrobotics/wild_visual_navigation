@@ -7,7 +7,6 @@ warnings.filterwarnings("ignore", ".*does not have many workers.*")
 
 # Frameworks
 import torch
-import pytorch_lightning
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -60,7 +59,11 @@ def training_routine(exp: ExperimentParams, seed=42) -> torch.Tensor:
 
     if exp.cb_checkpoint.active:
         checkpoint_callback = ModelCheckpoint(
-            dirpath=model_path, save_top_k=1, monitor="epoch", mode="max", save_last=True
+            dirpath=model_path,
+            save_top_k=1,
+            monitor="epoch",
+            mode="max",
+            save_last=True,
         )
         cb_ls.append(checkpoint_callback)
 
@@ -93,7 +96,7 @@ def training_routine(exp: ExperimentParams, seed=42) -> torch.Tensor:
         ckpt = torch.load(exp.model.load_ckpt)
         try:
             res = model.load_state_dict(ckpt.state_dict, strict=False)
-        except:
+        except Exception:
             res = model.load_state_dict(ckpt, strict=False)
         print("Loaded model checkpoint:", res)
     trainer = Trainer(**exp.trainer, callbacks=cb_ls, logger=logger)

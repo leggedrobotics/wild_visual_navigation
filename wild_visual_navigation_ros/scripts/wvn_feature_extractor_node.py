@@ -81,7 +81,7 @@ class WvnFeatureExtractor:
         sys.exit(0)
 
     def status_thread_loop(self):
-        rate = rospy.Rate(self.ros_params.status_thread_rate)
+        # rate = rospy.Rate(self.ros_params.status_thread_rate)
         # Learning loop
         while self.run_status_thread:
             self.status_thread_stop_event.wait(timeout=0.01)
@@ -203,8 +203,16 @@ class WvnFeatureExtractor:
             self.camera_handler[cam]["image_sub"] = image_sub
 
             # Set publishers
-            trav_pub = rospy.Publisher(f"/wild_visual_navigation_node/{cam}/traversability", Image, queue_size=10)
-            info_pub = rospy.Publisher(f"/wild_visual_navigation_node/{cam}/camera_info", CameraInfo, queue_size=10)
+            trav_pub = rospy.Publisher(
+                f"/wild_visual_navigation_node/{cam}/traversability",
+                Image,
+                queue_size=10,
+            )
+            info_pub = rospy.Publisher(
+                f"/wild_visual_navigation_node/{cam}/camera_info",
+                CameraInfo,
+                queue_size=10,
+            )
             self.camera_handler[cam]["trav_pub"] = trav_pub
             self.camera_handler[cam]["info_pub"] = info_pub
             if self.anomaly_detection and self.ros_params.camera_topics[cam]["publish_confidence"]:
@@ -212,21 +220,31 @@ class WvnFeatureExtractor:
                 self.ros_params.camera_topics[cam]["publish_confidence"] = False
 
             if self.ros_params.camera_topics[cam]["publish_input_image"]:
-                input_pub = rospy.Publisher(f"/wild_visual_navigation_node/{cam}/image_input", Image, queue_size=10)
+                input_pub = rospy.Publisher(
+                    f"/wild_visual_navigation_node/{cam}/image_input",
+                    Image,
+                    queue_size=10,
+                )
                 self.camera_handler[cam]["input_pub"] = input_pub
 
             if self.ros_params.camera_topics[cam]["publish_confidence"]:
-                conf_pub = rospy.Publisher(f"/wild_visual_navigation_node/{cam}/confidence", Image, queue_size=10)
+                conf_pub = rospy.Publisher(
+                    f"/wild_visual_navigation_node/{cam}/confidence",
+                    Image,
+                    queue_size=10,
+                )
                 self.camera_handler[cam]["conf_pub"] = conf_pub
 
             if self.ros_params.camera_topics[cam]["use_for_training"]:
                 imagefeat_pub = rospy.Publisher(
-                    f"/wild_visual_navigation_node/{cam}/feat", ImageFeatures, queue_size=10
+                    f"/wild_visual_navigation_node/{cam}/feat",
+                    ImageFeatures,
+                    queue_size=10,
                 )
                 self.camera_handler[cam]["imagefeat_pub"] = imagefeat_pub
 
     @torch.no_grad()
-    def image_callback(self, image_msg: Image, cam: str):  #  info_msg: CameraInfo
+    def image_callback(self, image_msg: Image, cam: str):  # info_msg: CameraInfo
         """Main callback to process incoming images.
 
         Args:
@@ -288,7 +306,11 @@ class WvnFeatureExtractor:
 
             # Clip to binary output
             if self.ros_params.clip_to_binary:
-                out_trav = torch.where(out_trav.squeeze() <= self.ros_params.traversability_threshold, 0.0, 1.0)
+                out_trav = torch.where(
+                    out_trav.squeeze() <= self.ros_params.traversability_threshold,
+                    0.0,
+                    1.0,
+                )
 
         msg = rc.numpy_to_ros_image(out_trav.cpu().numpy(), "passthrough")
         msg.header = image_msg.header
@@ -302,7 +324,10 @@ class WvnFeatureExtractor:
 
         # Publish image
         if self.ros_params.camera_topics[cam]["publish_input_image"]:
-            msg = rc.numpy_to_ros_image((torch_image.permute(1, 2, 0) * 255).cpu().numpy().astype(np.uint8), "rgb8")
+            msg = rc.numpy_to_ros_image(
+                (torch_image.permute(1, 2, 0) * 255).cpu().numpy().astype(np.uint8),
+                "rgb8",
+            )
             msg.header = image_msg.header
             msg.width = torch_image.shape[1]
             msg.height = torch_image.shape[2]
@@ -367,7 +392,7 @@ class WvnFeatureExtractor:
                     self.confidence_generator.var = self.confidence_generator_state["var"]
                     self.confidence_generator.mean = self.confidence_generator_state["mean"]
                     self.confidence_generator.std = self.confidence_generator_state["std"]
-                except:
+                except Exception:
                     pass
 
         except Exception as e:

@@ -2,18 +2,14 @@
 
 from __future__ import print_function
 
-import roslib
 import sys
 import rospy
-import cv2
-from std_msgs.msg import String
 from sensor_msgs.msg import Image
-from cv_bridge import CvBridge, CvBridgeError
+from cv_bridge import CvBridge
 
 
-class image_converter:
+class ImageConverter:
     def __init__(self, cam):
-
         self.image_pub = rospy.Publisher(f"/alphasense_driver_ros/{cam}_corrected", Image, queue_size=10)
 
         self.bridge = CvBridge()
@@ -27,7 +23,7 @@ class image_converter:
 def main(args):
     rospy.init_node("image_converter", anonymous=True)
     cam = rospy.get_param("~cam", "cam4")
-    ic = image_converter(cam)
+    ic = ImageConverter(cam)  # noqa: F841
     try:
         rospy.spin()
     except KeyboardInterrupt:

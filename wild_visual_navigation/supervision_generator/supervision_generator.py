@@ -2,11 +2,9 @@ from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.traversability_estimator.graphs import DistanceWindowGraph
 from wild_visual_navigation.traversability_estimator.nodes import TwistNode
 from wild_visual_navigation.utils import KalmanFilter
-from liegroups import SE2, SE3
-from os.path import join
+from liegroups import SE3
 import os
 import torch
-import torch.nn as nn
 
 
 class SupervisionGenerator:
@@ -101,9 +99,6 @@ class SupervisionGenerator:
         """
 
         S = self.get_velocity_selection_matrix(velocities).to(self.device)
-
-        # Get dimensionality of input
-        N = current_velocity.shape[-1]
 
         # Compute discrepancy
         error = (torch.nn.functional.mse_loss(S @ current_velocity, S @ desired_velocity)) / max_velocity
@@ -220,9 +215,21 @@ def run_supervision_generator():
         trav, trav_cov, is_untrav = ag.update_velocity_tracking(
             curr[0], des[0], max_velocity=0.8, velocities=["vx", "vy"]
         )
-        saved_data.append([t.item(), curr.norm().item(), des.norm().item(), trav.item(), trav_cov.item(), is_untrav])
+        saved_data.append(
+            [
+                t.item(),
+                curr.norm().item(),
+                des.norm().item(),
+                trav.item(),
+                trav_cov.item(),
+                is_untrav,
+            ]
+        )
 
-    df = pd.DataFrame(saved_data, columns=["ts", "curr", "des", "trav", "trav_cov", "is_untraversable"])
+    df = pd.DataFrame(
+        saved_data,
+        columns=["ts", "curr", "des", "trav", "trav_cov", "is_untraversable"],
+    )
     df["ts"] = df["ts"] - df["ts"][0]
 
     df["trav_upper"] = df["trav"] + df["trav_cov"]

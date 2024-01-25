@@ -1,10 +1,14 @@
 import torch
 from torch_geometric.data import Data
-import torch.nn.functional as F
 
 
 class SimpleMLP(torch.nn.Module):
-    def __init__(self, input_size: int = 64, hidden_sizes: [int] = [255], reconstruction: bool = False):
+    def __init__(
+        self,
+        input_size: int = 64,
+        hidden_sizes: [int] = [255],
+        reconstruction: bool = False,
+    ):
         super(SimpleMLP, self).__init__()
         layers = []
         self.nr_sigmoid_layers = hidden_sizes[-1]

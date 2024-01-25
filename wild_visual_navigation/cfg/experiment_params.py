@@ -1,15 +1,13 @@
 from dataclasses import dataclass, field
-from typing import Tuple, Dict, List, Optional
-from wild_visual_navigation import WVN_ROOT_DIR
+from typing import List, Optional
 from typing import Any
 import os
-from wild_visual_navigation.cfg import get_gloabl_env_params, GloabalEnvironmentParams
+from wild_visual_navigation.cfg import get_global_env_params, GlobalEnvironmentParams
 
 
 @dataclass
 class ExperimentParams:
-
-    env: GloabalEnvironmentParams = get_gloabl_env_params(os.environ.get("ENV_WORKSTATIO_NAME", "default"))
+    env: GlobalEnvironmentParams = get_global_env_params(os.environ.get("ENV_WORKSTATION_NAME", "default"))
 
     @dataclass
     class GeneralParams:
@@ -48,7 +46,7 @@ class ExperimentParams:
         w_trav: float = 0.03
         w_reco: float = 0.5
         w_temp: float = 0.0  # 0.75
-        method: str = "latest_measurment"
+        method: str = "latest_measurement"
         confidence_std_factor: float = 0.5
         trav_cross_entropy: bool = False
 
@@ -56,7 +54,7 @@ class ExperimentParams:
 
     @dataclass
     class LossAnomalyParams:
-        method: str = "running_mean"  # "latest_measurment", "running_mean", "moving_average"
+        method: str = "running_mean"  # "latest_measurement", "running_mean", "moving_average"
         confidence_std_factor: float = 0.5
 
     loss_anomaly: LossAnomalyParams = LossAnomalyParams()

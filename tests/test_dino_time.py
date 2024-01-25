@@ -1,14 +1,19 @@
 from wild_visual_navigation import WVN_ROOT_DIR
 from pytictac import Timer
-from wild_visual_navigation.feature_extractor import DinoInterface, DinoTrtInterface, TrtModel
-from collections import namedtuple, OrderedDict
-from torchvision import transforms as T
+from wild_visual_navigation.feature_extractor import (
+    DinoInterface,
+    DinoTrtInterface,
+    # TrtModel,
+)
+
+# from collections import namedtuple, OrderedDict
+# from torchvision import transforms as T
 import cv2
 import os
 import torch
-import tensorrt as trt
-import numpy as np
-import os
+
+# import tensorrt as trt
+# import numpy as np
 
 
 def test_dino_interfacer():
@@ -30,7 +35,7 @@ def test_dino_interfacer():
         for i in range(5):
             im = img + torch.rand(img.shape, device=img.device) / 100
             with Timer("BS1 Dino Single: "):
-                res = di.inference(di.transform(im))
+                di.inference(di.transform(im))
 
     #####################################################################################
     # img = img.repeat(4, 1, 1, 1)
@@ -48,7 +53,7 @@ def test_dino_interfacer():
 
     with Timer("TensorRT Inference: "):
         im = img + torch.rand(img.shape, device=img.device) / 100
-        y = di_trt.inference(di.transform(im).contiguous())
+        di_trt.inference(di.transform(im).contiguous())
 
     #####################################################################################
     # Conversion using the torch_tensorrt library: https://github.com/pytorch/TensorRT

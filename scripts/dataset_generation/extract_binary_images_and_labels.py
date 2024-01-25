@@ -1,6 +1,5 @@
 import sys
 import os
-from pathlib import Path
 import time
 from tqdm import tqdm
 import subprocess
@@ -9,10 +8,10 @@ import yaml
 from tf_bag import BagTfTransformer
 import rospy
 import rosparam
-from sensor_msgs.msg import Image, CameraInfo, CompressedImage
+from sensor_msgs.msg import CameraInfo
 import rosbag
 
-from postprocessing_tools_ros.merging import merge_bags_single, merge_bags_all
+from postprocessing_tools_ros.merging import merge_bags_single
 
 # from py_image_proc_cuda import ImageProcCuda
 # from cv_bridge import CvBridge
@@ -51,7 +50,7 @@ class BagTfTransformerWrapper:
     def lookupTransform(self, parent_frame, child_frame, time):
         try:
             return self.tf_listener.lookupTransform(parent_frame, child_frame, time)
-        except:
+        except Exception:
             return (None, None)
 
 
@@ -77,11 +76,17 @@ def do(n, dry_run):
 
     if not os.path.exists(output_bag_tf):
         total_included_count, total_skipped_count = merge_bags_single(
-            input_bag=rosbags, output_bag=output_bag_tf, topics="/tf /tf_static", verbose=True
+            input_bag=rosbags,
+            output_bag=output_bag_tf,
+            topics="/tf /tf_static",
+            verbose=True,
         )
     if not os.path.exists(output_bag_wvn):
         total_included_count, total_skipped_count = merge_bags_single(
-            input_bag=rosbags, output_bag=output_bag_wvn, topics=" ".join(valid_topics), verbose=True
+            input_bag=rosbags,
+            output_bag=output_bag_wvn,
+            topics=" ".join(valid_topics),
+            verbose=True,
         )
 
     # Setup WVN node
@@ -100,7 +105,7 @@ def do(n, dry_run):
 
     # for supervision callback
     state_msg_valid = False
-    desired_twist_msg_valid = False
+    # desired_twist_msg_valid = False
 
     wvn_ros_interface = WvnRosInterface()
     print("-" * 80)
@@ -115,8 +120,23 @@ def do(n, dry_run):
     info_msg.height = 1080
     info_msg.width = 1440
     info_msg.distortion_model = "equidistant"
-    info_msg.D = [0.4316922809468283, 0.09279900476637248, -0.4010909691803734, 0.4756163338479413]
-    info_msg.K = [575.6050407221768, 0.0, 745.7312198525915, 0.0, 578.564849365178, 519.5207040671075, 0.0, 0.0, 1.0]
+    info_msg.D = [
+        0.4316922809468283,
+        0.09279900476637248,
+        -0.4010909691803734,
+        0.4756163338479413,
+    ]
+    info_msg.K = [
+        575.6050407221768,
+        0.0,
+        745.7312198525915,
+        0.0,
+        578.564849365178,
+        519.5207040671075,
+        0.0,
+        0.0,
+        1.0,
+    ]
     info_msg.P = [
         575.6050407221768,
         0.0,

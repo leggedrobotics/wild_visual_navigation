@@ -4,20 +4,21 @@ from wild_visual_navigation.feature_extractor import (
     SegmentExtractor,
     TorchVisionInterface,
 )
-from pytictac import Timer
-import skimage
 import torch
 import numpy as np
 import kornia
 from kornia.feature import DenseSIFTDescriptor
 from kornia.contrib import extract_tensor_patches, combine_tensor_patches
-from torchvision import transforms as T
-from PIL import Image, ImageDraw
 
 
 class FeatureExtractor:
     def __init__(
-        self, device: str, segmentation_type: str = "slic", feature_type: str = "dino", input_size: int = 448, **kwargs
+        self,
+        device: str,
+        segmentation_type: str = "slic",
+        feature_type: str = "dino",
+        input_size: int = 448,
+        **kwargs,
     ):
         """Feature extraction from image
 
@@ -64,7 +65,8 @@ class FeatureExtractor:
             from fast_slic import Slic
 
             self.slic = Slic(
-                num_components=kwargs.get("slic_num_components", 100), compactness=kwargs.get("slic_compactness", 10)
+                num_components=kwargs.get("slic_num_components", 100),
+                compactness=kwargs.get("slic_compactness", 10),
             )
 
         elif self.segmentation_type == "random":
@@ -187,7 +189,10 @@ class FeatureExtractor:
 
         combine_patch_size = (int(H / cell_size), int(W / cell_size))
         seg = combine_tensor_patches(
-            patches=patches, original_size=(H, W), window_size=combine_patch_size, stride=combine_patch_size
+            patches=patches,
+            original_size=(H, W),
+            window_size=combine_patch_size,
+            stride=combine_patch_size,
         )
 
         return seg[0, 0].to(self._device)
@@ -252,7 +257,7 @@ class FeatureExtractor:
             feat_r = self.extractor(img[:, 0, :, :][None])
             feat_g = self.extractor(img[:, 1, :, :][None])
             feat_b = self.extractor(img[:, 2, :, :][None])
-            features = torch.cat([feat_r, feat_r, feat_b], dim=1)
+            features = torch.cat([feat_r, feat_g, feat_b], dim=1)
         else:
             features = self.extractor(img)
         return features
@@ -284,7 +289,8 @@ class FeatureExtractor:
 
                 segs = [
                     torch.nn.functional.interpolate(
-                        seg[None, None, :, :].type(torch.float32), scale_factor=(scale_x, scale_y)
+                        seg[None, None, :, :].type(torch.float32),
+                        scale_factor=(scale_x, scale_y),
                     )[0, 0].type(torch.long)
                     for scale_x, scale_y in zip(scales_x, scales_y)
                 ]
@@ -297,6 +303,11 @@ class FeatureExtractor:
                     # Iterate over each scale
                     for dense_feature, seg_scaled in zip(dense_features.values(), segs):
                         m = seg_scaled == i
+                        prev_scale_x = 1.0
+                        prev_scale_y = 1.0
+                        prev_x = 1.0
+                        prev_y = 1.0
+
                         # When downscaling the mask it becomes 0 therfore calculate x,y
                         # Based on the previous scale
                         if m.sum() == 0:

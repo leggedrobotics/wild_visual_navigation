@@ -10,8 +10,6 @@ def test_supervision_projection():
     from wild_visual_navigation import WVN_ROOT_DIR
     from wild_visual_navigation.image_projector import ImageProjector
     from wild_visual_navigation.visu import get_img_from_fig
-    from pytictac import Timer
-    from wild_visual_navigation.utils import make_plane, make_box, make_dense_plane, make_polygon_from_points
     from PIL import Image
     from liegroups.torch import SE3, SO3
     import matplotlib.pyplot as plt
@@ -115,7 +113,14 @@ def test_supervision_projection():
 
     # Store results to test directory
     img = get_img_from_fig(fig)
-    img.save(join(WVN_ROOT_DIR, "results", "test_image_projector", "forest_clean_supervision_projection.png"))
+    img.save(
+        join(
+            WVN_ROOT_DIR,
+            "results",
+            "test_image_projector",
+            "forest_clean_supervision_projection.png",
+        )
+    )
 
 
 if __name__ == "__main__":

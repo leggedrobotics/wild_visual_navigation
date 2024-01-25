@@ -1,5 +1,5 @@
 import numpy as np
-from wild_visual_navigation.utils import perguia_dataset, ROOT_DIR
+from wild_visual_navigation.utils import ROOT_DIR
 import os
 
 
@@ -24,4 +24,11 @@ for l in ls:
     res = torch.load(p)
     img = Image.fromarray(np.uint8(res.permute(1, 2, 0).cpu().numpy() * 255))
 
-    img.save(os.path.join(ROOT_DIR, "wvn_output/labeling", env, l.split("/")[-1].replace(".pt", ".png")))
+    img.save(
+        os.path.join(
+            ROOT_DIR,
+            "wvn_output/labeling",
+            env,
+            l.split("/")[-1].replace(".pt", ".png"),
+        )
+    )

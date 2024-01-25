@@ -138,7 +138,13 @@ def run_kalman_filter():
     kf1.init_meas_model(meas_model=torch.eye(1), meas_cov=torch.eye(1) * 2)
 
     # Outlier-robust KF
-    kf2 = KalmanFilter(dim_state=1, dim_control=1, dim_meas=1, outlier_rejection="huber", outlier_delta=0.5)
+    kf2 = KalmanFilter(
+        dim_state=1,
+        dim_control=1,
+        dim_meas=1,
+        outlier_rejection="huber",
+        outlier_delta=0.5,
+    )
     kf2.init_process_model(proc_model=torch.eye(1) * 1, proc_cov=torch.eye(1) * 0.5)
     kf2.init_meas_model(meas_model=torch.eye(1), meas_cov=torch.eye(1) * 2)
 

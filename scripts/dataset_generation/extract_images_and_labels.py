@@ -12,7 +12,7 @@ import rosparam
 from sensor_msgs.msg import Image, CameraInfo
 import rosbag
 
-from postprocessing_tools_ros.merging import merge_bags_single, merge_bags_all
+from postprocessing_tools_ros.merging import merge_bags_single
 
 # from py_image_proc_cuda import ImageProcCuda
 # from cv_bridge import CvBridge
@@ -51,7 +51,7 @@ class BagTfTransformerWrapper:
     def lookupTransform(self, parent_frame, child_frame, time):
         try:
             return self.tf_listener.lookupTransform(parent_frame, child_frame, time)
-        except:
+        except Exception:
             return (None, None)
 
 
@@ -64,7 +64,11 @@ def do(n, dry_run):
 
     s = os.path.join(ROOT_DIR, d["name"])
 
-    valid_topics = ["/state_estimator/anymal_state", "/alphasense_driver_ros/cam4", "/log/state/desiredRobotTwist"]
+    valid_topics = [
+        "/state_estimator/anymal_state",
+        "/alphasense_driver_ros/cam4",
+        "/log/state/desiredRobotTwist",
+    ]
 
     # Merge rosbags if necessary
     rosbags = [
@@ -76,7 +80,7 @@ def do(n, dry_run):
     ]
     try:
         rosbags.sort(key=lambda x: int(x.split("/")[-1][-5]))
-    except:
+    except Exception:
         pass
 
     output_bag_wvn = s + "_wvn.bag"
@@ -86,11 +90,17 @@ def do(n, dry_run):
     # jetson locomotion robot
     if not os.path.exists(output_bag_tf):
         total_included_count, total_skipped_count = merge_bags_single(
-            input_bag=tf_bags, output_bag=output_bag_tf, topics="/tf /tf_static", verbose=True
+            input_bag=tf_bags,
+            output_bag=output_bag_tf,
+            topics="/tf /tf_static",
+            verbose=True,
         )
     if not os.path.exists(output_bag_wvn):
         total_included_count, total_skipped_count = merge_bags_single(
-            input_bag=rosbags, output_bag=output_bag_wvn, topics=" ".join(valid_topics), verbose=True
+            input_bag=rosbags,
+            output_bag=output_bag_wvn,
+            topics=" ".join(valid_topics),
+            verbose=True,
         )
 
     # Setup WVN node
@@ -126,7 +136,17 @@ def do(n, dry_run):
     info_msg.height = 540
     info_msg.width = 720
     info_msg.distortion_model = "plumb_bob"
-    info_msg.K = [347.548139773951, 0.0, 342.454373227748, 0.0, 347.434712422309, 271.368057185649, 0.0, 0.0, 1.0]
+    info_msg.K = [
+        347.548139773951,
+        0.0,
+        342.454373227748,
+        0.0,
+        347.434712422309,
+        271.368057185649,
+        0.0,
+        0.0,
+        1.0,
+    ]
     info_msg.P = [
         347.548139773951,
         0.0,
@@ -177,10 +197,12 @@ def do(n, dry_run):
                         # Change this for service call
                         try:
                             image_msg = rospy.wait_for_message(
-                                "/alphasense_driver_ros/cam4/debayered", Image, timeout=0.01
+                                "/alphasense_driver_ros/cam4/debayered",
+                                Image,
+                                timeout=0.01,
                             )
                             suc = True
-                        except Exception as e:
+                        except Exception:
                             suc = False
                             pass
                         if suc:

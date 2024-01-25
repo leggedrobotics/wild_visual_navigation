@@ -2,14 +2,11 @@ raise ValueError("TODO: Not tested with new configuration!")
 import os
 import torch
 from pathlib import Path
-import yaml
 import time
 import pickle
 import copy
 import argparse
 import shutil
-from wild_visual_navigation import WVN_ROOT_DIR
-from wild_visual_navigation.utils import load_yaml
 from wild_visual_navigation.cfg import ExperimentParams
 from wild_visual_navigation.general import training_routine
 
@@ -29,7 +26,10 @@ if __name__ == "__main__":
     parser.add_argument("--test_all_datasets", dest="test_all_datasets", action="store_true", help="")
     parser.set_defaults(test_all_datasets=False)
     parser.add_argument(
-        "--scenes", default="forest,hilly,grassland", type=str, help="List of scenes seperated by comma without spaces."
+        "--scenes",
+        default="forest,hilly,grassland",
+        type=str,
+        help="List of scenes seperated by comma without spaces.",
     )
     parser.add_argument("--store_model_every_n_steps", type=int, default=100)
     parser.add_argument("--max_steps", type=int, default=1000)
@@ -79,7 +79,9 @@ if __name__ == "__main__":
 
         Path(exp.general.model_path).mkdir(parents=True, exist_ok=True)
         percent = range(
-            data_start_percentage, data_stop_percentage + data_percentage_increment, data_percentage_increment
+            data_start_percentage,
+            data_stop_percentage + data_percentage_increment,
+            data_percentage_increment,
         )
 
         with open(os.path.join(exp.general.model_path, "experiment_params.pkl"), "wb") as handle:
@@ -106,7 +108,7 @@ if __name__ == "__main__":
         try:
             os.remove(p)
         except OSError as error:
-            pass
+            print(error)
         with open(p, "wb") as handle:
             pickle.dump(results_epoch, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -118,11 +120,18 @@ if __name__ == "__main__":
     p_inter = os.path.join(exp.general.model_path, f"{output_key}_steps.pkl")
     total_paths = [str(s) for s in Path(exp.general.model_path).rglob("*.pt")]
     print("total_paths", len(total_paths))
-    import time
 
     st = time.time()
     for j, p in enumerate(Path(exp.general.model_path).rglob("*.pt")):
-        print("XXXXXXXXXXXXXXXXXXXXX PROGRESS ", j, " of ", len(total_paths), " in ", time.time() - st, " seconds.")
+        print(
+            "XXXXXXXXXXXXXXXXXXXXX PROGRESS ",
+            j,
+            " of ",
+            len(total_paths),
+            " in ",
+            time.time() - st,
+            " seconds.",
+        )
         res = str(p).split("/")[-1].split("_")
         scene, percentage, run, steps = res[-4], res[-3], res[-2], res[-1]
 
@@ -132,7 +141,14 @@ if __name__ == "__main__":
 
         res, _ = training_routine(exp, seed=run)
         results_step.append(
-            {"scene": scene, "percentage": percentage, "run": run, "steps": steps, "results": res, "model_path": str(p)}
+            {
+                "scene": scene,
+                "percentage": percentage,
+                "run": run,
+                "steps": steps,
+                "results": res,
+                "model_path": str(p),
+            }
         )
         torch.cuda.empty_cache()
 
@@ -141,7 +157,7 @@ if __name__ == "__main__":
             try:
                 os.remove(p_inter.replace(".pkl", f"_inter_{j}.pkl"))
             except OSError as error:
-                pass
+                print(error)
 
             with open(p_inter.replace(".pkl", f"_inter_{j}.pkl"), "wb") as handle:
                 pickle.dump(results_step, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -151,7 +167,7 @@ if __name__ == "__main__":
     try:
         os.remove(p)
     except OSError as error:
-        pass
+        print(error)
 
     with open(p, "wb") as handle:
         pickle.dump(results_step, handle, protocol=pickle.HIGHEST_PROTOCOL)

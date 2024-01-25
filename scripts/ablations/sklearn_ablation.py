@@ -1,7 +1,6 @@
 raise ValueError("TODO: Not tested with new configuration!")
 # Use the same config to load the data using the dataloader
 from wild_visual_navigation.dataset import get_ablation_module
-from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.cfg import ExperimentParams
 import torch
 from torchmetrics import Accuracy, AUROC
@@ -10,10 +9,8 @@ from sklearnex import patch_sklearn
 
 patch_sklearn()
 
-from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.neural_network import MLPClassifier
 import numpy as np
 import copy
 import os
@@ -125,8 +122,14 @@ for scene in ["forest", "hilly", "grassland"]:
 
             for features_test, y_gt, y_prop, test_scene in zip(features_tests, y_gts, y_props, test_scenes):
                 y_pred = v.predict_proba(features_test)
-                test_auroc_gt.update(torch.from_numpy(y_pred[:, 1]), torch.from_numpy(y_gt).type(torch.long))
-                test_auroc_prop.update(torch.from_numpy(y_pred[:, 1]), torch.from_numpy(y_prop).type(torch.long))
+                test_auroc_gt.update(
+                    torch.from_numpy(y_pred[:, 1]),
+                    torch.from_numpy(y_gt).type(torch.long),
+                )
+                test_auroc_prop.update(
+                    torch.from_numpy(y_pred[:, 1]),
+                    torch.from_numpy(y_prop).type(torch.long),
+                )
 
                 res = {
                     "test_auroc_gt_seg": test_auroc_gt.compute().item(),
@@ -146,7 +149,8 @@ for scene in ["forest", "hilly", "grassland"]:
     ws = os.environ.get("ENV_WORKSTATION_NAME", "default")
     # Store epoch output to disk.
     p = os.path.join(
-        exp.env.results, f"ablations/classicial_learning_ablation_{ws}/classicial_learning_ablation_test_results.pkl"
+        exp.env.results,
+        f"ablations/classicial_learning_ablation_{ws}/classicial_learning_ablation_test_results.pkl",
     )
     print(results_epoch)
     Path(p).parent.mkdir(parents=True, exist_ok=True)
@@ -154,7 +158,7 @@ for scene in ["forest", "hilly", "grassland"]:
     try:
         os.remove(p)
     except OSError as error:
-        pass
+        print(error)
 
     with open(p, "wb") as handle:
         pickle.dump(results_epoch, handle, protocol=pickle.HIGHEST_PROTOCOL)
