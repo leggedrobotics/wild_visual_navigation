@@ -1,6 +1,6 @@
 version: "3.9"
 services:
-  wvn_gui:
+  wvn:
     extends:
       file: docker-compose.yaml
       service: wvn
@@ -8,5 +8,6 @@ services:
      - DISPLAY=${DISPLAY}
      - QT_X11_NO_MITSHM=1
     volumes:
+      - /dev/dri:/dev/dri
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /tmp/.docker.xauth:/tmp/.docker.xauth:rw

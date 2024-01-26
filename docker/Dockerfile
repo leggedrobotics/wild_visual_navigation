@@ -100,9 +100,10 @@ CMD ["/bin/bash"]
 WORKDIR /root
 
 
-#####################
-# Development image #
-#####################
+###############################################################
+# Development image
+# This adds display access and simulation support
+###############################################################
 
 FROM base as dev
 

@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  wvn:
+    extends:
+      file: docker-compose-gui.yaml
+      service: wvn
+    environment:
+     - NVIDIA_VISIBLE_DEVICES=all
+     - NVIDIA_DRIVER_CAPABILITIES=all
+    runtime: nvidia

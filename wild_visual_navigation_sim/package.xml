@@ -16,6 +16,7 @@
   <depend>nav_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
+  <depend>wild_visual_navigation_ros</depend>
 
   <exec_depend>gazebo_ros</exec_depend>
   <export>

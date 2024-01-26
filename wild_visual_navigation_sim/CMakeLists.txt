@@ -6,6 +6,7 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   sensor_msgs
   std_msgs
+  wild_visual_navigation_ros
 )
 
 catkin_package(

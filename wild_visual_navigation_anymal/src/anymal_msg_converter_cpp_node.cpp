@@ -43,7 +43,7 @@ class AnymalMsgConverter {
 };
 
 int main(int argc, char** argv) {
-  ros::init(argc, argv, "field_local_planner");
+  ros::init(argc, argv, "anymal_msg_converter");
   ros::NodeHandle nh("~");
   AnymalMsgConverter converter(nh);
   return 0;

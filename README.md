@@ -16,75 +16,61 @@
 
 ## Citation
 
-```
+```bibtex
 @INPROCEEDINGS{FreyMattamala23, 
     AUTHOR    = {Jonas Frey and Matias Mattamala and Nived Chebrolu and Cesar Cadena and Maurice Fallon and Marco Hutter}, 
     TITLE     = {{Fast Traversability Estimation for Wild Visual Navigation}}, 
     BOOKTITLE = {Proceedings of Robotics: Science and Systems}, 
     YEAR      = {2023}, 
     ADDRESS   = {Daegu, Republic of Korea}, 
-    MONTH     = {June}, 
-    DOI       = {TBD} 
+    MONTH     = {July}, 
+    DOI       = {10.15607/RSS.2023.XIX.054} 
 } 
 ```
+
 Checkout out also our other works.
 
 <img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
 ## Setup
+
 ### Dependencies
 
-The repository is tested with:
+The repository has been tested with:
+
 - GPU Driver Version: `535.129.03`
 - Torch: `2.1.0+cu121`
 - GPUs: RTX3080 Laptop; RTX3090
 - ROS: Noetic (ROS1)
-- Ubuntu: 20.04.6 LTS (Focal Fossa) 
+- Ubuntu: 20.04.6 LTS (Focal Fossa)
 - Kernel: 5.15.0-88-generic
-
-Generally the code should also work with older version of torch.
 
 ### Installation
 
 Clone the repository.
-```shell
+
+```sh
 mkdir ~/git && cd ~/git 
 git clone git@github.com:leggedrobotics/wild_visual_navigation.git
 ```
 
-#### Virutal Env Setup (Tested)
-```shell
+#### Virtual Env Setup (Tested)
+
+```sh
 # Install virutal environment
 sudo apt -y install python3-venv 
-# Create vitual envrionment
+# Create vitual environment
 python -m venv ~/git/wild_visual_navigation/assets/virtual_env/wvn
 echo 'alias venv_wvn="source ~/git/wild_visual_navigation/assets/virtual_env/wvn/bin/activate"' >> ~/.bashrc
 source ~/.bashrc
-# Source virtual envrionment
+# Source virtual environment
 venv_wvn
 # Install wild_visual_navigation
 pip3 install -e ~/git/wild_visual_navigation
 ```
 
-
-#### Conda Installation (Not tested)
-Install the conda environment. (Currently the conda environment file is not tested and most likely outdated)
-```shell
-# Make sure to be in the base conda environment
-cd ~/git/wild_visual_navigation
-conda env create -f environment.yaml 
-```
-
-3. Install the wild_visual_navigation package.
-```shell
-conda activate wvn
-cd ~/git
-pip3 install -e ./wild_visual_navigation
-```
-
-
-
 ### Configuration Overview
+
 - The general configuration files can be found under: `wild_visual_navigation/cfg/experiment_params.py`
 - This configuration is used in the `offline-model-training` and in the `online-ros` mode.
 - When running the `online-ros` mode additional configurations for the individual nodes are defined in `wild_visual_navigation/cfg/ros_params.py`.
@@ -93,28 +79,33 @@ pip3 install -e ./wild_visual_navigation
 - We set an environment variable to automatically load the correct global paths and trigger some special behavior e.g. when training on a cluster.
 
 #### [Optionally] Configure custom paths 
+
 Set your custom global paths by defining the ENV_WORKSTATION_NAME and exporting the variable in your `~/.bashrc`.
   
-  ```shell
-  export ENV_WORKSTATION_NAME=your_workstation_name
-  ```  
-The paths can be specified by modifying `wild_visual_navigation/wild_visual_navigation/cfg/gloabl_params.py`. 
-Add your desired global paths. 
-Per default, all results are stored in `wild_visual_navigation/results`.
+```shell
+export ENV_WORKSTATION_NAME=your_workstation_name
+```
+
+The paths can be specified by modifying `wild_visual_navigation/wild_visual_navigation/cfg/global_params.py`.
+Add your desired global paths.
+By default, all results are stored in `wild_visual_navigation/results`.
 
 <img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
-
 ## Software Architecture Overview
-![Overview](./assets/drawings/software_overview.jpg)
 
+![Overview](./assets/drawings/software_overview.jpg)
 
 <img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
 ## Experiments
+
 ### [Online] Ros-Mode
+
 #### Setup
-Let`s set up a new catkin_ws:
+
+Let's set up a new `catkin_ws`:
+
 ```shell
 # Create Workspace
 source /opt/ros/noetic/setup.bash
@@ -150,6 +141,7 @@ source ~/catkin_ws/devel/setup.bash
 ```
 
 When using the virtual environment make sure that your shell correctly sources the virtual environment and then the catkin workspace.
+
 ```shell
 venv_wvn; catkin_ws
 ... # Run the wild_visual_navigation code
@@ -159,23 +151,26 @@ After successfully building the ros workspace you can run the full pipeline by e
 We are currently working on the instructions using a `virtualenv` which eases this process.
 
 - Run WVN Nodes:
+
 ```shell
 python wild_visual_navigation_ros/scripts/wvn_feature_extractor_node.py
 ```
+
 ```shell
 python wild_visual_navigation_ros/scripts/wvn_learning_node.py
 ```
 
 - (optionally) RVIZ:
+
 ```shell
 roslaunch wild_visual_navigation_ros view.launch
 ```
 
 - (replay only) Replay Rosbag:
+
 ```shell
 rosrun  play --clock path_to_mission/*.bag
 ```
-
 
 ### [Offline] Model Training (Currently not tested)
 
@@ -184,9 +179,10 @@ TODO
 
 #### Dataset Generation
 
-Sometimes it`s useful to just analyze the network training therefore we provide the tools to extract a dataset useful for learning from a given rosbag. 
-In the following we explain how you can generate the dataset with the following structure: 
-```
+Sometimes it`s useful to just analyze the network training therefore we provide the tools to extract a dataset useful for learning from a given rosbag.
+In the following we explain how you can generate the dataset with the following structure:
+
+```sh
 dataset_name
   split
     forest_train.txt
@@ -230,59 +226,74 @@ dataset_name
 7. Fetch the results using **download_bitmaps_from_segments_ai.py**
 8. Extract the features segments and graph from the image **extract_features_for_dataset.py**
 
-
 #### Training the Network
-##### Training  
+
+##### Training
+
 We provide scripts for training the network for a single run where a parameter configuration yaml-file can be passed to override the parameters configured within `cfg/experiments_params.py`.
 Training from the final dataset.
 
 `python3 scripts/train_gnn.py --exp=exp_forest.yaml`
 
-##### Hyperparameter  
-We also provide scripts to use optuna for hyperparameter-searching: 
+##### Hyperparameter
+
+We also provide scripts to use optuna for hyperparameter-searching:
 
 `python3 scripts/train_optuna.py --exp=exp_forest.yaml`
 
-Within the objective function you can easily adjust the trail parameter suggestions. 
+Within the objective function you can easily adjust the trail parameter suggestions.
 
 ##### Ablations
+
 Finally, we categorize our ablations into `loss`, `network`, `feature`, `time_adaptation` and `knn_evaluation`.
 
 ##### `loss`, `network`, and `feature`
+
 For `loss`, `network`, and `feature` we can simply run a training script and pass the correct keyword.
 We provide the configurations for those experiments within the `cfg/exp/ablation` folder.
-```
+
+```sh
 python3 scripts/ablation/training_ablation.py --ablation_type=network
 ```
+
 After running the training the results are stored respectively in `scripts/ablations/<ablation_type>_ablation` as a pickle file. 
 For each training run the trained network is evaluate on all testing scenes and the AUROC and ROC values are stored with respect to the hand labeled gt-labels and self-supervised supervision-labels. 
-We provide a jupyter notebook to interpret the training results. 
-```
+We provide a jupyter notebook to interpret the training results.
+
+```sh
 python3 scripts/ablation/training_ablation_visu.ipynb
 ```
 
 ##### `time_adaptation`
+
 For the `time_adaptation` run simply run:
-```
+
+```sh
 python3 scripts/ablation/time_adaptation.py
 ```
+
 and for visualization:
-```
+
+```sh
 python3 scripts/ablation/time_adaptation_visu.py
 ```
+
 done.
 
-<img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
+<img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino">
 
-
-## Development and Deprecated Information 
+## Development and Deprecated Information
 
 ### Replay Usage [Online]
+
 We provide a launch file to start all required nodes for close-loop integration.
-```shell
+
+```sh
 roslaunch wild_visual_navigation_ros replay_launch.launch
 ```
+
 The launch file allows to toggle the individual modules on and off.
+
 ```xml
   <arg name="anymal_converter"  default="True"/>
   <arg name="anymal_rsl_launch" default="True"/>
@@ -293,12 +304,14 @@ The launch file allows to toggle the individual modules on and off.
 ```
 
 - Run WVN Node:
+
 ```shell
 python wild_visual_navigation_ros/scripts/wild_visual_navigation_node.py _mode:=default
 ```
 
 - Replay Rosbag:
-```shell
+
+```sh
 rosbag play --clock path_to_mission/*.bag
 ```
 
@@ -306,18 +319,18 @@ The code on main should be always stable and capable to run on a robot.
 The code on develop should be used for development code and then tested on the robot and merged into main. 
 
 ### Code formatting
-```shell
-# for formatting
-pip install black
-black --line-length 120 .
-# for checking lints
-pip install flake8
-flake8 .
+
+We use automatic formatting and linter checks before commits using [black](https://black.readthedocs.io/en/stable/) and [flake8](https://flake8.pycqa.org/en/latest/index.html). To install them, run in the :
+
+```sh
+pip install pre-commit
+pre-commit install
 ```
-Code format is checked on push.
 
 ### Testing
+
 Introduction to [pytest](https://github.com/pluralsight/intro-to-pytest).
+
 ```shell
 pytest
 ```
