@@ -216,7 +216,7 @@ class FeatureExtractor:
     def segment_stego(self, img, **kwargs):
         # Prepare input image
         img_internal = img.clone()
-        self.extractor.inference_crf(img_internal)
+        self.extractor.inference(img_internal)
         seg = torch.from_numpy(self.extractor.cluster_segments).to(self._device)
 
         # Change the segment indices by numbers from 0 to N
