@@ -21,8 +21,8 @@ image_graph_dist_thr: 0.2 # meters
 supervision_graph_dist_thr: 0.1 # meters
 network_input_image_height: 224 # 448
 network_input_image_width: 224 # 448
-segmentation_type: "slic"
-feature_type: "dino" # TODO verify this here
+segmentation_type: "stego"
+feature_type: "stego" # TODO verify this here
 dino_patch_size: 8 # 8 or 16; 8 is finer
 slic_num_components: 100
 dino_dim: 384 # 90 or 384; 384 is better
@@ -49,16 +49,14 @@ status_thread_rate: 0.5 # hertz
 
 # Runtime options
 device: "cuda"
-mode: "debug" # check out comments in the class WVNMode
+mode: "online" # check out comments in the class WVNMode
 colormap: "RdYlBu"
 
 print_image_callback_time: false
 print_supervision_callback_time: false
 log_time: false
 log_confidence: false
-verbose: false
-debug_supervision_node_index_from_last: 10
-use_debug_for_desired: false
+verbose: true
 
 extraction_store_folder:  "nan"
 exp: "nan"

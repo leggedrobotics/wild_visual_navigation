@@ -97,7 +97,7 @@ class ExperimentParams:
 
     @dataclass
     class ModelParams:
-        name: str = "LinearRnvp"  # LinearRnvp, SimpleMLP, SimpleGCN, DoubleMLP
+        name: str = "SimpleMLP"  # LinearRnvp, SimpleMLP, SimpleGCN, DoubleMLP
         load_ckpt: Optional[str] = None
 
         @dataclass

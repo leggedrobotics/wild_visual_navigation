@@ -43,10 +43,13 @@ if torch.cuda.is_available():
 
 
 class WvnLearning:
-    def __init__(self):
+    def __init__(self, node_name):
         # Timers to control the rate of the publishers
         self.last_image_ts = rospy.get_time()
         self.last_supervision_ts = rospy.get_time()
+
+        # Prepare variables
+        self._node_name = node_name
 
         # Read params
         self.read_params()
@@ -124,7 +127,7 @@ class WvnLearning:
 
         # Launch processes
         print("-" * 80)
-        print("Launching [learning] thread")
+        rospy.loginfo(f"[{self._node_name}] Launching [learning] thread")
         if self.ros_params.mode != WVNMode.EXTRACT_LABELS:
             self.learning_thread_stop_event = Event()
             self.learning_thread = Thread(target=self.learning_thread_loop, name="learning")
@@ -133,34 +136,34 @@ class WvnLearning:
             # self.logging_thread_stop_event = Event()
             # self.logging_thread = Thread(target=self.logging_thread_loop, name="logging")
             # self.logging_thread.start()
-        print("[WVN] System ready")
+        rospy.loginfo(f"[{self._node_name}] [WVN] System ready")
 
     def shutdown_callback(self, *args, **kwargs):
         # Write stuff to files
         rospy.logwarn("Shutdown callback called")
         if self.ros_params.mode != WVNMode.EXTRACT_LABELS:
             self.learning_thread_stop_event.set()
-            self.logging_thread_stop_event.set()
+            # self.logging_thread_stop_event.set()
 
-        print("Storing learned checkpoint...", end="")
+        print(f"[{self._node_name}] Storing learned checkpoint...", end="")
         self.traversability_estimator.save_checkpoint(self.params.general.model_path, "last_checkpoint.pt")
         print("done")
 
         if self.ros_params.log_time:
-            print("Storing timer data...", end="")
+            print(f"[{self._node_name}] Storing timer data...", end="")
             self.timer.store(folder=self.params.general.model_path)
             print("done")
 
-        print("Joining learning thread...", end="")
+        print(f"[{self._node_name}] Joining learning thread...", end="")
         if self.ros_params.mode != WVNMode.EXTRACT_LABELS:
             self.learning_thread_stop_event.set()
             self.learning_thread.join()
 
-            self.logging_thread_stop_event.set()
-            self.logging_thread.join()
+            # self.logging_thread_stop_event.set()
+            # self.logging_thread.join()
         print("done")
 
-        rospy.signal_shutdown(f"Wild Visual Navigation killed {args}")
+        rospy.signal_shutdown(f"[{self._node_name}] Wild Visual Navigation killed {args}")
         sys.exit(0)
 
     @accumulate_time
@@ -225,8 +228,10 @@ class WvnLearning:
                     cg = self.traversability_estimator._traversability_loss._confidence_generator
                     res["confidence_generator"] = cg.get_dict()
 
-                os.system(f"rm {WVN_ROOT_DIR}/tmp_state_dict2.pt")
-                torch.save(res, f"{WVN_ROOT_DIR}/tmp_state_dict2.pt")
+                os.remove(
+                    f"{WVN_ROOT_DIR}/.tmp_state_dict.pt",
+                )
+                torch.save(res, f"{WVN_ROOT_DIR}/.tmp_state_dict.pt")
             i += 1
 
         self.system_events["learning_thread_loop"] = {
@@ -284,7 +289,9 @@ class WvnLearning:
 
         # Parse operation modes
         if self.ros_params.mode == WVNMode.ONLINE:
-            print("\nWARNING: online_mode enabled. The graph will not store any debug/training data such as images\n")
+            rospy.logwarn(
+                f"[{self._node_name}] WARNING: online_mode enabled. The graph will not store any debug/training data such as images\n"
+            )
 
         elif self.ros_params.mode == WVNMode.EXTRACT_LABELS:
             with read_write(self.ros_params):
@@ -323,9 +330,13 @@ class WvnLearning:
                 [robot_state_sub, desired_twist_sub], queue_size=10, slop=0.5
             )
 
-            print(f"Start waiting for RobotState topic {self.ros_params.robot_state_topic} being published!")
+            rospy.loginfo(
+                f"[{self._node_name}] Start waiting for RobotState topic {self.ros_params.robot_state_topic} being published!"
+            )
             rospy.wait_for_message(self.ros_params.robot_state_topic, RobotState)
-            print(f"Start waiting for TwistStamped topic {self.ros_params.desired_twist_topic} being published!")
+            rospy.loginfo(
+                f"[{self._node_name}] Start waiting for TwistStamped topic {self.ros_params.desired_twist_topic} being published!"
+            )
             rospy.wait_for_message(self.ros_params.desired_twist_topic, TwistStamped)
             self.robot_state_sub.registerCallback(self.robot_state_callback)
 
@@ -413,14 +424,14 @@ class WvnLearning:
 
     def reset_callback(self, req):
         """Resets the system"""
-        print("WARNING: System reset!")
+        rospy.logwarn(f"[{self._node_name}] System reset!")
 
-        print("Storing learned checkpoint...", end="")
+        print(f"[{self._node_name}] Storing learned checkpoint...", end="")
         self.traversability_estimator.save_checkpoint(self.params.general.model_path, "last_checkpoint.pt")
         print("done")
 
         if self.ros_params.log_time:
-            print("Storing timer data...", end="")
+            print(f"[{self._node_name}] Storing timer data...", end="")
             self.timer.store(folder=self.params.general.model_path)
             print("done")
 
@@ -430,7 +441,7 @@ class WvnLearning:
         # Reset traversability estimator
         self.traversability_estimator.reset()
 
-        print("Reset done")
+        print(f"[{self._node_name}] Reset done")
         return TriggerResponse(True, "Reset done!")
 
     @accumulate_time
@@ -496,10 +507,10 @@ class WvnLearning:
             )
             rot /= np.linalg.norm(rot)
             return (trans, tuple(rot))
-        except Exception as e:
+        except Exception:
             if self.ros_params.verbose:
-                print("Error in query tf: ", e)
-                rospy.logwarn(f"Couldn't get between {parent_frame} and {child_frame}")
+                # print("Error in query tf: ", e)
+                rospy.logwarn(f"[{self._node_name}] Couldn't get between {parent_frame} and {child_frame}")
             return (None, None)
 
     @accumulate_time
@@ -525,7 +536,7 @@ class WvnLearning:
             self.last_propio_ts = ts
 
             # Query transforms from TF
-            suc, pose_base_in_world = rc.ros_tf_to_torch(
+            success, pose_base_in_world = rc.ros_tf_to_torch(
                 self.query_tf(
                     self.ros_params.fixed_frame,
                     self.ros_params.base_frame,
@@ -533,14 +544,14 @@ class WvnLearning:
                 ),
                 device=self.ros_params.device,
             )
-            if not suc:
+            if not success:
                 self.system_events["robot_state_callback_cancled"] = {
                     "time": rospy.get_time(),
                     "value": "cancled due to pose_base_in_world",
                 }
                 return
 
-            suc, pose_footprint_in_base = rc.ros_tf_to_torch(
+            success, pose_footprint_in_base = rc.ros_tf_to_torch(
                 self.query_tf(
                     self.ros_params.base_frame,
                     self.ros_params.footprint_frame,
@@ -548,10 +559,10 @@ class WvnLearning:
                 ),
                 device=self.ros_params.device,
             )
-            if not suc:
-                self.system_events["robot_state_callback_cancled"] = {
+            if not success:
+                self.system_events["robot_state_callback_canceled"] = {
                     "time": rospy.get_time(),
-                    "value": "cancled due to pose_footprint_in_base",
+                    "value": "canceled due to pose_footprint_in_base",
                 }
                 return
 
@@ -597,7 +608,7 @@ class WvnLearning:
                 self.visualize_supervision()
 
             if self.ros_params.print_supervision_callback_time:
-                print(self.timer)
+                print(f"[{self._node_name}]\n{self.timer}")
 
             self.system_events["robot_state_callback_state"] = {
                 "time": rospy.get_time(),
@@ -606,7 +617,7 @@ class WvnLearning:
 
         except Exception as e:
             traceback.print_exc()
-            print("error state callback", e)
+            rospy.logerr(f"[{self._node_name}] error state callback", e)
             self.system_events["robot_state_callback_state"] = {
                 "time": rospy.get_time(),
                 "value": f"failed to execute {e}",
@@ -634,21 +645,21 @@ class WvnLearning:
             "value": "message received",
         }
         if self.ros_params.verbose:
-            print(f"\nImage callback: {camera_options['name']}... ", end="")
+            print(f"[{self._node_name}] Image callback: {camera_options['name']}... ", end="")
         try:
             # Run the callback so as to match the desired rate
             ts = imagefeat_msg.header.stamp.to_sec()
             if abs(ts - self.last_image_ts) < 1.0 / self.ros_params.image_callback_rate:
                 if self.ros_params.verbose:
-                    print("skip")
+                    print(f"skip")
                 return
             else:
                 if self.ros_params.verbose:
-                    print("process")
+                    print(f"process")
             self.last_image_ts = ts
 
             # Query transforms from TF
-            suc, pose_base_in_world = rc.ros_tf_to_torch(
+            success, pose_base_in_world = rc.ros_tf_to_torch(
                 self.query_tf(
                     self.ros_params.fixed_frame,
                     self.ros_params.base_frame,
@@ -656,13 +667,13 @@ class WvnLearning:
                 ),
                 device=self.ros_params.device,
             )
-            if not suc:
+            if not success:
                 self.system_events["image_callback_cancled"] = {
                     "time": rospy.get_time(),
                     "value": "cancled due to pose_base_in_world",
                 }
                 return
-            suc, pose_cam_in_base = rc.ros_tf_to_torch(
+            success, pose_cam_in_base = rc.ros_tf_to_torch(
                 self.query_tf(
                     self.ros_params.base_frame,
                     imagefeat_msg.header.frame_id,
@@ -671,10 +682,10 @@ class WvnLearning:
                 device=self.ros_params.device,
             )
 
-            if not suc:
+            if not success:
                 self.system_events["image_callback_cancled"] = {
                     "time": rospy.get_time(),
-                    "value": "cancled due to pose_cam_in_base",
+                    "value": "canceled due to pose_cam_in_base",
                 }
                 return
             # Prepare image projector
@@ -740,7 +751,7 @@ class WvnLearning:
 
             # Print callback time if required
             if self.ros_params.print_image_callback_time:
-                print(self.timer)
+                rospy.loginfo(f"[{self._node_name}]\n{self.timer}")
 
             self.system_events["image_callback_state"] = {
                 "time": rospy.get_time(),
@@ -749,7 +760,7 @@ class WvnLearning:
 
         except Exception as e:
             traceback.print_exc()
-            print("error image callback", e)
+            rospy.logerr(f"[{self._node_name}] error image callback", e)
             self.system_events["image_callback_state"] = {
                 "time": rospy.get_time(),
                 "value": f"failed to execute {e}",
@@ -848,14 +859,8 @@ class WvnLearning:
             if node.is_untraversable:
                 untraversable_plane = node.get_untraversable_plane(grid_size=2)
                 N, D = untraversable_plane.shape
-                for n in [
-                    0,
-                    1,
-                    3,
-                    2,
-                    0,
-                    3,
-                ]:  # this is a hack to show the triangles correctly
+                # the following is a 'hack' to show the triangles correctly
+                for n in [0, 1, 3, 2, 0, 3]:
                     p = Point()
                     p.x = untraversable_plane[n, 0]
                     p.y = untraversable_plane[n, 1]
@@ -866,7 +871,7 @@ class WvnLearning:
         # Publish
         if len(footprints_marker.points) % 3 != 0:
             if self.ros_params.verbose:
-                print(f"number of points for footprint is {len(footprints_marker.points)}")
+                rospy.loginfo(f"[{self._node_name}] number of points for footprint is {len(footprints_marker.points)}")
             return
         self.pub_graph_footprints.publish(footprints_marker)
         self.pub_debug_supervision_graph.publish(supervision_graph_msg)
@@ -925,10 +930,10 @@ if __name__ == "__main__":
 
         rospack = rospkg.RosPack()
         wvn_path = rospack.get_path("wild_visual_navigation_ros")
-        os.system(f"rosparam load {wvn_path}/config/wild_visual_navigation/default.yaml wvn_learning_node")
+        os.system(f"rosparam load {wvn_path}/config/wild_visual_navigation/default.yaml {node_name}")
         os.system(
-            f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/alphasense_compressed_front.yaml wvn_learning_node"
+            f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/alphasense_compressed_front.yaml {node_name}"
         )
 
-    wvn = WvnLearning()
+    wvn = WvnLearning(node_name)
     rospy.spin()

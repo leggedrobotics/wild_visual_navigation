@@ -99,7 +99,7 @@ class StegoInterface:
         self._cluster_pred = F.interpolate(self._cluster_pred[None].float(), new_features_size, mode="nearest").int()
         self._linear_pred = F.interpolate(self._linear_pred[None].float(), new_features_size, mode="nearest").int()
 
-        return self._linear_pred[0], self._cluster_pred[0]
+        return self._linear_pred, self._cluster_pred
 
     @property
     def model(self):
@@ -165,9 +165,9 @@ def run_stego_interfacer():
 
     ax[0].imshow(img[0].permute(1, 2, 0).cpu().numpy())
     ax[0].set_title("Image")
-    ax[1].imshow(si.cmap[cluster_pred[0].cpu() % si.cmap.shape[0]])
+    ax[1].imshow(si.cmap[cluster_pred[0, 0].cpu() % si.cmap.shape[0]])
     ax[1].set_title("Cluster Predictions")
-    ax[2].imshow(si.cmap[linear_pred[0].cpu()])
+    ax[2].imshow(si.cmap[linear_pred[0, 0].cpu()])
     ax[2].set_title("Linear Probe Predictions")
     remove_axes(ax)
 

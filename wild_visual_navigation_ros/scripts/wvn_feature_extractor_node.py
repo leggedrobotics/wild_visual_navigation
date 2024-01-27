@@ -26,9 +26,16 @@ import sys
 
 
 class WvnFeatureExtractor:
-    def __init__(self):
+    def __init__(self, node_name):
         # Read params
         self.read_params()
+
+        # Initialize variables
+        self._node_name = node_name
+        self._load_model_counter = 0
+
+        self.model = get_model(self.params.model).to(self.ros_params.device)
+        self.model.eval()
 
         self.feature_extractor = FeatureExtractor(
             self.ros_params.device,
@@ -38,10 +45,6 @@ class WvnFeatureExtractor:
             slic_num_components=self.ros_params.slic_num_components,
             dino_dim=self.ros_params.dino_dim,
         )
-        self.i = 0
-
-        self.model = get_model(self.params.model).to(self.ros_params.device)
-        self.model.eval()
 
         if not self.anomaly_detection:
             self.confidence_generator = ConfidenceGenerator(
@@ -81,12 +84,12 @@ class WvnFeatureExtractor:
         sys.exit(0)
 
     def status_thread_loop(self):
-        # rate = rospy.Rate(self.ros_params.status_thread_rate)
+        rate = rospy.Rate(self.ros_params.status_thread_rate)
         # Learning loop
         while self.run_status_thread:
             self.status_thread_stop_event.wait(timeout=0.01)
             if self.status_thread_stop_event.is_set():
-                rospy.logwarn("Stopped learning thread")
+                rospy.logwarn(f"[{self._node_name}] Stopped learning thread")
                 break
 
             t = rospy.get_time()
@@ -107,12 +110,12 @@ class WvnFeatureExtractor:
                     x.add_row([k, colored(round(d, 2), c)])
                 else:
                     x.add_row([k, v])
-            print(x)
-            # try:
-            #    rate.sleep()
-            # except Exception as e:
-            #    rate = rospy.Rate(self.ros_params.status_thread_rate)
-            #    print("Ignored jump pack in time!")
+            print(f"[{self._node_name}]\n{x}")
+            try:
+                rate.sleep()
+            except Exception:
+                rate = rospy.Rate(self.ros_params.status_thread_rate)
+                print(f"[{self._node_name}] Ignored jump pack in time!")
         self.status_thread_stop_event.clear()
 
     def read_params(self):
@@ -153,9 +156,9 @@ class WvnFeatureExtractor:
             self.ros_params.camera_topics[cam]["name"] = cam
 
             # Camera info
-            camera_info_msg = rospy.wait_for_message(
-                self.ros_params.camera_topics[cam]["info_topic"], CameraInfo, timeout=15
-            )
+            rospy.loginfo(f"[{self._node_name}] Waiting for camera info topic...")
+            camera_info_msg = rospy.wait_for_message(self.ros_params.camera_topics[cam]["info_topic"], CameraInfo)
+            rospy.loginfo(f"[{self._node_name}] Done")
             K, H, W = rc.ros_cam_info_to_tensors(camera_info_msg, device=self.ros_params.device)
 
             self.camera_handler[cam]["camera_info"] = camera_info_msg
@@ -216,7 +219,7 @@ class WvnFeatureExtractor:
             self.camera_handler[cam]["trav_pub"] = trav_pub
             self.camera_handler[cam]["info_pub"] = info_pub
             if self.anomaly_detection and self.ros_params.camera_topics[cam]["publish_confidence"]:
-                print(colored("Warning force set public confidence to false", "red"))
+                rospy.logwarn(f"[{self._node_name}] Warning force set public confidence to false")
                 self.ros_params.camera_topics[cam]["publish_confidence"] = False
 
             if self.ros_params.camera_topics[cam]["publish_input_image"]:
@@ -259,6 +262,7 @@ class WvnFeatureExtractor:
 
         # Update model from file if possible
         self.load_model()
+
         # Convert image message to torch image
         torch_image = rc.ros_image_to_torch(image_msg, device=self.ros_params.device)
         torch_image = self.camera_handler[cam]["image_projector"].resize_image(torch_image)
@@ -368,27 +372,32 @@ class WvnFeatureExtractor:
             self.camera_handler[cam]["imagefeat_pub"].publish(msg)
 
     def load_model(self):
+        """Method to load the new model weights to perform inference on the incoming images
+
+        Args:
+            None
+        """
         try:
-            self.i += 1
-            if self.i % 100 == 0:
-                res = torch.load(f"{WVN_ROOT_DIR}/tmp_state_dict2.pt")
+            self._load_model_counter += 1
+            if self._load_model_counter % 10 == 0:
+                new_model_state_dict = torch.load(f"{WVN_ROOT_DIR}/.tmp_state_dict.pt")
                 k = list(self.model.state_dict().keys())[-1]
 
-                if (self.model.state_dict()[k] != res[k]).any():
+                if (self.model.state_dict()[k] != new_model_state_dict[k]).any():
                     if self.ros_params.verbose:
                         self.log_data[f"time_last_model"] = rospy.get_time()
                         self.log_data[f"nr_model_updates"] += 1
 
-                self.model.load_state_dict(res, strict=False)
+                self.model.load_state_dict(new_model_state_dict, strict=False)
 
                 try:
-                    if res["traversability_threshold"] is not None:
+                    if new_model_state_dict["traversability_threshold"] is not None:
                         # TODO Verify if this works or the writing is need
-                        self.ros_params.traversability_threshold = res["traversability_threshold"]
-                    if res["confidence_generator"] is not None:
-                        self.confidence_generator_state = res["confidence_generator"]
+                        self.ros_params.traversability_threshold = new_model_state_dict["traversability_threshold"]
+                    if new_model_state_dict["confidence_generator"] is not None:
+                        self.confidence_generator_state = new_model_state_dict["confidence_generator"]
 
-                    self.confidence_generator_state = res["confidence_generator"]
+                    self.confidence_generator_state = new_model_state_dict["confidence_generator"]
                     self.confidence_generator.var = self.confidence_generator_state["var"]
                     self.confidence_generator.mean = self.confidence_generator_state["mean"]
                     self.confidence_generator.std = self.confidence_generator_state["std"]
@@ -397,7 +406,7 @@ class WvnFeatureExtractor:
 
         except Exception as e:
             if self.ros_params.verbose:
-                print(f"Model Loading Failed: {e}")
+                rospy.logerr(f"[{self._node_name}] Model Loading Failed: {e}")
 
 
 if __name__ == "__main__":
@@ -409,10 +418,10 @@ if __name__ == "__main__":
 
         rospack = rospkg.RosPack()
         wvn_path = rospack.get_path("wild_visual_navigation_ros")
-        os.system(f"rosparam load {wvn_path}/config/wild_visual_navigation/default.yaml wvn_feature_extractor_node")
+        os.system(f"rosparam load {wvn_path}/config/wild_visual_navigation/default.yaml {node_name}")
         os.system(
-            f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/alphasense_compressed_front.yaml wvn_feature_extractor_node"
+            f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/alphasense_compressed_front.yaml {node_name}"
         )
 
-    wvn = WvnFeatureExtractor()
+    wvn = WvnFeatureExtractor(node_name)
     rospy.spin()
