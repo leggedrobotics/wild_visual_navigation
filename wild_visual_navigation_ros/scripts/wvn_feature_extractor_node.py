@@ -139,6 +139,7 @@ class WvnFeatureExtractor:
 
         self.confidence_std_factor = rospy.get_param("~confidence_std_factor")
         self.scale_traversability = rospy.get_param("~scale_traversability")
+        self.gmm_confidence = rospy.get_param("~gmm_confidence")
         self.scale_traversability_max_fpr = rospy.get_param("~scale_traversability_max_fpr")
         self.status_thread_rate = rospy.get_param("~status_thread_rate")
         self.prediction_per_pixel = rospy.get_param("~prediction_per_pixel")
@@ -304,8 +305,7 @@ class WvnFeatureExtractor:
                 traversability = traversability.clip(0, 1)
                 out_trav = traversability
 
-                # # TODO: make this optional
-                if False:
+                if self.gmm_confidence:
                     loss_reco = F.mse_loss(prediction[:, 1:], data.x, reduction="none").mean(dim=1)
 
                     loss_reco_flat = loss_reco.flatten().detach().cpu().numpy().reshape(-1, 1)
@@ -326,9 +326,6 @@ class WvnFeatureExtractor:
                     conf_mask_np = conf_mask.cpu().numpy()
 
                     conf_mask_np = conf_mask_np.astype(np.uint8) * 255
-
-                    # Save the confident mask as an image
-                    # cv2.imwrite("/home/rschmid/conf_mask.jpg", conf_mask_np.astype(np.uint8) * 255)
 
                     # Publish the confident mask
                     conf_mask_msg = rc.numpy_to_ros_image(conf_mask_np, "passthrough")
@@ -370,15 +367,15 @@ class WvnFeatureExtractor:
             self.camera_handler[cam]["input_pub"].publish(msg)
 
         # Publish confidence
-        # if self.camera_topics[cam]["publish_confidence"]:
-        #     loss_reco = F.mse_loss(prediction[:, 1:], data.x, reduction="none").mean(dim=1)
-        #     confidence = self.confidence_generator.inference_without_update(x=loss_reco)
-        #     out_confidence = confidence.reshape(H, W)
-        #     msg = rc.numpy_to_ros_image(out_confidence.cpu().numpy(), "passthrough")
-        #     msg.header = image_msg.header
-        #     msg.width = out_confidence.shape[0]
-        #     msg.height = out_confidence.shape[1]
-        #     self.camera_handler[cam]["conf_pub"].publish(msg)
+        if self.camera_topics[cam]["publish_confidence"] and not self.gmm_confidence:
+            loss_reco = F.mse_loss(prediction[:, 1:], data.x, reduction="none").mean(dim=1)
+            confidence = self.confidence_generator.inference_without_update(x=loss_reco)
+            out_confidence = confidence.reshape(H, W)
+            msg = rc.numpy_to_ros_image(out_confidence.cpu().numpy(), "passthrough")
+            msg.header = image_msg.header
+            msg.width = out_confidence.shape[0]
+            msg.height = out_confidence.shape[1]
+            self.camera_handler[cam]["conf_pub"].publish(msg)
 
         # Publish features and feature_segments
         if self.camera_topics[cam]["use_for_training"]:

@@ -33,6 +33,7 @@ scale_traversability_max_fpr: 0.25
 min_samples_for_training: 5
 prediction_per_pixel: True
 traversability_threshold: 0.55
+gmm_confidence: True
 clip_to_binary: False
 
 # Supervision Generator
