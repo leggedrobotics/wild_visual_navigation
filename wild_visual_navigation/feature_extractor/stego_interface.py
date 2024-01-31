@@ -1,11 +1,10 @@
-from wild_visual_navigation import WVN_ROOT_DIR
-import os
 from os.path import join
 import torch.nn.functional as F
 import torch
 from torchvision import transforms as T
 from omegaconf import OmegaConf
 
+from pytictac import Timer
 from stego import STEGO_ROOT_DIR
 from stego.stego import Stego
 from stego.data import create_cityscapes_colormap
@@ -17,7 +16,7 @@ class StegoInterface:
         device: str,
         input_size: int = 448,
         model_path: str = f"{STEGO_ROOT_DIR}/models/stego_cocostuff27_vit_base_5_cluster_linear_fine_tuning.ckpt",
-        n_image_clusters: int = 20,
+        n_image_clusters: int = 40,
         run_crf: bool = True,
         run_clustering: bool = False,
         cfg: OmegaConf = OmegaConf.create({}),
@@ -79,10 +78,14 @@ class StegoInterface:
         # assert 1 == img.shape[0]
 
         # Resize image and normalize
+        # with Timer("input normalization"):
         resized_img = self._transform(img).to(self._device)
 
         # Run STEGO
+        # with Timer("compute code"):
         self._code = self._model.get_code(resized_img)
+
+        # with Timer("compute postprocess"):
         self._cluster_pred, self._linear_pred = self._model.postprocess(
             code=self._code,
             img=resized_img,
@@ -92,6 +95,7 @@ class StegoInterface:
         )
 
         # resize and interpolate features
+        # with Timer("interpolate output"):
         B, D, H, W = img.shape
         new_features_size = (H, H)
         # pad = int((W - H) / 2)
@@ -128,15 +132,13 @@ class StegoInterface:
 
 def run_stego_interfacer():
     """Performance inference using stego and stores result as an image."""
-
-    from pytictac import Timer
     from wild_visual_navigation.visu import get_img_from_fig
+    from wild_visual_navigation.utils.testing import load_test_image, make_results_folder
     from stego.utils import remove_axes
     import matplotlib.pyplot as plt
-    import cv2
 
     # Create test directory
-    os.makedirs(join(WVN_ROOT_DIR, "results", "test_stego_interfacer"), exist_ok=True)
+    outpath = make_results_folder("test_stego_interfacer")
 
     # Inference model
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -149,15 +151,10 @@ def run_stego_interfacer():
         n_image_clusters=20,
     )
 
-    p = join(WVN_ROOT_DIR, "assets/images/forest_clean.png")
-    np_img = cv2.imread(p)
-    np_img = cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB)
-    img = torch.from_numpy(np_img).to(device)
-    img = img.permute(2, 0, 1)
-    img = (img.type(torch.float32) / 255)[None]
+    img = load_test_image().to(device)
     img = F.interpolate(img, scale_factor=0.5)
 
-    with Timer(f"Stego input {si.input_size}"):
+    with Timer(f"Stego input {si.input_size}\n"):
         linear_pred, cluster_pred = si.inference(img)
 
     # Plot result as in colab
@@ -175,9 +172,7 @@ def run_stego_interfacer():
     img = get_img_from_fig(fig)
     img.save(
         join(
-            WVN_ROOT_DIR,
-            "results",
-            "test_stego_interfacer",
+            outpath,
             f"forest_clean_stego_{si.input_size}.png",
         )
     )

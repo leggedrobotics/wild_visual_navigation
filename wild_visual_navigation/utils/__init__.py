@@ -24,3 +24,4 @@ from .gpu_monitor import (
     accumulate_memory,
 )
 from .loss import TraversabilityLoss, AnomalyLoss
+from .testing import load_test_image, get_dino_transform, make_results_folder

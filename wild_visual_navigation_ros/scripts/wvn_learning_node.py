@@ -77,7 +77,6 @@ class WvnLearning:
             vis_node_index=self.ros_params.vis_node_index,
             mode=self.ros_params.mode,
             extraction_store_folder=self.ros_params.extraction_store_folder,
-            patch_size=self.ros_params.dino_patch_size,
             scale_traversability=self.ros_params.scale_traversability,
             anomaly_detection=self.anomaly_detection,
         )
@@ -173,7 +172,6 @@ class WvnLearning:
         """
         # Set rate
         rate = rospy.Rate(self.ros_params.learning_thread_rate)
-        i = 0
         # Learning loop
         while True:
             self.system_events["learning_thread_loop"] = {
@@ -204,35 +202,33 @@ class WvnLearning:
             system_state.step = self.step
             self.pub_system_state.publish(system_state)
 
-            rate.sleep()
-            if i % 10 == 0:
-                res = self.traversability_estimator._model.state_dict()
+            # Get current weights
+            new_model_state_dict = self.traversability_estimator._model.state_dict()
 
-                # Compute ROC Threshold
-                if self.ros_params.scale_traversability:
-                    if self.traversability_estimator._auxiliary_training_roc._update_count != 0:
-                        try:
-                            (
-                                fpr,
-                                tpr,
-                                thresholds,
-                            ) = self.traversability_estimator._auxiliary_training_roc.compute()
-                            index = torch.where(fpr > self.ros_params.scale_traversability_max_fpr)[0][0]
-                            traversability_threshold = thresholds[index]
-                        except Exception:
-                            traversability_threshold = 0.5
-                    else:
+            # Compute ROC Threshold
+            if self.ros_params.scale_traversability:
+                if self.traversability_estimator._auxiliary_training_roc._update_count != 0:
+                    try:
+                        (
+                            fpr,
+                            tpr,
+                            thresholds,
+                        ) = self.traversability_estimator._auxiliary_training_roc.compute()
+                        index = torch.where(fpr > self.ros_params.scale_traversability_max_fpr)[0][0]
+                        traversability_threshold = thresholds[index]
+                    except Exception:
                         traversability_threshold = 0.5
+                else:
+                    traversability_threshold = 0.5
 
-                    res["traversability_threshold"] = traversability_threshold
-                    cg = self.traversability_estimator._traversability_loss._confidence_generator
-                    res["confidence_generator"] = cg.get_dict()
+                new_model_state_dict["traversability_threshold"] = traversability_threshold
+                cg = self.traversability_estimator._traversability_loss._confidence_generator
+                new_model_state_dict["confidence_generator"] = cg.get_dict()
 
-                os.remove(
-                    f"{WVN_ROOT_DIR}/.tmp_state_dict.pt",
-                )
-                torch.save(res, f"{WVN_ROOT_DIR}/.tmp_state_dict.pt")
-            i += 1
+            os.remove(f"{WVN_ROOT_DIR}/.tmp_state_dict.pt")
+            torch.save(new_model_state_dict, f"{WVN_ROOT_DIR}/.tmp_state_dict.pt")
+
+            rate.sleep()
 
         self.system_events["learning_thread_loop"] = {
             "time": rospy.get_time(),
@@ -528,9 +524,9 @@ class WvnLearning:
         try:
             ts = state_msg.header.stamp.to_sec()
             if abs(ts - self.last_supervision_ts) < 1.0 / self.ros_params.supervision_callback_rate:
-                self.system_events["robot_state_callback_cancled"] = {
+                self.system_events["robot_state_callback_canceled"] = {
                     "time": rospy.get_time(),
-                    "value": "cancled due to rate",
+                    "value": "canceled due to rate",
                 }
                 return
             self.last_propio_ts = ts
@@ -545,9 +541,9 @@ class WvnLearning:
                 device=self.ros_params.device,
             )
             if not success:
-                self.system_events["robot_state_callback_cancled"] = {
+                self.system_events["robot_state_callback_canceled"] = {
                     "time": rospy.get_time(),
-                    "value": "cancled due to pose_base_in_world",
+                    "value": "canceled due to pose_base_in_world",
                 }
                 return
 
@@ -644,8 +640,10 @@ class WvnLearning:
             "time": rospy.get_time(),
             "value": "message received",
         }
+
         if self.ros_params.verbose:
             print(f"[{self._node_name}] Image callback: {camera_options['name']}... ", end="")
+
         try:
             # Run the callback so as to match the desired rate
             ts = imagefeat_msg.header.stamp.to_sec()
@@ -668,11 +666,12 @@ class WvnLearning:
                 device=self.ros_params.device,
             )
             if not success:
-                self.system_events["image_callback_cancled"] = {
+                self.system_events["image_callback_canceled"] = {
                     "time": rospy.get_time(),
-                    "value": "cancled due to pose_base_in_world",
+                    "value": "canceled due to pose_base_in_world",
                 }
                 return
+
             success, pose_cam_in_base = rc.ros_tf_to_torch(
                 self.query_tf(
                     self.ros_params.base_frame,
@@ -681,13 +680,13 @@ class WvnLearning:
                 ),
                 device=self.ros_params.device,
             )
-
             if not success:
-                self.system_events["image_callback_cancled"] = {
+                self.system_events["image_callback_canceled"] = {
                     "time": rospy.get_time(),
                     "value": "canceled due to pose_cam_in_base",
                 }
                 return
+
             # Prepare image projector
             K, H, W = rc.ros_cam_info_to_tensors(info_msg, device=self.ros_params.device)
             image_projector = ImageProjector(

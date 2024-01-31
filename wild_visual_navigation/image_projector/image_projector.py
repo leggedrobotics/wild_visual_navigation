@@ -1,6 +1,4 @@
-from wild_visual_navigation import WVN_ROOT_DIR
 from pytictac import Timer
-import os
 from os.path import join
 import torch
 from torchvision import transforms as T
@@ -204,17 +202,14 @@ def run_image_projector():
     from wild_visual_navigation.utils import (
         make_polygon_from_points,
     )
-    from PIL import Image
+    from wild_visual_navigation.utils.testing import load_test_image, make_results_folder
     import matplotlib.pyplot as plt
     import torch
-    import torchvision.transforms as transforms
     from kornia.utils import tensor_to_image
-    from stego.src import remove_axes
-
-    to_tensor = transforms.ToTensor()
+    from stego.utils import remove_axes
 
     # Create test directory
-    os.makedirs(join(WVN_ROOT_DIR, "results", "test_image_projector"), exist_ok=True)
+    outpath = make_results_folder("test_image_projector")
 
     # Define number of cameras (batch)
     B = 10
@@ -234,17 +229,14 @@ def run_image_projector():
         R_WC = SO3.from_rpy(phi)  # Rotation matrix from roll-pitch-yaw
         pose_camera_in_world[i] = SE3(R_WC, rho).as_matrix()  # Pose matrix of camera in world frame
     # Image size
-    H = 1080
-    W = 1440
+    H = torch.tensor(1080)
+    W = torch.tensor(1440)
 
     # Create projector
     im = ImageProjector(K, H, W)
 
     # Load image
-    pil_img = Image.open(join(WVN_ROOT_DIR, "assets/images/forest_clean.png"))
-
-    # Convert to torch
-    k_img = to_tensor(pil_img)
+    k_img = load_test_image()
     k_img = k_img.expand(B, 3, H, W)
     k_img = im.resize_image(k_img)
 
@@ -292,9 +284,7 @@ def run_image_projector():
     img = get_img_from_fig(fig)
     img.save(
         join(
-            WVN_ROOT_DIR,
-            "results",
-            "test_image_projector",
+            outpath,
             "forest_clean_image_projector.png",
         )
     )

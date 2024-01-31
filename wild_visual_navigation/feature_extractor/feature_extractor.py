@@ -47,13 +47,13 @@ class FeatureExtractor:
             )
 
         elif "dino" in self._feature_type:
-            self._feature_dim = 90
+            self._feature_dim = 384
             self._extractor = DinoInterface(
                 device=device,
                 input_size=input_size,
                 patch_size=kwargs.get("patch_size", 8),
-                backbone=kwargs.get("backbone", "dino"),
-                dim=kwargs.get("dino_dim", 384),
+                backbone=kwargs.get("backbone", self._feature_type),
+                backbone_type=kwargs.get("backbone_type", "vit_base"),
             )
 
         elif self._feature_type == "sift":
@@ -92,6 +92,7 @@ class FeatureExtractor:
 
             H, W = img.shape[2:]
             nr = kwargs.get("n_random_pixels", 100)
+
             seg = torch.full((H * W,), -1, dtype=torch.long, device=self._device)
             indices = torch.randperm(H * W, device=self._device)[:nr]
             seg[indices] = torch.arange(0, nr, device=self._device)
@@ -167,7 +168,7 @@ class FeatureExtractor:
             # Extract centers
             centers = self.segment_extractor.centers(seg)
 
-        return edges.T, seg, centers
+        return edges.T, seg[0, 0], centers
 
     def segment_pixelwise(self, img, **kwargs):
         # Generate pixel-wise segmentation
@@ -186,7 +187,7 @@ class FeatureExtractor:
         ver_edges = torch.cat((seg[:-1, :].reshape(-1, 1), seg[1:, :].reshape(-1, 1)), dim=1)
         edges = torch.cat((hor_edges, ver_edges), dim=0)
 
-        return edges, seg, centers
+        return edges, seg[None, None], centers
 
     def segment_grid(self, img, **kwargs):
         cell_size = kwargs.get("cell_size", 32)
@@ -246,7 +247,7 @@ class FeatureExtractor:
         elif self._feature_type == "sift":
             feat = self.compute_sift(img, seg, center, **kwargs)
 
-        elif self._feature_type == "dino":
+        elif "dino" in self._feature_type:
             feat = self.compute_dino(img, seg, center, **kwargs)
 
         elif self._feature_type == "stego":
@@ -290,7 +291,11 @@ class FeatureExtractor:
 
     @torch.no_grad()
     def compute_stego(self, img: torch.tensor, seg: torch.tensor, center: torch.tensor, **kwargs):
-        return self._extractor.features
+        try:
+            return self._extractor.features
+        except Exception:
+            self.segment_stego(img, **kwargs)
+            return self._extractor.features
 
     def sparsify_features(self, dense_features: torch.tensor, seg: torch.tensor, cumsum_trick=False):
         if self._feature_type not in ["histogram"] and self._segmentation_type not in ["none"]:
@@ -375,56 +380,9 @@ class FeatureExtractor:
                     sparse_features = []
                     for i in range(seg.max() + 1):
                         m = seg == i
-                        x, y = torch.where(m[0, 0])
+                        x, y = torch.where(m)
                         feat = dense_features[0, :, x, y].mean(dim=1)
                         sparse_features.append(feat)
                     return torch.stack(sparse_features, dim=1).T
         else:
             return dense_features
-
-
-def run_feature_extractor():
-    """Tests feature extractor"""
-    import os
-    import cv2
-    from os.path import join
-    from pytictac import Timer
-    from torchvision import transforms as T
-    from wild_visual_navigation import WVN_ROOT_DIR
-
-    # Create test directory
-    os.makedirs(join(WVN_ROOT_DIR, "results", "test_feature_extractor"), exist_ok=True)
-
-    # Inference model
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    p = join(WVN_ROOT_DIR, "assets/images/forest_clean.png")
-    np_img = cv2.imread(p)
-    np_img = cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB)
-    img = torch.from_numpy(np_img).to(device)
-    img = img.permute(2, 0, 1)
-    img = (img.type(torch.float32) / 255)[None]
-    transform = T.Compose(
-        [
-            T.Resize(448, T.InterpolationMode.NEAREST),
-            T.CenterCrop(448),
-        ]
-    )
-    img = transform(img)
-
-    # create feature extractor
-    fe = FeatureExtractor(device=device, segmentation_type="slic", feature_type="dino")
-    with Timer(f"SLIC-DINO"):
-        edges, feat, seg, center, dense_feat = fe.extract(img)
-
-    fe = FeatureExtractor(device=device, segmentation_type="grid", feature_type="dino")
-    with Timer(f"GRID-DINO"):
-        edges, feat, seg, center, dense_feat = fe.extract(img)
-
-    fe = FeatureExtractor(device=device, segmentation_type="stego", feature_type="stego")
-    with Timer(f"STEGO-STEGO"):
-        edges, feat, seg, center, dense_feat = fe.extract(img)
-
-
-if __name__ == "__main__":
-    run_feature_extractor()

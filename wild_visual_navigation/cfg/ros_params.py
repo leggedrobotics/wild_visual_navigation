@@ -29,8 +29,8 @@ class RosLearningNodeParams:
     segmentation_type: str
     feature_type: str
     dino_patch_size: int  # 8 or 16; 8 is finer
+    dino_backbone: str  # vit_small, vit_base
     slic_num_components: int
-    dino_dim: int  # 90 or 384; 384 is better
     confidence_std_factor: float
     scale_traversability: bool  # This parameter needs to be false when using the anomaly detection model
     scale_traversability_max_fpr: float
@@ -76,8 +76,8 @@ class RosFeatureExtractorNodeParams:
     segmentation_type: str
     feature_type: str
     dino_patch_size: int  # 8 or 16; 8 is finer
+    dino_backbone: str  # vit_small, vit_base
     slic_num_components: int
-    dino_dim: int  # 90 or 384; 384 is better
 
     # ConfidenceGenerator
     confidence_std_factor: float
@@ -94,3 +94,6 @@ class RosFeatureExtractorNodeParams:
     device: str
     log_confidence: bool
     verbose: bool
+
+    # Threads
+    image_callback_rate: float  # hertz

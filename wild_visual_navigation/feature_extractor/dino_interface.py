@@ -1,5 +1,3 @@
-from wild_visual_navigation import WVN_ROOT_DIR
-import os
 from os.path import join
 import torch.nn.functional as F
 import torch
@@ -17,7 +15,6 @@ class DinoInterface:
         input_size: int = 448,
         backbone_type: str = "vit_small",
         patch_size: int = 8,
-        dim: int = 384,
         projection_type: str = None,  # nonlinear or None
         dropout_p: float = 0,  # True or False
         pretrained_weights: str = None,
@@ -31,7 +28,6 @@ class DinoInterface:
                     "backbone_type": backbone_type,
                     "input_size": input_size,
                     "patch_size": patch_size,
-                    "dim": dim,
                     "projection_type": projection_type,
                     "dropout_p": dropout_p,
                     "pretrained_weights": pretrained_weights,
@@ -112,20 +108,16 @@ def run_dino_interfacer():
 
     from pytictac import Timer
     from wild_visual_navigation.visu import get_img_from_fig
+    from wild_visual_navigation.utils.testing import load_test_image, make_results_folder
     import matplotlib.pyplot as plt
     from stego.utils import remove_axes
-    import cv2
 
     # Create test directory
-    os.makedirs(join(WVN_ROOT_DIR, "results", "test_dino_interfacer"), exist_ok=True)
+    outpath = make_results_folder("test_dino_interfacer")
 
     # Inference model
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    p = join(WVN_ROOT_DIR, "assets/images/forest_clean.png")
-    np_img = cv2.imread(p)
-    img = torch.from_numpy(cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB)).to(device)
-    img = img.permute(2, 0, 1)
-    img = (img.type(torch.float32) / 255)[None]
+    img = load_test_image().to(device)
     img = F.interpolate(img, scale_factor=0.25)
 
     plot = False
@@ -163,9 +155,7 @@ def run_dino_interfacer():
             out_img = get_img_from_fig(fig)
             out_img.save(
                 join(
-                    WVN_ROOT_DIR,
-                    "results",
-                    "test_dino_interfacer",
+                    outpath,
                     f"forest_clean_dino_feat{i:02}_{di.input_size}_{di.backbone_type}_{di.vit_patch_size}.png",
                 )
             )
@@ -196,9 +186,7 @@ def run_dino_interfacer():
         out_img = get_img_from_fig(fig)
         out_img.save(
             join(
-                WVN_ROOT_DIR,
-                "results",
-                "test_dino_interfacer",
+                outpath,
                 f"forest_clean_{di.backbone}_{di.input_size}_{di.backbone_type}_{di.vit_patch_size}.png",
             )
         )

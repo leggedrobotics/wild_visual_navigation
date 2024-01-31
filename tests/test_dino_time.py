@@ -1,16 +1,15 @@
-from wild_visual_navigation import WVN_ROOT_DIR
+# from wild_visual_navigation import WVN_ROOT_DIR
 from pytictac import Timer
 from wild_visual_navigation.feature_extractor import (
     DinoInterface,
-    DinoTrtInterface,
     # TrtModel,
 )
 
 # from collections import namedtuple, OrderedDict
 # from torchvision import transforms as T
-import cv2
-import os
+# import os
 import torch
+from wild_visual_navigation.utils.testing import load_test_image, get_dino_transform
 
 # import tensorrt as trt
 # import numpy as np
@@ -19,23 +18,21 @@ import torch
 def test_dino_interfacer():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     di = DinoInterface(device)
+    transform = get_dino_transform()
 
-    np_img = cv2.imread(os.path.join(WVN_ROOT_DIR, "assets/images/forest_clean.png"))
-    img = torch.from_numpy(cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB)).to(device)
-    img = img.permute(2, 0, 1)
-    img = (img.type(torch.float32) / 255)[None]
+    img = load_test_image().to(device)
 
     #####################################################################################
     for i in range(5):
         im = img + torch.rand(img.shape, device=img.device) / 100
-        di.inference(di.transform(im))
+        di.inference(transform(im))
 
     #####################################################################################
     with Timer("BS1 Dino Inference: "):
         for i in range(5):
             im = img + torch.rand(img.shape, device=img.device) / 100
             with Timer("BS1 Dino Single: "):
-                di.inference(di.transform(im))
+                di.inference(transform(im))
 
     #####################################################################################
     # img = img.repeat(4, 1, 1, 1)
@@ -46,14 +43,15 @@ def test_dino_interfacer():
     #             res = di.inference(di.transform(im))
 
     #####################################################################################
-    # Conversion from ONNX model (https://github.com/facebookresearch/dino)
-    exported_trt_file = "dino_exported.trt"
-    exported_trt_path = os.path.join(WVN_ROOT_DIR, "assets/dino", exported_trt_file)
-    di_trt = DinoTrtInterface(exported_trt_path, device)
+    # # Conversion from ONNX model (https://github.com/facebookresearch/dino)
+    # from wild_visual_navigation.feature_extractor import DinoTrtInterface
+    # exported_trt_file = "dino_exported.trt"
+    # exported_trt_path = os.path.join(WVN_ROOT_DIR, "assets/dino", exported_trt_file)
+    # di_trt = DinoTrtInterface(exported_trt_path, device)
 
-    with Timer("TensorRT Inference: "):
-        im = img + torch.rand(img.shape, device=img.device) / 100
-        di_trt.inference(di.transform(im).contiguous())
+    # with Timer("TensorRT Inference: "):
+    #     im = img + torch.rand(img.shape, device=img.device) / 100
+    #     di_trt.inference(di.transform(im).contiguous())
 
     #####################################################################################
     # Conversion using the torch_tensorrt library: https://github.com/pytorch/TensorRT

@@ -1,4 +1,5 @@
 from wild_visual_navigation.utils import KalmanFilter
+from wild_visual_navigation import WVN_ROOT_DIR
 import torch
 import os
 from collections import deque
@@ -10,14 +11,13 @@ class ConfidenceGenerator(torch.nn.Module):
         std_factor: float = 0.7,
         method: str = "running_mean",
         log_enabled: bool = False,
-        log_folder: str = "/tmp",
+        log_folder: str = f"{WVN_ROOT_DIR}/results",
         anomaly_detection: bool = False,
     ):
         """Returns a confidence value for each number
 
         Args:
-            std_factor (float, optional): _description_. Defaults to 2.0.
-            device (str, optional): _description_. Defaults to "cpu".
+            std_factor (float, optional): _description_. Defaults to 0.7.
         """
         super(ConfidenceGenerator, self).__init__()
         self.std_factor = std_factor
@@ -51,13 +51,13 @@ class ConfidenceGenerator(torch.nn.Module):
             running_sum = torch.zeros(1, dtype=torch.float64)
             running_sum_of_squares = torch.zeros(1, dtype=torch.float64)
 
-            # self.running_n = torch.nn.Parameter(running_n, requires_grad=False)
-            # self.running_sum = torch.nn.Parameter(running_sum, requires_grad=False)
-            # self.running_sum_of_squares = torch.nn.Parameter(running_sum_of_squares, requires_grad=False)
+            self.running_n = torch.nn.Parameter(running_n, requires_grad=False)
+            self.running_sum = torch.nn.Parameter(running_sum, requires_grad=False)
+            self.running_sum_of_squares = torch.nn.Parameter(running_sum_of_squares, requires_grad=False)
 
-            self.running_n = running_n.to("cuda")
-            self.running_sum = running_sum.to("cuda")
-            self.running_sum_of_squares = running_sum_of_squares.to("cuda")
+            # self.running_n = running_n.to("cuda")
+            # self.running_sum = running_sum.to("cuda")
+            # self.running_sum_of_squares = running_sum_of_squares.to("cuda")
 
             self._update = self.update_running_mean
             self._reset = self.reset_running_mean
@@ -211,12 +211,7 @@ class ConfidenceGenerator(torch.nn.Module):
 
 if __name__ == "__main__":
     cg = ConfidenceGenerator()
-    for i in range(100000):
-        inp = (
-            torch.rand(
-                10,
-            )
-            * 10
-        )
-        res = cg.update(inp, inp)
-        print("inp ", inp, " res ", res, "std", cg.std)
+    for i in range(1000):
+        inp = torch.rand(10) * 10
+        res = cg.update(inp, inp, step=i)
+        # print("inp ", inp, " res ", res, "std", cg.std)

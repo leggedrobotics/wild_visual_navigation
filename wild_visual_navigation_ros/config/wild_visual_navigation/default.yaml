@@ -21,16 +21,16 @@ image_graph_dist_thr: 0.2 # meters
 supervision_graph_dist_thr: 0.1 # meters
 network_input_image_height: 224 # 448
 network_input_image_width: 224 # 448
-segmentation_type: "stego"
-feature_type: "stego" # TODO verify this here
+segmentation_type: "random" # Options: slic, grid, random, stego
+feature_type: "dino" # Options: dino, dinov2, stego
 dino_patch_size: 8 # 8 or 16; 8 is finer
+dino_backbone: vit_small
 slic_num_components: 100
-dino_dim: 384 # 90 or 384; 384 is better
 confidence_std_factor: 4.0
 scale_traversability: False  # This parameter needs to be false when using the anomaly detection model
 scale_traversability_max_fpr: 0.25
 min_samples_for_training: 5
-prediction_per_pixel: False
+prediction_per_pixel: True
 traversability_threshold: 0.55
 clip_to_binary: False
 vis_node_index: 10

@@ -20,6 +20,13 @@ def generate_traversability_test_signal(N=500, T=10, events=[3, 8], event_length
 
 
 def test_confidence_generator():
+    from wild_visual_navigation.utils.testing import make_results_folder
+    from wild_visual_navigation.visu import get_img_from_fig
+    from os.path import join
+
+    # Create test directory
+    outpath = make_results_folder("test_confidence_generator")
+
     device = torch.device("cpu")
     N = 1000
     sigma_factor = 0.5
@@ -149,7 +156,13 @@ def test_confidence_generator():
     axs[2].set_ylabel("Confidence")
     axs[2].legend(loc="upper right")
 
-    plt.show()
+    img = get_img_from_fig(fig)
+    img.save(
+        join(
+            outpath,
+            "confidence_generator_test.png",
+        )
+    )
 
 
 if __name__ == "__main__":

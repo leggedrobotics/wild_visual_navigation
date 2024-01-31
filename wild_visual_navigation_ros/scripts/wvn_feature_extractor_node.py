@@ -15,14 +15,15 @@ from std_msgs.msg import MultiArrayDimension
 import os
 import torch
 import numpy as np
+import torch.nn.functional as F
+import signal
+import sys
+import traceback
 from omegaconf import OmegaConf, read_write
 from torch_geometric.data import Data
-import torch.nn.functional as F
 from threading import Thread, Event
 from prettytable import PrettyTable
 from termcolor import colored
-import signal
-import sys
 
 
 class WvnFeatureExtractor:
@@ -34,6 +35,9 @@ class WvnFeatureExtractor:
         self._node_name = node_name
         self._load_model_counter = 0
 
+        # Timers to control the rate of the subscriber
+        self.last_image_ts = rospy.get_time()
+
         self.model = get_model(self.params.model).to(self.ros_params.device)
         self.model.eval()
 
@@ -41,9 +45,10 @@ class WvnFeatureExtractor:
             self.ros_params.device,
             segmentation_type=self.ros_params.segmentation_type,
             feature_type=self.ros_params.feature_type,
+            patch_size=self.ros_params.dino_patch_size,
+            backbone_type=self.ros_params.dino_backbone,
             input_size=self.ros_params.network_input_image_height,
             slic_num_components=self.ros_params.slic_num_components,
-            dino_dim=self.ros_params.dino_dim,
         )
 
         if not self.anomaly_detection:
@@ -54,12 +59,12 @@ class WvnFeatureExtractor:
             )
             self.ros_params.scale_traversability = True
         else:
-            self.traversability_loss = AnomalyLoss(
+            self.anomaly_loss = AnomalyLoss(
                 **self.params.loss_anomaly,
                 log_enabled=self.params.general.log_confidence,
                 log_folder=self.params.general.model_path,
             )
-            self.traversability_loss.to(self.ros_params.device)
+            self.anomaly_loss.to(self.ros_params.device)
             self.ros_params.scale_traversability = False
 
         if self.ros_params.verbose:
@@ -209,12 +214,12 @@ class WvnFeatureExtractor:
             trav_pub = rospy.Publisher(
                 f"/wild_visual_navigation_node/{cam}/traversability",
                 Image,
-                queue_size=10,
+                queue_size=1,
             )
             info_pub = rospy.Publisher(
                 f"/wild_visual_navigation_node/{cam}/camera_info",
                 CameraInfo,
-                queue_size=10,
+                queue_size=1,
             )
             self.camera_handler[cam]["trav_pub"] = trav_pub
             self.camera_handler[cam]["info_pub"] = info_pub
@@ -226,7 +231,7 @@ class WvnFeatureExtractor:
                 input_pub = rospy.Publisher(
                     f"/wild_visual_navigation_node/{cam}/image_input",
                     Image,
-                    queue_size=10,
+                    queue_size=1,
                 )
                 self.camera_handler[cam]["input_pub"] = input_pub
 
@@ -234,7 +239,7 @@ class WvnFeatureExtractor:
                 conf_pub = rospy.Publisher(
                     f"/wild_visual_navigation_node/{cam}/confidence",
                     Image,
-                    queue_size=10,
+                    queue_size=1,
                 )
                 self.camera_handler[cam]["conf_pub"] = conf_pub
 
@@ -242,7 +247,7 @@ class WvnFeatureExtractor:
                 imagefeat_pub = rospy.Publisher(
                     f"/wild_visual_navigation_node/{cam}/feat",
                     ImageFeatures,
-                    queue_size=10,
+                    queue_size=1,
                 )
                 self.camera_handler[cam]["imagefeat_pub"] = imagefeat_pub
 
@@ -255,121 +260,148 @@ class WvnFeatureExtractor:
             info_msg (sensor_msgs/CameraInfo): Camera info message associated to the image
             cam (str): Camera name
         """
+
         if self.ros_params.verbose:
-            # DEBUG Logging
-            self.log_data[f"nr_images_{cam}"] += 1
-            self.log_data[f"time_last_image_{cam}"] = rospy.get_time()
+            print(f"[{self._node_name}] Image callback: {cam}... ", end="")
+        try:
+            # Run the callback so as to match the desired rate
+            ts = image_msg.header.stamp.to_sec()
+            if abs(ts - self.last_image_ts) < 1.0 / self.ros_params.image_callback_rate:
+                if self.ros_params.verbose:
+                    print(f"skip")
+                return
+            else:
+                if self.ros_params.verbose:
+                    print(f"process")
+            self.last_image_ts = ts
 
-        # Update model from file if possible
-        self.load_model()
+            if self.ros_params.verbose:
+                # DEBUG Logging
+                self.log_data[f"nr_images_{cam}"] += 1
+                self.log_data[f"time_last_image_{cam}"] = rospy.get_time()
 
-        # Convert image message to torch image
-        torch_image = rc.ros_image_to_torch(image_msg, device=self.ros_params.device)
-        torch_image = self.camera_handler[cam]["image_projector"].resize_image(torch_image)
-        C, H, W = torch_image.shape
+            # Update model from file if possible
+            self.load_model()
 
-        _, feat, seg, center, dense_feat = self.feature_extractor.extract(
-            img=torch_image[None],
-            return_centers=False,
-            return_dense_features=True,
-            n_random_pixels=100,
-        )
+            # Convert image message to torch image
+            torch_image = rc.ros_image_to_torch(image_msg, device=self.ros_params.device)
+            torch_image = self.camera_handler[cam]["image_projector"].resize_image(torch_image)
+            C, H, W = torch_image.shape
 
-        if self.ros_params.prediction_per_pixel:
-            # Evaluate traversability
-            data = Data(x=dense_feat[0].permute(1, 2, 0).reshape(-1, dense_feat.shape[1]))
-        else:
-            # input_feat = dense_feat[0].permute(1, 2, 0).reshape(-1, dense_feat.shape[1])
-            input_feat = feat[seg.reshape(-1)]
-            data = Data(x=input_feat)
-
-        # Evaluate traversability
-        prediction = self.model.forward(data)
-
-        if not self.anomaly_detection:
-            out_trav = prediction.reshape(H, W, -1)[:, :, 0]
-
-            # Publish traversability
-            if self.ros_params.scale_traversability:
-                # Apply piecewise linear scaling 0->0; threshold->0.5; 1->1
-                traversability = out_trav.clone()
-                m = traversability < self.ros_params.traversability_threshold
-                # Scale untraversable
-                traversability[m] *= 0.5 / self.ros_params.traversability_threshold
-                # Scale traversable
-                traversability[~m] -= self.ros_params.traversability_threshold
-                traversability[~m] *= 0.5 / (1 - self.ros_params.traversability_threshold)
-                traversability[~m] += 0.5
-                traversability = traversability.clip(0, 1)
-                # TODO Check if this was a bug
-                out_trav = traversability
-        else:
-            loss, loss_aux, trav = self.traversability_loss(None, prediction)
-
-            out_trav = trav.reshape(H, W, -1)[:, :, 0]
-
-            # Clip to binary output
-            if self.ros_params.clip_to_binary:
-                out_trav = torch.where(
-                    out_trav.squeeze() <= self.ros_params.traversability_threshold,
-                    0.0,
-                    1.0,
-                )
-
-        msg = rc.numpy_to_ros_image(out_trav.cpu().numpy(), "passthrough")
-        msg.header = image_msg.header
-        msg.width = out_trav.shape[0]
-        msg.height = out_trav.shape[1]
-        self.camera_handler[cam]["trav_pub"].publish(msg)
-
-        msg = self.camera_handler[cam]["camera_info_msg_out"]
-        msg.header = image_msg.header
-        self.camera_handler[cam]["info_pub"].publish(msg)
-
-        # Publish image
-        if self.ros_params.camera_topics[cam]["publish_input_image"]:
-            msg = rc.numpy_to_ros_image(
-                (torch_image.permute(1, 2, 0) * 255).cpu().numpy().astype(np.uint8),
-                "rgb8",
+            # Extract features
+            _, feat, seg, center, dense_feat = self.feature_extractor.extract(
+                img=torch_image[None],
+                return_centers=False,
+                return_dense_features=True,
+                n_random_pixels=100,
             )
+
+            # Forward pass to predict traversability
+            if self.ros_params.prediction_per_pixel:
+                # Pixel-wise traversability prediction using the dense features
+                data = Data(x=dense_feat[0].permute(1, 2, 0).reshape(-1, dense_feat.shape[1]))
+            else:
+                # input_feat = dense_feat[0].permute(1, 2, 0).reshape(-1, dense_feat.shape[1])
+                # Segment-wise traversability prediction using the average feature per segment
+                input_feat = feat[seg.reshape(-1)]
+                data = Data(x=input_feat)
+
+            # Predict traversability per feature
+            prediction = self.model.forward(data)
+
+            if not self.anomaly_detection:
+                out_trav = prediction.reshape(H, W, -1)[:, :, 0]
+
+                # Publish traversability
+                if self.ros_params.scale_traversability:
+                    # Apply piecewise linear scaling 0->0; threshold->0.5; 1->1
+                    traversability = out_trav.clone()
+                    m = traversability < self.ros_params.traversability_threshold
+                    # Scale untraversable
+                    traversability[m] *= 0.5 / self.ros_params.traversability_threshold
+                    # Scale traversable
+                    traversability[~m] -= self.ros_params.traversability_threshold
+                    traversability[~m] *= 0.5 / (1 - self.ros_params.traversability_threshold)
+                    traversability[~m] += 0.5
+                    traversability = traversability.clip(0, 1)
+                    # TODO Check if this was a bug
+                    out_trav = traversability
+            else:
+                loss, loss_aux, trav = self.anomaly_loss(None, prediction)
+
+                out_trav = trav.reshape(H, W, -1)[:, :, 0]
+
+                # Clip to binary output
+                if self.ros_params.clip_to_binary:
+                    out_trav = torch.where(
+                        out_trav.squeeze() <= self.ros_params.traversability_threshold,
+                        0.0,
+                        1.0,
+                    )
+
+            msg = rc.numpy_to_ros_image(out_trav.cpu().numpy(), "passthrough")
             msg.header = image_msg.header
-            msg.width = torch_image.shape[1]
-            msg.height = torch_image.shape[2]
-            self.camera_handler[cam]["input_pub"].publish(msg)
+            msg.width = out_trav.shape[0]
+            msg.height = out_trav.shape[1]
+            self.camera_handler[cam]["trav_pub"].publish(msg)
 
-        # Publish confidence
-        if self.ros_params.camera_topics[cam]["publish_confidence"]:
-            loss_reco = F.mse_loss(prediction[:, 1:], data.x, reduction="none").mean(dim=1)
-            confidence = self.confidence_generator.inference_without_update(x=loss_reco)
-            out_confidence = confidence.reshape(H, W)
-            msg = rc.numpy_to_ros_image(out_confidence.cpu().numpy(), "passthrough")
+            msg = self.camera_handler[cam]["camera_info_msg_out"]
             msg.header = image_msg.header
-            msg.width = out_confidence.shape[0]
-            msg.height = out_confidence.shape[1]
-            self.camera_handler[cam]["conf_pub"].publish(msg)
+            self.camera_handler[cam]["info_pub"].publish(msg)
 
-        # Publish features and feature_segments
-        if self.ros_params.camera_topics[cam]["use_for_training"]:
-            msg = ImageFeatures()
-            msg.header = image_msg.header
-            msg.feature_segments = rc.numpy_to_ros_image(seg.cpu().numpy().astype(np.int32), "passthrough")
-            msg.feature_segments.header = image_msg.header
-            feat_np = feat.cpu().numpy()
+            # Publish image
+            if self.ros_params.camera_topics[cam]["publish_input_image"]:
+                msg = rc.numpy_to_ros_image(
+                    (torch_image.permute(1, 2, 0) * 255).cpu().numpy().astype(np.uint8),
+                    "rgb8",
+                )
+                msg.header = image_msg.header
+                msg.width = torch_image.shape[1]
+                msg.height = torch_image.shape[2]
+                self.camera_handler[cam]["input_pub"].publish(msg)
 
-            mad1 = MultiArrayDimension()
-            mad1.label = "n"
-            mad1.size = feat_np.shape[0]
-            mad1.stride = feat_np.shape[0] * feat_np.shape[1]
+            # Publish confidence
+            if self.ros_params.camera_topics[cam]["publish_confidence"]:
+                loss_reco = F.mse_loss(prediction[:, 1:], data.x, reduction="none").mean(dim=1)
+                confidence = self.confidence_generator.inference_without_update(x=loss_reco)
+                out_confidence = confidence.reshape(H, W)
+                msg = rc.numpy_to_ros_image(out_confidence.cpu().numpy(), "passthrough")
+                msg.header = image_msg.header
+                msg.width = out_confidence.shape[0]
+                msg.height = out_confidence.shape[1]
+                self.camera_handler[cam]["conf_pub"].publish(msg)
 
-            mad2 = MultiArrayDimension()
-            mad2.label = "feat"
-            mad2.size = feat_np.shape[1]
-            mad2.stride = feat_np.shape[1]
+            # Publish features and feature_segments
+            if self.ros_params.camera_topics[cam]["use_for_training"]:
+                msg = ImageFeatures()
+                msg.header = image_msg.header
+                msg.feature_segments = rc.numpy_to_ros_image(seg.cpu().numpy().astype(np.int32), "passthrough")
+                msg.feature_segments.header = image_msg.header
+                feat_np = feat.cpu().numpy()
 
-            msg.features.data = feat_np.flatten().tolist()
-            msg.features.layout.dim.append(mad1)
-            msg.features.layout.dim.append(mad2)
-            self.camera_handler[cam]["imagefeat_pub"].publish(msg)
+                mad1 = MultiArrayDimension()
+                mad1.label = "n"
+                mad1.size = feat_np.shape[0]
+                mad1.stride = feat_np.shape[0] * feat_np.shape[1]
+
+                mad2 = MultiArrayDimension()
+                mad2.label = "feat"
+                mad2.size = feat_np.shape[1]
+                mad2.stride = feat_np.shape[1]
+
+                msg.features.data = feat_np.flatten().tolist()
+                msg.features.layout.dim.append(mad1)
+                msg.features.layout.dim.append(mad2)
+                self.camera_handler[cam]["imagefeat_pub"].publish(msg)
+
+        except Exception as e:
+            traceback.print_exc()
+            rospy.logerr(f"[{self._node_name}] error image callback", e)
+            self.system_events["image_callback_state"] = {
+                "time": rospy.get_time(),
+                "value": f"failed to execute {e}",
+            }
+            raise Exception("Error in image callback")
 
     def load_model(self):
         """Method to load the new model weights to perform inference on the incoming images
@@ -378,31 +410,31 @@ class WvnFeatureExtractor:
             None
         """
         try:
-            self._load_model_counter += 1
-            if self._load_model_counter % 10 == 0:
-                new_model_state_dict = torch.load(f"{WVN_ROOT_DIR}/.tmp_state_dict.pt")
-                k = list(self.model.state_dict().keys())[-1]
+            # self._load_model_counter += 1
+            # if self._load_model_counter % 10 == 0:
+            new_model_state_dict = torch.load(f"{WVN_ROOT_DIR}/.tmp_state_dict.pt")
+            k = list(self.model.state_dict().keys())[-1]
 
-                if (self.model.state_dict()[k] != new_model_state_dict[k]).any():
-                    if self.ros_params.verbose:
-                        self.log_data[f"time_last_model"] = rospy.get_time()
-                        self.log_data[f"nr_model_updates"] += 1
+            if (self.model.state_dict()[k] != new_model_state_dict[k]).any():
+                if self.ros_params.verbose:
+                    self.log_data[f"time_last_model"] = rospy.get_time()
+                    self.log_data[f"nr_model_updates"] += 1
 
-                self.model.load_state_dict(new_model_state_dict, strict=False)
+            self.model.load_state_dict(new_model_state_dict, strict=False)
 
-                try:
-                    if new_model_state_dict["traversability_threshold"] is not None:
-                        # TODO Verify if this works or the writing is need
-                        self.ros_params.traversability_threshold = new_model_state_dict["traversability_threshold"]
-                    if new_model_state_dict["confidence_generator"] is not None:
-                        self.confidence_generator_state = new_model_state_dict["confidence_generator"]
-
+            try:
+                if new_model_state_dict["traversability_threshold"] is not None:
+                    # TODO Verify if this works or the writing is need
+                    self.ros_params.traversability_threshold = new_model_state_dict["traversability_threshold"]
+                if new_model_state_dict["confidence_generator"] is not None:
                     self.confidence_generator_state = new_model_state_dict["confidence_generator"]
-                    self.confidence_generator.var = self.confidence_generator_state["var"]
-                    self.confidence_generator.mean = self.confidence_generator_state["mean"]
-                    self.confidence_generator.std = self.confidence_generator_state["std"]
-                except Exception:
-                    pass
+
+                self.confidence_generator_state = new_model_state_dict["confidence_generator"]
+                self.confidence_generator.var = self.confidence_generator_state["var"]
+                self.confidence_generator.mean = self.confidence_generator_state["mean"]
+                self.confidence_generator.std = self.confidence_generator_state["std"]
+            except Exception:
+                pass
 
         except Exception as e:
             if self.ros_params.verbose:
