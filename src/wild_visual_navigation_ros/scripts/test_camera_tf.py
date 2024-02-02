@@ -4,6 +4,44 @@ import tf2_ros
 import numpy as np
 import ros_converter as rc
 from geometry_msgs.msg import TransformStamped
+from msg_to_transmatrix import pq_to_se3
+class StaticTransform():
+    def __init__(self,translation,quat,parent,child) -> None:
+        
+        self.static_transformStamped = TransformStamped()
+        self.static_transformStamped.header.stamp=rospy.Time.now()
+        self.static_transformStamped.header.frame_id=parent
+        self.static_transformStamped.child_frame_id=child
+        self.static_transformStamped.transform.translation.x=translation[0]
+        self.static_transformStamped.transform.translation.y=translation[1]
+        self.static_transformStamped.transform.translation.z=translation[2]
+        
+        self.static_transformStamped.transform.rotation.x=quat[0]
+        self.static_transformStamped.transform.rotation.y=quat[1]
+        self.static_transformStamped.transform.rotation.z=quat[2]
+        self.static_transformStamped.transform.rotation.w=quat[3]
+        
+        self.transformation_matrix=pq_to_se3(translation,quat)
+        self.parent=parent
+        self.child=child
+        self.translation=np.array(translation)
+        self.quat=np.array(quat)
+    
+    def create_from_matrix(self,matrix:np.ndarray)-> 'StaticTransform':
+        if matrix.shape!=(4,4):
+            raise ValueError("Matrix must be 4x4")
+        translation=matrix[:3,3]
+        quat=tf.transformations.quaternion_from_matrix(matrix)
+        return StaticTransform(translation,quat,self.parent,self.child)
+    
+    def multiply(self,other:'StaticTransform') -> 'StaticTransform':
+        
+        pass
+        
+        
+        
+        
+        
 
 def publish_transform():
     rospy.init_node('tf_broadcaster')
@@ -263,6 +301,58 @@ def publish_transform():
     static_transformStamped_7.header.stamp = rospy.Time.now()
     static_transformStamped_7.header.frame_id = "base"
     static_transformStamped_7.child_frame_id = "check"
+    
+    static_transformStamped_8 = TransformStamped()
+    # Define the second static transform from 'hdr_base' to 'hdr_cam'
+    static_transformStamped_8.header.stamp = rospy.Time.now()
+    static_transformStamped_8.header.frame_id = "base"
+    static_transformStamped_8.child_frame_id = "lidar_parent"
+    static_transformStamped_8.transform.translation.x = -0.310
+    static_transformStamped_8.transform.translation.y = 0.0
+    static_transformStamped_8.transform.translation.z = 0.1585
+
+    # Convert Euler angles to a quaternion
+    x,y,z=-0.310,0.0,0.1585
+    translation_matrix = tf.transformations.translation_matrix((x, y, z))
+    roll, pitch, yaw = 0, 0.0, 1.5707963267948966
+    quaternion = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
+    rotation_matrix_in_parent_fo = tf.transformations.quaternion_matrix(quaternion)
+    rotation_matrix_in_parent_fo=translation_matrix@rotation_matrix_in_parent_fo
+    static_transformStamped_8.transform.rotation.x = quaternion[0]
+    static_transformStamped_8.transform.rotation.y = quaternion[1]
+    static_transformStamped_8.transform.rotation.z = quaternion[2]
+    static_transformStamped_8.transform.rotation.w = quaternion[3]
+    ok=rotation_matrix_in_parent_wf@rotation_matrix_in_parent_fo
+    print("lidar_parents:",ok)
+    # print("if reversed:",rotation_matrix_in_parent_wf@(rotation_matrix_in_parent_fo@translation_matrix))
+    
+    transformation_matrix =np.array([[-3.63509055e-06 , 1.43680318e-01 , 9.89624154e-01  ,3.53700000e-01],
+                                            [ 1.00000000e+00, -1.34923184e-11 , 3.67320510e-06  ,0.00000000e+00],
+                                            [ 5.27780629e-07 , 9.89624154e-01 ,-1.43680318e-01 , 1.63400000e-01],
+                                            [ 0.00000000e+00 , 0.00000000e+00 , 0.00000000e+00 , 1.00000000e+00]])
+    static_transformStamped_9 = TransformStamped()
+
+    # Extract translation from the transformation matrix
+    static_transformStamped_9.transform.translation.x = transformation_matrix[0, 3]
+    static_transformStamped_9.transform.translation.y = transformation_matrix[1, 3]
+    static_transformStamped_9.transform.translation.z = transformation_matrix[2, 3]
+
+    # Convert the rotation matrix to a quaternion
+    # rotation_matrix = transformation_matrix[:3, :3]
+    quaternion = tf.transformations.quaternion_from_matrix(transformation_matrix)
+
+    # Set the rotation in the message
+    static_transformStamped_9.transform.rotation.x = quaternion[0]
+    static_transformStamped_9.transform.rotation.y = quaternion[1]
+    static_transformStamped_9.transform.rotation.z = quaternion[2]
+    static_transformStamped_9.transform.rotation.w = quaternion[3]
+
+    # Set the header and child_frame_id as needed
+    static_transformStamped_9.header.stamp = rospy.Time.now()
+    static_transformStamped_9.header.frame_id = "base"
+    static_transformStamped_9.child_frame_id = "check"
+    
+    
     
     # Broadcast the second transform
     broadcaster.sendTransform([static_transformStamped, static_transformStamped_2, static_transformStamped_3, static_transformStamped_4, static_transformStamped_5, static_transformStamped_6, static_transformStamped_7])
