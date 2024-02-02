@@ -3,14 +3,19 @@
 
 # Navigate to the directory containing the bag files
 # cd /media/chen/UDisk1/vis_rosbag/snow
+# cd /media/chen/Chen/rosbag_white/2nd
+cd /media/chen/Chen/2024-01-25-white-board/2nd
 # cd /media/chen/UDisk1/vis_rosbag/single_test
 # cd /media/chen/UDisk1/vis_rosbag/val
 # cd /media/chen/UDisk1/vis_rosbag/snow/val
 # Find all bag files and play them
 # cd /media/chen/UDisk1/vis_rosbag/new_snow
 # cd /media/chen/UDisk1/vis_rosbag/lab
-cd /media/chen/Chen/rosbag_lee
+# cd /media/chen/Chen/rosbag_lee
 rosbag play --clock *.bag -r 0.5
 
 #roslaunch wild_visual_navigation_ros play.launch
 # /wide_angle_camera_rear/image_color_rect
+
+# Snow ground 1670683273.696940
+# 

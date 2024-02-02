@@ -11,7 +11,7 @@ from BaseWVN import WVN_ROOT_DIR
 from BaseWVN.config.wvn_cfg import ParamCollection
 
 # use your own API key
-api_key = 'xxx'
+api_key = '2fea959a3e8dc0ae5cd55e40d5f60c8e0bdc70d7'
 client = SegmentsClient(api_key)
 dataset_identifier = "swsychen/val_snow"
 name = "v0.1"

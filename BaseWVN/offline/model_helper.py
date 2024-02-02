@@ -511,11 +511,13 @@ def plot_masks_compare(gt_masks:torch.Tensor,conf_masks:torch.Tensor,images:torc
                            overlay_mask=gt_masks[i],
                            channel=0,
                            cmap='coolwarm',
+                           double_norm=True
                            )
         output_conf=plot_overlay_image(images[i].unsqueeze(0),alpha=0.7,
                            overlay_mask=conf_masks[i],
                            channel=0,
-                           cmap='coolwarm'
+                           cmap='coolwarm',
+                           double_norm=True
                            )
         img_list=[img,output_gt,output_conf]
         title_list=['Original Image','GT Mask','Confidence Mask']

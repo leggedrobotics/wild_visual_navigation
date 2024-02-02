@@ -8,6 +8,7 @@ Panels:
         - /Status1
         - /RobotModel1
         - /Camera1
+        - /Path1
         - /MarkerArray1
         - /Path2
         - /TF1/Frames1
@@ -16,6 +17,9 @@ Panels:
         - /Marker3
         - /Marker4
         - /Path4
+        - /Image7
+        - /Odometry1
+        - /Odometry1/Shape1
       Splitter Ratio: 0.5
     Tree Height: 689
   - Class: rviz/Selection
@@ -70,7 +74,348 @@ Visualization Manager:
         Expand Joint Details: false
         Expand Link Details: false
         Expand Tree: false
+        LF_FOOT:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LF_HAA_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LF_HFE_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LF_HFE_output:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        LF_HIP:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        LF_KFE_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LF_SHANK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        LF_THIGH:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        LF_hip_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LF_shank_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LF_thigh_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LH_FOOT:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LH_HAA_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LH_HFE_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LH_HFE_output:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        LH_HIP:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        LH_KFE_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LH_SHANK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        LH_THIGH:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        LH_hip_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LH_shank_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LH_thigh_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         Link Tree Style: Links in Alphabetic Order
+        RF_FOOT:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RF_HAA_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RF_HFE_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RF_HFE_output:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        RF_HIP:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        RF_KFE_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RF_SHANK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        RF_THIGH:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        RF_hip_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RF_shank_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RF_thigh_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RH_FOOT:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RH_HAA_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RH_HFE_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RH_HFE_output:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        RH_HIP:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        RH_KFE_drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RH_SHANK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        RH_THIGH:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        RH_hip_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RH_shank_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RH_thigh_fixed:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        base:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        base_inertia:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        battery:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        body_top:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        bottom_shell:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        depth_camera_front_lower_camera:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        depth_camera_front_lower_camera_parent:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        depth_camera_front_upper_camera:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        depth_camera_front_upper_camera_parent:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        depth_camera_left_camera:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        depth_camera_left_camera_parent:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        depth_camera_rear_lower_camera:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        depth_camera_rear_lower_camera_parent:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        depth_camera_rear_upper_camera:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        depth_camera_rear_upper_camera_parent:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        depth_camera_right_camera:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        depth_camera_right_camera_parent:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        docking_socket:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        face_front:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        face_rear:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        face_shell_front:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        face_shell_rear:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        hatch_shell:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        hbc_receiver:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        imu_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        lidar:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        lidar_parent:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        top_shell:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        wide_angle_camera_front_camera:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        wide_angle_camera_front_camera_parent:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        wide_angle_camera_rear_camera:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        wide_angle_camera_rear_camera_parent:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
       Name: RobotModel
       Robot Description: anymal_description
       TF Prefix: ""
@@ -88,10 +433,13 @@ Visualization Manager:
       Unreliable: false
       Value: false
       Visibility:
+        "": true
         Grid: true
+        GridMap: true
         Image: true
         Marker: true
         MarkerArray: true
+        Odometry: true
         Path: true
         PointCloud2: true
         RobotModel: true
@@ -359,10 +707,7 @@ Visualization Manager:
       Marker Topic: /vd_pipeline/visualization_planes
       Name: MarkerArray
       Namespaces:
-        LF_FOOT: true
-        LH_FOOT: true
-        RF_FOOT: true
-        RH_FOOT: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -548,6 +893,100 @@ Visualization Manager:
       Transport Hint: compressed
       Unreliable: false
       Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Class: grid_map_rviz_plugin/GridMap
+      Color: 200; 200; 200
+      Color Layer: elevation
+      Color Transformer: GridMapLayer
+      ColorMap: default
+      Enabled: true
+      Grid Cell Decimation: 1
+      Grid Line Thickness: 0.10000000149011612
+      Height Layer: elevation
+      Height Transformer: GridMapLayer
+      History Length: 1
+      Invert ColorMap: false
+      Max Color: 255; 255; 255
+      Max Intensity: 10
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: GridMap
+      Show Grid Lines: true
+      Topic: /elevation_mapping/elevation_map_raw
+      Unreliable: false
+      Use ColorMap: true
+      Value: true
+    - Angle Tolerance: 0.10000000149011612
+      Class: rviz/Odometry
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: true
+      Enabled: true
+      Keep: 100
+      Name: Odometry
+      Position Tolerance: 0.10000000149011612
+      Queue Size: 10
+      Shape:
+        Alpha: 1
+        Axes Length: 1
+        Axes Radius: 0.10000000149011612
+        Color: 52; 101; 164
+        Head Length: 0.30000001192092896
+        Head Radius: 0.10000000149011612
+        Shaft Length: 1
+        Shaft Radius: 0.05000000074505806
+        Value: Arrow
+      Topic: /state_estimator/odometry
+      Unreliable: false
+      Value: true
+    - Angle Tolerance: 0.10000000149011612
+      Class: rviz/Odometry
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: true
+      Enabled: true
+      Keep: 100
+      Name: Odometry
+      Position Tolerance: 0.10000000149011612
+      Queue Size: 10
+      Shape:
+        Alpha: 1
+        Axes Length: 1
+        Axes Radius: 0.10000000149011612
+        Color: 255; 25; 0
+        Head Length: 0.30000001192092896
+        Head Radius: 0.10000000149011612
+        Shaft Length: 1
+        Shaft Radius: 0.05000000074505806
+        Value: Arrow
+      Topic: /open3d_slam/scan2map_odometry
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -576,7 +1015,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 43.962806701660156
+      Distance: 9.61134147644043
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -584,17 +1023,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: -2.9299988746643066
+        Y: 2.039315700531006
+        Z: 2.7264044284820557
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.09479726850986481
+      Pitch: 1.4697962999343872
       Target Frame: <Fixed Frame>
-      Yaw: 4.5336103439331055
+      Yaw: 4.13860559463501
     Saved: ~
 Window Geometry:
   Camera:
@@ -616,5 +1055,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1527
-  X: 210
-  Y: 27
+  X: 495
+  Y: 65

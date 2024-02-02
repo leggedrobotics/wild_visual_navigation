@@ -178,12 +178,15 @@ def train_and_evaluate(param:ParamCollection):
             tags=["offline",param.offline.env,param.general.name],
         )
         
-        max_epochs=3 #8
+        max_epochs=8 #8
         if "partial" in param.offline.traindata_option:
             if "each" in param.offline.traindata_option:
                 # load train and val data from online collected dataset (each batch is 100 samples from six nodes)
                 train_data=load_data(os.path.join(param.offline.data_folder,"train",param.offline.env,param.offline.train_datafile))
-                val_data=load_data(os.path.join(param.offline.data_folder,"val",param.offline.env,param.offline.train_datafile))
+                try:
+                    val_data=load_data(os.path.join(param.offline.data_folder,"val",param.offline.env,param.offline.train_datafile))
+                except FileNotFoundError:
+                    val_data=load_data(os.path.join(param.offline.data_folder,"train",param.offline.env,param.offline.train_datafile))
             elif "all" in param.offline.traindata_option:
                 train_data_hiking=load_data(os.path.join(param.offline.data_folder,"train",'hiking',param.offline.train_datafile))
                 train_data_snow=load_data(os.path.join(param.offline.data_folder,"train",'snow',param.offline.train_datafile))
@@ -400,7 +403,7 @@ def train_and_evaluate(param:ParamCollection):
 
 class Validator:
     def __init__(self,param:ParamCollection) -> None:
-        mode='train'
+        mode='train' #use train dataset for validation or test dataset for validation
         nodes=torch.load(os.path.join(WVN_ROOT_DIR,param.offline.data_folder,mode,param.offline.env,param.offline.nodes_datafile))    
         self.nodes=nodes
         self.param=param

@@ -17,6 +17,8 @@ pip install -r requirements.txt
 ```
 If you encounter any errors, please follow the error message to install the missing dependencies.
 
+**Attention**: You need to pip install the Physical decoders module. It is a package from [here](https://bitbucket.org/leggedrobotics/wild_physical_property_estimation/src/main/).
+
 Set you neptune api token , username and project name in the system file `.bashrc`:
 ```bash
 export NEPTUNE_API_TOKEN="your_neptune_api_token"
