@@ -113,7 +113,7 @@ class WvnFeatureExtractor:
         # Image callback
 
         self._camera_handler = {}
-        self._scheduler = Scheduler()
+        self._camera_scheduler = Scheduler()
 
         if self._ros_params.verbose:
             # DEBUG Logging
@@ -132,7 +132,8 @@ class WvnFeatureExtractor:
             self._ros_params.camera_topics[cam]["name"] = cam
 
             # Add to scheduler
-            self._scheduler.add_process(cam, 1)
+            rospy.logwarn(self._ros_params.camera_topics)
+            self._camera_scheduler.add_process(cam, self._ros_params.camera_topics[cam]["scheduler_weight"])
 
             # Camera info
             rospy.loginfo(f"[{self._node_name}] Waiting for camera info topic...")
@@ -276,7 +277,7 @@ class WvnFeatureExtractor:
             return
 
         # Check the scheduler
-        if self._scheduler.get() != cam:
+        if self._camera_scheduler.get() != cam:
             return
         else:
             if self._ros_params.verbose:
@@ -415,7 +416,7 @@ class WvnFeatureExtractor:
             raise Exception("Error in image callback")
 
         # Step scheduler
-        self._scheduler.step()
+        self._camera_scheduler.step()
 
     def load_model(self, stamp):
         """Method to load the new model weights to perform inference on the incoming images
