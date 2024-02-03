@@ -51,6 +51,8 @@ class ParamCollection(Serializable):
         robot_width: float=0.530
         robot_max_velocity: float=1.2
         foot_radius: float=0.03269
+        
+        # {child}_in_{parent}
         front_hdr_camera_in_base= np.array([[-3.63509055e-06 , 1.43680318e-01 , 9.89624154e-01  ,3.53700000e-01],
                                             [ 1.00000000e+00, -1.34923184e-11 , 3.67320510e-06  ,0.00000000e+00],
                                             [ 5.27780629e-07 , 9.89624154e-01 ,-1.43680318e-01 , 1.63400000e-01],
