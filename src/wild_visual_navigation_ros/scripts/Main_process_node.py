@@ -7,7 +7,7 @@ import ros_converter as rc
 import message_filters
 from sensor_msgs.msg import Image, CameraInfo, CompressedImage
 from std_msgs.msg import ColorRGBA, Float32, Float32MultiArray,Header
-from nav_msgs.msg import Path
+from nav_msgs.msg import Path,Odometry
 from anymal_msgs.msg import AnymalState
 from geometry_msgs.msg import PoseStamped, Point,TransformStamped
 from visualization_msgs.msg import Marker
@@ -28,6 +28,7 @@ import PIL.Image
 import tf2_ros
 from liegroups.torch import SE3, SO3
 from pytictac import ClassTimer, ClassContextTimer, accumulate_time
+from msg_to_transmatrix import msg_to_se3
 import datetime
 class MainProcess(NodeForROS):
     def __init__(self):
@@ -199,7 +200,9 @@ class MainProcess(NodeForROS):
         # Camera and anymal state subscriber
         camera_sub=message_filters.Subscriber(self.camera_topic, CompressedImage,queue_size=1)
         anymal_state_sub = message_filters.Subscriber(self.anymal_state_topic, AnymalState)
-        sync= message_filters.ApproximateTimeSynchronizer([camera_sub,anymal_state_sub],queue_size=200,slop=0.2)
+        visual_odom_sub = message_filters.Subscriber(self.visual_odom_topic, Odometry)
+        self.fixed_frame='map_o3d'
+        sync= message_filters.ApproximateTimeSynchronizer([camera_sub,anymal_state_sub,visual_odom_sub],queue_size=200,slop=0.2)
         sync.registerCallback(self.camera_callback,self.camera_topic)
 
         # Phy-decoder info subscriber
@@ -241,7 +244,7 @@ class MainProcess(NodeForROS):
         pass
     
     @accumulate_time
-    def camera_callback(self, img_msg:CompressedImage,state_msg:AnymalState,cam:str):
+    def camera_callback(self, img_msg:CompressedImage,state_msg:AnymalState,visual_odom_msg:Odometry,cam:str):
         """ 
         callback function for the anymal state subscriber
         """
@@ -281,7 +284,12 @@ class MainProcess(NodeForROS):
                  transform.pose.orientation.z,
                  transform.pose.orientation.w)
             suc, pose_base_in_world = rc.ros_tf_to_numpy((trans,rot))
-           
+            
+            # calculate the world_in_map tf 
+            world_in_map=msg_to_se3(visual_odom_msg)@np.linalg.inv(self.lidar_in_base)@np.linalg.inv(pose_base_in_world)
+            # switch to o3d_map from odom--base
+            pose_base_in_world=world_in_map@pose_base_in_world
+            pose_base_in_world=pose_base_in_world.astype(np.float32)
             if self.param.logger.vis_callback:
                self.visualize_callback(pose_base_in_world,ts,self.camera_handler["latest_img_pub"],"latest_img")
            
