@@ -4,6 +4,7 @@ from wild_visual_navigation.cfg import ExperimentParams, RosFeatureExtractorNode
 from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation_msgs.msg import ImageFeatures
 import wild_visual_navigation_ros.ros_converter as rc
+from wild_visual_navigation_ros.scheduler import Scheduler
 from wild_visual_navigation.model import get_model
 from wild_visual_navigation.utils import ConfidenceGenerator
 from wild_visual_navigation.utils import AnomalyLoss
@@ -36,43 +37,46 @@ class WvnFeatureExtractor:
         self._load_model_counter = 0
 
         # Timers to control the rate of the subscriber
-        self.last_image_ts = rospy.get_time()
+        self._last_image_ts = rospy.get_time()
 
-        self.model = get_model(self.params.model).to(self.ros_params.device)
-        self.model.eval()
+        # Load model
+        self._model = get_model(self._params.model).to(self._ros_params.device)
+        self._model.eval()
 
-        self.feature_extractor = FeatureExtractor(
-            self.ros_params.device,
-            segmentation_type=self.ros_params.segmentation_type,
-            feature_type=self.ros_params.feature_type,
-            patch_size=self.ros_params.dino_patch_size,
-            backbone_type=self.ros_params.dino_backbone,
-            input_size=self.ros_params.network_input_image_height,
-            slic_num_components=self.ros_params.slic_num_components,
+        # Setup modules
+        self._feature_extractor = FeatureExtractor(
+            self._ros_params.device,
+            segmentation_type=self._ros_params.segmentation_type,
+            feature_type=self._ros_params.feature_type,
+            patch_size=self._ros_params.dino_patch_size,
+            backbone_type=self._ros_params.dino_backbone,
+            input_size=self._ros_params.network_input_image_height,
+            slic_num_components=self._ros_params.slic_num_components,
         )
 
         if not self.anomaly_detection:
-            self.confidence_generator = ConfidenceGenerator(
-                method=self.params.loss.method,
-                std_factor=self.params.loss.confidence_std_factor,
+            self._confidence_generator = ConfidenceGenerator(
+                method=self._params.loss.method,
+                std_factor=self._params.loss.confidence_std_factor,
                 anomaly_detection=self.anomaly_detection,
             )
-            self.ros_params.scale_traversability = True
+            self._ros_params.scale_traversability = True
         else:
-            self.anomaly_loss = AnomalyLoss(
-                **self.params.loss_anomaly,
-                log_enabled=self.params.general.log_confidence,
-                log_folder=self.params.general.model_path,
+            self._anomaly_loss = AnomalyLoss(
+                **self._params.loss_anomaly,
+                log_enabled=self._params.general.log_confidence,
+                log_folder=self._params.general.model_path,
             )
-            self.anomaly_loss.to(self.ros_params.device)
-            self.ros_params.scale_traversability = False
+            self._anomaly_loss.to(self._ros_params.device)
+            self._ros_params.scale_traversability = False
 
-        if self.ros_params.verbose:
-            self.log_data = {}
-            self.status_thread_stop_event = Event()
-            self.status_thread = Thread(target=self.status_thread_loop, name="status")
-            self.run_status_thread = True
-            self.status_thread.start()
+        # Setup verbosity levels
+        if self._ros_params.verbose:
+            self._log_data = {}
+            self._status_thread_stop_event = Event()
+            self._status_thread = Thread(target=self.status_thread_loop, name="status")
+            self._run_status_thread = True
+            self._status_thread.start()
 
         self.setup_ros()
 
@@ -81,19 +85,151 @@ class WvnFeatureExtractor:
         signal.signal(signal.SIGTERM, self.shutdown_callback)
 
     def shutdown_callback(self, *args, **kwargs):
-        self.run_status_thread = False
-        self.status_thread_stop_event.set()
-        self.status_thread.join()
+        self._run_status_thread = False
+        self._status_thread_stop_event.set()
+        self._status_thread.join()
 
         rospy.signal_shutdown(f"Wild Visual Navigation Feature Extraction killed {args}")
         sys.exit(0)
 
+    def read_params(self):
+        """Reads all the parameters from the parameter server"""
+        self._params = OmegaConf.structured(ExperimentParams)
+        self._ros_params = OmegaConf.structured(RosFeatureExtractorNodeParams)
+
+        # Override the empty dataclass with values from rosparm server
+        with read_write(self._ros_params):
+            for k in self._ros_params.keys():
+                self._ros_params[k] = rospy.get_param(f"~{k}")
+
+        with read_write(self._params):
+            self._params.loss.confidence_std_factor = self._ros_params.confidence_std_factor
+
+        self.anomaly_detection = self._params.model.name == "LinearRnvp"
+
+    def setup_ros(self, setup_fully=True):
+        """Main function to setup ROS-related stuff: publishers, subscribers and services"""
+        # Image callback
+
+        self._camera_handler = {}
+        self._scheduler = Scheduler()
+
+        if self._ros_params.verbose:
+            # DEBUG Logging
+            self._log_data[f"time_last_model"] = -1
+            self._log_data[f"nr_model_updates"] = -1
+
+        for cam in self._ros_params.camera_topics:
+            if self._ros_params.verbose:
+                # DEBUG Logging
+                self._log_data[f"nr_images_{cam}"] = 0
+                self._log_data[f"time_last_image_{cam}"] = -1
+
+            # Initialize camera handler for given cam
+            self._camera_handler[cam] = {}
+            # Store camera name
+            self._ros_params.camera_topics[cam]["name"] = cam
+
+            # Add to scheduler
+            self._scheduler.add_process(cam, 1)
+
+            # Camera info
+            rospy.loginfo(f"[{self._node_name}] Waiting for camera info topic...")
+            camera_info_msg = rospy.wait_for_message(self._ros_params.camera_topics[cam]["info_topic"], CameraInfo)
+            rospy.loginfo(f"[{self._node_name}] Done")
+            K, H, W = rc.ros_cam_info_to_tensors(camera_info_msg, device=self._ros_params.device)
+
+            self._camera_handler[cam]["camera_info"] = camera_info_msg
+            self._camera_handler[cam]["K"] = K
+            self._camera_handler[cam]["H"] = H
+            self._camera_handler[cam]["W"] = W
+
+            image_projector = ImageProjector(
+                K=self._camera_handler[cam]["K"],
+                h=self._camera_handler[cam]["H"],
+                w=self._camera_handler[cam]["W"],
+                new_h=self._ros_params.network_input_image_height,
+                new_w=self._ros_params.network_input_image_width,
+            )
+            msg = self._camera_handler[cam]["camera_info"]
+            msg.width = self._ros_params.network_input_image_width
+            msg.height = self._ros_params.network_input_image_height
+            msg.K = image_projector.scaled_camera_matrix[0, :3, :3].cpu().numpy().flatten().tolist()
+            msg.P = image_projector.scaled_camera_matrix[0, :3, :4].cpu().numpy().flatten().tolist()
+
+            with read_write(self._ros_params):
+                self._camera_handler[cam]["camera_info_msg_out"] = msg
+                self._camera_handler[cam]["image_projector"] = image_projector
+
+            # Set subscribers
+            base_topic = self._ros_params.camera_topics[cam]["image_topic"].replace("/compressed", "")
+            is_compressed = self._ros_params.camera_topics[cam]["image_topic"] != base_topic
+            if is_compressed:
+                # TODO study the effect of the buffer size
+                image_sub = rospy.Subscriber(
+                    self._ros_params.camera_topics[cam]["image_topic"],
+                    CompressedImage,
+                    self.image_callback,
+                    callback_args=cam,
+                    queue_size=1,
+                )
+            else:
+                image_sub = rospy.Subscriber(
+                    self._ros_params.camera_topics[cam]["image_topic"],
+                    Image,
+                    self.image_callback,
+                    callback_args=cam,
+                    queue_size=1,
+                )
+            self._camera_handler[cam]["image_sub"] = image_sub
+
+            # Set publishers
+            trav_pub = rospy.Publisher(
+                f"/wild_visual_navigation_node/{cam}/traversability",
+                Image,
+                queue_size=1,
+            )
+            info_pub = rospy.Publisher(
+                f"/wild_visual_navigation_node/{cam}/camera_info",
+                CameraInfo,
+                queue_size=1,
+            )
+            self._camera_handler[cam]["trav_pub"] = trav_pub
+            self._camera_handler[cam]["info_pub"] = info_pub
+            if self.anomaly_detection and self._ros_params.camera_topics[cam]["publish_confidence"]:
+                rospy.logwarn(f"[{self._node_name}] Warning force set public confidence to false")
+                self._ros_params.camera_topics[cam]["publish_confidence"] = False
+
+            if self._ros_params.camera_topics[cam]["publish_input_image"]:
+                input_pub = rospy.Publisher(
+                    f"/wild_visual_navigation_node/{cam}/image_input",
+                    Image,
+                    queue_size=1,
+                )
+                self._camera_handler[cam]["input_pub"] = input_pub
+
+            if self._ros_params.camera_topics[cam]["publish_confidence"]:
+                conf_pub = rospy.Publisher(
+                    f"/wild_visual_navigation_node/{cam}/confidence",
+                    Image,
+                    queue_size=1,
+                )
+                self._camera_handler[cam]["conf_pub"] = conf_pub
+
+            if self._ros_params.camera_topics[cam]["use_for_training"]:
+                imagefeat_pub = rospy.Publisher(
+                    f"/wild_visual_navigation_node/{cam}/feat",
+                    ImageFeatures,
+                    queue_size=1,
+                )
+                self._camera_handler[cam]["imagefeat_pub"] = imagefeat_pub
+
     def status_thread_loop(self):
-        rate = rospy.Rate(self.ros_params.status_thread_rate)
+        rate = rospy.Rate(self._ros_params.status_thread_rate)
         # Learning loop
-        while self.run_status_thread:
-            self.status_thread_stop_event.wait(timeout=0.01)
-            if self.status_thread_stop_event.is_set():
+        while self._run_status_thread:
+            self._status_thread_stop_event.wait(timeout=0.01)
+            if self._status_thread_stop_event.is_set():
                 rospy.logwarn(f"[{self._node_name}] Stopped learning thread")
                 break
 
@@ -101,7 +237,7 @@ class WvnFeatureExtractor:
             x = PrettyTable()
             x.field_names = ["Key", "Value"]
 
-            for k, v in self.log_data.items():
+            for k, v in self._log_data.items():
                 if "time" in k:
                     d = t - v
                     if d < 0:
@@ -119,137 +255,9 @@ class WvnFeatureExtractor:
             try:
                 rate.sleep()
             except Exception:
-                rate = rospy.Rate(self.ros_params.status_thread_rate)
+                rate = rospy.Rate(self._ros_params.status_thread_rate)
                 print(f"[{self._node_name}] Ignored jump pack in time!")
-        self.status_thread_stop_event.clear()
-
-    def read_params(self):
-        """Reads all the parameters from the parameter server"""
-        self.params = OmegaConf.structured(ExperimentParams)
-        self.ros_params = OmegaConf.structured(RosFeatureExtractorNodeParams)
-
-        # Override the empty dataclass with values from rosparm server
-        with read_write(self.ros_params):
-            for k in self.ros_params.keys():
-                self.ros_params[k] = rospy.get_param(f"~{k}")
-
-        with read_write(self.params):
-            self.params.loss.confidence_std_factor = self.ros_params.confidence_std_factor
-
-        self.anomaly_detection = self.params.model.name == "LinearRnvp"
-
-    def setup_ros(self, setup_fully=True):
-        """Main function to setup ROS-related stuff: publishers, subscribers and services"""
-        # Image callback
-
-        self.camera_handler = {}
-
-        if self.ros_params.verbose:
-            # DEBUG Logging
-            self.log_data[f"time_last_model"] = -1
-            self.log_data[f"nr_model_updates"] = -1
-
-        for cam in self.ros_params.camera_topics:
-            if self.ros_params.verbose:
-                # DEBUG Logging
-                self.log_data[f"nr_images_{cam}"] = 0
-                self.log_data[f"time_last_image_{cam}"] = -1
-
-            # Initialize camera handler for given cam
-            self.camera_handler[cam] = {}
-            # Store camera name
-            self.ros_params.camera_topics[cam]["name"] = cam
-
-            # Camera info
-            rospy.loginfo(f"[{self._node_name}] Waiting for camera info topic...")
-            camera_info_msg = rospy.wait_for_message(self.ros_params.camera_topics[cam]["info_topic"], CameraInfo)
-            rospy.loginfo(f"[{self._node_name}] Done")
-            K, H, W = rc.ros_cam_info_to_tensors(camera_info_msg, device=self.ros_params.device)
-
-            self.camera_handler[cam]["camera_info"] = camera_info_msg
-            self.camera_handler[cam]["K"] = K
-            self.camera_handler[cam]["H"] = H
-            self.camera_handler[cam]["W"] = W
-
-            image_projector = ImageProjector(
-                K=self.camera_handler[cam]["K"],
-                h=self.camera_handler[cam]["H"],
-                w=self.camera_handler[cam]["W"],
-                new_h=self.ros_params.network_input_image_height,
-                new_w=self.ros_params.network_input_image_width,
-            )
-            msg = self.camera_handler[cam]["camera_info"]
-            msg.width = self.ros_params.network_input_image_width
-            msg.height = self.ros_params.network_input_image_height
-            msg.K = image_projector.scaled_camera_matrix[0, :3, :3].cpu().numpy().flatten().tolist()
-            msg.P = image_projector.scaled_camera_matrix[0, :3, :4].cpu().numpy().flatten().tolist()
-
-            with read_write(self.ros_params):
-                self.camera_handler[cam]["camera_info_msg_out"] = msg
-                self.camera_handler[cam]["image_projector"] = image_projector
-
-            # Set subscribers
-            base_topic = self.ros_params.camera_topics[cam]["image_topic"].replace("/compressed", "")
-            is_compressed = self.ros_params.camera_topics[cam]["image_topic"] != base_topic
-            if is_compressed:
-                # TODO study the effect of the buffer size
-                image_sub = rospy.Subscriber(
-                    self.ros_params.camera_topics[cam]["image_topic"],
-                    CompressedImage,
-                    self.image_callback,
-                    callback_args=cam,
-                    queue_size=1,
-                )
-            else:
-                image_sub = rospy.Subscriber(
-                    self.ros_params.camera_topics[cam]["image_topic"],
-                    Image,
-                    self.image_callback,
-                    callback_args=cam,
-                    queue_size=1,
-                )
-            self.camera_handler[cam]["image_sub"] = image_sub
-
-            # Set publishers
-            trav_pub = rospy.Publisher(
-                f"/wild_visual_navigation_node/{cam}/traversability",
-                Image,
-                queue_size=1,
-            )
-            info_pub = rospy.Publisher(
-                f"/wild_visual_navigation_node/{cam}/camera_info",
-                CameraInfo,
-                queue_size=1,
-            )
-            self.camera_handler[cam]["trav_pub"] = trav_pub
-            self.camera_handler[cam]["info_pub"] = info_pub
-            if self.anomaly_detection and self.ros_params.camera_topics[cam]["publish_confidence"]:
-                rospy.logwarn(f"[{self._node_name}] Warning force set public confidence to false")
-                self.ros_params.camera_topics[cam]["publish_confidence"] = False
-
-            if self.ros_params.camera_topics[cam]["publish_input_image"]:
-                input_pub = rospy.Publisher(
-                    f"/wild_visual_navigation_node/{cam}/image_input",
-                    Image,
-                    queue_size=1,
-                )
-                self.camera_handler[cam]["input_pub"] = input_pub
-
-            if self.ros_params.camera_topics[cam]["publish_confidence"]:
-                conf_pub = rospy.Publisher(
-                    f"/wild_visual_navigation_node/{cam}/confidence",
-                    Image,
-                    queue_size=1,
-                )
-                self.camera_handler[cam]["conf_pub"] = conf_pub
-
-            if self.ros_params.camera_topics[cam]["use_for_training"]:
-                imagefeat_pub = rospy.Publisher(
-                    f"/wild_visual_navigation_node/{cam}/feat",
-                    ImageFeatures,
-                    queue_size=1,
-                )
-                self.camera_handler[cam]["imagefeat_pub"] = imagefeat_pub
+        self._status_thread_stop_event.clear()
 
     @torch.no_grad()
     def image_callback(self, image_msg: Image, cam: str):  # info_msg: CameraInfo
@@ -261,35 +269,38 @@ class WvnFeatureExtractor:
             cam (str): Camera name
         """
 
-        if self.ros_params.verbose:
-            print(f"[{self._node_name}] Image callback: {cam}... ", end="")
-        try:
-            # Run the callback so as to match the desired rate
-            ts = image_msg.header.stamp.to_sec()
-            if abs(ts - self.last_image_ts) < 1.0 / self.ros_params.image_callback_rate:
-                if self.ros_params.verbose:
-                    print(f"skip")
-                return
-            else:
-                if self.ros_params.verbose:
-                    print(f"process")
-            self.last_image_ts = ts
+        # Check the rate
+        ts = image_msg.header.stamp.to_sec()
+        if abs(ts - self._last_image_ts) < 1.0 / self._ros_params.image_callback_rate:
+            return
 
-            if self.ros_params.verbose:
+        # Check the scheduler
+        if self._scheduler.get() != cam:
+            return
+        else:
+            if self._ros_params.verbose:
+                rospy.loginfo(f"[{self._node_name}] Image callback: {cam} -> Process")
+            self._scheduler.step()
+
+        self._last_image_ts = ts
+
+        # If all the checks are passed, process the image
+        try:
+            if self._ros_params.verbose:
                 # DEBUG Logging
-                self.log_data[f"nr_images_{cam}"] += 1
-                self.log_data[f"time_last_image_{cam}"] = rospy.get_time()
+                self._log_data[f"nr_images_{cam}"] += 1
+                self._log_data[f"time_last_image_{cam}"] = rospy.get_time()
 
             # Update model from file if possible
             self.load_model()
 
             # Convert image message to torch image
-            torch_image = rc.ros_image_to_torch(image_msg, device=self.ros_params.device)
-            torch_image = self.camera_handler[cam]["image_projector"].resize_image(torch_image)
+            torch_image = rc.ros_image_to_torch(image_msg, device=self._ros_params.device)
+            torch_image = self._camera_handler[cam]["image_projector"].resize_image(torch_image)
             C, H, W = torch_image.shape
 
             # Extract features
-            _, feat, seg, center, dense_feat = self.feature_extractor.extract(
+            _, feat, seg, center, dense_feat = self._feature_extractor.extract(
                 img=torch_image[None],
                 return_centers=False,
                 return_dense_features=True,
@@ -297,7 +308,7 @@ class WvnFeatureExtractor:
             )
 
             # Forward pass to predict traversability
-            if self.ros_params.prediction_per_pixel:
+            if self._ros_params.prediction_per_pixel:
                 # Pixel-wise traversability prediction using the dense features
                 data = Data(x=dense_feat[0].permute(1, 2, 0).reshape(-1, dense_feat.shape[1]))
             else:
@@ -307,34 +318,34 @@ class WvnFeatureExtractor:
                 data = Data(x=input_feat)
 
             # Predict traversability per feature
-            prediction = self.model.forward(data)
+            prediction = self._model.forward(data)
 
             if not self.anomaly_detection:
                 out_trav = prediction.reshape(H, W, -1)[:, :, 0]
 
                 # Publish traversability
-                if self.ros_params.scale_traversability:
+                if self._ros_params.scale_traversability:
                     # Apply piecewise linear scaling 0->0; threshold->0.5; 1->1
                     traversability = out_trav.clone()
-                    m = traversability < self.ros_params.traversability_threshold
+                    m = traversability < self._ros_params.traversability_threshold
                     # Scale untraversable
-                    traversability[m] *= 0.5 / self.ros_params.traversability_threshold
+                    traversability[m] *= 0.5 / self._ros_params.traversability_threshold
                     # Scale traversable
-                    traversability[~m] -= self.ros_params.traversability_threshold
-                    traversability[~m] *= 0.5 / (1 - self.ros_params.traversability_threshold)
+                    traversability[~m] -= self._ros_params.traversability_threshold
+                    traversability[~m] *= 0.5 / (1 - self._ros_params.traversability_threshold)
                     traversability[~m] += 0.5
                     traversability = traversability.clip(0, 1)
                     # TODO Check if this was a bug
                     out_trav = traversability
             else:
-                loss, loss_aux, trav = self.anomaly_loss(None, prediction)
+                loss, loss_aux, trav = self._anomaly_loss(None, prediction)
 
                 out_trav = trav.reshape(H, W, -1)[:, :, 0]
 
                 # Clip to binary output
-                if self.ros_params.clip_to_binary:
+                if self._ros_params.clip_to_binary:
                     out_trav = torch.where(
-                        out_trav.squeeze() <= self.ros_params.traversability_threshold,
+                        out_trav.squeeze() <= self._ros_params.traversability_threshold,
                         0.0,
                         1.0,
                     )
@@ -343,14 +354,14 @@ class WvnFeatureExtractor:
             msg.header = image_msg.header
             msg.width = out_trav.shape[0]
             msg.height = out_trav.shape[1]
-            self.camera_handler[cam]["trav_pub"].publish(msg)
+            self._camera_handler[cam]["trav_pub"].publish(msg)
 
-            msg = self.camera_handler[cam]["camera_info_msg_out"]
+            msg = self._camera_handler[cam]["camera_info_msg_out"]
             msg.header = image_msg.header
-            self.camera_handler[cam]["info_pub"].publish(msg)
+            self._camera_handler[cam]["info_pub"].publish(msg)
 
             # Publish image
-            if self.ros_params.camera_topics[cam]["publish_input_image"]:
+            if self._ros_params.camera_topics[cam]["publish_input_image"]:
                 msg = rc.numpy_to_ros_image(
                     (torch_image.permute(1, 2, 0) * 255).cpu().numpy().astype(np.uint8),
                     "rgb8",
@@ -358,21 +369,21 @@ class WvnFeatureExtractor:
                 msg.header = image_msg.header
                 msg.width = torch_image.shape[1]
                 msg.height = torch_image.shape[2]
-                self.camera_handler[cam]["input_pub"].publish(msg)
+                self._camera_handler[cam]["input_pub"].publish(msg)
 
             # Publish confidence
-            if self.ros_params.camera_topics[cam]["publish_confidence"]:
+            if self._ros_params.camera_topics[cam]["publish_confidence"]:
                 loss_reco = F.mse_loss(prediction[:, 1:], data.x, reduction="none").mean(dim=1)
-                confidence = self.confidence_generator.inference_without_update(x=loss_reco)
+                confidence = self._confidence_generator.inference_without_update(x=loss_reco)
                 out_confidence = confidence.reshape(H, W)
                 msg = rc.numpy_to_ros_image(out_confidence.cpu().numpy(), "passthrough")
                 msg.header = image_msg.header
                 msg.width = out_confidence.shape[0]
                 msg.height = out_confidence.shape[1]
-                self.camera_handler[cam]["conf_pub"].publish(msg)
+                self._camera_handler[cam]["conf_pub"].publish(msg)
 
             # Publish features and feature_segments
-            if self.ros_params.camera_topics[cam]["use_for_training"]:
+            if self._ros_params.camera_topics[cam]["use_for_training"]:
                 msg = ImageFeatures()
                 msg.header = image_msg.header
                 msg.feature_segments = rc.numpy_to_ros_image(seg.cpu().numpy().astype(np.int32), "passthrough")
@@ -392,7 +403,7 @@ class WvnFeatureExtractor:
                 msg.features.data = feat_np.flatten().tolist()
                 msg.features.layout.dim.append(mad1)
                 msg.features.layout.dim.append(mad2)
-                self.camera_handler[cam]["imagefeat_pub"].publish(msg)
+                self._camera_handler[cam]["imagefeat_pub"].publish(msg)
 
         except Exception as e:
             traceback.print_exc()
@@ -413,31 +424,31 @@ class WvnFeatureExtractor:
             # self._load_model_counter += 1
             # if self._load_model_counter % 10 == 0:
             new_model_state_dict = torch.load(f"{WVN_ROOT_DIR}/.tmp_state_dict.pt")
-            k = list(self.model.state_dict().keys())[-1]
+            k = list(self._model.state_dict().keys())[-1]
 
-            if (self.model.state_dict()[k] != new_model_state_dict[k]).any():
-                if self.ros_params.verbose:
-                    self.log_data[f"time_last_model"] = rospy.get_time()
-                    self.log_data[f"nr_model_updates"] += 1
+            if (self._model.state_dict()[k] != new_model_state_dict[k]).any():
+                if self._ros_params.verbose:
+                    self._log_data[f"time_last_model"] = rospy.get_time()
+                    self._log_data[f"nr_model_updates"] += 1
 
-            self.model.load_state_dict(new_model_state_dict, strict=False)
+            self._model.load_state_dict(new_model_state_dict, strict=False)
 
             try:
                 if new_model_state_dict["traversability_threshold"] is not None:
                     # TODO Verify if this works or the writing is need
-                    self.ros_params.traversability_threshold = new_model_state_dict["traversability_threshold"]
+                    self._ros_params.traversability_threshold = new_model_state_dict["traversability_threshold"]
                 if new_model_state_dict["confidence_generator"] is not None:
-                    self.confidence_generator_state = new_model_state_dict["confidence_generator"]
+                    self._confidence_generator_state = new_model_state_dict["confidence_generator"]
 
-                self.confidence_generator_state = new_model_state_dict["confidence_generator"]
-                self.confidence_generator.var = self.confidence_generator_state["var"]
-                self.confidence_generator.mean = self.confidence_generator_state["mean"]
-                self.confidence_generator.std = self.confidence_generator_state["std"]
+                self._confidence_generator_state = new_model_state_dict["confidence_generator"]
+                self._confidence_generator.var = self._confidence_generator_state["var"]
+                self._confidence_generator.mean = self._confidence_generator_state["mean"]
+                self._confidence_generator.std = self._confidence_generator_state["std"]
             except Exception:
                 pass
 
         except Exception as e:
-            if self.ros_params.verbose:
+            if self._ros_params.verbose:
                 rospy.logerr(f"[{self._node_name}] Model Loading Failed: {e}")
 
 
