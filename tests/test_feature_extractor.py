@@ -46,6 +46,7 @@ def test_feature_extractor():
         # Store results to test directory
         img = get_img_from_fig(fig)
         img.save(join(outpath, f"forest_clean_graph_{seg_type}_{feat_type}.png"))
+        plt.close()
 
 
 if __name__ == "__main__":

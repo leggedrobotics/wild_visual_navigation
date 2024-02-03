@@ -50,6 +50,7 @@ class RosLearningNodeParams:
     supervision_callback_rate: float  # hertz
     learning_thread_rate: float  # hertz
     logging_thread_rate: float  # hertz
+    load_save_checkpoint_rate: float  # hert
 
     # Runtime options
     device: str
@@ -97,3 +98,4 @@ class RosFeatureExtractorNodeParams:
 
     # Threads
     image_callback_rate: float  # hertz
+    load_save_checkpoint_rate: float  # hertz

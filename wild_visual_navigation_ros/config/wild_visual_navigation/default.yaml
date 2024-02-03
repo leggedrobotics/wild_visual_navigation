@@ -21,8 +21,8 @@ image_graph_dist_thr: 0.2 # meters
 supervision_graph_dist_thr: 0.1 # meters
 network_input_image_height: 224 # 448
 network_input_image_width: 224 # 448
-segmentation_type: "random" # Options: slic, grid, random, stego
-feature_type: "dino" # Options: dino, dinov2, stego
+segmentation_type: "stego" # Options: slic, grid, random, stego
+feature_type: "stego" # Options: dino, dinov2, stego
 dino_patch_size: 8 # 8 or 16; 8 is finer
 dino_backbone: vit_small
 slic_num_components: 100
@@ -46,6 +46,7 @@ supervision_callback_rate: 10 # hertz
 learning_thread_rate: 10 # hertz
 logging_thread_rate: 2 # hertz
 status_thread_rate: 0.5 # hertz
+load_save_checkpoint_rate: 0.2 # hertz, 1/0.2 = 5 sec equivalent
 
 # Runtime options
 device: "cuda"

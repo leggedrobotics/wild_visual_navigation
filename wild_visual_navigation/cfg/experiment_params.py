@@ -102,7 +102,7 @@ class ExperimentParams:
 
         @dataclass
         class SimpleMlpCfgParams:
-            input_size: int = 384  # 90 for stego, 384 for dino
+            input_size: int = 90  # 90 for stego, 384 for dino
             hidden_sizes: List[int] = field(default_factory=lambda: [256, 32, 1])
             reconstruction: bool = True
 

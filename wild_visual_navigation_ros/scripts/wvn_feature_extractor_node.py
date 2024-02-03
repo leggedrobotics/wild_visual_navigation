@@ -38,6 +38,7 @@ class WvnFeatureExtractor:
 
         # Timers to control the rate of the subscriber
         self._last_image_ts = rospy.get_time()
+        self._last_checkpoint_ts = rospy.get_time()
 
         # Load model
         self._model = get_model(self._params.model).to(self._ros_params.device)
@@ -280,7 +281,6 @@ class WvnFeatureExtractor:
         else:
             if self._ros_params.verbose:
                 rospy.loginfo(f"[{self._node_name}] Image callback: {cam} -> Process")
-            self._scheduler.step()
 
         self._last_image_ts = ts
 
@@ -292,7 +292,7 @@ class WvnFeatureExtractor:
                 self._log_data[f"time_last_image_{cam}"] = rospy.get_time()
 
             # Update model from file if possible
-            self.load_model()
+            self.load_model(image_msg.header.stamp)
 
             # Convert image message to torch image
             torch_image = rc.ros_image_to_torch(image_msg, device=self._ros_params.device)
@@ -414,12 +414,21 @@ class WvnFeatureExtractor:
             }
             raise Exception("Error in image callback")
 
-    def load_model(self):
+        # Step scheduler
+        self._scheduler.step()
+
+    def load_model(self, stamp):
         """Method to load the new model weights to perform inference on the incoming images
 
         Args:
             None
         """
+        ts = stamp.to_sec()
+        if abs(ts - self._last_checkpoint_ts) < 1.0 / self._ros_params.load_save_checkpoint_rate:
+            return
+
+        self._last_checkpoint_ts = ts
+
         try:
             # self._load_model_counter += 1
             # if self._load_model_counter % 10 == 0:

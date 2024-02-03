@@ -16,8 +16,8 @@ def load_test_image():
 def get_dino_transform():
     transform = T.Compose(
         [
-            T.Resize(448, T.InterpolationMode.NEAREST),
-            T.CenterCrop(448),
+            T.Resize(224, T.InterpolationMode.NEAREST),
+            T.CenterCrop(224),
         ]
     )
     return transform
