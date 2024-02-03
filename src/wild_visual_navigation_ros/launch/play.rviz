@@ -821,7 +821,7 @@ Visualization Manager:
       Unreliable: false
       Value: false
     - Class: rviz/Image
-      Enabled: true
+      Enabled: false
       Image Topic: /v4l2_camera/image_raw_throttle
       Max Value: 1
       Median window: 5
@@ -831,7 +831,7 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: compressed
       Unreliable: false
-      Value: true
+      Value: false
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /vd_pipeline/sub_node
@@ -881,7 +881,7 @@ Visualization Manager:
       Unreliable: false
       Value: true
     - Class: rviz/Image
-      Enabled: false
+      Enabled: true
       Image Topic: /wide_angle_camera_rear/image_color_rect
       Max Value: 1
       Median window: 5
@@ -891,7 +891,7 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: compressed
       Unreliable: false
-      Value: false
+      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Class: grid_map_rviz_plugin/GridMap
@@ -899,7 +899,7 @@ Visualization Manager:
       Color Layer: elevation
       Color Transformer: GridMapLayer
       ColorMap: default
-      Enabled: true
+      Enabled: false
       Grid Cell Decimation: 1
       Grid Line Thickness: 0.10000000149011612
       Height Layer: elevation
@@ -915,7 +915,7 @@ Visualization Manager:
       Topic: /elevation_mapping/elevation_map_raw
       Unreliable: false
       Use ColorMap: true
-      Value: true
+      Value: false
     - Angle Tolerance: 0.10000000149011612
       Class: rviz/Odometry
       Covariance:
@@ -1014,7 +1014,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 9.61134147644043
+      Distance: 3.1794962882995605
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -1022,17 +1022,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -0.8065776824951172
-        Y: -1.2404613494873047
-        Z: 2.4074110984802246
+        X: -0.5804786682128906
+        Y: -0.3714748024940491
+        Z: 0.5788148641586304
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.399796485900879
+      Pitch: 0.8397970199584961
       Target Frame: <Fixed Frame>
-      Yaw: 4.208603382110596
+      Yaw: 1.0504173040390015
     Saved: ~
 Window Geometry:
   Camera:

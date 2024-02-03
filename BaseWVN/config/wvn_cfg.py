@@ -42,6 +42,8 @@ class ParamCollection(Serializable):
         # camera_topic: str='/wide_angle_camera_front/image_color_rect/compressed'
         # camera_info_topic: str='/wide_angle_camera_front/camera_info'
 
+        visual_odom_topic: str='/open3d_slam/scan2map_odometry'
+        
         fixed_frame: str='odom'
         base_frame: str='base'
         footprint_frame: str='footprint'
