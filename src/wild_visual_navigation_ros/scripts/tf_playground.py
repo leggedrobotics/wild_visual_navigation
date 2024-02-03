@@ -97,8 +97,13 @@ def publish_transform():
 
     
     stf8=StaticTransform([-0.310,0.0,0.1585],(0.0, 0.0, 1.5707963267948966),"base","lidar_parent")
-    all_tf.append(stf8.static_transformStamped)
+    # all_tf.append(stf8.static_transformStamped)
     
+    stf8_1=StaticTransform([0,0,0],(0.0, 0.0, 1.5707963267948966),'lidar_parent','lidar')
+    # all_tf.append(stf8_1.static_transformStamped)
+    
+    base_to_lidar=StaticTransform.multiply(stf8,stf8_1)
+    all_tf.append(base_to_lidar.static_transformStamped)
 
     
     # Broadcast the second transform
