@@ -40,10 +40,6 @@ class WvnFeatureExtractor:
         self._last_image_ts = rospy.get_time()
         self._last_checkpoint_ts = rospy.get_time()
 
-        # Load model
-        self._model = get_model(self._params.model).to(self._ros_params.device)
-        self._model.eval()
-
         # Setup modules
         self._feature_extractor = FeatureExtractor(
             self._ros_params.device,
@@ -54,6 +50,15 @@ class WvnFeatureExtractor:
             input_size=self._ros_params.network_input_image_height,
             slic_num_components=self._ros_params.slic_num_components,
         )
+
+        # Load model
+        # We manually update the input size to the models depending on the chosen features
+        self._params.model.simple_mlp_cfg.input_size = self._feature_extractor.feature_dim
+        self._params.model.double_mlp_cfg.input_size = self._feature_extractor.feature_dim
+        self._params.model.simple_gcn_cfg.input_size = self._feature_extractor.feature_dim
+        self._params.model.linear_rnvp_cfg.input_size = self._feature_extractor.feature_dim
+        self._model = get_model(self._params.model).to(self._ros_params.device)
+        self._model.eval()
 
         if not self.anomaly_detection:
             self._confidence_generator = ConfidenceGenerator(
@@ -132,7 +137,6 @@ class WvnFeatureExtractor:
             self._ros_params.camera_topics[cam]["name"] = cam
 
             # Add to scheduler
-            rospy.logwarn(self._ros_params.camera_topics)
             self._camera_scheduler.add_process(cam, self._ros_params.camera_topics[cam]["scheduler_weight"])
 
             # Camera info

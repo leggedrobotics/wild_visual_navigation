@@ -48,12 +48,19 @@ class WvnLearning:
         self._last_image_ts = rospy.get_time()
         self._last_supervision_ts = rospy.get_time()
         self._last_checkpoint_ts = rospy.get_time()
+        self._setup_ready = False
 
         # Prepare variables
         self._node_name = node_name
 
         # Read params
         self.read_params()
+
+        # Initialize camera handler for subscription/publishing
+        self._system_events = {}
+
+        # Setup ros
+        self.setup_ros(setup_fully=self._ros_params.mode != WVNMode.EXTRACT_LABELS)
 
         # Visualization
         self._color_palette = sns.color_palette(self._ros_params.colormap, as_cmap=True)
@@ -94,10 +101,6 @@ class WvnLearning:
             untraversable_thr=self._ros_params.untraversable_thr,  # 0.1
             time_horizon=0.05,
         )
-        # Initialize camera handler for subscription/publishing
-        self._system_events = {}
-        # Setup ros
-        self.setup_ros(setup_fully=self._ros_params.mode != WVNMode.EXTRACT_LABELS)
 
         # Setup Timer if needed
         self._timer = ClassTimer(
@@ -120,13 +123,14 @@ class WvnLearning:
             ),
         )
 
-        # Register shotdown callbacks
+        # Register shutdown callbacks
         rospy.on_shutdown(self.shutdown_callback)
         signal.signal(signal.SIGINT, self.shutdown_callback)
         signal.signal(signal.SIGTERM, self.shutdown_callback)
 
         # Launch processes
         print("-" * 80)
+        self._setup_ready = True
         rospy.loginfo(f"[{self._node_name}] Launching [learning] thread")
         if self._ros_params.mode != WVNMode.EXTRACT_LABELS:
             self._learning_thread_stop_event = Event()
@@ -165,105 +169,6 @@ class WvnLearning:
 
         rospy.signal_shutdown(f"[{self._node_name}] Wild Visual Navigation killed {args}")
         sys.exit(0)
-
-    @accumulate_time
-    def learning_thread_loop(self):
-        """This implements the main thread that runs the training procedure
-        We can only set the rate using rosparam
-        """
-        # Set rate
-        rate = rospy.Rate(self._ros_params.learning_thread_rate)
-        # Learning loop
-        while True:
-            self._system_events["learning_thread_loop"] = {
-                "time": rospy.get_time(),
-                "value": "running",
-            }
-            self._learning_thread_stop_event.wait(timeout=0.01)
-            if self._learning_thread_stop_event.is_set():
-                rospy.logwarn("Stopped learning thread")
-                break
-
-            # Optimize model
-            with ClassContextTimer(parent_obj=self, block_name="training_step_time"):
-                res = self._traversability_estimator.train()
-
-            if self._step != self._traversability_estimator.step:
-                self._step_time = rospy.get_time()
-                self._step = self._traversability_estimator.step
-
-            # Publish loss
-            system_state = SystemState()
-            for k in res.keys():
-                if hasattr(system_state, k):
-                    setattr(system_state, k, res[k])
-
-            system_state.pause_learning = self._traversability_estimator.pause_learning
-            system_state.mode = self._ros_params.mode.value
-            system_state.step = self._step
-            self._pub_system_state.publish(system_state)
-
-            # Get current weights
-            new_model_state_dict = self._traversability_estimator._model.state_dict()
-
-            # Compute ROC Threshold
-            if self._ros_params.scale_traversability:
-                if self._traversability_estimator._auxiliary_training_roc._update_count != 0:
-                    try:
-                        (
-                            fpr,
-                            tpr,
-                            thresholds,
-                        ) = self._traversability_estimator._auxiliary_training_roc.compute()
-                        index = torch.where(fpr > self._ros_params.scale_traversability_max_fpr)[0][0]
-                        traversability_threshold = thresholds[index]
-                    except Exception:
-                        traversability_threshold = 0.5
-                else:
-                    traversability_threshold = 0.5
-
-                new_model_state_dict["traversability_threshold"] = traversability_threshold
-                cg = self._traversability_estimator._traversability_loss._confidence_generator
-                new_model_state_dict["confidence_generator"] = cg.get_dict()
-
-            # Check the rate
-            ts = rospy.get_time()
-            if abs(ts - self._last_checkpoint_ts) > 1.0 / self._ros_params.load_save_checkpoint_rate:
-                os.remove(f"{WVN_ROOT_DIR}/.tmp_state_dict.pt")
-                torch.save(new_model_state_dict, f"{WVN_ROOT_DIR}/.tmp_state_dict.pt")
-                self._last_checkpoint_ts = ts
-
-            rate.sleep()
-
-        self._system_events["learning_thread_loop"] = {
-            "time": rospy.get_time(),
-            "value": "finished",
-        }
-        self._learning_thread_stop_event.clear()
-
-    def logging_thread_loop(self):
-        rate = rospy.Rate(self._ros_params.logging_thread_rate)
-        # Learning loop
-        while True:
-            self._learning_thread_stop_event.wait(timeout=0.01)
-            if self._learning_thread_stop_event.is_set():
-                rospy.logwarn("Stopped logging thread")
-                break
-
-            current_time = rospy.get_time()
-            tmp = self._system_events.copy()
-            rospy.loginfo("System Events:")
-            for k, v in tmp.items():
-                value = v["value"]
-                msg = (
-                    (k + ": ").ljust(35, " ")
-                    + (str(round(current_time - v["time"], 4)) + "s ").ljust(10, " ")
-                    + f" {value}"
-                )
-                rospy.loginfo(msg)
-                rate.sleep()
-            rospy.loginfo("--------------")
-        self._learning_thread_stop_event.clear()
 
     @accumulate_time
     def read_params(self):
@@ -383,6 +288,19 @@ class WvnLearning:
                     )
                     sync.registerCallback(self.imagefeat_callback, self._ros_params.camera_topics[cam])
 
+            # Wait for features message to determine the input size of the model
+            cam = list(self._ros_params.camera_topics.keys())[0]
+            rospy.loginfo(f"[{self._node_name}] Waiting for feat topic...")
+            feat_msg = rospy.wait_for_message(f"/wild_visual_navigation_node/{cam}/feat", ImageFeatures)
+            feature_dim = int(feat_msg.features.layout.dim[1].size)
+            # Modify the parameters
+            with read_write(self._params):
+                self._params.model.simple_mlp_cfg.input_size = feature_dim
+                self._params.model.double_mlp_cfg.input_size = feature_dim
+                self._params.model.simple_gcn_cfg.input_size = feature_dim
+                self._params.model.linear_rnvp_cfg.input_size = feature_dim
+            rospy.loginfo(f"[{self._node_name}] Done")
+
         # 3D outputs
         self._pub_debug_supervision_graph = rospy.Publisher(
             "/wild_visual_navigation_node/supervision_graph", Path, queue_size=10
@@ -409,112 +327,104 @@ class WvnLearning:
         self._pause_learning_service = rospy.Service("~pause_learning", SetBool, self.pause_learning_callback)
         self._reset_service = rospy.Service("~reset", Trigger, self.reset_callback)
 
-    def pause_learning_callback(self, req):
-        """Start and stop the network training"""
-        prev_state = self._traversability_estimator.pause_learning
-        self._traversability_estimator.pause_learning = req.data
-        if not req.data and prev_state:
-            message = "Resume training!"
-        elif req.data and prev_state:
-            message = "Training was already paused!"
-        elif not req.data and not prev_state:
-            message = "Training was already running!"
-        elif req.data and not prev_state:
-            message = "Pause training!"
-        message += f" Updated the network for {self._traversability_estimator.step} steps"
-
-        return True, message
-
-    def reset_callback(self, req):
-        """Resets the system"""
-        rospy.logwarn(f"[{self._node_name}] System reset!")
-
-        print(f"[{self._node_name}] Storing learned checkpoint...", end="")
-        self._traversability_estimator.save_checkpoint(self._params.general.model_path, "last_checkpoint.pt")
-        print("done")
-
-        if self._ros_params.log_time:
-            print(f"[{self._node_name}] Storing timer data...", end="")
-            self._timer.store(folder=self._params.general.model_path)
-            print("done")
-
-        # Create new mission folder
-        create_experiment_folder(self._params)
-
-        # Reset traversability estimator
-        self._traversability_estimator.reset()
-
-        print(f"[{self._node_name}] Reset done")
-        return TriggerResponse(True, "Reset done!")
-
     @accumulate_time
-    def save_checkpoint_callback(self, req):
-        """Service call to store the learned checkpoint
-
-        Args:
-            req (TriggerRequest): Trigger request service
+    def learning_thread_loop(self):
+        """This implements the main thread that runs the training procedure
+        We can only set the rate using rosparam
         """
-        if req.checkpoint_name == "":
-            req.checkpoint_name = "last_checkpoint.pt"
+        # Set rate
+        rate = rospy.Rate(self._ros_params.learning_thread_rate)
+        # Learning loop
+        while True:
+            self._system_events["learning_thread_loop"] = {
+                "time": rospy.get_time(),
+                "value": "running",
+            }
+            self._learning_thread_stop_event.wait(timeout=0.01)
+            if self._learning_thread_stop_event.is_set():
+                rospy.logwarn("Stopped learning thread")
+                break
 
-        if req.mission_path == "":
-            message = f"[WARNING] Store checkpoint {req.checkpoint_name} default mission path: {self._params.general.model_path}/{req.checkpoint_name}"
-            req.mission_path = self._params.general.model_path
-        else:
-            message = f"Store checkpoint {req.checkpoint_name} to: {req.mission_path}/{req.checkpoint_name}"
+            # Optimize model
+            with ClassContextTimer(parent_obj=self, block_name="training_step_time"):
+                res = self._traversability_estimator.train()
 
-        self._traversability_estimator.save_checkpoint(req.mission_path, req.checkpoint_name)
-        return SaveCheckpointResponse(success=True, message=message)
+            if self._step != self._traversability_estimator.step:
+                self._step_time = rospy.get_time()
+                self._step = self._traversability_estimator.step
 
-    def load_checkpoint_callback(self, req):
-        """Service call to load a learned checkpoint
+            # Publish loss
+            system_state = SystemState()
+            for k in res.keys():
+                if hasattr(system_state, k):
+                    setattr(system_state, k, res[k])
 
-        Args:
-            req (TriggerRequest): Trigger request service
-        """
-        if req.checkpoint_path == "":
-            return LoadCheckpointResponse(
-                success=False,
-                message=f"Path [{req.checkpoint_path}] is empty. Please check and try again",
-            )
-        checkpoint_path = req.checkpoint_path
-        self._traversability_estimator.load_checkpoint(checkpoint_path)
-        return LoadCheckpointResponse(success=True, message=f"Checkpoint [{checkpoint_path}] loaded successfully")
+            system_state.pause_learning = self._traversability_estimator.pause_learning
+            system_state.mode = self._ros_params.mode.value
+            system_state.step = self._step
+            self._pub_system_state.publish(system_state)
 
-    @accumulate_time
-    def query_tf(self, parent_frame: str, child_frame: str, stamp: Optional[rospy.Time] = None):
-        """Helper function to query TFs
+            # Get current weights
+            new_model_state_dict = self._traversability_estimator._model.state_dict()
 
-        Args:
-            parent_frame (str): Frame of the parent TF
-            child_frame (str): Frame of the child
-        """
+            # Compute ROC Threshold
+            if self._ros_params.scale_traversability:
+                if self._traversability_estimator._auxiliary_training_roc._update_count != 0:
+                    try:
+                        (
+                            fpr,
+                            tpr,
+                            thresholds,
+                        ) = self._traversability_estimator._auxiliary_training_roc.compute()
+                        index = torch.where(fpr > self._ros_params.scale_traversability_max_fpr)[0][0]
+                        traversability_threshold = thresholds[index]
+                    except Exception:
+                        traversability_threshold = 0.5
+                else:
+                    traversability_threshold = 0.5
 
-        if stamp is None:
-            stamp = rospy.Time(0)
+                new_model_state_dict["traversability_threshold"] = traversability_threshold
+                cg = self._traversability_estimator._traversability_loss._confidence_generator
+                new_model_state_dict["confidence_generator"] = cg.get_dict()
 
-        try:
-            res = self.tf_buffer.lookup_transform(parent_frame, child_frame, stamp, timeout=rospy.Duration(0.03))
-            trans = (
-                res.transform.translation.x,
-                res.transform.translation.y,
-                res.transform.translation.z,
-            )
-            rot = np.array(
-                [
-                    res.transform.rotation.x,
-                    res.transform.rotation.y,
-                    res.transform.rotation.z,
-                    res.transform.rotation.w,
-                ]
-            )
-            rot /= np.linalg.norm(rot)
-            return (trans, tuple(rot))
-        except Exception:
-            if self._ros_params.verbose:
-                # print("Error in query tf: ", e)
-                rospy.logwarn(f"[{self._node_name}] Couldn't get between {parent_frame} and {child_frame}")
-            return (None, None)
+            # Check the rate
+            ts = rospy.get_time()
+            if abs(ts - self._last_checkpoint_ts) > 1.0 / self._ros_params.load_save_checkpoint_rate:
+                os.remove(f"{WVN_ROOT_DIR}/.tmp_state_dict.pt")
+                torch.save(new_model_state_dict, f"{WVN_ROOT_DIR}/.tmp_state_dict.pt")
+                self._last_checkpoint_ts = ts
+
+            rate.sleep()
+
+        self._system_events["learning_thread_loop"] = {
+            "time": rospy.get_time(),
+            "value": "finished",
+        }
+        self._learning_thread_stop_event.clear()
+
+    def logging_thread_loop(self):
+        rate = rospy.Rate(self._ros_params.logging_thread_rate)
+        # Learning loop
+        while True:
+            self._learning_thread_stop_event.wait(timeout=0.01)
+            if self._learning_thread_stop_event.is_set():
+                rospy.logwarn("Stopped logging thread")
+                break
+
+            current_time = rospy.get_time()
+            tmp = self._system_events.copy()
+            rospy.loginfo("System Events:")
+            for k, v in tmp.items():
+                value = v["value"]
+                msg = (
+                    (k + ": ").ljust(35, " ")
+                    + (str(round(current_time - v["time"], 4)) + "s ").ljust(10, " ")
+                    + f" {value}"
+                )
+                rospy.loginfo(msg)
+                rate.sleep()
+            rospy.loginfo("--------------")
+        self._learning_thread_stop_event.clear()
 
     @accumulate_time
     def robot_state_callback(self, state_msg, desired_twist_msg: TwistStamped):
@@ -524,6 +434,9 @@ class WvnLearning:
             state_msg (wild_visual_navigation_msgs/RobotState): Robot state message
             desired_twist_msg (geometry_msgs/TwistStamped): Desired twist message
         """
+        if not self._setup_ready:
+            return
+
         self._system_events["robot_state_callback_received"] = {
             "time": rospy.get_time(),
             "value": "message received",
@@ -636,6 +549,9 @@ class WvnLearning:
             imagefeat_msg (wild_visual_navigation_msg/ImageFeatures): Incoming imagefeatures
             info_msg (sensor_msgs/CameraInfo): Camera info message associated to the image
         """
+        if not self._setup_ready:
+            return
+
         if self._ros_params.mode == WVNMode.DEBUG:
             assert len(args) == 4
             imagefeat_msg, info_msg, image_msg, camera_options = tuple(args)
@@ -926,6 +842,113 @@ class WvnLearning:
 
             image_out = self._visualizer.plot_detectron_classification(torch_image, torch_mask, cmap="Greens")
             self._camera_handler[cam]["debug"]["image_overlay"].publish(rc.numpy_to_ros_image(image_out))
+
+    def pause_learning_callback(self, req):
+        """Start and stop the network training"""
+        prev_state = self._traversability_estimator.pause_learning
+        self._traversability_estimator.pause_learning = req.data
+        if not req.data and prev_state:
+            message = "Resume training!"
+        elif req.data and prev_state:
+            message = "Training was already paused!"
+        elif not req.data and not prev_state:
+            message = "Training was already running!"
+        elif req.data and not prev_state:
+            message = "Pause training!"
+        message += f" Updated the network for {self._traversability_estimator.step} steps"
+
+        return True, message
+
+    def reset_callback(self, req):
+        """Resets the system"""
+        rospy.logwarn(f"[{self._node_name}] System reset!")
+
+        print(f"[{self._node_name}] Storing learned checkpoint...", end="")
+        self._traversability_estimator.save_checkpoint(self._params.general.model_path, "last_checkpoint.pt")
+        print("done")
+
+        if self._ros_params.log_time:
+            print(f"[{self._node_name}] Storing timer data...", end="")
+            self._timer.store(folder=self._params.general.model_path)
+            print("done")
+
+        # Create new mission folder
+        create_experiment_folder(self._params)
+
+        # Reset traversability estimator
+        self._traversability_estimator.reset()
+
+        print(f"[{self._node_name}] Reset done")
+        return TriggerResponse(True, "Reset done!")
+
+    @accumulate_time
+    def save_checkpoint_callback(self, req):
+        """Service call to store the learned checkpoint
+
+        Args:
+            req (TriggerRequest): Trigger request service
+        """
+        if req.checkpoint_name == "":
+            req.checkpoint_name = "last_checkpoint.pt"
+
+        if req.mission_path == "":
+            message = f"[WARNING] Store checkpoint {req.checkpoint_name} default mission path: {self._params.general.model_path}/{req.checkpoint_name}"
+            req.mission_path = self._params.general.model_path
+        else:
+            message = f"Store checkpoint {req.checkpoint_name} to: {req.mission_path}/{req.checkpoint_name}"
+
+        self._traversability_estimator.save_checkpoint(req.mission_path, req.checkpoint_name)
+        return SaveCheckpointResponse(success=True, message=message)
+
+    def load_checkpoint_callback(self, req):
+        """Service call to load a learned checkpoint
+
+        Args:
+            req (TriggerRequest): Trigger request service
+        """
+        if req.checkpoint_path == "":
+            return LoadCheckpointResponse(
+                success=False,
+                message=f"Path [{req.checkpoint_path}] is empty. Please check and try again",
+            )
+        checkpoint_path = req.checkpoint_path
+        self._traversability_estimator.load_checkpoint(checkpoint_path)
+        return LoadCheckpointResponse(success=True, message=f"Checkpoint [{checkpoint_path}] loaded successfully")
+
+    @accumulate_time
+    def query_tf(self, parent_frame: str, child_frame: str, stamp: Optional[rospy.Time] = None):
+        """Helper function to query TFs
+
+        Args:
+            parent_frame (str): Frame of the parent TF
+            child_frame (str): Frame of the child
+        """
+
+        if stamp is None:
+            stamp = rospy.Time(0)
+
+        try:
+            res = self.tf_buffer.lookup_transform(parent_frame, child_frame, stamp, timeout=rospy.Duration(0.03))
+            trans = (
+                res.transform.translation.x,
+                res.transform.translation.y,
+                res.transform.translation.z,
+            )
+            rot = np.array(
+                [
+                    res.transform.rotation.x,
+                    res.transform.rotation.y,
+                    res.transform.rotation.z,
+                    res.transform.rotation.w,
+                ]
+            )
+            rot /= np.linalg.norm(rot)
+            return (trans, tuple(rot))
+        except Exception:
+            if self._ros_params.verbose:
+                # print("Error in query tf: ", e)
+                rospy.logwarn(f"[{self._node_name}] Couldn't get between {parent_frame} and {child_frame}")
+            return (None, None)
 
 
 if __name__ == "__main__":

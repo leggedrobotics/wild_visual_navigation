@@ -61,4 +61,3 @@ verbose: true
 
 extraction_store_folder:  "nan"
 exp: "nan"
-use_binary_only: true
