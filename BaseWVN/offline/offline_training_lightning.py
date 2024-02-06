@@ -178,7 +178,7 @@ def train_and_evaluate(param:ParamCollection):
             tags=["offline",param.offline.env,param.general.name],
         )
         
-        max_epochs=8 #8
+        max_epochs=5 #8 ,3 for 2nd , 5 for 1st 
         if "partial" in param.offline.traindata_option:
             if "each" in param.offline.traindata_option:
                 # load train and val data from online collected dataset (each batch is 100 samples from six nodes)
