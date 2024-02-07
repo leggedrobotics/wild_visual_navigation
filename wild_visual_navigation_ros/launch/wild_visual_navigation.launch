@@ -1,12 +1,17 @@
 <launch>
+  
   <!-- Arguments -->
-  <arg name="camera"            default="alphasense_compressed"/> <!-- alphasense, wide_angle_front, realsense_front, realsense_rear -->
+  <arg name="camera"            default="alphasense_compressed_front"/> <!-- alphasense, wide_angle_front, realsense_front, realsense_rear -->
   <arg name="stack"             default="anybotics"/> <!-- rsl or anybotics  $(eval arg('camera') == 'wide_angle_front_resize')  $(eval arg('camera') == 'alphasense_resize') -->  
   <arg name="params_file"       default="$(find wild_visual_navigation_ros)/config/wild_visual_navigation/default.yaml"/>
   <arg name="overlay_images"    default="True"/>
   <arg name="reload_default_params"    default="False"/>
 
   <!-- Load parameters -->
+  <!-- Clear old params -->
+  <rosparam command="delete" param="wvn_learning_node"/>
+  <rosparam command="delete" param="wvn_feature_extractor_node"/>
+
   <rosparam command="load" file="$(arg params_file)" ns="wvn_learning_node"/>
   <rosparam command="load" file="$(find wild_visual_navigation_ros)/config/wild_visual_navigation/inputs/$(arg camera).yaml" ns="wvn_learning_node"/>
   <rosparam command="load" file="$(arg params_file)" ns="wvn_feature_extractor_node"/>
