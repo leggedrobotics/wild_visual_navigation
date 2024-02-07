@@ -29,13 +29,15 @@ include_directories(
     ${catkin_INCLUDE_DIRS}
 )
 
-# Declare node
-add_executable(anymal_msg_converter_cpp_node
+if(BUILD_ANYMAL)
+   # Declare node
+   add_executable(anymal_msg_converter_cpp_node
                src/anymal_msg_converter_cpp_node.cpp)
 
-target_link_libraries(anymal_msg_converter_cpp_node
+   target_link_libraries(anymal_msg_converter_cpp_node
                       ${catkin_LIBRARIES}
-)
+   )
+endif()
 
 #############
 ## Install ##

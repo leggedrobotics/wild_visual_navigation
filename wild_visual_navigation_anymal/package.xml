@@ -19,4 +19,5 @@
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
   <depend>wild_visual_navigation_msgs</depend>
+  <depend>wild_visual_navigation_ros</depend>
 </package>

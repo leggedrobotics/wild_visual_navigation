@@ -3,7 +3,7 @@ from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from wild_visual_navigation.utils import flatten_dict
 import inspect
 import os
-import neptune.new as neptune
+import neptune
 
 __all__ = [
     "get_neptune_logger",

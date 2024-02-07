@@ -69,7 +69,7 @@ initialize_tf_grid_size: 0.4                                        # This is no
 use_initializer_at_start: true                                      # Use initializer when the node starts.
 
 #### Plugins ########
-plugin_config_file: '$(rospack find wild_visual_navigation_ros)/config/elevation_mapping_cupy/anymal_plugin_config.yaml'
+plugin_config_file: '$(rospack find wild_visual_navigation_anymal)/config/elevation_mapping_cupy/anymal_plugin_config.yaml'
 
 pointcloud_channel_fusions:
   rgb: 'color'
@@ -94,8 +94,13 @@ publishers:
     basic_layers: ['elevation', 'traversability']
     fps: 5.0
 
-  semantic_map_raw:
-    layers: ['elevation', 'traversability', 'visual_traversability', 'visual_confidence', 'elevation_with_semantics']
+  semantic_map:
+    layers: ['elevation', 'traversability', 'visual_traversability', 'visual_confidence', 'elevation_with_semantics', 'rgb']
+    basic_layers: ['elevation', 'traversability']
+    fps: 5.0
+
+  local_planning_map:
+    layers: ['elevation', 'traversability', 'visual_traversability']
     basic_layers: ['elevation', 'traversability']
     fps: 5.0
 

@@ -2,7 +2,7 @@ import optuna
 from argparse import ArgumentParser
 import copy
 import os
-import neptune.new.integrations.optuna as optuna_utils
+import neptune.integrations.optuna as optuna_utils
 import torch
 
 from wild_visual_navigation.cfg import ExperimentParams

@@ -7,10 +7,10 @@
   <!-- Use Elevation Mapping-->
   <include if="$(arg elevation_mapping)" file="$(find wild_visual_navigation_anymal)/launch/elevation_mapping_cupy.launch"/>
 
-  <include if="$(eval arg('camera') == 'wide_angle_front_resize')" file="$(find wild_visual_navigation_anymal)/launch/anymal/resize_images_wide_angle_front.launch"/>
+  <include if="$(eval arg('camera') == 'wide_angle_front_resize')" file="$(find wild_visual_navigation_anymal)/launch/resize_images_wide_angle_front.launch"/>
 
-  <include if="$(eval arg('camera') == 'wide_angle_dual_resize')" file="$(find wild_visual_navigation_anymal)/launch/anymal/resize_images_wide_angle_front.launch"/>
-  <include if="$(eval arg('camera') == 'wide_angle_dual_resize')" file="$(find wild_visual_navigation_anymal)/launch/anymal/resize_images_wide_angle_rear.launch"/>
+  
+  <include if="$(eval arg('camera') == 'wide_angle_dual_resize')" file="$(find wild_visual_navigation_anymal)/launch/resize_images_wide_angle_dual.launch"/>
 
   <!-- Launch node -->
   <include file="$(find wild_visual_navigation_anymal)/launch/wild_visual_navigation.launch">
