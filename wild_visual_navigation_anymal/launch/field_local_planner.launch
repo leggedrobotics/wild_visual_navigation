@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+  <!-- Input arguments -->
+  <arg name="debug"          default="false"/>
+  <arg name="real_carrot"    default="true"/>
+  <arg name="base_inverted"  default="true"/>
+  <arg name="traversability" default="visual"/> <!-- visual or geometric -->
+
+  <arg name="output_twist_topic"      default="/local_guidance_path_follower/twist"/>
+
+  <arg name="elevation_map_topic"           default="/elevation_mapping/semantic_map_raw"/>
+  <arg name="elevation_map_filtered_topic"  default="/elevation_mapping/elevation_map_filtered"/>
+  <arg name="elevation_map_wifi_topic"      default="/elevation_mapping/elevation_map_wifi"/>
+
+  <arg name="elevation_map_filtered_filter_chain"  default="$(find wild_visual_navigation_ros)/config/field_local_planner/$(arg traversability)/filter_chain.yaml"/>
+  <arg name="elevation_map_wifi_filter_chain"      default="$(find wild_visual_navigation_ros)/config/field_local_planner/$(arg traversability)/filter_chain_wifi.yaml"/>
+
+  <!-- Load local planner parameters -->
+  <rosparam ns="field_local_planner" file="$(find wild_visual_navigation_ros)/config/field_local_planner/rmp.yaml" subst_value="true"/>
+  <!-- Overwrite params -->
+  <rosparam ns="field_local_planner" param="base_inverted" subst_value="True">$(arg base_inverted)</rosparam>
+
+  <!-- Launch grid map filters -->
+  <!-- The first computes all the representations -->
+  <include file="$(find grid_map_filters_drs)/launch/filter_chain.launch">
+    <arg name="input_topic"           value="$(arg elevation_map_topic)"/>
+    <arg name="output_topic"          value="$(arg elevation_map_filtered_topic)"/>
+    <arg name="filter_chain_config"   value="$(arg elevation_map_filtered_filter_chain)"/>
+    <arg name="viz_config"            value="$(find field_local_planner_rmp_plugin)/config/filter_chain_visualizations.yaml"/>
+    <arg name="viz"                   value="true"/>
+  </include>
+
+  <!-- The second just produces a simplified grid map with the debugging layers -->
+  <include file="$(find grid_map_filters_drs)/launch/filter_chain.launch">
+    <arg name="suffix"                value="_wifi"/>
+    <arg name="input_topic"           value="$(arg elevation_map_filtered_topic)"/>
+    <arg name="output_topic"          value="$(arg elevation_map_wifi_topic)"/>
+    <arg name="filter_chain_config"   value="$(arg elevation_map_wifi_filter_chain)"/>
+    <arg name="viz"                   value="false"/>
+  </include>
+
+  <!-- Include local planner launch -->
+  <include file="$(find field_local_planner_ros)/launch/local_planner.launch.xml">
+    <arg name="debug"              value="$(arg debug)"/>
+    <arg name="real_carrot"        value="$(arg real_carrot)"/>
+    <arg name="pose_topic"         value="/state_estimator/pose_in_odom"/>
+    <arg name="twist_topic"        value="/state_estimator/twist"/>
+    <arg name="grid_map_topic"     value="$(arg elevation_map_filtered_topic)"/>
+    <arg name="goal_topic"         value="/initialpose"/>
+    <arg name="joy_twist_topic"    value="/cmd_vel"/>
+    <arg name="output_twist_type"  value="twist_stamped"/>
+    <arg name="output_twist_topic" value="$(arg output_twist_topic)"/>
+    <!-- <arg name="output_twist_topic" value="/motion_reference/command_twist"/> -->
+  </include>
+
+  <!-- Set dynamic reconfigure parameter for obstacle gain -->
+  <node pkg="dynamic_reconfigure" type="dynparam" name="field_local_planner_sdf_gain" args="set /field_local_planner/rmp sdf_obstacle_gain 0.1" />
+
+</launch>

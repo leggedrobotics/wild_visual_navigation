@@ -1,0 +1,55 @@
+
+<launch>
+  <arg name="uncompress_alphasense_cam3"     default="False"/>
+  <arg name="uncompress_alphasense_cam4"     default="False"/>
+  <arg name="uncompress_alphasense_cam5"     default="False"/>
+  <arg name="resize_alphasense_cam3"     default="True"/>
+  <arg name="resize_alphasense_cam4"     default="True"/>
+  <arg name="resize_alphasense_cam5"     default="True"/>
+
+  <arg name="hdr_cam"     default="False"/>
+  <node if="$(arg hdr_cam)" name="hdr_cam_driver" pkg="usb_cam" type="usb_cam_node">
+      <rosparam command="load" file="$(find wild_visual_navigation_ros)/config/hdr_cam/hdr_cam_config.yaml"/>
+  </node>
+  <node if="$(arg hdr_cam)" pkg="wild_visual_navigation_ros" type="rotate_image.py" name="hdr_cam_rotate" output="screen"/>
+
+
+  <node if="$(arg uncompress_alphasense_cam3)" name="uncompress_cam3" pkg="image_transport" type="republish" args="compressed in:=/alphasense_driver_ros/cam3/debayered raw out:=/alphasense_driver_ros/cam3/debayered" />
+  <node if="$(arg uncompress_alphasense_cam4)" name="uncompress_cam4" pkg="image_transport" type="republish" args="compressed in:=/alphasense_driver_ros/cam4/debayered raw out:=/alphasense_driver_ros/cam4/debayered" />
+  <node if="$(arg uncompress_alphasense_cam5)" name="uncompress_cam5" pkg="image_transport" type="republish" args="compressed in:=/alphasense_driver_ros/cam5/debayered raw out:=/alphasense_driver_ros/cam5/debayered" />
+
+  <!-- Launch the image_proc nodelet -->
+  <node pkg="nodelet" type="nodelet" name="standalone_nodelet"  args="manager"/>
+  <node if="$(arg resize_alphasense_cam3)" pkg="nodelet" type="nodelet" name="image_proc_nodelet_cam3" args="load image_proc/resize standalone_nodelet">
+    <remap from="camera_info" to="/alphasense_driver_ros/cam3/color_rect/camera_info" />
+    <remap from="~camera_info" to="/alphasense_driver_ros/cam3/color_rect_resize/camera_info" />
+    <remap from="image" to="/alphasense_driver_ros/cam3/color_rect/image" />
+    <remap from="~image" to="/alphasense_driver_ros/cam3/color_rect_resize/image" />
+    <param name="scale_width" value="0.2074077" />
+    <param name="scale_height" value="0.2074077" />
+  </node>
+    <node if="$(arg resize_alphasense_cam4)" pkg="nodelet" type="nodelet" name="image_proc_nodelet_cam4" args="load image_proc/resize standalone_nodelet">
+    <remap from="camera_info" to="/alphasense_driver_ros/cam4/color_rect/camera_info" />
+    <remap from="~camera_info" to="/alphasense_driver_ros/cam4/color_rect_resize/camera_info" />
+    <remap from="image" to="/alphasense_driver_ros/cam4/color_rect/image" />
+    <remap from="~image" to="/alphasense_driver_ros/cam4/color_rect_resize/image" />
+    <param name="scale_width" value="0.2074077" />
+    <param name="scale_height" value="0.2074077" />
+  </node>
+  <node if="$(arg resize_alphasense_cam5)" pkg="nodelet" type="nodelet" name="image_proc_nodelet_cam5" args="load image_proc/resize standalone_nodelet">
+    <remap from="camera_info" to="/alphasense_driver_ros/cam5/color_rect/camera_info" />
+    <remap from="~camera_info" to="/alphasense_driver_ros/cam5/color_rect_resize/camera_info" />
+    <remap from="image" to="/alphasense_driver_ros/cam5/color_rect/image" />
+    <remap from="~image" to="/alphasense_driver_ros/cam5/color_rect_resize/image" />
+    <param name="scale_width" value="0.2074077" />
+    <param name="scale_height" value="0.2074077" />
+  </node>
+
+<node name="dynparam_width_cam3" pkg="dynamic_reconfigure" type="dynparam" args="set /image_proc_nodelet_cam3 scale_width 0.2074077" />
+<node name="dynparam_height_cam3" pkg="dynamic_reconfigure" type="dynparam" args="set /image_proc_nodelet_cam3 scale_height 0.2074077" />
+<node name="dynparam_width_cam4" pkg="dynamic_reconfigure" type="dynparam" args="set /image_proc_nodelet_cam4 scale_width 0.2074077" />
+<node name="dynparam_height_cam4" pkg="dynamic_reconfigure" type="dynparam" args="set /image_proc_nodelet_cam4 scale_height 0.2074077" />
+<node name="dynparam_width_cam5" pkg="dynamic_reconfigure" type="dynparam" args="set /image_proc_nodelet_cam5 scale_width 0.2074077" />
+<node name="dynparam_height_cam5" pkg="dynamic_reconfigure" type="dynparam" args="set /image_proc_nodelet_cam5 scale_height 0.2074077" />
+
+</launch>

@@ -1,0 +1,94 @@
+grid_map_filters:
+
+  - name: buffer_normalizer
+    type: gridMapFilters/BufferNormalizerFilter
+  
+  # Nan Mask
+  - name: nan_mask
+    type: gridMapFiltersDrs/NanMaskFilter
+    params:
+      input_layer: elevation
+      output_layer: unknown_space
+
+  # Inpainting
+  - name: inpaint
+    type: gridMapFiltersDrs/InpaintFilter
+    params:
+      input_layer: elevation
+      output_layer: elevation_inpainted
+      radius: 0.1 # in m
+      inpainting_type: telea # 'ns' or 'telea' allowed
+
+  # Compute surface normals (fast)
+  - name: surface_normals
+    type: gridMapFiltersDrs/FastNormalsVectorFilter
+    params:
+      input_layer: elevation_inpainted
+      output_layers_prefix: normal_
+      use_pre_smoothing: true
+      use_post_smoothing: true
+      pre_smoothing_radius: 0.15 # spatial gaussian filter (in meters)
+      post_smoothing_radius: 0.1 # spatial median filter (in meters)
+
+  # Compute slope from surface normal.
+  - name: slope
+    type: gridMapFilters/MathExpressionFilter
+    params:
+      output_layer: slope
+      expression: acos(normal_z)
+  
+  # Compute base threshold
+  - name: height_filter
+    type: gridMapFiltersDrs/BaseHeightThresholdFilter
+    params:
+      input_layer: elevation_inpainted
+      output_layer: height_traversability
+      target_frame: base
+      threshold: -0.3
+      set_to_upper: 0.0
+      set_to_lower: 1.0
+
+  # Compute traversability as normalized weighted sum of slope and roughness.
+  - name: traversability
+    type: gridMapFilters/MathExpressionFilter
+    params:
+      output_layer: geometric_traversability
+      # expression: (0.5 * (1.0 - (slope / 0.6)) + 0.5 * height_traversability) .* (1.0 - unknown_space)
+      expression: (0.5 * (1.0 - (slope / 0.6)) + 0.5 * height_traversability)
+
+  # Inpaint visual traversability
+  - name: inpaint_visual_traversability
+    type: gridMapFiltersDrs/DenoiseFilter
+    params:
+      input_layer: visual_traversability
+      output_layer: visual_traversability_inpainted
+      radius: 0.12 # m
+      type: median # 'total_variation', 'non_local', 'gaussian', and 'median' supported
+      total_variation_lambda: 1.0
+  
+  # Compute 2D Signed Distance Field
+  - name: sdf
+    type: gridMapFiltersDrs/SignedDistanceField2dFilter
+    params:
+      input_layer: visual_traversability_inpainted
+      output_layer: sdf
+      normalize_gradients: true
+      threshold: 0.1
+  
+  # Compute cost using traversability
+  - name: traversability_to_cost
+    type: gridMapFilters/MathExpressionFilter
+    params:
+      output_layer: cost
+      expression: 10*(1.0 - visual_traversability_inpainted) + 1.0
+  
+  - name: geodesic
+    # type: gridMapFiltersDrs/GeodesicDistanceField2dFilter
+    type: gridMapFiltersDrs/GeodesicFieldFilter
+    params:
+      input_layer: cost
+      output_layer: geodesic
+      normalize_gradients: true
+      attractor_topic: /field_local_planner/current_goal
+      publish_path: true
+      path_topic: /geodesic_distance_filter/path

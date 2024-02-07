@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="map_frame"                     default="map"/>
+    <arg name="base_frame"                    default="sensor2"/>
+    
+    <node name="vtr_teach_trajectory_server1" pkg="hector_trajectory_server" type="hector_trajectory_server" output="screen">
+        <remap from="/trajectory"             to="/gps_trajectory1"/>
+        <param name="target_frame_name"       type="string" value="$(arg map_frame)" />
+        <param name="source_frame_name"       type="string" value="sensor1" />
+        <param name="trajectory_update_rate"  type="double" value="10" />
+        <param name="trajectory_publish_rate" type="double" value="10" />
+    </node>
+    <node name="vtr_teach_trajectory_server2" pkg="hector_trajectory_server" type="hector_trajectory_server" output="screen">
+        <remap from="/trajectory"             to="/gps_trajectory2"/>
+        <param name="target_frame_name"       type="string" value="$(arg map_frame)" />
+        <param name="source_frame_name"       type="string" value="sensor2" />
+        <param name="trajectory_update_rate"  type="double" value="10" />
+        <param name="trajectory_publish_rate" type="double" value="10" />
+    </node>
+    <node name="vtr_teach_trajectory_server3" pkg="hector_trajectory_server" type="hector_trajectory_server" output="screen">
+        <remap from="/trajectory"             to="/gps_trajectory3"/>
+        <param name="target_frame_name"       type="string" value="$(arg map_frame)" />
+        <param name="source_frame_name"       type="string" value="sensor3" />
+        <param name="trajectory_update_rate"  type="double" value="10" />
+        <param name="trajectory_publish_rate" type="double" value="10" />
+    </node>
+    <node name="vtr_teach_trajectory_server4" pkg="hector_trajectory_server" type="hector_trajectory_server" output="screen">
+        <remap from="/trajectory"             to="/gps_trajectory4"/>
+        <param name="target_frame_name"       type="string" value="$(arg map_frame)" />
+        <param name="source_frame_name"       type="string" value="sensor4" />
+        <param name="trajectory_update_rate"  type="double" value="10" />
+        <param name="trajectory_publish_rate" type="double" value="10" />
+    </node>
+    <node name="vtr_teach_trajectory_server5" pkg="hector_trajectory_server" type="hector_trajectory_server" output="screen">
+        <remap from="/trajectory"             to="/gps_trajectory5"/>
+        <param name="target_frame_name"       type="string" value="$(arg map_frame)" />
+        <param name="source_frame_name"       type="string" value="sensor5" />
+        <param name="trajectory_update_rate"  type="double" value="10" />
+        <param name="trajectory_publish_rate" type="double" value="10" />
+    </node>
+</launch>
