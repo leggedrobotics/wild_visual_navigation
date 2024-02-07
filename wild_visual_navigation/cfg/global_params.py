@@ -10,5 +10,6 @@ class GlobalEnvironmentParams:
 def get_global_env_params(name):
     configs = {
         "default": GlobalEnvironmentParams(perugia_root="TBD", results="results"),
+        "ge76": GlobalEnvironmentParams(perugia_root="TBD", results="results"),
     }
     return configs[name]

@@ -29,10 +29,10 @@ inpainting:
     method: "telea"                           # telea or ns
 
 # Apply inpainting using opencv
-elevation_semantic:
+mask_elevation_semantics:
   enable: True
   fill_nan: False
   is_height_layer: True
-  layer_name: "elevation_with_semantic"
+  layer_name: "elevation_with_semantics"
   extra_params:
-    method: "telea"
+    semantic_reference_layer_name: "visual_traversability"

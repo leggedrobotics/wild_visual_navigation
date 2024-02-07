@@ -390,8 +390,10 @@ class WvnLearning:
             # Check the rate
             ts = rospy.get_time()
             if abs(ts - self._last_checkpoint_ts) > 1.0 / self._ros_params.load_save_checkpoint_rate:
-                os.remove(f"{WVN_ROOT_DIR}/.tmp_state_dict.pt")
-                torch.save(new_model_state_dict, f"{WVN_ROOT_DIR}/.tmp_state_dict.pt")
+                fn = os.path.join(WVN_ROOT_DIR, ".tmp_state_dict.pt")
+                if os.path.exists(fn):
+                    os.remove(fn)
+                torch.save(new_model_state_dict, fn)
                 self._last_checkpoint_ts = ts
 
             rate.sleep()
@@ -961,7 +963,7 @@ if __name__ == "__main__":
         wvn_path = rospack.get_path("wild_visual_navigation_ros")
         os.system(f"rosparam load {wvn_path}/config/wild_visual_navigation/default.yaml {node_name}")
         os.system(
-            f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/alphasense_compressed_front.yaml {node_name}"
+            f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/wide_angle_front_compressed.yaml {node_name}"
         )
 
     wvn = WvnLearning(node_name)

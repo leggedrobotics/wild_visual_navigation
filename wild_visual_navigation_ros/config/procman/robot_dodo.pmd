@@ -200,7 +200,6 @@ group "08 - npc" {
     }
 }
 
-<<<<<<< HEAD
 
 group "09.orin" {
     cmd "9.1.wild_visual_navigation" {
@@ -227,10 +226,6 @@ group "10.visualization" {
 
 group "11.configuration" {
     cmd "11.1.dynamic_reconfigure" {
-=======
-group "10 - configuration" {
-    cmd "01 - dynamic_reconfigure" {
->>>>>>> e7e5e69fe0f36deb7d7c2b13891e2dc70d829649
         exec = "rosrun rqt_reconfigure rqt_reconfigure";
         host = "localhost";
     }

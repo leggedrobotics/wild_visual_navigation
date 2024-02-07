@@ -2,6 +2,8 @@ from setuptools import find_packages
 from distutils.core import setup
 
 # Minimum dependencies required prior to installation
+# TODO: If we add the "opencv-python>=4.6", it wont build on the jetson
+
 INSTALL_REQUIRES = [
     # generic
     "numpy",
@@ -30,7 +32,6 @@ INSTALL_REQUIRES = [
     "termcolor",
     "pydensecrf@git+https://github.com/lucasb-eyer/pydensecrf.git",
     "liegroups@git+https://github.com/mmattamala/liegroups",
-    "opencv-python>=4.6",
     "wget",
     "rospkg",
 ]
