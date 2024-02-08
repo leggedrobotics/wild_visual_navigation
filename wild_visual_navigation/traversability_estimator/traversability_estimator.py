@@ -354,13 +354,12 @@ class TraversabilityEstimator:
                 list(self._mission_graph._graph.nodes._nodes.items())[self._debug_info_node_count :]
             ):
                 node, values = ele
-                if last_mission_node.timestamp - values["timestamp"] > 20:
+                if last_mission_node.timestamp - values["timestamp"] > 30:
                     node.clear_debug_data()
                     self._debug_info_node_count += 1
-                    length = len(list(self._mission_graph._graph.nodes._nodes.items()))
-                    print(
-                        f"cleaned node {self._debug_info_node_count} nodes {self._debug_info_node_count}, length {length}"
-                    )
+                    #length = len(list(self._mission_graph._graph.nodes._nodes.items()))
+                else:
+                    break
 
             # Get all mission nodes within a range
             mission_nodes = self._mission_graph.get_nodes_within_radius_range(
@@ -368,6 +367,7 @@ class TraversabilityEstimator:
             )
 
             if len(mission_nodes) < 1:
+                
                 return False
 
             # Set color
@@ -375,7 +375,6 @@ class TraversabilityEstimator:
 
             # New implementation
             B = len(mission_nodes)
-
             # Prepare batches
             K = torch.eye(4, device=self._device).repeat(B, 1, 1)
             supervision_masks = torch.zeros(last_mission_node.supervision_mask.shape, device=self._device).repeat(

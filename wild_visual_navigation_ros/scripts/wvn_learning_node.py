@@ -395,6 +395,7 @@ class WvnLearning:
                     os.remove(fn)
                 torch.save(new_model_state_dict, fn)
                 self._last_checkpoint_ts = ts
+                print("Update model. Valid Nodes: ", self._traversability_estimator._mission_graph.get_num_valid_nodes(), " steps: ",  self._traversability_estimator._step)
 
             rate.sleep()
 

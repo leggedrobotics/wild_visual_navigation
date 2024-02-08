@@ -4,7 +4,7 @@ args=""
 for option in "$@"; do
   if [ "$option" == "--sem" ]; then
     args="$args /elevation_mapping/elevation_map_raw:=/recorded/elevation_mapping/elevation_map_raw \
-    /elevation_mapping/semantic_map_raw:=/recorded/elevation_mapping/semantic_map_raw"
+    /elevation_mapping/semantic_map:=/recorded/elevation_mapping/semantic_map"
   elif [ "$option" == "--wvn" ]; then
     args="$args /wild_visual_navigation_node/front/camera_info:=/recorded/wild_visual_navigation_node/front/camera_info \
     /wild_visual_navigation_node/front/confidence:=/recorded/wild_visual_navigation_node/front/confidence \
@@ -18,7 +18,6 @@ for option in "$@"; do
     /wild_visual_navigation_node/rear/confidence:=/recorded/wild_visual_navigation_node/rear/confidence \
     /wild_visual_navigation_node/rear/image_input:=/recorded/wild_visual_navigation_node/rear/image_input \
     /wild_visual_navigation_node/rear/traversability:=/recorded/wild_visual_navigation_node/rear/traversability \
-    /wild_visual_navigation_node/robot_state:=/recorded/wild_visual_navigation_node/robot_state \
     /wild_visual_navigation_node/supervision_graph:=/recorded/wild_visual_navigation_node/supervision_graph \
     /wild_visual_navigation_visu_front_trav/traversability:=/recorded/wild_visual_navigation_visu_front_trav/traversability \
     /wild_visual_navigation_visu_rear_trav/traversability:=/recorded/wild_visual_navigation_visu_rear_trav/traversability"
