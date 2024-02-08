@@ -390,7 +390,10 @@ class WvnLearning:
             # Check the rate
             ts = rospy.get_time()
             if abs(ts - self._last_checkpoint_ts) > 1.0 / self._ros_params.load_save_checkpoint_rate:
-                os.remove(f"{WVN_ROOT_DIR}/.tmp_state_dict.pt")
+                try:
+                    os.remove(f"{WVN_ROOT_DIR}/.tmp_state_dict.pt")
+                except Exception:
+                    pass
                 torch.save(new_model_state_dict, f"{WVN_ROOT_DIR}/.tmp_state_dict.pt")
                 self._last_checkpoint_ts = ts
 

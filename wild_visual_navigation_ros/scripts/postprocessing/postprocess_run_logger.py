@@ -4,7 +4,6 @@
 # for offline analysis, such as images and learning curves
 
 from sensor_msgs.msg import Image
-from rosgraph_msgs.msg import Clock
 from wild_visual_navigation_msgs.msg import SystemState
 from cv_bridge import CvBridge
 
@@ -13,7 +12,6 @@ import cv2
 import os
 import rospy
 import rospkg
-import time
 import yaml
 
 
@@ -37,14 +35,29 @@ class OfflineLogger:
         # Initialize variables
         self._bridge = CvBridge()
 
-        # Initialize log folder
-        rospy.wait_for_message("/clock", Clock)
-        stamp = time.localtime(rospy.get_time())
-        mission_name = f"{self._mission_name}_{time.strftime('%Y%m%d_%H%M%S', stamp)}"
-
         package_path = rospkg.RosPack().get_path("wild_visual_navigation_ros")
-        self._output_path = os.path.join(package_path, "output", mission_name)
-        os.makedirs(self._output_path, exist_ok=True)
+        base_output_path = os.path.join(package_path, "output")
+
+        # Remove old checkpoint
+        state_dict = os.path.join(package_path, "../.tmp_state_dict.pt")
+        if os.path.exists(state_dict):
+            os.remove(state_dict)
+
+        # Initialize log folder
+        run = 0
+        while True:
+            mission_name = f"{self._mission_name}_{str(run).zfill(2)}"
+            self._output_path = os.path.join(base_output_path, mission_name)
+
+            if os.path.exists(self._output_path):
+                run += 1
+            else:
+                break
+
+        # Make folder
+        mission_name = f"{self._mission_name}_{str(run).zfill(2)}"
+        self._output_path = os.path.join(base_output_path, mission_name)
+        os.makedirs(self._output_path, exist_ok=False)
 
         # Initialize CSV writer
         csv_file = open(f"{self._output_path}/wvn_state.csv", "w")
@@ -104,7 +117,7 @@ class OfflineLogger:
         stamp = rospy.get_rostime()
         self._csv_writer.writerow(
             [
-                f"{stamp.secs}.{stamp.nsecs}",
+                f"{secs_to_str(stamp.secs)}.{nsecs_to_str(stamp.nsecs)}",
                 system_state_msg.mode,
                 system_state_msg.mission_graph_num_valid_node,
                 system_state_msg.loss_total,
