@@ -3,7 +3,6 @@
   <arg name="camera"            default="wide_angle_dual_resize"/> <!-- alphasense, wide_angle_front, realsense_front, realsense_rear -->
   <arg name="stack"             default="anybotics"/> <!-- rsl or anybotics  $(eval arg('camera') == 'wide_angle_front_resize')  $(eval arg('camera') == 'alphasense_resize') -->  
   <arg name="params_file"       default="$(find wild_visual_navigation_ros)/config/wild_visual_navigation/default.yaml"/>
-  <arg name="overlay_images"    default="True"/>
   <arg name="reload_default_params"    default="False"/>
 
   <!-- Load parameters -->
@@ -25,6 +24,4 @@
     <param name="reload_default_params" value="$(arg reload_default_params)" />
   </node>
 
-  <!-- Nice visualization overlay for front image only-->
-  <include if="$(arg overlay_images)" file="$(find wild_visual_navigation_ros)/launch/overlay_images.launch"/> 
 </launch>

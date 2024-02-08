@@ -1,7 +1,8 @@
 from wild_visual_navigation.utils import ConfidenceGenerator
 
 import torch.nn.functional as F
-from torch_geometric.data import Data
+from wild_visual_navigation.utils import Data
+
 import torch
 from typing import Optional
 from torch import nn

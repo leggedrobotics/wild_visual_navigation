@@ -6,7 +6,8 @@ from wild_visual_navigation.utils import (
     make_dense_plane,
 )
 from liegroups.torch import SE3, SO3
-from torch_geometric.data import Data
+from wild_visual_navigation.utils import Data
+
 import os
 import torch
 from typing import Optional
@@ -166,10 +167,12 @@ class MissionNode(BaseNode):
         """
         super().change_device(device)
         self._image_projector.change_device(device)
-        self._image = self._image.to(device)
+
         self._pose_cam_in_base = self._pose_cam_in_base.to(device)
         self._pose_cam_in_world = self._pose_cam_in_world.to(device)
 
+        if self._image is not None:
+            self._image = self._image.to(device)
         if self._features is not None:
             self._features = self._features.to(device)
         if self._feature_edges is not None:

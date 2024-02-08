@@ -630,12 +630,7 @@ class WvnLearning:
             ).clone()
             h_small, w_small = feature_segments.shape[1:3]
 
-            torch_image = torch.zeros(
-                (3, h_small, w_small),
-                device=self._ros_params.device,
-                dtype=torch.float32,
-            )
-
+            torch_image = None
             # convert image message to torch image
             if self._ros_params.mode == WVNMode.DEBUG:
                 torch_image = rc.ros_image_to_torch(
@@ -666,12 +661,14 @@ class WvnLearning:
 
             if self._ros_params.mode == WVNMode.DEBUG:
                 # Publish current predictions
-                self.visualize_mission_graph()
+
                 # Publish supervision data depending on the mode
                 self.visualize_image_overlay()
 
                 if added_new_node:
                     self._traversability_estimator.update_visualization_node()
+
+                self.visualize_mission_graph()
 
             # Print callback time if required
             if self._ros_params.print_image_callback_time:
@@ -954,6 +951,10 @@ class WvnLearning:
 
 
 if __name__ == "__main__":
+    fn = os.path.join(WVN_ROOT_DIR, ".tmp_state_dict.pt")
+    if os.path.exists(fn):
+        os.remove(fn)
+
     node_name = "wvn_learning_node"
     rospy.init_node(node_name)
     if rospy.get_param("~reload_default_params", True):
@@ -962,9 +963,8 @@ if __name__ == "__main__":
         rospack = rospkg.RosPack()
         wvn_path = rospack.get_path("wild_visual_navigation_ros")
         os.system(f"rosparam load {wvn_path}/config/wild_visual_navigation/default.yaml {node_name}")
-        os.system(
-            f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/wide_angle_dual_resize.yaml {node_name}"
-        )
+        wvn_anymal = rospack.get_path("wild_visual_navigation_anymal")
+        os.system(f"rosparam load {wvn_anymal}/config/wild_visual_navigation/inputs/wide_angle_dual.yaml {node_name}")
 
     wvn = WvnLearning(node_name)
     rospy.spin()

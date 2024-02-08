@@ -1,5 +1,5 @@
 import torch
-from torch_geometric.data import Data
+from wild_visual_navigation.utils import Data
 
 
 class SimpleMLP(torch.nn.Module):

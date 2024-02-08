@@ -4,7 +4,8 @@ import torch
 import torch.nn.functional as F
 from wild_visual_navigation.visu import LearningVisualizer
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
-from torch_geometric.data import Data
+
+# from torch_geometric.data import Data
 from torchmetrics import ROC
 
 from wild_visual_navigation.utils import TraversabilityLoss, MetricLogger

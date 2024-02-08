@@ -15,7 +15,7 @@ from wild_visual_navigation.utils import TraversabilityLoss, AnomalyLoss
 from wild_visual_navigation.visu import LearningVisualizer
 
 from pytorch_lightning import seed_everything
-from torch_geometric.data import Data, Batch
+from wild_visual_navigation.utils import Data, Batch
 from threading import Lock
 import os
 import pickle
@@ -124,6 +124,7 @@ class TraversabilityEstimator:
         self._optimizer = torch.optim.Adam(self._model.parameters(), lr=self._params["optimizer"]["lr"])
         self._loss = torch.tensor([torch.inf])
         self._step = 0
+        self._debug_info_node_count = 0
 
         torch.set_grad_enabled(True)
 
@@ -288,9 +289,9 @@ class TraversabilityEstimator:
             s += " " * (48 - len(s)) + f"total nodes [{total_nodes}]"
             if verbose:
                 print(s)
-
+            h, w = node._feature_segments.shape[0], node._feature_segments.shape[1]
             # Project past footprints on current image
-            supervision_mask = torch.ones(node.image.shape).to(self._device) * torch.nan
+            supervision_mask = torch.ones((3, h, w)).to(self._device) * torch.nan
 
             # Finally overwrite the current mask
             node.supervision_mask = supervision_mask
@@ -334,6 +335,7 @@ class TraversabilityEstimator:
             return False
 
         else:
+
             # If the previous node doesn't exist or it's invalid, we do nothing
             if last_pnode is None or not last_pnode.is_valid():
                 return False
@@ -347,6 +349,18 @@ class TraversabilityEstimator:
                 return False
             if (not hasattr(last_mission_node, "supervision_mask")) or (last_mission_node.supervision_mask is None):
                 return False
+
+            for j, ele in enumerate(
+                list(self._mission_graph._graph.nodes._nodes.items())[self._debug_info_node_count :]
+            ):
+                node, values = ele
+                if last_mission_node.timestamp - values["timestamp"] > 20:
+                    node.clear_debug_data()
+                    self._debug_info_node_count += 1
+                    length = len(list(self._mission_graph._graph.nodes._nodes.items()))
+                    print(
+                        f"cleaned node {self._debug_info_node_count} nodes {self._debug_info_node_count}, length {length}"
+                    )
 
             # Get all mission nodes within a range
             mission_nodes = self._mission_graph.get_nodes_within_radius_range(

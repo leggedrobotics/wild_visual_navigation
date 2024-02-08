@@ -124,6 +124,7 @@ npc:
 jetson:
   elevation_mapping:
     - /elevation_mapping/elevation_map_raw
+    - /elevation_mapping/semantic_map
   generic:
     - /chrony_monitor_jetson/status
     - /cpu_loupe_jetson/cpu_loupe
@@ -140,3 +141,17 @@ jetson:
   hdr_camera:
     - /hdr_camera/image_raw/compressed
     - /hdr_camera/camera_info
+  wvn:
+    - /wild_visual_navigation_node/front/camera_info
+    - /wild_visual_navigation_node/front/confidence
+    - /wild_visual_navigation_node/front/feat
+    - /wild_visual_navigation_node/front/image_input
+    - /wild_visual_navigation_node/front/traversability
+    - /wild_visual_navigation_node/graph_footprints
+    - /wild_visual_navigation_node/graph_footprints_array
+    - /wild_visual_navigation_node/rear/camera_info
+    - /wild_visual_navigation_node/rear/confidence
+    - /wild_visual_navigation_node/rear/image_input
+    - /wild_visual_navigation_node/rear/traversability
+    - /wild_visual_navigation_node/robot_state
+    - /wild_visual_navigation_node/supervision_graph

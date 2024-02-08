@@ -36,7 +36,7 @@ group "1 - WVN" {
     }
 
     cmd "1.2 - overlay" {
-        exec = "roslaunch wild_visual_navigation_ros overlay_images.launch";
+        exec = "roslaunch wild_visual_navigation_anymal overlay_images.launch";
         host = "localhost";
     }
     cmd "1.3 - elevation_mapping_cupy" {

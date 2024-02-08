@@ -3,7 +3,9 @@ from wild_visual_navigation.visu import LearningVisualizer
 import os
 from pathlib import Path
 import torch
-from torch_geometric.data import Data
+
+# TODO
+# from torch_geometric.data import Data
 from wild_visual_navigation.utils import KLTTrackerOpenCV
 import numpy as np
 from tqdm import tqdm

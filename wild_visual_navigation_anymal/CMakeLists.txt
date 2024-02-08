@@ -5,7 +5,6 @@ set (CMAKE_CXX_STANDARD 14)
 set(CATKIN_PACKAGE_LIST 
   rospy
   roscpp
-  anymal_msgs
   sensor_msgs
   std_msgs
   wild_visual_navigation_msgs
@@ -30,9 +29,10 @@ include_directories(
 )
 
 if(BUILD_ANYMAL)
+   find_package( anymal_msgs )
    # Declare node
-   add_executable(anymal_msg_converter_cpp_node
-               src/anymal_msg_converter_cpp_node.cpp)
+   add_executable( anymal_msg_converter_cpp_node
+                   src/anymal_msg_converter_cpp_node.cpp)
 
    target_link_libraries(anymal_msg_converter_cpp_node
                       ${catkin_LIBRARIES}

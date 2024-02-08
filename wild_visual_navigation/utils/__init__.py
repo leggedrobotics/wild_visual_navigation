@@ -1,3 +1,4 @@
+from .data import Data, Batch
 from .flatten_dict import *
 from .get_logger import get_logger, get_neptune_run
 from .loading import load_yaml, file_path, save_omega_cfg

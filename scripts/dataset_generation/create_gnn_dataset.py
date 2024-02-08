@@ -7,8 +7,8 @@ import torch
 import argparse
 import cv2
 
-
-from torch_geometric.data import Data
+# TODO
+# from torch_geometric.data import Data
 
 if __name__ == "__main__":
     """Converts a folder with images to a torch_geometric dataformat.

@@ -10,7 +10,7 @@ from geometry_msgs.msg import PoseWithCovarianceStamped
 
 class SmartCarrotNode:
     def __init__(self):
-        self.gridmap_sub_topic = "/elevation_mapping/elevation_map_wifi"  # rospy.get_param("~gridmap_sub_topic", "/elevation_mapping/elevation_map_wifi")
+        self.gridmap_sub_topic = "/elevation_mapping/elevation_map_wifi"
         self.pub = rospy.Publisher(f"~binary_mask", GridMap, queue_size=5)
         self.pub_goal = rospy.Publisher(f"/initialpose", PoseWithCovarianceStamped, queue_size=5)
         self.tf_buffer = tf2_ros.Buffer(cache_time=rospy.Duration(3.0))

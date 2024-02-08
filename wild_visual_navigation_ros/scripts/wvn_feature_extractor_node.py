@@ -21,7 +21,8 @@ import signal
 import sys
 import traceback
 from omegaconf import OmegaConf, read_write
-from torch_geometric.data import Data
+from wild_visual_navigation.utils import Data
+
 from threading import Thread, Event
 from prettytable import PrettyTable
 from termcolor import colored
@@ -476,9 +477,8 @@ if __name__ == "__main__":
         rospack = rospkg.RosPack()
         wvn_path = rospack.get_path("wild_visual_navigation_ros")
         os.system(f"rosparam load {wvn_path}/config/wild_visual_navigation/default.yaml {node_name}")
-        os.system(
-            f"rosparam load {wvn_path}/config/wild_visual_navigation/inputs/wide_angle_dual_resize.yaml {node_name}"
-        )
+        wvn_anymal = rospack.get_path("wild_visual_navigation_anymal")
+        os.system(f"rosparam load {wvn_anymal}/config/wild_visual_navigation/inputs/wide_angle_dual.yaml {node_name}")
 
     wvn = WvnFeatureExtractor(node_name)
     rospy.spin()

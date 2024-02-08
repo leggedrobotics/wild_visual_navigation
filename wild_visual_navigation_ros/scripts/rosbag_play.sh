@@ -8,15 +8,20 @@ for option in "$@"; do
   elif [ "$option" == "--wvn" ]; then
     args="$args /wild_visual_navigation_node/front/camera_info:=/recorded/wild_visual_navigation_node/front/camera_info \
     /wild_visual_navigation_node/front/confidence:=/recorded/wild_visual_navigation_node/front/confidence \
+    /wild_visual_navigation_node/front/feat:=/recorded/wild_visual_navigation_node/front/feat \
     /wild_visual_navigation_node/front/image_input:=/recorded/wild_visual_navigation_node/front/image_input \
     /wild_visual_navigation_node/front/traversability:=/recorded/wild_visual_navigation_node/front/traversability \
     /wild_visual_navigation_node/graph_footprints:=/recorded/wild_visual_navigation_node/graph_footprints \
-    /wild_visual_navigation_node/instant_traversability:=/recorded/wild_visual_navigation_node/instant_traversability \
-    /wild_visual_navigation_node/supervision_graph:=/recorded/wild_visual_navigation_node/supervision_graph \
+    /wild_visual_navigation_node/graph_footprints_array:=/recorded/wild_visual_navigation_node/graph_footprints_array \
+    /wild_visual_navigation_node/mission_graph:=/recorded/wild_visual_navigation_node/mission_graph \
+    /wild_visual_navigation_node/rear/camera_info:=/recorded/wild_visual_navigation_node/rear/camera_info \
+    /wild_visual_navigation_node/rear/confidence:=/recorded/wild_visual_navigation_node/rear/confidence \
+    /wild_visual_navigation_node/rear/image_input:=/recorded/wild_visual_navigation_node/rear/image_input \
+    /wild_visual_navigation_node/rear/traversability:=/recorded/wild_visual_navigation_node/rear/traversability \
     /wild_visual_navigation_node/robot_state:=/recorded/wild_visual_navigation_node/robot_state \
-    /wild_visual_navigation_node/system_state:=/recorded/wild_visual_navigation_node/system_state \
-    /wild_visual_navigation_visu_confidence/confidence_overlayed:=/recorded/wild_visual_navigation_visu_confidence/confidence_overlayed \
-    /wild_visual_navigation_visu_traversability/traversability_overlayed:=/recorded/wild_visual_navigation_visu_traversability/traversability_overlayed"
+    /wild_visual_navigation_node/supervision_graph:=/recorded/wild_visual_navigation_node/supervision_graph \
+    /wild_visual_navigation_visu_front_trav/traversability:=/recorded/wild_visual_navigation_visu_front_trav/traversability \
+    /wild_visual_navigation_visu_rear_trav/traversability:=/recorded/wild_visual_navigation_visu_rear_trav/traversability"
   elif [ "$option" == "--flp" ]; then
     args="$args /field_local_planner/action_server/status:=/recorded/field_local_planner/action_server/status \
     /field_local_planner/current_base:=/recorded/field_local_planner/current_base \
