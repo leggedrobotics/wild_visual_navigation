@@ -4,7 +4,7 @@
 # Navigate to the directory containing the bag files
 # cd /media/chen/UDisk1/vis_rosbag/snow
 # cd /media/chen/Chen/rosbag_white/2nd
-cd /media/chen/Chen/2024-01-25-white-board/1st
+cd /media/chen/Chen/2024-01-25-white-board/10th
 # cd /media/chen/UDisk1/vis_rosbag/single_test
 # cd /media/chen/UDisk1/vis_rosbag/val
 # cd /media/chen/UDisk1/vis_rosbag/snow/val

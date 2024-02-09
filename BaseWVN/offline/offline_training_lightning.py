@@ -178,11 +178,14 @@ def train_and_evaluate(param:ParamCollection):
             tags=["offline",param.offline.env,param.general.name],
         )
         
-        max_epochs=5 #8 ,3 for 2nd , 5 for 1st 
+        max_epochs=8 #8 ,3 for 2nd , 5 for 1st 
         if "partial" in param.offline.traindata_option:
             if "each" in param.offline.traindata_option:
                 # load train and val data from online collected dataset (each batch is 100 samples from six nodes)
                 train_data=load_data(os.path.join(param.offline.data_folder,"train",param.offline.env,param.offline.train_datafile))
+                if param.offline.env=="vowhite_2nd":
+                    additional_data=load_data(os.path.join(param.offline.data_folder,"train","vowhite_1st",param.offline.train_datafile))
+                    train_data+=additional_data
                 try:
                     val_data=load_data(os.path.join(param.offline.data_folder,"val",param.offline.env,param.offline.train_datafile))
                 except FileNotFoundError:
@@ -209,11 +212,14 @@ def train_and_evaluate(param:ParamCollection):
             
             # mimic online training fashion
             batch_size = 1
-            shuffle=False
+            shuffle=True
         elif "full" in param.offline.traindata_option:
             if "each" in param.offline.traindata_option:
                 # load train and val data from nodes_datafile (should include all pixels of supervision masks)
                 train_data_raw=load_data(os.path.join(param.offline.data_folder,"train",param.offline.env,param.offline.nodes_datafile))
+                if param.offline.env=="vowhite_2nd":
+                    additional_data=load_data(os.path.join(param.offline.data_folder,"train","vowhite_1st",param.offline.nodes_datafile))
+                    train_data_raw+=additional_data
                 try:
                     val_data_raw=load_data(os.path.join(param.offline.data_folder,"val",param.offline.env,param.offline.nodes_datafile))
                 except FileNotFoundError:

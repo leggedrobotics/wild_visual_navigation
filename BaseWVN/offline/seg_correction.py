@@ -9,11 +9,11 @@ import re
 import matplotlib.pyplot as plt
 from BaseWVN import WVN_ROOT_DIR
 from BaseWVN.config.wvn_cfg import ParamCollection
-
+ # ----Step2. download and automatically replace the flaw masks (uncomment the following lines)----
 # use your own API key
-api_key = '2fea959a3e8dc0ae5cd55e40d5f60c8e0bdc70d7'
+api_key = 'd88f310137222d041531b970241e8480ae6e771f'
 client = SegmentsClient(api_key)
-dataset_identifier = "swsychen/val_snow"
+dataset_identifier = "swsychen25/white1st"
 name = "v0.1"
 client.add_release(dataset_identifier, name)
 def save_imperfect_images(image_batch, mask_batch, imperfect_indexes, save_folder):
@@ -64,7 +64,7 @@ def download_and_replace_masks(mask_batch, corrected_mask_paths):
 
 if __name__ == "__main__":
     param=ParamCollection()
-    output_dir = os.path.join(WVN_ROOT_DIR, param.offline.data_folder,'val',param.offline.env)
+    output_dir = os.path.join(WVN_ROOT_DIR, param.offline.data_folder,'train',param.offline.env)
 
     gt_masks_path = os.path.join(output_dir, 'gt_masks_SAM.pt')
     img_path=os.path.join(output_dir, 'mask_img.pt')
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     gt_masks = torch.load(gt_masks_path)
     mask_imgs=torch.load(img_path)
      # ----Step0. list the indexes of imperfect masks ----
-    imperfect_indexes = [1,2,5,7,8,16,18,20,21,22,23,24,25,26,35,36,39,41,44,45]
+    imperfect_indexes = [0,1,2]
     # imperfect_indexes = [78,79]
     # imperfect_indexes = [0,1,2,3,4,13,14,15,16,18,19,20,21,25,26,27,28,29,30,31,32,33,34,35,36,39,56,59,60,61,62,63,64,65,75,80,81,82]
     # imperfect_indexes = [5,6,7,8,9,10,11,23,24,26,31,34,35,36,37,38,39,48,49,51,57,63,64,65,66,67,68,69,80]
@@ -80,6 +80,6 @@ if __name__ == "__main__":
     # imperfect_indexes = [37,38]
     # ----Step1. save for manual correction (uncomment the following line)----
     # save_imperfect_images(mask_imgs, gt_masks, imperfect_indexes, os.path.join(output_dir, 'imperfect_images'))
-    # ----Step2. download and automatically replace the flaw masks (uncomment the following line)----
+    # ----Step2. download and automatically replace the flaw masks (uncomment the following lines)----
     download_and_replace_masks(gt_masks,os.path.join(output_dir, 'imperfect_images'))
     

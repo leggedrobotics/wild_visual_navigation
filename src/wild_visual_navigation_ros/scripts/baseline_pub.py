@@ -469,15 +469,15 @@ class HiddenVisualizerNode(object):
     def map_callback(self, msg):
         # print('got map', len(msg.data), len(msg.data[0].data))
         data = np.array(msg.data[0].data)
-        print(data.shape)
+        # print(data.shape)
         dim = int(np.sqrt(data.shape[0]))
         data = data.reshape(dim, dim)
-        print(data.shape)
+        # print(data.shape)
         data[:dim//3, :] = np.nan
         data[2*dim//3:, :] = np.nan
         data[:, :dim//3] = np.nan
         data[:, 2*dim//3:] = np.nan
-        print(data)
+        # print(data)
         msg.data[0].data = data.flatten()
         self.map_publisher.publish(msg)
 

@@ -628,6 +628,8 @@ def overlay_values_on_section(frame, max_val, mean_val, start_x):
 
     return frame
 
+
+
 def add_headers_to_frame(frame, headers, section_width):
     font = cv2.FONT_HERSHEY_SIMPLEX
     font_scale = 2.0
