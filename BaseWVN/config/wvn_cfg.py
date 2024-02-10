@@ -221,7 +221,7 @@ class ParamCollection(Serializable):
     @dataclass
     class OfflineParams:
         mode:str='test'
-        env:str='vowhite_2nd'
+        env:str='vowhite_1st'
         reload_model:bool=False
         use_online_ckpt:bool=False
         ckpt_parent_folder:str='results/overlay'
@@ -237,8 +237,8 @@ class ParamCollection(Serializable):
         traindata_option:str= 'each_partial' # 'each_full' or 'each_partial' or 'all_full' or 'all_partial'
         
         test_images:bool=False # output vis for image_buffer
-        test_nodes:bool=False # output vis for node data
-        test_video:bool=True # output dense pred video
+        test_nodes:bool=True # output vis for node data
+        test_video:bool=False # output dense pred video
         process_option:str='all' # 'all' or 'first_half' or 'first_100
         
         random_datasample:Tuple[bool,int]=(False,40)

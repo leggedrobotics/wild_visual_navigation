@@ -11,11 +11,11 @@ from BaseWVN import WVN_ROOT_DIR
 from BaseWVN.config.wvn_cfg import ParamCollection
  # ----Step2. download and automatically replace the flaw masks (uncomment the following lines)----
 # use your own API key
-api_key = 'd88f310137222d041531b970241e8480ae6e771f'
-client = SegmentsClient(api_key)
-dataset_identifier = "swsychen25/white1st"
-name = "v0.1"
-client.add_release(dataset_identifier, name)
+# api_key = 'd88f310137222d041531b970241e8480ae6e771f'
+# client = SegmentsClient(api_key)
+# dataset_identifier = "swsychen25/white1st_gt"
+# name = "v0.1"
+# client.add_release(dataset_identifier, name)
 def save_imperfect_images(image_batch, mask_batch, imperfect_indexes, save_folder):
     """
     Save images with imperfect masks to a folder.
@@ -62,6 +62,22 @@ def download_and_replace_masks(mask_batch, corrected_mask_paths):
     torch.save(mask_batch, output_path)
     print(f"Saved corrected masks to {output_path}")
 
+def seg_union_correction(mask_batch,additional_batch,union_indices,corrected_mask_paths):
+    # complement the mask_batch with additional_batch
+    for ind in union_indices:
+        mask_batch[ind]=torch.logical_or(mask_batch[ind], additional_batch[ind])
+    output_path=os.path.join(corrected_mask_paths, 'gt_masks_SAM_union.pt')
+    torch.save(mask_batch, output_path)
+    print(f"Saved corrected masks (union) to {output_path}")
+
+def seg_subtract_correction(mask_batch,additional_batch,subtract_indices,corrected_mask_paths):
+    # subtract the area of additional_batch from mask_batch
+    for ind in subtract_indices:
+        mask_batch[ind]=torch.logical_and(mask_batch[ind], ~additional_batch[ind])
+    output_path=os.path.join(corrected_mask_paths, 'gt_masks_SAM_subtract.pt')
+    torch.save(mask_batch, output_path)
+    print(f"Saved corrected masks (subtract) to {output_path}")
+
 if __name__ == "__main__":
     param=ParamCollection()
     output_dir = os.path.join(WVN_ROOT_DIR, param.offline.data_folder,'train',param.offline.env)
@@ -72,7 +88,7 @@ if __name__ == "__main__":
     gt_masks = torch.load(gt_masks_path)
     mask_imgs=torch.load(img_path)
      # ----Step0. list the indexes of imperfect masks ----
-    imperfect_indexes = [0,1,2]
+    imperfect_indexes = torch.arange(len(gt_masks))
     # imperfect_indexes = [78,79]
     # imperfect_indexes = [0,1,2,3,4,13,14,15,16,18,19,20,21,25,26,27,28,29,30,31,32,33,34,35,36,39,56,59,60,61,62,63,64,65,75,80,81,82]
     # imperfect_indexes = [5,6,7,8,9,10,11,23,24,26,31,34,35,36,37,38,39,48,49,51,57,63,64,65,66,67,68,69,80]
@@ -81,5 +97,12 @@ if __name__ == "__main__":
     # ----Step1. save for manual correction (uncomment the following line)----
     # save_imperfect_images(mask_imgs, gt_masks, imperfect_indexes, os.path.join(output_dir, 'imperfect_images'))
     # ----Step2. download and automatically replace the flaw masks (uncomment the following lines)----
-    download_and_replace_masks(gt_masks,os.path.join(output_dir, 'imperfect_images'))
+    # download_and_replace_masks(gt_masks,os.path.join(output_dir, 'imperfect_images'))
     
+    # ----Step2 (optional). combine the mask with a complementary mask (uncomment the following lines)----
+    # comp_masks=torch.load(os.path.join(output_dir, 'white_masks.pt'))
+    # seg_union_correction(gt_masks,comp_masks,[6,7],os.path.join(output_dir, 'imperfect_images'))
+    
+    # ----Step2 (optional). subtract the mask with a complementary mask (uncomment the following lines)----
+    comp_masks=torch.load(os.path.join(output_dir, 'white_masks.pt'))
+    seg_subtract_correction(gt_masks,comp_masks,[0,1,2,6,7],os.path.join(output_dir, 'imperfect_images'))
