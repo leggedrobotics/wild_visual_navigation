@@ -8,6 +8,7 @@ import ros_converter as rc
 from anymal_msgs.msg import AnymalState
 from geometry_msgs.msg import Pose, Point, Quaternion
 from std_msgs.msg import ColorRGBA, Float32, Float32MultiArray,Header
+from nav_msgs.msg import Odometry
 from visualization_msgs.msg import Marker,MarkerArray
 from wild_visual_navigation_msgs.msg import PhyDecoderOutput,PlaneEdge
 import message_filters
@@ -18,7 +19,7 @@ import torch
 import numpy as np
 from typing import Optional
 import traceback
-
+from msg_to_transmatrix import msg_to_se3
 
 
 class PhyDecoder(NodeForROS):
@@ -61,7 +62,11 @@ class PhyDecoder(NodeForROS):
         rospy.wait_for_message(self.phy_decoder_input_topic, Float32MultiArray)
         phy_decoder_input_sub = message_filters.Subscriber(self.phy_decoder_input_topic, Float32MultiArray) 
 
-        self.state_sub=message_filters.ApproximateTimeSynchronizer([anymal_state_sub, phy_decoder_input_sub], queue_size=100,slop=0.1,allow_headerless=True)
+        print("Start waiting for visual odom topic being published!")
+        rospy.wait_for_message(self.visual_odom_topic, Odometry)
+        visual_odom_sub = message_filters.Subscriber(self.visual_odom_topic, Odometry)
+        
+        self.state_sub=message_filters.ApproximateTimeSynchronizer([anymal_state_sub, phy_decoder_input_sub,visual_odom_sub], queue_size=100,slop=0.1,allow_headerless=True)
         
         print("Current ros time is: ",rospy.get_time())
         
@@ -78,7 +83,7 @@ class PhyDecoder(NodeForROS):
         self.decoder_handler['marker_planes_pub']=marker_array_pub
         self.decoder_handler['test_pub']=test_pub
         
-    def state_callback(self, anymal_state_msg:AnymalState, phy_decoder_input_msg:Float32MultiArray):
+    def state_callback(self, anymal_state_msg:AnymalState, phy_decoder_input_msg:Float32MultiArray,visual_odom_msg:Odometry):
         """ 
         callback function for the anymal state subscriber
         """
@@ -86,24 +91,33 @@ class PhyDecoder(NodeForROS):
         self.step+=1
         self.system_events["state_callback_received"] = {"time": rospy.get_time(), "value": "message received"}
         msg=PhyDecoderOutput()
-        msg.header=anymal_state_msg.header
+        # msg.header=anymal_state_msg.header
+        msg.header=visual_odom_msg.header
         # print((rospy.Time.now()-anymal_state_msg.header.stamp)*1e-9)
         try:
             
-            transform=anymal_state_msg.pose
-            trans=(transform.pose.position.x,
-                   transform.pose.position.y,
-                   transform.pose.position.z)
-            rot=(transform.pose.orientation.x,
-                 transform.pose.orientation.y,
-                 transform.pose.orientation.z,
-                 transform.pose.orientation.w)
-            suc, pose_base_in_world = rc.ros_tf_to_numpy((trans,rot))
+            # transform=anymal_state_msg.pose
+            # trans=(transform.pose.position.x,
+            #        transform.pose.position.y,
+            #        transform.pose.position.z)
+            # rot=(transform.pose.orientation.x,
+            #      transform.pose.orientation.y,
+            #      transform.pose.orientation.z,
+            #      transform.pose.orientation.w)
+            # suc, pose_base_in_world = rc.ros_tf_to_numpy((trans,rot))
+            
+            pose_base_in_world=msg_to_se3(anymal_state_msg.pose.pose)
+            # calculate the world_in_map tf 
+            world_in_map=msg_to_se3(visual_odom_msg)@np.linalg.inv(self.lidar_in_base)@np.linalg.inv(pose_base_in_world)
+            # switch to o3d_map from odom--base
+            pose_base_in_world=world_in_map@pose_base_in_world
             msg.base_pose=self.matrix_to_pose(pose_base_in_world)
             # Query footprint transform from AnymalState message
             suc, pose_footprint_in_world = rc.ros_tf_to_numpy(
                 self.query_tf(self.fixed_frame, self.footprint_frame, from_message=anymal_state_msg)
             )
+            # switch to o3d_map from odom--footprint
+            pose_footprint_in_world=world_in_map@pose_footprint_in_world
             if not suc:
                 self.system_events["state_callback_cancled"] = {
                     "time": rospy.get_time(),
@@ -128,6 +142,9 @@ class PhyDecoder(NodeForROS):
             for foot in self.feet_list:
                 t,r=self.query_tf(self.fixed_frame, foot, from_message=anymal_state_msg)
                 suc, pose_foot_in_world = rc.ros_tf_to_numpy((t,r))
+                # switch to o3d_map from odom--feet
+                pose_foot_in_world=world_in_map@pose_foot_in_world
+                pose_foot_in_world=pose_foot_in_world.astype(np.float32)
                 if not suc:
                     self.system_events["state_callback_cancled"] = {
                         "time": rospy.get_time(),

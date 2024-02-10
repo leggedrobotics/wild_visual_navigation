@@ -421,6 +421,93 @@ def conf_mask_generate(param:ParamCollection,
             "loss_fric_mean+std":(fric_mean,fric_std),
             "loss_stiff_mean+std":(stiff_mean,stiff_std),}
 
+def phy_mask_total_accuracy(param:ParamCollection,
+                      nodes:List[MainNode],
+                      feat_extractor:FeatureExtractor,
+                      model:pl.LightningModule,
+                      ):
+    """ 
+    Here we load the white_board masks and ground masks to calculate the accuracy of the phy mask.
+    We'll hard code the GT values for the regions according to the digital twin result.
+    
+    Attention: only friction is handled here. Only having the GT white/ground masks for env:vowhite_1st
+    """
+    if param.offline.env!='vowhite_1st':
+        raise ValueError("Only vowhite_1st is supported for phy_mask_total_accuracy (digital twin)")
+    reproj_masks=[]
+    ori_imgs=[]
+    white_board_masks=torch.load(os.path.join(WVN_ROOT_DIR,param.offline.data_folder,'train',param.offline.env,param.offline.white_board_gt_masks))
+    ground_masks=torch.load(os.path.join(WVN_ROOT_DIR,param.offline.data_folder,'train',param.offline.env,param.offline.ground_gt_masks))
+    folder_path=os.path.join(WVN_ROOT_DIR,param.offline.ckpt_parent_folder,model.time)
+    # gt values from digital twin experiments
+    white_gt_val=param.offline.white_gt_val
+    ground_gt_val=param.offline.ground_gt_val
+    
+    white_error_nodes=[]
+    ground_error_nodes=[]
+    
+    for i,node in enumerate( nodes):
+        img=node.image.to(param.run.device)
+        reproj_mask=node.supervision_signal_valid[0].unsqueeze(0).unsqueeze(0).to(param.run.device)
+        reproj_masks.append(reproj_mask)
+        ori_imgs.append(img)
+        B,C,H,W=img.shape
+        feat_extractor.set_original_size(W,H)
+        res_dict=compute_phy_mask(img,feat_extractor,
+                                model.model,
+                                model.loss_fn,
+                                param.loss.confidence_threshold,
+                                param.loss.confidence_mode,
+                                False,
+                                i,
+                                time=model.time,
+                                image_name="node"+str(node.timestamp),
+                                param=param,
+                                label_mask=node._supervision_mask,)
+        pred_phy_mask=res_dict['output_phy'] #(2,H,W)
+        white_board_masks[i][0]=torch.clip(white_board_masks[i][0],0,1)
+        white_pred=pred_phy_mask[0][white_board_masks[i][0]]
+        ground_pred=pred_phy_mask[0][ground_masks[i][0]]
+        
+        mask_gt = white_pred > white_gt_val[1]
+        mask_between = (white_pred >= white_gt_val[0]) & (white_pred <= white_gt_val[1])
+        mask_lt = white_pred < white_gt_val[0]
+
+        # Apply conditions
+        # Subtract 0.3 from values > 0.3
+        white_pred[mask_gt] -= white_gt_val[1]
+        # Set values in [0.1, 0.3] to 0
+        white_pred[mask_between] = 0
+        # Set values < 0.1 to 0.1
+        white_pred[mask_lt] = white_gt_val[0]-white_pred[mask_lt]
+        
+        error_white=torch.nan_to_num(white_pred)
+        white_error_nodes.append(error_white)
+        mask_gt = ground_pred > ground_gt_val[1]
+        mask_between = (ground_pred >= ground_gt_val[0]) & (ground_pred <= ground_gt_val[1])
+        mask_lt = ground_pred < ground_gt_val[0]
+        
+        ground_pred[mask_gt] -= ground_gt_val[1]
+        ground_pred[mask_between] = 0
+        ground_pred[mask_lt] = ground_gt_val[0]-ground_pred[mask_lt]
+        
+        error_ground=torch.nan_to_num(ground_pred)
+        ground_error_nodes.append(error_ground)
+    
+    file_path=os.path.join(folder_path, 'phy_pred_accuracy(GT_digital_twin).txt')
+    white_error_nodes=torch.cat(white_error_nodes)
+    ground_error_nodes=torch.cat(ground_error_nodes)
+    fric_mean_white=torch.mean(white_error_nodes)
+    fric_mean_ground=torch.mean(ground_error_nodes)
+    fric_std_white=torch.std(white_error_nodes)
+    fric_std_ground=torch.std(ground_error_nodes)
+    with open(file_path, 'a') as file:
+        file.write(f"{param.general.name}\n")
+        file.write(f"Overall White board Friction Error Mean: {round(fric_mean_white.item(),2)}, STD:{round(fric_std_white.item(),2)}\n")
+        file.write(f"Overall Ground Error Mean: {round(fric_mean_ground.item(),2)}, STD: {round(fric_std_ground.item(),2)}\n")
+
+    print("Overall loss statistics saved to phy_pred_accuracy(GT_digital_twin).txt")
+    
 def calculate_uncertainty_plot(all_losses:torch.Tensor,all_conf_masks:torch.Tensor,all_reproj_masks:torch.Tensor=None,save_path=None):
     """ 
     Calculate a histogram of the uncertainty values (losses) from reproj_masks(should be very certain)
@@ -627,6 +714,8 @@ def overlay_values_on_section(frame, max_val, mean_val, start_x):
         cv2.putText(frame, text, position, font, font_scale, text_color, font_thickness, lineType=cv2.LINE_AA)
 
     return frame
+
+
 
 def add_headers_to_frame(frame, headers, section_width):
     font = cv2.FONT_HERSHEY_SIMPLEX

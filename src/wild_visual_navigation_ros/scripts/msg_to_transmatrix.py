@@ -7,7 +7,7 @@ from geometry_msgs.msg import Quaternion
 from geometry_msgs.msg import Transform
 from geometry_msgs.msg import TransformStamped
 from geometry_msgs.msg import Vector3
-
+from nav_msgs.msg import Odometry
 import numpy as np
 
 
@@ -64,6 +64,15 @@ def transform_stamped_to_pq(msg):
     """
     return transform_to_pq(msg.transform)
 
+def odometry_to_pq(msg):
+    """Convert a C{nav_msgs/Odometry} into position/quaternion np arrays
+
+    @param msg: ROS message to be converted
+    @return:
+      - p: position as a np.array
+      - q: quaternion as a numpy array (order = [x,y,z,w])
+    """
+    return pose_to_pq(msg.pose.pose)
 
 def msg_to_se3(msg):
     """Conversion from geometric ROS messages into SE(3)
@@ -81,6 +90,8 @@ def msg_to_se3(msg):
         p, q = transform_to_pq(msg)
     elif isinstance(msg, TransformStamped):
         p, q = transform_stamped_to_pq(msg)
+    elif isinstance(msg, Odometry):
+        p, q = odometry_to_pq(msg)
     else:
         raise TypeError("Invalid type for conversion to SE(3)")
     norm = np.linalg.norm(q)
