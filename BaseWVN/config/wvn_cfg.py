@@ -260,7 +260,12 @@ class ParamCollection(Serializable):
         augment:bool=True
         
         analyze_path:str='results/analyze'
-    
+        white_board_gt_masks:str='white_masks.pt'
+        ground_gt_masks:str='ground_masks.pt'
+        
+        white_gt_val=(0.1,0.3)
+        ground_gt_val=(0.4,1.0)
+        
     offline: OfflineParams = OfflineParams()
     
     

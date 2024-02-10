@@ -441,6 +441,7 @@ class Validator:
     def go(self,model:pl.LightningModule,feat_extractor:FeatureExtractor):
         
         output_dict=conf_mask_generate(self.param,self.nodes,feat_extractor,model,self.gt_masks)
+        phy_mask_total_accuracy(self.param,self.nodes,feat_extractor,model)
         conf_masks=output_dict['all_conf_masks']
         ori_imgs=output_dict['ori_imgs']
         fric_mean,fric_std=output_dict['loss_fric_mean+std']
