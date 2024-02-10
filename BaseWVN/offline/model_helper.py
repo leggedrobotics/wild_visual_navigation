@@ -430,8 +430,10 @@ def phy_mask_total_accuracy(param:ParamCollection,
     Here we load the white_board masks and ground masks to calculate the accuracy of the phy mask.
     We'll hard code the GT values for the regions according to the digital twin result.
     
-    Attention: only friction is handled here.
+    Attention: only friction is handled here. Only having the GT white/ground masks for env:vowhite_1st
     """
+    if param.offline.env!='vowhite_1st':
+        raise ValueError("Only vowhite_1st is supported for phy_mask_total_accuracy (digital twin)")
     reproj_masks=[]
     ori_imgs=[]
     white_board_masks=torch.load(os.path.join(WVN_ROOT_DIR,param.offline.data_folder,'train',param.offline.env,param.offline.white_board_gt_masks))
