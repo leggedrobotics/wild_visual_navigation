@@ -1,6 +1,7 @@
 """ 
 Main node to process ros messages, publish the relevant topics, train the model...
- """
+Attention: this use an old stable version of the PHY-decoder. 
+"""
 from BaseWVN.utils import *
 from Phy_Decoder import initialize_models,prepare_padded_input,RNNInputBuffer
 
