@@ -107,14 +107,14 @@ class ConfidenceGenerator(torch.nn.Module):
             confidence = (x - torch.min(x)) / (torch.max(x) - torch.min(x))
         else:
             # Then the confidence is computed as the distance to the center of the Gaussian given factor*sigma
-            confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
-            confidence[x < self.mean] = 1.0
+            # confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
+            # confidence[x < self.mean] = 1.0
 
-            # shifted_mean = self.mean + self.std*self.std_factor
-            # interval_min = shifted_mean - 2 * self.std
-            # interval_max = shifted_mean + 2 * self.std
-            # x = torch.clip( x , interval_min, interval_max)
-            # confidence = 1 - ((x - interval_min) / (interval_max - interval_min))
+            shifted_mean = self.mean + self.std*self.std_factor
+            interval_min = shifted_mean - 2 * self.std
+            interval_max = shifted_mean + 2 * self.std
+            x = torch.clip( x , interval_min, interval_max)
+            confidence = 1 - ((x - interval_min) / (interval_max - interval_min))
 
         return confidence.type(torch.float32)
 
@@ -192,14 +192,14 @@ class ConfidenceGenerator(torch.nn.Module):
             confidence = (x - torch.min(x)) / (torch.max(x) - torch.min(x))
 
         else:
-            # shifted_mean = self.mean + self.std*self.std_factor
-            # interval_min = shifted_mean - 2 * self.std
-            # interval_max = shifted_mean + 2 * self.std
-            # x = torch.clip( x , interval_min, interval_max)
-            # confidence = 1 - ((x - interval_min) / (interval_max - interval_min))
+            shifted_mean = self.mean + self.std*self.std_factor
+            interval_min = shifted_mean - 2 * self.std
+            interval_max = shifted_mean + 2 * self.std
+            x = torch.clip( x , interval_min, interval_max)
+            confidence = 1 - ((x - interval_min) / (interval_max - interval_min))
 
-            confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
-            confidence[x < self.mean] = 1.0
+            # confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
+            # confidence[x < self.mean] = 1.0
 
         return confidence.type(torch.float32)
 

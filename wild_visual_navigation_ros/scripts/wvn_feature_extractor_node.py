@@ -445,7 +445,7 @@ if __name__ == "__main__":
     reload_rosparams(
         enabled=rospy.get_param("~reload_default_params", True),
         node_name=node_name,
-        camera_cfg="wide_angle_dual_resize",
+        camera_cfg="wide_angle_dual",
     )
 
     wvn = WvnFeatureExtractor(node_name)
