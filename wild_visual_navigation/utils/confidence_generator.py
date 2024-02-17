@@ -110,6 +110,12 @@ class ConfidenceGenerator(torch.nn.Module):
             confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
             confidence[x < self.mean] = 1.0
 
+            # shifted_mean = self.mean + self.std*self.std_factor
+            # interval_min = shifted_mean - 2 * self.std
+            # interval_max = shifted_mean + 2 * self.std
+            # x = torch.clip( x , interval_min, interval_max)
+            # confidence = 1 - ((x - interval_min) / (interval_max - interval_min))
+
         return confidence.type(torch.float32)
 
     def update_moving_average(self, x: torch.tensor, x_positive: torch.tensor):
@@ -184,8 +190,16 @@ class ConfidenceGenerator(torch.nn.Module):
         if self.anomaly_detection:
             x = torch.clip(x, self.mean - 2 * self.std, self.mean + 2 * self.std)
             confidence = (x - torch.min(x)) / (torch.max(x) - torch.min(x))
+
         else:
+            # shifted_mean = self.mean + self.std*self.std_factor
+            # interval_min = shifted_mean - 2 * self.std
+            # interval_max = shifted_mean + 2 * self.std
+            # x = torch.clip( x , interval_min, interval_max)
+            # confidence = 1 - ((x - interval_min) / (interval_max - interval_min))
+
             confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
+            confidence[x < self.mean] = 1.0
 
         return confidence.type(torch.float32)
 

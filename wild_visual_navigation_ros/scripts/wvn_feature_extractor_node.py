@@ -390,7 +390,7 @@ class WvnFeatureExtractor:
 
         except Exception as e:
             traceback.print_exc()
-            rospy.logerr(f"[{self._node_name}] error image callback", e)
+            rospy.logerr(f"[self._node_name] error image callback", e)
             self.system_events["image_callback_state"] = {
                 "time": rospy.get_time(),
                 "value": f"failed to execute {e}",
@@ -435,14 +435,18 @@ class WvnFeatureExtractor:
                 self._confidence_generator.std = cg["std"]
         else:
             if self._ros_params.verbose:
-                rospy.logerr(f"[{self._node_name}] Model Loading Failed: {e}")
+                rospy.logerr(f"[{self._node_name}] Model Loading Failed")
 
 
 if __name__ == "__main__":
     node_name = "wvn_feature_extractor_node"
     rospy.init_node(node_name)
 
-    reload_rosparams(enabled=rospy.get_param("~reload_default_params", True), node_name=node_name, camera_cfg="hdr")
+    reload_rosparams(
+        enabled=rospy.get_param("~reload_default_params", True),
+        node_name=node_name,
+        camera_cfg="wide_angle_dual_resize",
+    )
 
     wvn = WvnFeatureExtractor(node_name)
     rospy.spin()

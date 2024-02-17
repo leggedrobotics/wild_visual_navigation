@@ -943,6 +943,10 @@ if __name__ == "__main__":
     node_name = "wvn_learning_node"
     rospy.init_node(node_name)
 
-    reload_rosparams(enabled=rospy.get_param("~reload_default_params", True), node_name=node_name, camera_cfg="hdr")
+    reload_rosparams(
+        enabled=rospy.get_param("~reload_default_params", True),
+        node_name=node_name,
+        camera_cfg="wide_angle_dual_resize",
+    )
     wvn = WvnLearning(node_name)
     rospy.spin()
