@@ -19,6 +19,4 @@ catkin_install_python(PROGRAMS  scripts/wvn_feature_extractor_node.py
                                 scripts/overlay_images.py
                                 scripts/smart_carrot.py
                                 scripts/rosbag_play.sh
-                                scripts/open_source_rosbag_converter/convert_to_public_format.py
-                                scripts/open_source_rosbag_converter/encoding_fixer.py
                       DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

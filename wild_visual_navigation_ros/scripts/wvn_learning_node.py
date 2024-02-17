@@ -4,6 +4,7 @@ from wild_visual_navigation.supervision_generator import SupervisionGenerator
 from wild_visual_navigation.traversability_estimator import TraversabilityEstimator
 from wild_visual_navigation.traversability_estimator import MissionNode, SupervisionNode
 import wild_visual_navigation_ros.ros_converter as rc
+from wild_visual_navigation_ros.reload_rosparams import reload_rosparams
 from wild_visual_navigation_msgs.msg import RobotState, SystemState, ImageFeatures
 from wild_visual_navigation.visu import LearningVisualizer
 from wild_visual_navigation_msgs.srv import (
@@ -36,10 +37,6 @@ from typing import Optional
 import traceback
 import signal
 import sys
-
-
-if torch.cuda.is_available():
-    torch.cuda.empty_cache()
 
 
 class WvnLearning:
@@ -75,9 +72,6 @@ class WvnLearning:
         self._traversability_estimator = TraversabilityEstimator(
             params=self._params,
             device=self._ros_params.device,
-            image_size=self._ros_params.network_input_image_height,  # Note: we assume height == width
-            segmentation_type=self._ros_params.segmentation_type,
-            feature_type=self._ros_params.feature_type,
             max_distance=self._ros_params.traversability_radius,
             image_distance_thr=self._ros_params.image_graph_dist_thr,
             supervision_distance_thr=self._ros_params.supervision_graph_dist_thr,
@@ -85,13 +79,12 @@ class WvnLearning:
             vis_node_index=self._ros_params.vis_node_index,
             mode=self._ros_params.mode,
             extraction_store_folder=self._ros_params.extraction_store_folder,
-            scale_traversability=self._ros_params.scale_traversability,
             anomaly_detection=self.anomaly_detection,
         )
 
         # Initialize traversability generator to process velocity commands
         self._supervision_generator = SupervisionGenerator(
-            self._ros_params.device,
+            device=self._ros_params.device,
             kf_process_cov=0.1,
             kf_meas_cov=10,
             kf_outlier_rejection="huber",
@@ -100,6 +93,7 @@ class WvnLearning:
             sigmoid_cutoff=0.25,  # 0.2
             untraversable_thr=self._ros_params.untraversable_thr,  # 0.1
             time_horizon=0.05,
+            graph_max_length=1,
         )
 
         # Setup Timer if needed
@@ -137,9 +131,9 @@ class WvnLearning:
             self.learning_thread = Thread(target=self.learning_thread_loop, name="learning")
             self.learning_thread.start()
 
-            # self.logging_thread_stop_event = Event()
-            # self.logging_thread = Thread(target=self.logging_thread_loop, name="logging")
-            # self.logging_thread.start()
+        # self.logging_thread_stop_event = Event()
+        # self.logging_thread = Thread(target=self.logging_thread_loop, name="logging")
+        # self.logging_thread.start()
         rospy.loginfo(f"[{self._node_name}] [WVN] System ready")
 
     def shutdown_callback(self, *args, **kwargs):
@@ -279,6 +273,7 @@ class WvnLearning:
                     self._camera_handler[cam]["debug"]["image_overlay"] = last_image_overlay_pub
 
                 else:
+                    print(f"/wild_visual_navigation_node/{cam}/feat")
                     imagefeat_sub = message_filters.Subscriber(
                         f"/wild_visual_navigation_node/{cam}/feat", ImageFeatures
                     )
@@ -290,8 +285,12 @@ class WvnLearning:
 
             # Wait for features message to determine the input size of the model
             cam = list(self._ros_params.camera_topics.keys())[0]
-            rospy.loginfo(f"[{self._node_name}] Waiting for feat topic...")
-            feat_msg = rospy.wait_for_message(f"/wild_visual_navigation_node/{cam}/feat", ImageFeatures)
+
+            for cam in self._ros_params.camera_topics:
+                rospy.loginfo(f"[{self._node_name}] Waiting for feat topic {cam}...")
+                if self._ros_params.camera_topics[cam]["use_for_training"]:
+                    feat_msg = rospy.wait_for_message(f"/wild_visual_navigation_node/{cam}/feat", ImageFeatures)
+
             feature_dim = int(feat_msg.features.layout.dim[1].size)
             # Modify the parameters
             with read_write(self._params):
@@ -367,35 +366,24 @@ class WvnLearning:
             # Get current weights
             new_model_state_dict = self._traversability_estimator._model.state_dict()
 
-            # Compute ROC Threshold
-            if self._ros_params.scale_traversability:
-                if self._traversability_estimator._auxiliary_training_roc._update_count != 0:
-                    try:
-                        (
-                            fpr,
-                            tpr,
-                            thresholds,
-                        ) = self._traversability_estimator._auxiliary_training_roc.compute()
-                        index = torch.where(fpr > self._ros_params.scale_traversability_max_fpr)[0][0]
-                        traversability_threshold = thresholds[index]
-                    except Exception:
-                        traversability_threshold = 0.5
-                else:
-                    traversability_threshold = 0.5
-
-                new_model_state_dict["traversability_threshold"] = traversability_threshold
-                cg = self._traversability_estimator._traversability_loss._confidence_generator
-                new_model_state_dict["confidence_generator"] = cg.get_dict()
-
             # Check the rate
             ts = rospy.get_time()
             if abs(ts - self._last_checkpoint_ts) > 1.0 / self._ros_params.load_save_checkpoint_rate:
+
+                cg = self._traversability_estimator._traversability_loss._confidence_generator
+                new_model_state_dict["confidence_generator"] = cg.get_dict()
+
                 fn = os.path.join(WVN_ROOT_DIR, ".tmp_state_dict.pt")
                 if os.path.exists(fn):
                     os.remove(fn)
                 torch.save(new_model_state_dict, fn)
                 self._last_checkpoint_ts = ts
-                print("Update model. Valid Nodes: ", self._traversability_estimator._mission_graph.get_num_valid_nodes(), " steps: ",  self._traversability_estimator._step)
+                print(
+                    "Update model. Valid Nodes: ",
+                    self._traversability_estimator._mission_graph.get_num_valid_nodes(),
+                    " steps: ",
+                    self._traversability_estimator._step,
+                )
 
             rate.sleep()
 
@@ -407,6 +395,7 @@ class WvnLearning:
 
     def logging_thread_loop(self):
         rate = rospy.Rate(self._ros_params.logging_thread_rate)
+
         # Learning loop
         while True:
             self._learning_thread_stop_event.wait(timeout=0.01)
@@ -574,12 +563,7 @@ class WvnLearning:
             # Run the callback so as to match the desired rate
             ts = imagefeat_msg.header.stamp.to_sec()
             if abs(ts - self._last_image_ts) < 1.0 / self._ros_params.image_callback_rate:
-                if self._ros_params.verbose:
-                    print(f"skip")
                 return
-            else:
-                if self._ros_params.verbose:
-                    print(f"process")
             self._last_image_ts = ts
 
             # Query transforms from TF
@@ -658,7 +642,7 @@ class WvnLearning:
             mission_node.feature_segments = feature_segments[0]
 
             # Add node to graph
-            added_new_node = self._traversability_estimator.add_mission_node(mission_node, update_features=False)
+            added_new_node = self._traversability_estimator.add_mission_node(mission_node)
 
             if self._ros_params.mode == WVNMode.DEBUG:
                 # Publish current predictions
@@ -840,7 +824,7 @@ class WvnLearning:
             torch_mask = torch.nan_to_num(torch_mask.nanmean(axis=0)) != 0
             torch_mask = torch_mask.float()
 
-            image_out = self._visualizer.plot_detectron_classification(torch_image, torch_mask, cmap="Greens")
+            image_out = self._visualizer.plot_detectron_classification(torch_image, torch_mask, cmap="Blues")
             self._camera_handler[cam]["debug"]["image_overlay"].publish(rc.numpy_to_ros_image(image_out))
 
     def pause_learning_callback(self, req):
@@ -958,14 +942,7 @@ if __name__ == "__main__":
 
     node_name = "wvn_learning_node"
     rospy.init_node(node_name)
-    if rospy.get_param("~reload_default_params", True):
-        import rospkg
 
-        rospack = rospkg.RosPack()
-        wvn_path = rospack.get_path("wild_visual_navigation_ros")
-        os.system(f"rosparam load {wvn_path}/config/wild_visual_navigation/default.yaml {node_name}")
-        wvn_anymal = rospack.get_path("wild_visual_navigation_anymal")
-        os.system(f"rosparam load {wvn_anymal}/config/wild_visual_navigation/inputs/wide_angle_dual.yaml {node_name}")
-
+    reload_rosparams(enabled=rospy.get_param("~reload_default_params", True), node_name=node_name, camera_cfg="hdr")
     wvn = WvnLearning(node_name)
     rospy.spin()

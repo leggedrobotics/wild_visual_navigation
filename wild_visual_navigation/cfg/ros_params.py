@@ -24,19 +24,10 @@ class RosLearningNodeParams:
     traversability_radius: float  # meters
     image_graph_dist_thr: float  # meters
     supervision_graph_dist_thr: float  # meters
-    network_input_image_height: int  # 448
-    network_input_image_width: int  # 448
-    segmentation_type: str
-    feature_type: str
-    dino_patch_size: int  # 8 or 16; 8 is finer
-    dino_backbone: str  # vit_small, vit_base
-    slic_num_components: int
     confidence_std_factor: float
-    scale_traversability: bool  # This parameter needs to be false when using the anomaly detection model
-    scale_traversability_max_fpr: float
     min_samples_for_training: int
-
-    traversability_threshold: float
+    network_input_image_height: int
+    network_input_image_width: int
     vis_node_index: int
 
     # Supervision Generator
@@ -82,12 +73,9 @@ class RosFeatureExtractorNodeParams:
 
     # ConfidenceGenerator
     confidence_std_factor: float
-    scale_traversability: bool  # This parameter needs to be false when using the anomaly detection model
 
     # Output setting
     prediction_per_pixel: bool
-    traversability_threshold: float
-    clip_to_binary: bool
 
     # Runtime options
     mode: Any  # check out comments in the class WVNMode

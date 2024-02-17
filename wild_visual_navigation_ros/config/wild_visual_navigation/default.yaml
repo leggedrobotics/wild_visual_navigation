@@ -11,7 +11,7 @@ footprint_frame: footprint
 
 # Robot size
 robot_length: 0.8
-robot_width: 0.4
+robot_width: 0.3
 robot_height: 0.3
 
 
@@ -27,12 +27,9 @@ dino_patch_size: 8 # 8 or 16; 8 is finer
 dino_backbone: vit_small
 slic_num_components: 100
 confidence_std_factor: 4.0
-scale_traversability: False  # This parameter needs to be false when using the anomaly detection model
-scale_traversability_max_fpr: 0.25
+
 min_samples_for_training: 5
 prediction_per_pixel: True
-traversability_threshold: 0.55
-clip_to_binary: False
 vis_node_index: 10
 
 # Supervision Generator
@@ -63,21 +60,22 @@ extraction_store_folder:  "nan"
 exp: "nan"
 
 # TODO: What do we add here for sim or for rosbags? 
-camera_topics:
-  front:
-    image_topic: "/wide_angle_camera_front/image_color_resize"
-    info_topic: "/wide_angle_camera_front_resize/camera_info"
-    use_for_training: true
-    publish_confidence: true
-    publish_input_image: true
-    scheduler_weight: 1
-  rear:
-    image_topic: "/wide_angle_camera_rear/image_color_resize"
-    info_topic: "/wide_angle_camera_rear_resize/camera_info"
-    use_for_training: false
-    publish_confidence: true
-    publish_input_image: true
-    scheduler_weight: 1
+# camera_topics:
+#   front:
+#     image_topic: "/wide_angle_camera_front/image_color_resize"
+#     info_topic: "/wide_angle_camera_front_resize/camera_info"
+#     use_for_training: true
+#     publish_confidence: true
+#     publish_input_image: true
+#     scheduler_weight: 1
+#   rear:
+#     image_topic: "/wide_angle_camera_rear/image_color_resize"
+#     info_topic: "/wide_angle_camera_rear_resize/camera_info"
+#     use_for_training: false
+#     publish_confidence: true
+#     publish_input_image: true
+#     scheduler_weight: 1
+
 # Provides 1080 (height) x 1920 (width) images
 network_input_image_height: 224 # 448
 network_input_image_width: 224 # 448

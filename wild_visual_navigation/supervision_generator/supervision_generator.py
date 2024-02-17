@@ -10,16 +10,16 @@ import torch
 class SupervisionGenerator:
     def __init__(
         self,
-        device: str = "cuda",
-        kf_process_cov: float = 0.01,
-        kf_meas_cov: float = 10,
-        kf_outlier_rejection: str = "none",
-        kf_outlier_rejection_delta: float = 1.0,
-        sigmoid_slope: float = 15,
-        sigmoid_cutoff: float = 0.2,
-        untraversable_thr: float = 0.1,
-        time_horizon: float = 1,
-        graph_max_length: float = 1,
+        device: str,
+        kf_process_cov,
+        kf_meas_cov,
+        kf_outlier_rejection,
+        kf_outlier_rejection_delta,
+        sigmoid_slope,
+        sigmoid_cutoff,
+        untraversable_thr,
+        time_horizon,
+        graph_max_length,
     ):
         """Generates traversability signals/labels from different sources
 
@@ -201,6 +201,8 @@ def run_supervision_generator():
         sigmoid_slope=30,
         sigmoid_cutoff=0.2,
         untraversable_thr=0.05,
+        time_horizon=0.05,
+        graph_max_length=1,
     )
 
     # Saved data list

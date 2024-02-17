@@ -138,7 +138,6 @@ class MissionNode(BaseNode):
 
         # Uninitialized members
         self._features = None
-        self._feature_type = None
         self._feature_edges = None
         self._feature_segments = None
         self._feature_positions = None
@@ -259,10 +258,6 @@ class MissionNode(BaseNode):
         return self._features
 
     @property
-    def feature_type(self):
-        return self._feature_type
-
-    @property
     def feature_edges(self):
         return self._feature_edges
 
@@ -317,10 +312,6 @@ class MissionNode(BaseNode):
     @features.setter
     def features(self, features):
         self._features = features
-
-    @feature_type.setter
-    def feature_type(self, feature_type):
-        self._feature_type = feature_type
 
     @feature_edges.setter
     def feature_edges(self, feature_edges):
