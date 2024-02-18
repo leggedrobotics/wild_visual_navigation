@@ -190,3 +190,18 @@ Introduction to [pytest](https://github.com/pluralsight/intro-to-pytest).
 ```shell
 pytest
 ```
+
+
+### Open-Sourcing
+Generating headers
+```shell
+pip3 install adheader
+
+# If your are using zsh otherwise remove \
+addheader wild_visual_navigation -t header.txt -p \*.py --sep-len 79 --comment='#' --sep=' '
+addheader wild_visual_navigation_ros -t header.txt -p \*.py -sep-len 79 --comment='#' --sep=' '
+addheader wild_visual_navigation_anymal -t header.txt -p \*.py --sep-len 79 --comment='#' --sep=' '
+
+addheader wild_visual_navigation_ros -t header.txt -p \*CMakeLists.txt --sep-len 79 --comment='#' --sep=' '
+addheader wild_visual_navigation_anymal -t header.txt -p \*.py -p \*CMakeLists.txt --sep-len 79 --comment='#' --sep=' '
+```
