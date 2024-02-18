@@ -1,3 +1,8 @@
+#                                                                               
+# Copyright (c) 2022-2024, ETH Zurich, Matias Mattamala, Jonas Frey.
+# All rights reserved. Licensed under the MIT license.
+# See LICENSE file in the project root for details.
+#                                                                               
 from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation.supervision_generator import SupervisionGenerator
