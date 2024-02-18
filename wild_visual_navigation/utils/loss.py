@@ -1,14 +1,26 @@
+#                                                                               
+# Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
+# All rights reserved. Licensed under the MIT license.
+# See LICENSE file in the project root for details.
+#                                                                               
 from wild_visual_navigation.utils import ConfidenceGenerator
 
 import torch.nn.functional as F
-from torch_geometric.data import Data
+from wild_visual_navigation.utils import Data
+
 import torch
 from typing import Optional
 from torch import nn
 
 
 class AnomalyLoss(nn.Module):
-    def __init__(self, confidence_std_factor: float, method: str, log_enabled: bool, log_folder: str):
+    def __init__(
+        self,
+        confidence_std_factor: float,
+        method: str,
+        log_enabled: bool,
+        log_folder: str,
+    ):
         super(AnomalyLoss, self).__init__()
 
         self._confidence_generator = ConfidenceGenerator(
@@ -85,7 +97,12 @@ class TraversabilityLoss(nn.Module):
             self._confidence_generator.reset()
 
     def forward(
-        self, graph: Data, res: torch.Tensor, update_generator: bool = True, step: int = 0, log_step: bool = False
+        self,
+        graph: Data,
+        res: torch.Tensor,
+        update_generator: bool = True,
+        step: int = 0,
+        log_step: bool = False,
     ):
         # Compute reconstruction loss
         nr_channel_reco = graph.x.shape[1]
@@ -94,7 +111,10 @@ class TraversabilityLoss(nn.Module):
         with torch.no_grad():
             if update_generator:
                 confidence = self._confidence_generator.update(
-                    x=loss_reco, x_positive=loss_reco[graph.y_valid], step=step, log_step=log_step
+                    x=loss_reco,
+                    x_positive=loss_reco[graph.y_valid],
+                    step=step,
+                    log_step=log_step,
                 )
             else:
                 confidence = self._confidence_generator.inference_without_update(x=loss_reco)
@@ -103,7 +123,9 @@ class TraversabilityLoss(nn.Module):
         if self._trav_cross_entropy:
             label = label.type(torch.long)
             loss_trav_raw = self._trav_loss_func(
-                res[:, :-nr_channel_reco].squeeze()[:, 0], label.type(torch.float32), reduction="none"
+                res[:, :-nr_channel_reco].squeeze()[:, 0],
+                label.type(torch.float32),
+                reduction="none",
             )
         else:
             loss_trav_raw = self._trav_loss_func(res[:, :-nr_channel_reco].squeeze(), label, reduction="none")

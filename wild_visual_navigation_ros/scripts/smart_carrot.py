@@ -1,18 +1,21 @@
-from grid_map_msgs.msg import GridMap, GridMapInfo
+#                                                                               
+# Copyright (c) 2022-2024, ETH Zurich, Matias Mattamala, Jonas Frey.
+# All rights reserved. Licensed under the MIT license.
+# See LICENSE file in the project root for details.
+#                                                                               
+from grid_map_msgs.msg import GridMap
 import rospy
-import sys
 import numpy as np
 import tf2_ros
 from scipy.spatial.transform import Rotation as R
 import cv2
 import math
 from geometry_msgs.msg import PoseWithCovarianceStamped
-import time
 
 
 class SmartCarrotNode:
     def __init__(self):
-        self.gridmap_sub_topic = "/elevation_mapping/elevation_map_wifi"  # rospy.get_param("~gridmap_sub_topic", "/elevation_mapping/elevation_map_wifi")
+        self.gridmap_sub_topic = "/elevation_mapping/elevation_map_wifi"
         self.pub = rospy.Publisher(f"~binary_mask", GridMap, queue_size=5)
         self.pub_goal = rospy.Publisher(f"/initialpose", PoseWithCovarianceStamped, queue_size=5)
         self.tf_buffer = tf2_ros.Buffer(cache_time=rospy.Duration(3.0))
@@ -30,7 +33,6 @@ class SmartCarrotNode:
         self.debug = True
 
     def callback(self, msg):
-        st = time.time()
         target_layer = "sdf"
         if target_layer in msg.layers:
             # extract grid_map layer as numpy array
@@ -53,7 +55,10 @@ class SmartCarrotNode:
 
         try:
             res = self.tf_buffer.lookup_transform(
-                "odom", "base_inverted_field_local_planner", msg.info.header.stamp, timeout=rospy.Duration(0.01)
+                "odom",
+                "base_inverted_field_local_planner",
+                msg.info.header.stamp,
+                timeout=rospy.Duration(0.01),
             )
         except Exception as e:
             print("error")
@@ -62,7 +67,12 @@ class SmartCarrotNode:
             return
 
         yaw = R.from_quat(
-            [res.transform.rotation.x, res.transform.rotation.y, res.transform.rotation.z, res.transform.rotation.w]
+            [
+                res.transform.rotation.x,
+                res.transform.rotation.y,
+                res.transform.rotation.z,
+                res.transform.rotation.w,
+            ]
         ).as_euler("zxy", degrees=False)[0]
 
         binary_mask = np.zeros((sdf.shape[0], sdf.shape[1]), dtype=np.uint8)

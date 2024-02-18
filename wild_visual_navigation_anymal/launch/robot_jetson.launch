@@ -1,0 +1,16 @@
+<launch>
+  <!-- Arguments -->
+  <arg name="elevation_mapping" default="True"/>
+  <arg name="camera"            default="wide_angle_dual_resize"/> <!-- alphasense, wide_angle_front, realsense_front, realsense_rear -->
+  <arg name="stack"             default="anybotics"/> <!-- rsl or anybotics -->
+
+  <!-- Use Elevation Mapping-->
+  <include if="$(arg elevation_mapping)" file="$(find wild_visual_navigation_anymal)/launch/elevation_mapping_cupy.launch"/>
+  
+  <!-- Launch node -->
+  <include file="$(find wild_visual_navigation_anymal)/launch/wild_visual_navigation.launch">
+    <arg name="camera"                   value="$(arg camera)"/>
+    <arg name="stack"                    value="$(arg stack)"/>
+    <arg name="reload_default_params"    value="False"/>
+  </include>
+</launch>

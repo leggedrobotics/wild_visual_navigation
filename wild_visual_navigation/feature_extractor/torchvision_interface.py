@@ -1,9 +1,12 @@
+#                                                                               
+# Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
+# All rights reserved. Licensed under the MIT license.
+# See LICENSE file in the project root for details.
+#                                                                               
 from wild_visual_navigation import WVN_ROOT_DIR
-import os
 from os.path import join
 
 from torch import nn
-import torch.nn.functional as F
 import torch
 
 import torchvision.models as models
@@ -120,31 +123,19 @@ class TorchVisionInterface(nn.Module):
 
 def run_torch_vision_model_interfacer():
     """Performance inference using stego and stores result as an image."""
-
-    from pytictac import Timer
-    from wild_visual_navigation.visu import get_img_from_fig
-    import matplotlib.pyplot as plt
-    from stego.src import remove_axes
-    import cv2
-
-    # Create test directory
-    # os.makedirs(join(WVN_ROOT_DIR, "results", "test_torchvision_interfacer"), exist_ok=True)
+    from wild_visual_navigation.utils.testing import load_test_image
 
     # Inference model
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    p = join(WVN_ROOT_DIR, "assets/images/forest_clean.png")
-    np_img = cv2.imread(p)
-    img = torch.from_numpy(cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB)).to(device)
-    img = img.permute(2, 0, 1)
-    img = (img.type(torch.float32) / 255)[None]
+    img = load_test_image().to(device)
 
-    plot = False
-    save_features = True
+    # plot = False
+    # save_features = True
 
     size = 448
     model_type = "resnet18"
 
-    di = TorchVisionInterface(model_type=model_type, input_size=488)
+    di = TorchVisionInterface(model_type=model_type, input_size=size)
     di.to(device)
     img.to(device)
     res = di(img)

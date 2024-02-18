@@ -1,10 +1,19 @@
+#                                                                               
+# Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
+# All rights reserved. Licensed under the MIT license.
+# See LICENSE file in the project root for details.
+#                                                                               
 import torch
-from torch_geometric.data import Data
-import torch.nn.functional as F
+from wild_visual_navigation.utils import Data
 
 
 class SimpleMLP(torch.nn.Module):
-    def __init__(self, input_size: int = 64, hidden_sizes: [int] = [255], reconstruction: bool = False):
+    def __init__(
+        self,
+        input_size: int = 64,
+        hidden_sizes: [int] = [255],
+        reconstruction: bool = False,
+    ):
         super(SimpleMLP, self).__init__()
         layers = []
         self.nr_sigmoid_layers = hidden_sizes[-1]

@@ -1,15 +1,18 @@
+#                                                                               
+# Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
+# All rights reserved. Licensed under the MIT license.
+# See LICENSE file in the project root for details.
+#                                                                               
 from dataclasses import dataclass, field
-from typing import Tuple, Dict, List, Optional
-from wild_visual_navigation import WVN_ROOT_DIR
+from typing import List, Optional
 from typing import Any
 import os
-from wild_visual_navigation.cfg import get_gloabl_env_params, GloabalEnvironmentParams
+from wild_visual_navigation.cfg import get_global_env_params, GlobalEnvironmentParams
 
 
 @dataclass
 class ExperimentParams:
-
-    env: GloabalEnvironmentParams = get_gloabl_env_params(os.environ.get("ENV_WORKSTATIO_NAME", "default"))
+    env: GlobalEnvironmentParams = get_global_env_params(os.environ.get("ENV_WORKSTATION_NAME", "default"))
 
     @dataclass
     class GeneralParams:
@@ -48,7 +51,7 @@ class ExperimentParams:
         w_trav: float = 0.03
         w_reco: float = 0.5
         w_temp: float = 0.0  # 0.75
-        method: str = "latest_measurment"
+        method: str = "latest_measurement"
         confidence_std_factor: float = 0.5
         trav_cross_entropy: bool = False
 
@@ -56,7 +59,7 @@ class ExperimentParams:
 
     @dataclass
     class LossAnomalyParams:
-        method: str = "running_mean"  # "latest_measurment", "running_mean", "moving_average"
+        method: str = "running_mean"  # "latest_measurement", "running_mean", "moving_average"
         confidence_std_factor: float = 0.5
 
     loss_anomaly: LossAnomalyParams = LossAnomalyParams()
@@ -99,12 +102,12 @@ class ExperimentParams:
 
     @dataclass
     class ModelParams:
-        name: str = "LinearRnvp"  # LinearRnvp, SimpleMLP, SimpleGCN, DoubleMLP
+        name: str = "SimpleMLP"  # LinearRnvp, SimpleMLP, SimpleGCN, DoubleMLP
         load_ckpt: Optional[str] = None
 
         @dataclass
         class SimpleMlpCfgParams:
-            input_size: int = 384
+            input_size: int = 90  # 90 for stego, 384 for dino
             hidden_sizes: List[int] = field(default_factory=lambda: [256, 32, 1])
             reconstruction: bool = True
 
@@ -127,7 +130,7 @@ class ExperimentParams:
 
         @dataclass
         class LinearRnvpCfgParams:
-            input_dim: int = 384
+            input_size: int = 384
             coupling_topology: List[int] = field(default_factory=lambda: [200])
             mask_type: str = "odds"
             conditioning_size: int = 0

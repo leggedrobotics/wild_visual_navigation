@@ -1,4 +1,10 @@
+#                                                                               
+# Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
+# All rights reserved. Licensed under the MIT license.
+# See LICENSE file in the project root for details.
+#                                                                               
 from wild_visual_navigation.utils import KalmanFilter
+from wild_visual_navigation import WVN_ROOT_DIR
 import torch
 import os
 from collections import deque
@@ -10,14 +16,13 @@ class ConfidenceGenerator(torch.nn.Module):
         std_factor: float = 0.7,
         method: str = "running_mean",
         log_enabled: bool = False,
-        log_folder: str = "/tmp",
+        log_folder: str = f"{WVN_ROOT_DIR}/results",
         anomaly_detection: bool = False,
     ):
         """Returns a confidence value for each number
 
         Args:
-            std_factor (float, optional): _description_. Defaults to 2.0.
-            device (str, optional): _description_. Defaults to "cpu".
+            std_factor (float, optional): _description_. Defaults to 0.7.
         """
         super(ConfidenceGenerator, self).__init__()
         self.std_factor = std_factor
@@ -51,19 +56,19 @@ class ConfidenceGenerator(torch.nn.Module):
             running_sum = torch.zeros(1, dtype=torch.float64)
             running_sum_of_squares = torch.zeros(1, dtype=torch.float64)
 
-            # self.running_n = torch.nn.Parameter(running_n, requires_grad=False)
-            # self.running_sum = torch.nn.Parameter(running_sum, requires_grad=False)
-            # self.running_sum_of_squares = torch.nn.Parameter(running_sum_of_squares, requires_grad=False)
+            self.running_n = torch.nn.Parameter(running_n, requires_grad=False)
+            self.running_sum = torch.nn.Parameter(running_sum, requires_grad=False)
+            self.running_sum_of_squares = torch.nn.Parameter(running_sum_of_squares, requires_grad=False)
 
-            self.running_n = running_n.to("cuda")
-            self.running_sum = running_sum.to("cuda")
-            self.running_sum_of_squares = running_sum_of_squares.to("cuda")
+            # self.running_n = running_n.to("cuda")
+            # self.running_sum = running_sum.to("cuda")
+            # self.running_sum_of_squares = running_sum_of_squares.to("cuda")
 
             self._update = self.update_running_mean
             self._reset = self.reset_running_mean
-        elif method == "latest_measurment":
-            self._update = self.update_latest_measurment
-            self._reset = self.reset_latest_measurment
+        elif method == "latest_measurement":
+            self._update = self.update_latest_measurement
+            self._reset = self.reset_latest_measurement
         elif method == "moving_average":
             window_size = 5
             self.data_window = deque(maxlen=window_size)
@@ -72,13 +77,13 @@ class ConfidenceGenerator(torch.nn.Module):
         else:
             raise ValueError("Unknown method")
 
-    def update_latest_measurment(self, x: torch.Tensor, x_positive: torch.Tensor):
+    def update_latest_measurement(self, x: torch.Tensor, x_positive: torch.Tensor):
         # Then the confidence is computed as the distance to the center of the Gaussian given factor*sigma
         self.mean[0] = x_positive.mean()
         self.std[0] = x_positive.std()
         return self.inference_without_update(x)
 
-    def reset_latest_measurment(self, x: torch.Tensor, x_positive: torch.Tensor):
+    def reset_latest_measurement(self, x: torch.Tensor, x_positive: torch.Tensor):
         self.mean[0] = 0
         self.var[0] = 1
         self.std[0] = 1
@@ -107,8 +112,14 @@ class ConfidenceGenerator(torch.nn.Module):
             confidence = (x - torch.min(x)) / (torch.max(x) - torch.min(x))
         else:
             # Then the confidence is computed as the distance to the center of the Gaussian given factor*sigma
-            confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
-            confidence[x < self.mean] = 1.0
+            # confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
+            # confidence[x < self.mean] = 1.0
+
+            shifted_mean = self.mean + self.std*self.std_factor
+            interval_min = shifted_mean - 2 * self.std
+            interval_max = shifted_mean + 2 * self.std
+            x = torch.clip( x , interval_min, interval_max)
+            confidence = 1 - ((x - interval_min) / (interval_max - interval_min))
 
         return confidence.type(torch.float32)
 
@@ -133,7 +144,7 @@ class ConfidenceGenerator(torch.nn.Module):
             self.var[0, 0] = var[0, 0]
             self.mean[0] = mean[0]
 
-            assert torch.isnan(self.mean).any() == False, "Nan Value in mean detected"
+            assert not torch.isnan(self.mean).any(), "Nan Value in mean detected"
         self.std[0] = torch.sqrt(self.var)[0, 0]
 
         # Then the confidence is computed as the distance to the center of the Gaussian given factor*sigma
@@ -142,7 +153,13 @@ class ConfidenceGenerator(torch.nn.Module):
 
         return confidence.type(torch.float32)
 
-    def update(self, x: torch.tensor, x_positive: torch.tensor, step: int, log_step: bool = False):
+    def update(
+        self,
+        x: torch.tensor,
+        x_positive: torch.tensor,
+        step: int,
+        log_step: bool = False,
+    ):
         """Input a tensor with multiple error predictions.
         Returns the estimated confidence score within 2 standard deviations based on the running mean and variance.
 
@@ -160,7 +177,12 @@ class ConfidenceGenerator(torch.nn.Module):
 
             with torch.no_grad():
                 torch.save(
-                    {"x": x.cpu(), "x_positive": x_positive.cpu(), "mean": self.mean.cpu(), "std": self.std.cpu()},
+                    {
+                        "x": x.cpu(),
+                        "x_positive": x_positive.cpu(),
+                        "mean": self.mean.cpu(),
+                        "std": self.std.cpu(),
+                    },
                     os.path.join(base_folder, f"samples_{step:06}.pt"),
                 )
 
@@ -173,8 +195,16 @@ class ConfidenceGenerator(torch.nn.Module):
         if self.anomaly_detection:
             x = torch.clip(x, self.mean - 2 * self.std, self.mean + 2 * self.std)
             confidence = (x - torch.min(x)) / (torch.max(x) - torch.min(x))
+
         else:
-            confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
+            shifted_mean = self.mean + self.std*self.std_factor
+            interval_min = shifted_mean - 2 * self.std
+            interval_max = shifted_mean + 2 * self.std
+            x = torch.clip( x , interval_min, interval_max)
+            confidence = 1 - ((x - interval_min) / (interval_max - interval_min))
+
+            # confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
+            # confidence[x < self.mean] = 1.0
 
         return confidence.type(torch.float32)
 
@@ -200,12 +230,7 @@ class ConfidenceGenerator(torch.nn.Module):
 
 if __name__ == "__main__":
     cg = ConfidenceGenerator()
-    for i in range(100000):
-        inp = (
-            torch.rand(
-                10,
-            )
-            * 10
-        )
-        res = cg.update(inp, inp)
-        print("inp ", inp, " res ", res, "std", cg.std)
+    for i in range(1000):
+        inp = torch.rand(10) * 10
+        res = cg.update(inp, inp, step=i)
+        # print("inp ", inp, " res ", res, "std", cg.std)

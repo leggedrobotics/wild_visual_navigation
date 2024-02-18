@@ -1,0 +1,1 @@
+rosservice call /rosbag_record_coordinator/start_recording "yaml_file: '/home/jonfrey/git/wild_visual_navigation/wild_visual_navigation_anymal/config/recording/dodo.yaml'"

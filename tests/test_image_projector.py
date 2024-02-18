@@ -7,26 +7,19 @@ def test_image_projector():
 
 
 def test_supervision_projection():
-    from wild_visual_navigation import WVN_ROOT_DIR
     from wild_visual_navigation.image_projector import ImageProjector
     from wild_visual_navigation.visu import get_img_from_fig
-    from pytictac import Timer
-    from wild_visual_navigation.utils import make_plane, make_box, make_dense_plane, make_polygon_from_points
-    from PIL import Image
+    from wild_visual_navigation.utils.testing import load_test_image, make_results_folder
     from liegroups.torch import SE3, SO3
     import matplotlib.pyplot as plt
     import torch
-    import torchvision.transforms as transforms
-    import os
     from os.path import join
     from kornia.utils import tensor_to_image
-    from stego.src import remove_axes
+    from stego.utils import remove_axes
     import random
 
-    to_tensor = transforms.ToTensor()
-
     # Create test directory
-    os.makedirs(join(WVN_ROOT_DIR, "results", "test_image_projector"), exist_ok=True)
+    outpath = make_results_folder("test_image_projector")
 
     # Define number of cameras (batch)
     B = 100
@@ -38,19 +31,17 @@ def test_supervision_projection():
 
     # Extrisics
     pose_camera_in_world = torch.eye(4)[None]
-
     # Image size
-    H = 1080
-    W = 1440
+    H = torch.tensor(1080)
+    W = torch.tensor(1440)
 
     # Create projector
     im = ImageProjector(K, H, W)
 
     # Load image
-    pil_image = Image.open(join(WVN_ROOT_DIR, "assets/images/forest_clean.png"))
+    torch_image = load_test_image()
 
-    # Convert to torch
-    torch_image = to_tensor(pil_image)
+    # Resize
     torch_image = im.resize_image(torch_image)
     mask = (torch_image * 0.0)[None]
 
@@ -70,7 +61,7 @@ def test_supervision_projection():
         delta = SE3(R_WC, rho).as_matrix()[None]  # Pose matrix of camera in world frame
         pose_base_in_world = pose_base_in_world @ delta
         pose_footprint_in_base = torch.eye(4)[None]
-        print(delta, pose_base_in_world)
+        # print(delta, pose_base_in_world)
 
         twist = torch.rand((3,))
         supervision = torch.rand((10,))
@@ -107,7 +98,7 @@ def test_supervision_projection():
     fig, ax = plt.subplots(1, 2, figsize=(2 * 5, 5))
     ax[0].imshow(tensor_to_image(torch_image))
     ax[0].set_title("Image")
-    ax[1].imshow(tensor_to_image(mask))
+    ax[1].imshow(tensor_to_image(mask[0]))
     ax[1].set_title("Labels")
 
     remove_axes(ax)
@@ -115,7 +106,7 @@ def test_supervision_projection():
 
     # Store results to test directory
     img = get_img_from_fig(fig)
-    img.save(join(WVN_ROOT_DIR, "results", "test_image_projector", "forest_clean_supervision_projection.png"))
+    img.save(join(outpath, "forest_clean_supervision_projection.png"))
 
 
 if __name__ == "__main__":

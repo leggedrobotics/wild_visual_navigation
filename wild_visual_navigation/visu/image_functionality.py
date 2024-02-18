@@ -1,3 +1,8 @@
+#                                                                               
+# Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
+# All rights reserved. Licensed under the MIT license.
+# See LICENSE file in the project root for details.
+#                                                                               
 # TODO: Jonas doc strings
 import os
 import imageio
@@ -54,7 +59,7 @@ def image_functionality(func):
                 ds = cv2.resize(img, dsize=(int(W / 2), int(H / 2)), interpolation=cv2.INTER_CUBIC)
                 try:
                     # logger == neptuneai
-                    from neptune.new.types import File
+                    from neptune.types import File
 
                     args[0]._pl_model.logger.experiment[tag].log(File.as_image(np.float32(ds) / 255), step=epoch)
                 except Exception:

@@ -2,6 +2,8 @@ from setuptools import find_packages
 from distutils.core import setup
 
 # Minimum dependencies required prior to installation
+# TODO: If we add the "opencv-python>=4.6", it wont build on the jetson
+
 INSTALL_REQUIRES = [
     # generic
     "numpy",
@@ -9,9 +11,9 @@ INSTALL_REQUIRES = [
     "kornia>=0.6.5",
     "pip",
     "torchvision",
-    "torch@https://download.pytorch.org/whl/torch-2.1.0+cu121-cp38-cp38-linux_x86_64.whl",
+    "torch>=1.21",
     "torchmetrics",
-    "pytorch_lightning==1.6.5",
+    "pytorch_lightning>=1.6.5",
     "pytest",
     "scipy",
     "scikit-image",
@@ -28,10 +30,8 @@ INSTALL_REQUIRES = [
     "hydra-core",
     "prettytable",
     "termcolor",
-    "pydensecrf@git+https://github.com/lucasb-eyer/pydensecrf.git#egg=pydensecrf",
-    "liegroups@git+https://github.com/mmattamala/liegroups#egg=liegroups",
-    "stego@git+https://github.com/leggedrobotics/stego.git#egg=stego==0.0.1",
-    "opencv-python>=4.6",
+    "pydensecrf@git+https://github.com/lucasb-eyer/pydensecrf.git",
+    "liegroups@git+https://github.com/mmattamala/liegroups",
     "wget",
     "rospkg",
 ]
@@ -39,7 +39,7 @@ setup(
     name="wild_visual_navigation",
     version="0.0.1",
     author="Jonas Frey, Matias Mattamala",
-    author_email="jonfrey@ethz.ch, matias@leggedrobotics.com",
+    author_email="jonfrey@ethz.ch, matias@robots.oex.ac.uk",
     packages=find_packages(),
     python_requires=">=3.7",
     description="A small example package",

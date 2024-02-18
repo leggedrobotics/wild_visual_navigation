@@ -2,7 +2,6 @@ from wild_visual_navigation.utils import ConfidenceGenerator
 import matplotlib.pyplot as plt
 import torch
 import torch.nn.functional as F
-import numpy as np
 
 
 def generate_traversability_test_signal(N=500, T=10, events=[3, 8], event_length=0.5, device=torch.device("cpu")):
@@ -13,7 +12,7 @@ def generate_traversability_test_signal(N=500, T=10, events=[3, 8], event_length
         event_length = [event_length] * len(events)
 
     for e, l in zip(events, event_length):
-        half_event = l / 2
+        # half_event = l / 2
         ini_event = e
         end_event = e + l
         x += torch.sigmoid(10 * (t - ini_event)) - torch.sigmoid(10 * (t - end_event))
@@ -21,6 +20,13 @@ def generate_traversability_test_signal(N=500, T=10, events=[3, 8], event_length
 
 
 def test_confidence_generator():
+    from wild_visual_navigation.utils.testing import make_results_folder
+    from wild_visual_navigation.visu import get_img_from_fig
+    from os.path import join
+
+    # Create test directory
+    outpath = make_results_folder("test_confidence_generator")
+
     device = torch.device("cpu")
     N = 1000
     sigma_factor = 0.5
@@ -104,7 +110,13 @@ def test_confidence_generator():
     # Signal subplot
     axs[0].plot(t_np, x_noisy_np, label="Reconstructed signal", color="r")
     axs[0].plot(t_np, x_np, label="Target signal", color="k")
-    axs[0].plot(t_np, x_noisy_positive_np, label="Positive samples", color=(0.5, 0, 0), marker=".")
+    axs[0].plot(
+        t_np,
+        x_noisy_positive_np,
+        label="Positive samples",
+        color=(0.5, 0, 0),
+        marker=".",
+    )
     axs[0].set_ylabel("Signals")
     axs[0].legend(loc="upper right")
 
@@ -144,7 +156,13 @@ def test_confidence_generator():
     axs[2].set_ylabel("Confidence")
     axs[2].legend(loc="upper right")
 
-    plt.show()
+    img = get_img_from_fig(fig)
+    img.save(
+        join(
+            outpath,
+            "confidence_generator_test.png",
+        )
+    )
 
 
 if __name__ == "__main__":

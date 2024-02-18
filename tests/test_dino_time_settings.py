@@ -1,16 +1,20 @@
 from wild_visual_navigation import WVN_ROOT_DIR
-from pytictac import Timer
-from wild_visual_navigation.feature_extractor import DinoInterface, DinoTrtInterface, TrtModel
-from collections import namedtuple, OrderedDict
-from torchvision import transforms as T
-import cv2
+from wild_visual_navigation.feature_extractor import (
+    DinoInterface,
+    # DinoTrtInterface,
+    # TrtModel,
+)
+
+# from collections import namedtuple, OrderedDict
+# from torchvision import transforms as T
+# import cv2
 import os
 from os.path import join
 import numpy as np
 import pandas as pd
-import os
 import torch
-import tensorrt as trt
+
+# import tensorrt as trt
 from tqdm import tqdm
 
 import contextlib
@@ -36,9 +40,6 @@ def run_dino_interfacer():
     """Performance inference using stego and stores result as an image."""
 
     from pytictac import Timer
-    from wild_visual_navigation.visu import get_img_from_fig
-    import matplotlib.pyplot as plt
-    from stego.src import remove_axes
     import cv2
 
     # Create test directory
@@ -85,7 +86,7 @@ def run_dino_interfacer():
             for model in MODELS:
                 for patch in PATCHES:
                     di = None
-                    with capture_output() as out:
+                    with capture_output():
                         # Create DINO
                         di = DinoInterface(
                             device=device,
@@ -99,12 +100,12 @@ def run_dino_interfacer():
                         print(size, interp, model, patch, img_name)
 
                         for n in tqdm(range(TRIALS)):
-                            with capture_output() as out:
+                            with capture_output():
                                 try:
                                     timer.tic()
-                                    feat_dino = di.inference(di.transform(img), interpolate=False)
+                                    di.inference(di.transform(img), interpolate=False)
                                     t = timer.toc()
-                                except Exception as e:
+                                except Exception:
                                     t = np.nan
 
                                 samples.append([size, interp, model, patch, img_name, n, t])
@@ -114,7 +115,16 @@ def run_dino_interfacer():
 
     # Make pandas dataframe
     df = pd.DataFrame(
-        samples, columns=["image_size", "interpolation", "model", "patch_size", "img_name", "sample", "time"]
+        samples,
+        columns=[
+            "image_size",
+            "interpolation",
+            "model",
+            "patch_size",
+            "img_name",
+            "sample",
+            "time",
+        ],
     )
     df.to_pickle(join(test_path, f"dino_time_settings_{TRIALS}iter.pkl"))
     df.to_csv(join(test_path, f"dino_time_settings_{TRIALS}iter.csv"))

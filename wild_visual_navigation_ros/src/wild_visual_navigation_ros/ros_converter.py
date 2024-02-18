@@ -1,3 +1,8 @@
+#                                                                               
+# Copyright (c) 2022-2024, ETH Zurich, Matias Mattamala, Jonas Frey.
+# All rights reserved. Licensed under the MIT license.
+# See LICENSE file in the project root for details.
+#                                                                               
 import cv2
 from geometry_msgs.msg import Pose
 from nav_msgs.msg import Odometry

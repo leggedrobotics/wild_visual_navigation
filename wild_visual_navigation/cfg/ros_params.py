@@ -1,3 +1,8 @@
+#                                                                               
+# Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
+# All rights reserved. Licensed under the MIT license.
+# See LICENSE file in the project root for details.
+#                                                                               
 from dataclasses import dataclass
 from typing import Dict
 from typing import Any
@@ -24,19 +29,10 @@ class RosLearningNodeParams:
     traversability_radius: float  # meters
     image_graph_dist_thr: float  # meters
     supervision_graph_dist_thr: float  # meters
-    network_input_image_height: int  # 448
-    network_input_image_width: int  # 448
-    segmentation_type: str
-    feature_type: str
-    dino_patch_size: int  # 8 or 16; 8 is finer
-    slic_num_components: int
-    dino_dim: int  # 90 or 384; 384 is better
     confidence_std_factor: float
-    scale_traversability: bool  # This parameter needs to be false when using the anomaly detection model
-    scale_traversability_max_fpr: float
     min_samples_for_training: int
-
-    traversability_threshold: float
+    network_input_image_height: int
+    network_input_image_width: int
     vis_node_index: int
 
     # Supervision Generator
@@ -50,6 +46,7 @@ class RosLearningNodeParams:
     supervision_callback_rate: float  # hertz
     learning_thread_rate: float  # hertz
     logging_thread_rate: float  # hertz
+    load_save_checkpoint_rate: float  # hert
 
     # Runtime options
     device: str
@@ -76,17 +73,14 @@ class RosFeatureExtractorNodeParams:
     segmentation_type: str
     feature_type: str
     dino_patch_size: int  # 8 or 16; 8 is finer
+    dino_backbone: str  # vit_small, vit_base
     slic_num_components: int
-    dino_dim: int  # 90 or 384; 384 is better
 
     # ConfidenceGenerator
     confidence_std_factor: float
-    scale_traversability: bool  # This parameter needs to be false when using the anomaly detection model
 
     # Output setting
     prediction_per_pixel: bool
-    traversability_threshold: float
-    clip_to_binary: bool
 
     # Runtime options
     mode: Any  # check out comments in the class WVNMode
@@ -94,3 +88,7 @@ class RosFeatureExtractorNodeParams:
     device: str
     log_confidence: bool
     verbose: bool
+
+    # Threads
+    image_callback_rate: float  # hertz
+    load_save_checkpoint_rate: float  # hertz

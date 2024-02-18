@@ -1,3 +1,8 @@
+#                                                                               
+# Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
+# All rights reserved. Licensed under the MIT license.
+# See LICENSE file in the project root for details.
+#                                                                               
 import torch
 from kornia.geometry.linalg import transform_points
 
@@ -72,15 +77,30 @@ def make_ellipsoid(length, width, height, pose=torch.eye(4), grid_size=11):
 def make_plane(x=None, y=None, z=None, pose=torch.eye(4), grid_size=10):
     if x is None:
         points = torch.FloatTensor(
-            [[0.0, y / 2, z / 2], [0.0, -y / 2, z / 2], [0.0, -y / 2, -z / 2], [0.0, y / 2, -z / 2]]
+            [
+                [0.0, y / 2, z / 2],
+                [0.0, -y / 2, z / 2],
+                [0.0, -y / 2, -z / 2],
+                [0.0, y / 2, -z / 2],
+            ]
         ).to(pose.device)
     elif y is None:
         points = torch.FloatTensor(
-            [[x / 2, 0.0, z / 2], [x / 2, 0.0, -z / 2], [-x / 2, 0.0, -z / 2], [-x / 2, 0.0, z / 2]]
+            [
+                [x / 2, 0.0, z / 2],
+                [x / 2, 0.0, -z / 2],
+                [-x / 2, 0.0, -z / 2],
+                [-x / 2, 0.0, z / 2],
+            ]
         ).to(pose.device)
     elif z is None:
         points = torch.FloatTensor(
-            [[x / 2, y / 2, 0.0], [x / 2, -y / 2, 0.0], [-x / 2, -y / 2, 0.0], [-x / 2, y / 2, 0.0]]
+            [
+                [x / 2, y / 2, 0.0],
+                [x / 2, -y / 2, 0.0],
+                [-x / 2, -y / 2, 0.0],
+                [-x / 2, y / 2, 0.0],
+            ]
         ).to(pose.device)
     else:
         raise "make_plane requires just 2 inputs to be set"

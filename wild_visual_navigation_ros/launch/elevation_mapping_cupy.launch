@@ -1,0 +1,9 @@
+<launch>
+    <!-- Elevation mapping node -->
+    <rosparam command="delete" param="/elevation_mapping/subscribers" />
+    <node pkg="elevation_mapping_cupy" type="elevation_mapping_node" name="elevation_mapping" output="screen">
+        <rosparam command="load" file="$(find wild_visual_navigation_ros)/config/elevation_mapping_cupy/wvn_parameters.yaml" />
+        <rosparam command="load" file="$(find wild_visual_navigation_ros)/config/elevation_mapping_cupy/wvn_sensor_parameter.yaml" />
+    </node>
+
+</launch>

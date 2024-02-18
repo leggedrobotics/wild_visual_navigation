@@ -1,7 +1,13 @@
+#                                                                               
+# Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
+# All rights reserved. Licensed under the MIT license.
+# See LICENSE file in the project root for details.
+#                                                                               
 import torch
 import torch.nn.functional as F
-from torch_geometric.nn import GCNConv
-from torch_geometric.data import Data
+
+# from torch_geometric.nn import GCNConv
+from wild_visual_navigation.utils import Data
 
 
 class SimpleGCN(torch.nn.Module):

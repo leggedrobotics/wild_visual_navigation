@@ -1,10 +1,14 @@
+#                                                                               
+# Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
+# All rights reserved. Licensed under the MIT license.
+# See LICENSE file in the project root for details.
+#                                                                               
 from .nodes import BaseNode
 import networkx as nx
 import random
 from threading import Lock
 import networkx
 import torch
-from pytictac import Timer
 
 
 class BaseGraph:
@@ -69,7 +73,11 @@ class BaseGraph:
 
             # Add edge to latest
             if self._last_added_node is not None:
-                self._graph.add_edge(node, self._last_added_node, distance=node.distance_to(self._last_added_node))
+                self._graph.add_edge(
+                    node,
+                    self._last_added_node,
+                    distance=node.distance_to(self._last_added_node),
+                )
             else:
                 self._first_node = node
 
@@ -144,7 +152,12 @@ class BaseGraph:
         return nodes[0] if len(nodes) > 0 else None
 
     def get_nodes_within_radius_range(
-        self, node: BaseNode, min_radius: float, max_radius: float, time_eps: float = 1, metric: str = "dijkstra"
+        self,
+        node: BaseNode,
+        min_radius: float,
+        max_radius: float,
+        time_eps: float = 1,
+        metric: str = "dijkstra",
     ):
         # Find closest node in the graph (timestamp). This is useful when we are finding nodes corresponding to another graph
         closest_node = self.get_node_with_timestamp(node.timestamp, eps=time_eps)
@@ -192,7 +205,11 @@ class BaseGraph:
             self._graph.remove_nodes_from(nodes)
 
     def remove_nodes_within_radius_range(
-        self, node: BaseNode, min_radius: float = 0, max_radius: float = float("inf"), metric: str = "dijkstra"
+        self,
+        node: BaseNode,
+        min_radius: float = 0,
+        max_radius: float = float("inf"),
+        metric: str = "dijkstra",
     ):
         # Significantly faster then checking all the nodes
         nodes_to_remove = []
@@ -310,7 +327,10 @@ def run_base_graph():
 
     nodes_list = []
     for i in range(N):
-        s = BaseNode(timestamp=i, pose_base_in_world=SE3(SO3.identity(), torch.Tensor([i / 10.0, 0, 0])).as_matrix())
+        s = BaseNode(
+            timestamp=i,
+            pose_base_in_world=SE3(SO3.identity(), torch.Tensor([i / 10.0, 0, 0])).as_matrix(),
+        )
         nodes_list.append(s)
         graph.add_node(s)
 
@@ -363,7 +383,10 @@ def run_temporal_window_graph():
     nodes_list = []
     for i in range(N):
         t = i
-        s = BaseNode(timestamp=t, pose_base_in_world=SE3(SO3.identity(), torch.Tensor([i / 10.0, 0, 0])).as_matrix())
+        s = BaseNode(
+            timestamp=t,
+            pose_base_in_world=SE3(SO3.identity(), torch.Tensor([i / 10.0, 0, 0])).as_matrix(),
+        )
         nodes_list.append(s)
         graph.add_node(s)
         assert graph.get_first_node().timestamp >= t - W

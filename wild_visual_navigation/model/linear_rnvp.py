@@ -1,10 +1,12 @@
+#                                                                               
+# Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
+# All rights reserved. Licensed under the MIT license.
+# See LICENSE file in the project root for details.
+#                                                                               
 import copy
-import itertools
-from abc import abstractmethod, ABC
 import torch
 from torch import nn, distributions
-import numpy as np
-from torch_geometric.data import Data
+from wild_visual_navigation.utils import Data
 
 
 class LinearBatchNorm(nn.Module):
@@ -71,20 +73,30 @@ class LinearCouplingLayer(nn.Module):
     The inverse is trivially [(x1 - t(x2))*exp(-s(x2)); x2].
     """
 
-    def __init__(self, input_dim, mask, network_topology, conditioning_size=None, single_function=True):
+    def __init__(
+        self,
+        input_size,
+        mask,
+        network_topology,
+        conditioning_size=None,
+        single_function=True,
+    ):
         super().__init__()
 
         if conditioning_size is None:
             conditioning_size = 0
 
         if network_topology is None or len(network_topology) == 0:
-            network_topology = [input_dim]
+            network_topology = [input_size]
 
         self.register_buffer("mask", mask)
 
-        self.dim = input_dim
+        self.dim = input_size
 
-        self.s = [nn.Linear(input_dim + conditioning_size, network_topology[0]), nn.ReLU()]
+        self.s = [
+            nn.Linear(input_size + conditioning_size, network_topology[0]),
+            nn.ReLU(),
+        ]
 
         for i in range(len(network_topology)):
             t = network_topology[i]
@@ -92,9 +104,9 @@ class LinearCouplingLayer(nn.Module):
             self.s.extend([nn.Linear(t_p, t), nn.ReLU()])
 
         if single_function:
-            input_dim = input_dim * 2
+            input_size = input_size * 2
 
-        ll = nn.Linear(network_topology[-1], input_dim)
+        ll = nn.Linear(network_topology[-1], input_size)
 
         self.s.append(ll)
         self.s = nn.Sequential(*self.s)
@@ -209,7 +221,7 @@ class LinearRnvp(nn.Module):
 
     def __init__(
         self,
-        input_dim,
+        input_size,
         coupling_topology,
         flow_n=2,
         use_permutation=False,
@@ -221,26 +233,26 @@ class LinearRnvp(nn.Module):
     ):
         super().__init__()
 
-        self.register_buffer("prior_mean", torch.zeros(input_dim))  # Normal Gaussian with zero mean
-        self.register_buffer("prior_var", torch.ones(input_dim))  # Normal Gaussian with unit variance
+        self.register_buffer("prior_mean", torch.zeros(input_size))  # Normal Gaussian with zero mean
+        self.register_buffer("prior_var", torch.ones(input_size))  # Normal Gaussian with unit variance
 
         if mask_type == "odds":
-            mask = torch.arange(0, input_dim).float() % 2
+            mask = torch.arange(0, input_size).float() % 2
         elif mask_type == "half":
-            mask = torch.zeros(input_dim)
-            mask[: input_dim // 2] = 1
+            mask = torch.zeros(input_size)
+            mask[: input_size // 2] = 1
         else:
             assert False
 
         if coupling_topology is None:
-            coupling_topology = [input_dim // 2, input_dim // 2]
+            coupling_topology = [input_size // 2, input_size // 2]
 
         blocks = []
 
         for i in range(flow_n):
             blocks.append(
                 LinearCouplingLayer(
-                    input_dim,
+                    input_size,
                     mask,
                     network_topology=coupling_topology,
                     conditioning_size=conditioning_size,
@@ -248,12 +260,12 @@ class LinearRnvp(nn.Module):
                 )
             )
             if use_permutation:
-                blocks.append(Permutation(input_dim))
+                blocks.append(Permutation(input_size))
             else:
                 mask = 1 - mask
 
             if batch_norm:
-                blocks.append(LinearBatchNorm(input_dim))
+                blocks.append(LinearBatchNorm(input_size))
 
         self.flows = SequentialFlow(*blocks)
 
