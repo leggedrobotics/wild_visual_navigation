@@ -13,11 +13,10 @@ from collections import deque
 class ConfidenceGenerator(torch.nn.Module):
     def __init__(
         self,
-        std_factor: float = 0.7,
-        method: str = "running_mean",
+        std_factor,
+        method,
         log_enabled: bool = False,
         log_folder: str = f"{WVN_ROOT_DIR}/results",
-        anomaly_detection: bool = False,
     ):
         """Returns a confidence value for each number
 
@@ -29,7 +28,6 @@ class ConfidenceGenerator(torch.nn.Module):
 
         self.log_enabled = log_enabled
         self.log_folder = log_folder
-        self.anomaly_detection = anomaly_detection
 
         mean = torch.zeros(1, dtype=torch.float32)
         var = torch.ones((1, 1), dtype=torch.float32)
@@ -107,19 +105,12 @@ class ConfidenceGenerator(torch.nn.Module):
         if x.device != self.mean.device:
             return torch.zeros_like(x)
 
-        if self.anomaly_detection:
-            x = torch.clip(x, self.mean - 2 * self.std, self.mean + 2 * self.std)
-            confidence = (x - torch.min(x)) / (torch.max(x) - torch.min(x))
-        else:
-            # Then the confidence is computed as the distance to the center of the Gaussian given factor*sigma
-            # confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
-            # confidence[x < self.mean] = 1.0
-
-            shifted_mean = self.mean + self.std * self.std_factor
-            interval_min = shifted_mean - 2 * self.std
-            interval_max = shifted_mean + 2 * self.std
-            x = torch.clip(x, interval_min, interval_max)
-            confidence = 1 - ((x - interval_min) / (interval_max - interval_min))
+        shifted_mean = self.mean + self.std * self.std_factor
+        std_fac = 1
+        interval_min = max(shifted_mean - std_fac * self.std, 0)
+        interval_max = shifted_mean + std_fac * self.std
+        x = torch.clip(x, interval_min, interval_max)
+        confidence = 1 - ((x - interval_min) / (interval_max - interval_min))
 
         return confidence.type(torch.float32)
 
@@ -189,22 +180,15 @@ class ConfidenceGenerator(torch.nn.Module):
         return output
 
     def inference_without_update(self, x: torch.tensor):
+
         if x.device != self.mean.device:
             return torch.zeros_like(x)
-
-        if self.anomaly_detection:
-            x = torch.clip(x, self.mean - 2 * self.std, self.mean + 2 * self.std)
-            confidence = (x - torch.min(x)) / (torch.max(x) - torch.min(x))
-
-        else:
-            shifted_mean = self.mean + self.std * self.std_factor
-            interval_min = shifted_mean - 2 * self.std
-            interval_max = shifted_mean + 2 * self.std
-            x = torch.clip(x, interval_min, interval_max)
-            confidence = 1 - ((x - interval_min) / (interval_max - interval_min))
-
-            # confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
-            # confidence[x < self.mean] = 1.0
+        shifted_mean = self.mean + self.std * self.std_factor
+        std_fac = 1
+        interval_min = max(shifted_mean - std_fac * self.std, 0)
+        interval_max = shifted_mean + std_fac * self.std
+        x = torch.clip(x, interval_min, interval_max)
+        confidence = 1 - ((x - interval_min) / (interval_max - interval_min))
 
         return confidence.type(torch.float32)
 
@@ -229,7 +213,7 @@ class ConfidenceGenerator(torch.nn.Module):
 
 
 if __name__ == "__main__":
-    cg = ConfidenceGenerator()
+    cg = ConfidenceGenerator(std_factor=0.5, method="latest_measurement")
     for i in range(1000):
         inp = torch.rand(10) * 10
         res = cg.update(inp, inp, step=i)

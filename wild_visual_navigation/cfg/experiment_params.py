@@ -59,7 +59,7 @@ class ExperimentParams:
 
     @dataclass
     class LossAnomalyParams:
-        method: str = "running_mean"  # "latest_measurement", "running_mean", "moving_average"
+        method: str = "latest_measurement"
         confidence_std_factor: float = 0.5
 
     loss_anomaly: LossAnomalyParams = LossAnomalyParams()

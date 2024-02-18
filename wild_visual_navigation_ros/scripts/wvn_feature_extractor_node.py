@@ -67,20 +67,15 @@ class WvnFeatureExtractor:
         self._model = get_model(self._params.model).to(self._ros_params.device)
         self._model.eval()
 
-        if not self.anomaly_detection:
+        if self.anomaly_detection:
             self._confidence_generator = ConfidenceGenerator(
-                method=self._params.loss.method,
-                std_factor=self._params.loss.confidence_std_factor,
-                anomaly_detection=self.anomaly_detection,
+                method=self._params.loss_anomaly.method, std_factor=self._params.loss_anomaly.confidence_std_factor
             )
-        else:
-            self._anomaly_loss = AnomalyLoss(
-                **self._params.loss_anomaly,
-                log_enabled=self._params.general.log_confidence,
-                log_folder=self._params.general.model_path,
-            )
-            self._anomaly_loss.to(self._ros_params.device)
 
+        else:
+            self._confidence_generator = ConfidenceGenerator(
+                method=self._params.loss.method, std_factor=self._params.loss.confidence_std_factor
+            )
         self._log_data = {}
         self.setup_ros()
 
@@ -116,6 +111,7 @@ class WvnFeatureExtractor:
 
         with read_write(self._params):
             self._params.loss.confidence_std_factor = self._ros_params.confidence_std_factor
+            self._params.loss_anomaly.confidence_std_factor = self._ros_params.confidence_std_factor
 
         self.anomaly_detection = self._params.model.name == "LinearRnvp"
 
@@ -335,7 +331,9 @@ class WvnFeatureExtractor:
             if not self.anomaly_detection:
                 out_trav = prediction.reshape(H, W, -1)[:, :, 0]
             else:
-                loss, loss_aux, trav = self._anomaly_loss(None, prediction)
+                losses = prediction["logprob"].sum(1) + prediction["log_det"]
+                confidence = self._confidence_generator.inference_without_update(x=-losses)
+                trav = confidence
                 out_trav = trav.reshape(H, W, -1)[:, :, 0]
 
             msg = rc.numpy_to_ros_image(out_trav.cpu().numpy(), "passthrough")
@@ -426,18 +424,26 @@ class WvnFeatureExtractor:
             new_model_state_dict = torch.load(p)
             k = list(self._model.state_dict().keys())[-1]
 
-            if (self._model.state_dict()[k] != new_model_state_dict[k]).any():
-                if self._ros_params.verbose:
-                    self._log_data[f"time_last_model"] = rospy.get_time()
-                    self._log_data[f"nr_model_updates"] += 1
+            # check if the key is in state dict - this may be not the case if switched between models
+            # assumption first key within state_dict is unique and sufficient to identify if a model has changed
+            if k in new_model_state_dict:
+                # check if the model has changed
+                if (self._model.state_dict()[k] != new_model_state_dict[k]).any():
+                    if self._ros_params.verbose:
+                        self._log_data[f"time_last_model"] = rospy.get_time()
+                        self._log_data[f"nr_model_updates"] += 1
 
-            self._model.load_state_dict(new_model_state_dict, strict=False)
+                    self._model.load_state_dict(new_model_state_dict, strict=False)
+                    if "confidence_generator" in new_model_state_dict.keys():
+                        cg = new_model_state_dict["confidence_generator"]
+                        self._confidence_generator.var = cg["var"]
+                        self._confidence_generator.mean = cg["mean"]
+                        self._confidence_generator.std = cg["std"]
 
-            if "confidence_generator" in new_model_state_dict.keys():
-                cg = new_model_state_dict["confidence_generator"]
-                self._confidence_generator.var = cg["var"]
-                self._confidence_generator.mean = cg["mean"]
-                self._confidence_generator.std = cg["std"]
+                    if self._ros_params.verbose:
+                        m, s, v = cg["mean"].item(), cg["std"].item(), cg["var"].item()
+                        rospy.loginfo(f"[{self._node_name}] Loaded Confidence Generator {m}, std {s} var {v}")
+
         else:
             if self._ros_params.verbose:
                 rospy.logerr(f"[{self._node_name}] Model Loading Failed")

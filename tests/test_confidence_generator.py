@@ -73,7 +73,7 @@ def test_confidence_generator():
     conf = torch.zeros((3, N), device=device)
 
     # Naive confidence generator
-    cg = ConfidenceGenerator(std_factor=sigma_factor).to(device)
+    cg = ConfidenceGenerator(std_factor=sigma_factor, method="latest_measurement").to(device)
 
     # Run
     for i in range(x.shape[0]):

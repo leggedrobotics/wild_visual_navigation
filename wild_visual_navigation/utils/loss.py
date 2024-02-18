@@ -24,11 +24,7 @@ class AnomalyLoss(nn.Module):
         super(AnomalyLoss, self).__init__()
 
         self._confidence_generator = ConfidenceGenerator(
-            std_factor=confidence_std_factor,
-            method=method,
-            log_enabled=log_enabled,
-            log_folder=log_folder,
-            anomaly_detection=True,
+            std_factor=confidence_std_factor, method=method, log_enabled=log_enabled, log_folder=log_folder
         )
 
     def forward(
@@ -46,7 +42,9 @@ class AnomalyLoss(nn.Module):
         losses = res["logprob"].sum(1) + res["log_det"]  # Sum over all channels, resulting in h*w output dimensions
 
         if update_generator:
-            confidence = self._confidence_generator.update(x=losses, x_positive=losses, step=step)
+            confidence = self._confidence_generator.update(
+                x=-losses.clone().detach(), x_positive=-losses.clone().detach(), step=step
+            )
 
         loss_aux["confidence"] = confidence
 
@@ -85,11 +83,7 @@ class TraversabilityLoss(nn.Module):
             self._trav_loss_func = F.mse_loss
 
         self._confidence_generator = ConfidenceGenerator(
-            std_factor=confidence_std_factor,
-            method=method,
-            log_enabled=log_enabled,
-            log_folder=log_folder,
-            anomaly_detection=False,
+            std_factor=confidence_std_factor, method=method, log_enabled=log_enabled, log_folder=log_folder
         )
 
     def reset(self):

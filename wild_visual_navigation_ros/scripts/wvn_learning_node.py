@@ -42,14 +42,20 @@ from typing import Optional
 import traceback
 import signal
 import sys
+import time
+
+
+def time_func():
+    return time.time()
+    # return rospy.get_time()
 
 
 class WvnLearning:
     def __init__(self, node_name):
         # Timers to control the rate of the publishers
-        self._last_image_ts = rospy.get_time()
-        self._last_supervision_ts = rospy.get_time()
-        self._last_checkpoint_ts = rospy.get_time()
+        self._last_image_ts = time_func()
+        self._last_supervision_ts = time_func()
+        self._last_checkpoint_ts = time_func()
         self._setup_ready = False
 
         # Prepare variables
@@ -215,7 +221,7 @@ class WvnLearning:
             )
 
         self._step = -1
-        self._step_time = rospy.get_time()
+        self._step_time = time_func()
         self.anomaly_detection = self._params.model.name == "LinearRnvp"
 
     def setup_ros(self, setup_fully=True):
@@ -341,7 +347,7 @@ class WvnLearning:
         # Learning loop
         while True:
             self._system_events["learning_thread_loop"] = {
-                "time": rospy.get_time(),
+                "time": time_func(),
                 "value": "running",
             }
             self._learning_thread_stop_event.wait(timeout=0.01)
@@ -354,7 +360,7 @@ class WvnLearning:
                 res = self._traversability_estimator.train()
 
             if self._step != self._traversability_estimator.step:
-                self._step_time = rospy.get_time()
+                self._step_time = time_func()
                 self._step = self._traversability_estimator.step
 
             # Publish loss
@@ -372,7 +378,7 @@ class WvnLearning:
             new_model_state_dict = self._traversability_estimator._model.state_dict()
 
             # Check the rate
-            ts = rospy.get_time()
+            ts = time_func()
             if abs(ts - self._last_checkpoint_ts) > 1.0 / self._ros_params.load_save_checkpoint_rate:
 
                 cg = self._traversability_estimator._traversability_loss._confidence_generator
@@ -393,7 +399,7 @@ class WvnLearning:
             rate.sleep()
 
         self._system_events["learning_thread_loop"] = {
-            "time": rospy.get_time(),
+            "time": time_func(),
             "value": "finished",
         }
         self._learning_thread_stop_event.clear()
@@ -408,7 +414,7 @@ class WvnLearning:
                 rospy.logwarn("Stopped logging thread")
                 break
 
-            current_time = rospy.get_time()
+            current_time = time_func()
             tmp = self._system_events.copy()
             rospy.loginfo("System Events:")
             for k, v in tmp.items():
@@ -435,14 +441,14 @@ class WvnLearning:
             return
 
         self._system_events["robot_state_callback_received"] = {
-            "time": rospy.get_time(),
+            "time": time_func(),
             "value": "message received",
         }
         try:
             ts = state_msg.header.stamp.to_sec()
             if abs(ts - self._last_supervision_ts) < 1.0 / self._ros_params.supervision_callback_rate:
                 self._system_events["robot_state_callback_canceled"] = {
-                    "time": rospy.get_time(),
+                    "time": time_func(),
                     "value": "canceled due to rate",
                 }
                 return
@@ -459,7 +465,7 @@ class WvnLearning:
             )
             if not success:
                 self._system_events["robot_state_callback_canceled"] = {
-                    "time": rospy.get_time(),
+                    "time": time_func(),
                     "value": "canceled due to pose_base_in_world",
                 }
                 return
@@ -474,7 +480,7 @@ class WvnLearning:
             )
             if not success:
                 self._system_events["robot_state_callback_canceled"] = {
-                    "time": rospy.get_time(),
+                    "time": time_func(),
                     "value": "canceled due to pose_footprint_in_base",
                 }
                 return
@@ -524,7 +530,7 @@ class WvnLearning:
                 print(f"[{self._node_name}]\n{self._timer}")
 
             self._system_events["robot_state_callback_state"] = {
-                "time": rospy.get_time(),
+                "time": time_func(),
                 "value": "executed successfully",
             }
 
@@ -532,7 +538,7 @@ class WvnLearning:
             traceback.print_exc()
             rospy.logerr(f"[{self._node_name}] error state callback", e)
             self._system_events["robot_state_callback_state"] = {
-                "time": rospy.get_time(),
+                "time": time_func(),
                 "value": f"failed to execute {e}",
             }
 
@@ -557,7 +563,7 @@ class WvnLearning:
             imagefeat_msg, info_msg, camera_options = tuple(args)
 
         self._system_events["image_callback_received"] = {
-            "time": rospy.get_time(),
+            "time": time_func(),
             "value": "message received",
         }
 
@@ -582,7 +588,7 @@ class WvnLearning:
             )
             if not success:
                 self._system_events["image_callback_canceled"] = {
-                    "time": rospy.get_time(),
+                    "time": time_func(),
                     "value": "canceled due to pose_base_in_world",
                 }
                 return
@@ -597,7 +603,7 @@ class WvnLearning:
             )
             if not success:
                 self._system_events["image_callback_canceled"] = {
-                    "time": rospy.get_time(),
+                    "time": time_func(),
                     "value": "canceled due to pose_cam_in_base",
                 }
                 return
@@ -665,7 +671,7 @@ class WvnLearning:
                 rospy.loginfo(f"[{self._node_name}]\n{self._timer}")
 
             self._system_events["image_callback_state"] = {
-                "time": rospy.get_time(),
+                "time": time_func(),
                 "value": "executed successfully",
             }
 
@@ -673,7 +679,7 @@ class WvnLearning:
             traceback.print_exc()
             rospy.logerr(f"[{self._node_name}] error image callback", e)
             self._system_events["image_callback_state"] = {
-                "time": rospy.get_time(),
+                "time": time_func(),
                 "value": f"failed to execute {e}",
             }
             raise Exception("Error in image callback")
@@ -790,7 +796,7 @@ class WvnLearning:
         # Publish latest traversability
         self._pub_instant_traversability.publish(self._supervision_generator.traversability)
         self._system_events["visualize_supervision"] = {
-            "time": rospy.get_time(),
+            "time": time_func(),
             "value": f"executed successfully",
         }
 
