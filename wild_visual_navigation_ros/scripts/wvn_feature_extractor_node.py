@@ -1,8 +1,8 @@
-#                                                                               
+#
 # Copyright (c) 2022-2024, ETH Zurich, Matias Mattamala, Jonas Frey.
 # All rights reserved. Licensed under the MIT license.
 # See LICENSE file in the project root for details.
-#                                                                               
+#
 from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.feature_extractor import FeatureExtractor
 from wild_visual_navigation.cfg import ExperimentParams, RosFeatureExtractorNodeParams

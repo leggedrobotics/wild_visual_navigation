@@ -1,8 +1,8 @@
-#                                                                               
+#
 # Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
 # All rights reserved. Licensed under the MIT license.
 # See LICENSE file in the project root for details.
-#                                                                               
+#
 from wild_visual_navigation.feature_extractor import FeatureExtractor
 from wild_visual_navigation.image_projector import ImageProjector
 from wild_visual_navigation.model import get_model

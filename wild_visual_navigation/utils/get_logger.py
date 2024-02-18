@@ -1,8 +1,8 @@
-#                                                                               
+#
 # Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
 # All rights reserved. Licensed under the MIT license.
 # See LICENSE file in the project root for details.
-#                                                                               
+#
 from pytorch_lightning.loggers.neptune import NeptuneLogger
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from wild_visual_navigation.utils import flatten_dict

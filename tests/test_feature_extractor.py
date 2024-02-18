@@ -12,7 +12,7 @@ def test_feature_extractor():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     segmentation_types = ["none", "grid", "slic", "random", "stego"]
     feature_types = ["dino", "dinov2", "stego"]
-    backbone_types = ["vit_small", "vit_base"] # "vit_small_reg", "vit_base_reg"]
+    backbone_types = ["vit_small", "vit_base"]  # "vit_small_reg", "vit_base_reg"]
 
     for seg_type, feat_type, back_type in itertools.product(segmentation_types, feature_types, backbone_types):
         if seg_type == "stego" and feat_type != "stego":

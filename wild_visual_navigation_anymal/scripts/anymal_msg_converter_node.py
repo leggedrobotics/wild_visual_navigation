@@ -1,9 +1,9 @@
 #!/usr/bin/python3
-#                                                                               
+#
 # Copyright (c) 2022-2024, ETH Zurich, Matias Mattamala, Jonas Frey.
 # All rights reserved. Licensed under the MIT license.
 # See LICENSE file in the project root for details.
-#                                                                               
+#
 from wild_visual_navigation_msgs.msg import CustomState, RobotState
 from anymal_msgs.msg import AnymalState
 import rospy

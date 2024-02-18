@@ -1,11 +1,13 @@
-#                                                                               
+#
 # Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
 # All rights reserved. Licensed under the MIT license.
 # See LICENSE file in the project root for details.
-#                                                                               
+#
+from wild_visual_navigation import WVN_ROOT_DIR
+
 import os
 import yaml
-from wild_visual_navigation import WVN_ROOT_DIR
+
 
 __all__ = ["file_path", "load_yaml"]
 

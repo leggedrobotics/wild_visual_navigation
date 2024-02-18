@@ -1,12 +1,12 @@
-#                                                                               
+#
 # Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
 # All rights reserved. Licensed under the MIT license.
 # See LICENSE file in the project root for details.
-#                                                                               
+#
+from wild_visual_navigation.utils import Data
 import copy
 import torch
 from torch import nn, distributions
-from wild_visual_navigation.utils import Data
 
 
 class LinearBatchNorm(nn.Module):
