@@ -5,6 +5,10 @@
   <arg name="params_file"       default="$(find wild_visual_navigation_ros)/config/wild_visual_navigation/default.yaml"/>
   <arg name="overlay_images"    default="True"/>
   <arg name="reload_default_params"    default="False"/>
+  
+  <!-- Clear old params -->
+  <rosparam command="delete" param="wvn_learning_node"/>
+  <rosparam command="delete" param="wvn_feature_extractor_node"/>
 
   <!-- Load parameters -->
   <rosparam command="load" file="$(arg params_file)" ns="wvn_learning_node"/>
