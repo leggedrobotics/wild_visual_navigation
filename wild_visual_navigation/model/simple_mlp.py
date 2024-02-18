@@ -1,10 +1,10 @@
-#                                                                               
+#
 # Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
 # All rights reserved. Licensed under the MIT license.
 # See LICENSE file in the project root for details.
-#                                                                               
-import torch
+#
 from wild_visual_navigation.utils import Data
+import torch
 
 
 class SimpleMLP(torch.nn.Module):

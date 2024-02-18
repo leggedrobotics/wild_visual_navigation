@@ -1,8 +1,8 @@
-#                                                                               
+#
 # Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
 # All rights reserved. Licensed under the MIT license.
 # See LICENSE file in the project root for details.
-#                                                                               
+#
 from .data import Data, Batch
 from .flatten_dict import flatten_dict
 from .get_logger import get_logger, get_neptune_run

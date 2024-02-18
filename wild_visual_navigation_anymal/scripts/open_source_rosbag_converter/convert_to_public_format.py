@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-#                                                                               
+#
 # Copyright (c) 2022-2024, ETH Zurich, Matias Mattamala, Jonas Frey.
 # All rights reserved. Licensed under the MIT license.
 # See LICENSE file in the project root for details.
-#                                                                               
+#
 
 import rospy
 from anymal_msgs.msg import AnymalState
