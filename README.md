@@ -63,16 +63,14 @@ git clone git@github.com:leggedrobotics/wild_visual_navigation.git
 git clone git@github.com:leggedrobotics/self_supervised_segmentation.git
 ```
 
-2. Install the conda environment. (Currently the conda environment file is not tested and most likely outdated)
+2. Install the virtual environment.
 ```shell
-# Make sure to be in the base conda environment
 cd ~/git/wild_visual_navigation
-conda env create -f environment.yaml 
+# TODO
 ```
 
 3. Install the wild_visual_navigation package.
 ```shell
-conda activate wvn
 cd ~/git
 pip3 install -e ./wild_visual_navigation
 ```
@@ -142,8 +140,7 @@ source /opt/ros/noetic/setup.bash
 source ~/catkin_ws/devel/setup.bash
 ```
 
-After successfully building the ros workspace you can run the full pipeline by either using the launch file (this requires all packages to be installed into your system python installation), or by running the nodes from the conda environment as plain python scripts.
-We are currently working on the instructions using a `virtualenv` which eases this process.
+After successfully building the ros workspace you can run the full pipeline by either using the launch file (this requires all packages to be installed into your system python installation), or by running the nodes from the virtual environment as plain python scripts.
 
 - Run WVN Nodes:
 ```shell
