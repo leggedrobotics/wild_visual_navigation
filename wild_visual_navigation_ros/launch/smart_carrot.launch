@@ -1,0 +1,16 @@
+<launch>
+    <!-- Launch Smart Carrot node -->
+    <node name="wild_visual_navigation_smart_carrot" pkg="wild_visual_navigation_ros" type="smart_carrot.py">
+        <param name="gridmap_sub_topic" value="/elevation_mapping/semantic_map"/>
+        <param name="debug_pub_topic" value="semantic_map"/>
+        <param name="goal_pub_topic" value="/initialpose"/>
+        <param name="debug" value="False"/>
+
+        <param name="map_frame" value="odom"/>
+        <param name="base_frame" value="base_inverted_field_local_planner"/>
+
+        <param name="distance_force_factor" value="0.5"/>
+        <param name="center_force_factor" value="0.0"/>
+    </node>
+
+</launch>
