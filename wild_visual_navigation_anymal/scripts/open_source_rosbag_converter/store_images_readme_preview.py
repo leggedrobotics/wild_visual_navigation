@@ -8,12 +8,12 @@ from cv_bridge import CvBridge
 from message_filters import ApproximateTimeSynchronizer, Subscriber
 from PIL import Image as PILImage
 
+
 class ImageSaver:
     def __init__(self):
-        rospy.init_node('image_saver', anonymous=True)
+        rospy.init_node("image_saver", anonymous=True)
         self.bridge = CvBridge()
         self.count = 0
-
 
         self.dir_path = "/Data/open_source_dataset"
         # Create directories to store images
@@ -28,7 +28,7 @@ class ImageSaver:
             trav_cv2 = self.bridge.imgmsg_to_cv2(trav_msg, desired_encoding="passthrough")
             raw_cv2 = self.bridge.imgmsg_to_cv2(raw_msg, desired_encoding="passthrough")
 
-                        # Convert images to RGBA format
+            # Convert images to RGBA format
             trav_rgba = cv2.cvtColor(trav_cv2, cv2.COLOR_RGB2BGR)
             raw_rgba = cv2.cvtColor(raw_cv2, cv2.COLOR_BGR2BGRA)
 
@@ -46,7 +46,8 @@ class ImageSaver:
         except Exception as e:
             rospy.logerr(f"Error processing images: {e}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     try:
         ImageSaver()
         rospy.spin()

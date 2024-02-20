@@ -127,8 +127,7 @@ class WvnFeatureExtractor:
             self._log_data[f"nr_model_updates"] = -1
 
         self._last_image_ts = {}
-        
-        
+
         for cam in self._ros_params.camera_topics:
             self._last_image_ts[cam] = rospy.get_time()
             if self._ros_params.verbose:
@@ -279,7 +278,7 @@ class WvnFeatureExtractor:
             image_msg (sensor_msgs/Image): Incoming image
             info_msg (sensor_msgs/CameraInfo): Camera info message associated to the image
             cam (str): Camera name
-        """    
+        """
         # Check the rate
         ts = image_msg.header.stamp.to_sec()
         if abs(ts - self._last_image_ts[cam]) < 1.0 / self._ros_params.image_callback_rate:
