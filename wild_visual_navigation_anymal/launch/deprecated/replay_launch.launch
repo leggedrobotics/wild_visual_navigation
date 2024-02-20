@@ -1,0 +1,83 @@
+<launch>
+  <!-- Arguments -->
+  <arg name="name"              default="wild_visual_navigation_node"/>
+  <arg name="params_file"       default="$(find wild_visual_navigation_ros)/config/wild_visual_navigation/default.yaml"/>
+  <arg name="rviz_config"       default="anymal_dodo.rviz" />
+  <arg name="anymal_config"     default="/home/rschmid/RosBags/6/2023-03-02-11-13-08_anymal-d020-lpc_mission.yaml" />
+
+  <arg name="anymal_converter"  default="True"/>
+  <arg name="anymal_rsl_launch" default="True"/>
+  <arg name="debayer"           default="False"/>
+  <arg name="rviz"              default="True"/>
+  <arg name="elevation_mapping" default="False"/>
+  <arg name="local_planner"     default="False"/>
+  <arg name="uncompress_alphasense_cam3"     default="False"/>
+  <arg name="uncompress_alphasense_cam4"     default="False"/>
+  <arg name="uncompress_alphasense_cam5"     default="False"/>
+  <arg name="uncompress_wide_angle_front"     default="True"/>
+  <arg name="resize_images_wide_angle_front"     default="True"/>
+
+
+  <!-- Set sim time to true -->
+  <param name="/use_sim_time" type="bool" value="True" />
+
+  <!-- Load parameters -->
+  <rosparam command="delete" param="$(arg name)" />
+  <rosparam command="load" file="$(arg params_file)" ns="$(arg name)"/>
+
+  <!-- Launch ANYmal message converter node -->
+  <node if="$(arg anymal_converter)" name="anymal_msg_converter_node" pkg="wild_visual_navigation_anymal" type="anymal_msg_converter_node.py"/>
+
+  <!-- Launch ANYmal message converter node -->
+  <node if="$(arg anymal_rsl_launch)" name="anymal_rsl_launch" pkg="anymal_rsl_launch" type="replay.py" args="d $(arg anymal_config)"/>
+
+  <include if="$(arg debayer)" file="$(find image_proc_cuda_ros)/launch/image_proc_cuda_node.launch">
+    <arg name="cam0"                      value="False" /> 
+    <arg name="cam1"                      value="False" />
+    <arg name="cam2"                      value="False" />
+    <arg name="cam3"                      value="True" />
+    <arg name="cam4"                      value="True" />
+    <arg name="cam5"                      value="True" />
+    <arg name="cam6"                      value="False" />
+    <arg name="run_gamma_correction"      value="False" />
+    <arg name="run_white_balance"         value="True" />
+    <arg name="run_vignetting_correction" value="False" />
+    <arg name="run_color_enhancer"        value="False" />
+    <arg name="run_color_calibration"     value="False" />
+    <arg name="run_undistortion"          value="True" />
+    <arg name="run_clahe"                 value="False" />
+    <arg name="needs_rotation_cam3"       value="True" />
+    <arg name="needs_rotation_cam4"       value="True" />
+    <arg name="debayer_option"            value="bayer_gbrg8" />
+    <!-- <arg name="debayer_option"            value="auto" /> -->
+    <arg name="output_frame3"             value="cam3_sensor_frame_helper"/>
+    <arg name="output_frame4"             value="cam4_sensor_frame_helper"/>    
+    <arg name="output_frame5"             value="cam5_sensor_frame_helper"/>
+  </include>
+
+  <!-- Use Elevation Mapping-->
+  <include if="$(arg elevation_mapping)" file="$(find wild_visual_navigation_ros)/launch/elevation_mapping_cupy.launch"/>
+
+  <!-- Use RMP Local Planner-->
+  <include if="$(arg local_planner)" file="$(find wild_visual_navigation_ros)/launch/field_local_planner.launch"/> 
+
+  <!-- Use RViz-->
+  <node if="$(arg rviz)" name="wild_visual_navigation_rviz" pkg="rviz" type="rviz" args="-d $(find wild_visual_navigation_ros)/config/rviz/$(arg rviz_config)"/>
+
+<!-- 
+  <node if="$(arg uncompress_alphasense_cam3)" name="uncompress_cam3" pkg="image_transport" type="republish">
+    <param name="in_transport" value="compressed"/>
+    <param name="in" value="/alphasense_driver_ros/cam3/debayered"/>
+    <param name="out_transport" value="raw"/>
+    <param name="out" value="/alphasense_driver_ros/cam3/debayered"/>
+  </node> -->
+
+  <node if="$(arg uncompress_alphasense_cam3)" name="uncompress_cam3" pkg="image_transport" type="republish" args="compressed in:=/alphasense_driver_ros/cam3/debayered raw out:=/alphasense_driver_ros/cam3/debayered" />
+  <node if="$(arg uncompress_alphasense_cam4)" name="uncompress_cam4" pkg="image_transport" type="republish" args="compressed in:=/alphasense_driver_ros/cam4/debayered raw out:=/alphasense_driver_ros/cam4/debayered" />
+  <node if="$(arg uncompress_alphasense_cam5)" name="uncompress_cam5" pkg="image_transport" type="republish" args="compressed in:=/alphasense_driver_ros/cam5/debayered raw out:=/alphasense_driver_ros/cam5/debayered" />
+
+  <node if="$(arg uncompress_wide_angle_front)" name="uncompress_wide_angle_front" pkg="image_transport" type="republish" args="compressed in:=/wide_angle_camera_front/image_color raw out:=/wide_angle_camera_front/image_color" />
+  <include if="$(arg resize_images_wide_angle_front)" file="$(find wild_visual_navigation_ros)/launch/resize_images_wide_angle_front.launch"/>
+
+
+</launch>

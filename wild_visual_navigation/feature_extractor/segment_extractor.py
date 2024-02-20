@@ -1,3 +1,8 @@
+#
+# Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
+# All rights reserved. Licensed under the MIT license.
+# See LICENSE file in the project root for details.
+#
 # author: Jonas Frey
 
 import torch
@@ -41,7 +46,7 @@ class SegmentExtractor(torch.nn.Module):
         Returns:
             adjacency_list (torch.Tensor, dtype=torch.long, shape=(N, 2): Adjacency list of undirected graph
         """
-        assert seg.shape[0] == 1 and len(seg.shape) == 4
+        assert seg.shape[0] == 1 and len(seg.shape) == 4, f"{seg.shape}"
 
         res = self.f1(seg.type(torch.float32))
         boundary_mask = (res != 0)[0, :, 2:-2, 2:-2]

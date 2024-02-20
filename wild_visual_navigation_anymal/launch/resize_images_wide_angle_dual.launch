@@ -1,0 +1,4 @@
+<launch>
+  <include file="$(find wild_visual_navigation_anymal)/launch/resize_images_wide_angle_front.launch"></include>
+  <include file="$(find wild_visual_navigation_anymal)/launch/resize_images_wide_angle_rear.launch"></include>
+</launch>

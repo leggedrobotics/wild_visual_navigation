@@ -1,0 +1,99 @@
+group "0 - Setup" {
+    cmd "0.0 - anymal_rsl_replay" {
+        exec = "rosrun anymal_rsl_launch replay.py d /Data/2024_02_06_Dodo_MPI_WVN/dodo_mission_2024_02_06/2024-02-06-14-39-01_Small_MPI_Indoor/2024-02-06-14-39-01_lpc.yaml";
+        host = "localhost";
+    }
+    cmd "0.1 - anymal_msg_converter" {
+        exec = "rosrun wild_visual_navigation_anymal anymal_msg_converter_node.py";
+        host = "localhost";
+    }
+    cmd "0.2 - rviz anymal" {
+        exec = "roslaunch wild_visual_navigation_anymal view.launch";
+        host = "localhost";
+    }
+    cmd "0.3 - resize_images_wide_angle_front" {
+        exec = "roslaunch wild_visual_navigation_anymal resize_images_wide_angle_front.launch";
+        host = "localhost";
+    }
+    cmd "0.4 - resize_images_wide_angle_rear" {
+        exec = "roslaunch wild_visual_navigation_anymal resize_images_wide_angle_rear.launch";
+        host = "localhost";
+    }
+    cmd "0.5 - rqt learning graph" {
+        exec = "rosrun rqt_multiplot rqt_multiplot";
+        host = "localhost";
+    }
+    cmd "0.6 - rosbag play" {
+        exec = "rosbag_play --sem --tf --flp --wvn --sem  /Data/2024_02_06_Dodo_MPI_WVN/dodo_mission_2024_02_06/2024-02-06-14-39-01_Small_MPI_Indoor/*.bag -r 0.5 -l ";
+        host = "localhost";
+    }
+}
+
+group "1 - WVN" {
+    cmd "1.1 - wild_visual_navigation - resize - elevation mapping - overlay" {
+        exec = "roslaunch wild_visual_navigation_anymal robot.launch camera:=wide_angle_dual_resize";
+        host = "localhost";
+    }
+
+    cmd "1.2 - overlay" {
+        exec = "roslaunch wild_visual_navigation_anymal overlay_images.launch";
+        host = "localhost";
+    }
+    cmd "1.3 - elevation_mapping_cupy" {
+        exec = "roslaunch wild_visual_navigation_anymal elevation_mapping_cupy.launch";
+        host = "localhost";
+    }
+    cmd "1.4 - wild_visual_navigation_learning" {
+        exec = "python3 /home/jonfrey/workspaces/catkin_ws/src/wild_visual_navigation/wild_visual_navigation_ros/scripts/wvn_learning_node.py";
+        host = "localhost";
+    }
+    cmd "1.5 - wild_visual_navigation_feature_extractor" {
+        exec = "python3 /home/jonfrey/workspaces/catkin_ws/src/wild_visual_navigation/wild_visual_navigation_ros/scripts/wvn_feature_extractor_node.py";
+        host = "localhost";
+    }
+    cmd "1.6 - kill_wvn" {
+        exec = "rosnode kill /wvn_learning_node /wvn_feature_extractor_node";
+        host = "localhost";
+    }
+}
+    
+group "3 - Config" {
+    cmd "3.1 - dynamic_reconfigure" {
+        exec = "rosrun rqt_reconfigure rqt_reconfigure";
+        host = "localhost";
+    }
+}
+
+group "4 - Uncompress" {
+    cmd "4.1 - front" {
+        exec = "rosrun image_transport republish compressed in:=/wide_angle_camera_front/image_color_rect  raw out:=/wide_angle_camera_front/image_color_rect";
+        host = "localhost";
+    }
+    cmd "4.2 - rear" {
+        exec = "rosrun image_transport republish compressed in:=/wide_angle_camera_rear/image_color_rect  raw out:=/wide_angle_camera_rear/image_color_rect";
+        host = "localhost";
+    }
+    cmd "4.3 - hdr" {
+        exec = "rosrun image_transport republish compressed in:=/hdr_camera/image_raw  raw out:=/hdr_camera/image_raw";
+        host = "localhost";
+    }
+}
+
+group "5 - Interface" {
+    cmd "5.1 - pause_training" {
+        exec = "rosservice call /wild_visual_navigation_node/pause_learning 'data: true'";
+        host = "localhost";
+    }
+    cmd "5.2 - resume_training" {
+        exec = "rosservice call /wild_visual_navigation_node/pause_learning 'data: false'";
+        host = "localhost";
+    }
+    cmd "5.3 - save_checkpoint" {
+        exec = "rosservice call /wild_visual_navigation_node/save_checkpoint ''";
+        host = "localhost";
+    }
+    cmd "5.4 - load_checkpoint" {
+        exec = "rosservice call /wild_visual_navigation_node/load_checkpoint 'path: 'absolute_path_in_robot_filesystem'";
+        host = "localhost";
+    }
+}

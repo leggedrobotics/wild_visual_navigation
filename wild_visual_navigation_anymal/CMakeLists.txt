@@ -1,3 +1,8 @@
+#                                                                               
+# Copyright (c) 2022-2024, ETH Zurich, Matias Mattamala, Jonas Frey.
+# All rights reserved. Licensed under the MIT license.
+# See LICENSE file in the project root for details.
+#                                                                               
 cmake_minimum_required(VERSION 3.0.2)
 project(wild_visual_navigation_anymal)
 set (CMAKE_CXX_STANDARD 14)
@@ -5,7 +10,6 @@ set (CMAKE_CXX_STANDARD 14)
 set(CATKIN_PACKAGE_LIST 
   rospy
   roscpp
-  anymal_msgs
   sensor_msgs
   std_msgs
   wild_visual_navigation_msgs
@@ -29,13 +33,16 @@ include_directories(
     ${catkin_INCLUDE_DIRS}
 )
 
-# Declare node
-add_executable(anymal_msg_converter_cpp_node
-               src/anymal_msg_converter_cpp_node.cpp)
+if(BUILD_ANYMAL)
+   find_package( anymal_msgs )
+   # Declare node
+   add_executable( anymal_msg_converter_cpp_node
+                   src/anymal_msg_converter_cpp_node.cpp)
 
-target_link_libraries(anymal_msg_converter_cpp_node
+   target_link_libraries(anymal_msg_converter_cpp_node
                       ${catkin_LIBRARIES}
-)
+   )
+endif()
 
 #############
 ## Install ##

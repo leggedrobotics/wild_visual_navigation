@@ -2,10 +2,10 @@
 
 <p align="center">
   <a href="#citation">Citation</a> •
-  <a href="#setup">Setup</a> •
+  <a href="#instalation">Installation</a> •
+  <a href="#overview">Overview</a> •
   <a href="#experiments">Experiments</a> •
-  <a href="#contributing">Contributing</a> •
-  <a href="#credits">Credits</a>
+  <a href="#development">Development</a>
   
   ![Formatting](https://github.com/leggedrobotics/wild_visual_navigation/actions/workflows/formatting.yml/badge.svg)
 </p>
@@ -15,218 +15,182 @@
 <img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
 ## Citation
-
 ```
-@INPROCEEDINGS{FreyMattamala23, 
-    AUTHOR    = {Jonas Frey and Matias Mattamala and Nived Chebrolu and Cesar Cadena and Maurice Fallon and Marco Hutter}, 
-    TITLE     = {{Fast Traversability Estimation for Wild Visual Navigation}}, 
-    BOOKTITLE = {Proceedings of Robotics: Science and Systems}, 
-    YEAR      = {2023}, 
-    ADDRESS   = {Daegu, Republic of Korea}, 
-    MONTH     = {June}, 
-    DOI       = {TBD} 
+@INPROCEEDINGS{frey23fast, 
+  AUTHOR    = {Jonas, Frey and Matias, Mattamala and Nived, Chebrolu and Cesar, Cadena and Maurice, Fallon and Marco, Hutter}, 
+  TITLE     = {\href{https://arxiv.org/abs/2305.08510}{Fast Traversability Estimation for Wild Visual Navigation}}, 
+  BOOKTITLE = {Proceedings of Robotics: Science and Systems}, 
+  YEAR      = {2023}, 
+  ADDRESS   = {Daegu, Republic of Korea}, 
+  MONTH     = {July}, 
+  DOI       = {10.15607/RSS.2023.XIX.054} 
 } 
 ```
+
+If you are also building up on the STEGO integration or using the pre-trained models for a comparision please cite: 
+```
+@INPROCEEDINGS{mattamala24wild, 
+  AUTHOR    = {Mattamala, Matias and Jonas, Frey and Piotr Libera and Chebrolu, Nived and Georg Martius and Cadena, Cesar and Hutter, Marco and Fallon, Maurice}, 
+  TITLE     = {{Wild Visual Navigation: Fast Traversability Learning via Pre-Trained Models and Online Self-Supervision}}, 
+  BOOKTITLE = {under review for Autonomous Robots}, 
+  YEAR      = {2024}
+} 
+```
+
+If you are using the elevation_mapping integration
+```
+@INPROCEEDINGS{erni23mem,
+  AUTHOR={Erni, Gian and Frey, Jonas and Miki, Takahiro and Mattamala, Matias and Hutter, Marco},
+  TITLE={\href{https://arxiv.org/abs/2309.16818}{MEM: Multi-Modal Elevation Mapping for Robotics and Learning}}, 
+  BOOKTITLE={2023 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)}, 
+  YEAR={2023},
+  PAGES={11011-11018},
+  DOI={10.1109/IROS55552.2023.10342108}
+}
+```
+
 Checkout out also our other works.
 
 <img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
-## Setup
+## Installation
 
-1. Clone the repository.
+1. Clone the WVN and our STEGO reimplementation.
 ```shell
 mkdir ~/git && cd ~/git 
 git clone git@github.com:leggedrobotics/wild_visual_navigation.git
+git clone git@github.com:leggedrobotics/self_supervised_segmentation.git
 ```
 
-2. Install the conda environment.
+2. Install the virtual environment.
 ```shell
-# Make sure to be in the base conda environment
 cd ~/git/wild_visual_navigation
-conda env create -f environment.yaml 
+# TODO
 ```
 
 3. Install the wild_visual_navigation package.
 ```shell
-conda activate wvn
 cd ~/git
 pip3 install -e ./wild_visual_navigation
 ```
 
-4. Configure global paths.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;All global paths are stored within a single yaml-file (`cfg\env\ge76.yaml`) for each machine.  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The correct yaml-file for a machine is identified based on the environment variable `ENV_WORKSTATION_NAME`.  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;You can generate a new configuration environment file in the same directory:  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Example: `cfg/env/your_workstation_name.yaml` 
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Content: 
-
-```yaml
-# If a relative path is given it is relative the the wild_visual_navigation project directory.
-base: results/learning
-perugia_root: /media/Data/Datasets/2022_Perugia
-```  
-
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;We recommend to directly set the environment variable in your `~/.bashrc` by adding the following:  
+4. [Optionally] Configure custom paths 
+Set your custom global paths by defining the ENV_WORKSTATION_NAME and exporting the variable in your `~/.bashrc`.
   
   ```shell
   export ENV_WORKSTATION_NAME=your_workstation_name
   ```  
+The paths can be specified by modifying `wild_visual_navigation/wild_visual_navigation/cfg/gloabl_params.py`. 
+Add your desired global paths. 
+Per default, all results are stored in `wild_visual_navigation/results`.
+
+
+
+<img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
+
+## Overview
+![Overview](./assets/drawings/software_overview.jpg)
+What we provide:
+- Learning and Feature Extraction Nodes integrated in ROS1
+- Gazebo Test Simulation Envrionment
+- Example ROSbags
+- Pre-trained models with minimalistic inference script (can be used as a easy baseline)
+- Integration into elevation_mapping_cupy
+
 
 <img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
 ## Experiments
-### Robot Usage [Online]
-Mode to run the pipeline either fully online on the robot or to simply replay rosbags on your system.
 
-- Launch ANYmal Converter:
+### Inference pre-trained model
+
+
+### Online adaptation [Simulation]
+
+
+### Online adaptation [Rosbag]
+
+<img align="left" width="120" height="120" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/mpi_outdoor_trav.png" alt="MPI Outdoor"> 
+<img align="left" width="120" height="120" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/mpi_indoor_trav.png" alt="MPI Indoor"> 
+<img align="left" width="120" height="120" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/bahnhofstrasse_trav.png" alt="Bahnhofstrasse"> 
+<img align="left" width="120" height="120" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/mountain_bike_train_trav.png" alt="Mountain Bike"> 
+
+
+#### Setup
+Let`s set up a new catkin_ws:
 ```shell
-rosrun wild_visual_navigation_anymal anymal_msg_converter_node.py
+# Create Workspace
+source /opt/ros/noetic/setup.bash
+mkdir -r ~/catkin_ws/src && cd ~/catkin_ws/src
+catkin init
+catkin config --extend /opt/ros/noetic
+catkin config --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
+# Clone Repos
+git clone git@github.com:ANYbotics/anymal_d_simple_description.git
+git clone git@github.com:ori-drs/procman_ros.git
+
+# Symlink WVN
+ln -s ~/git/wild_visual_navigation ~/catkin_ws/src
+
+# Dependencies
+rosdep install -ryi --from-paths . --ignore-src
+
+# Build
+cd ~/catkin_ws
+catkin build anymal_d_simple_description
+catkin build procman_ros
+catkin build wild_visual_navigation_ros
+
+# Source
+source /opt/ros/noetic/setup.bash
+source ~/catkin_ws/devel/setup.bash
 ```
 
-- Run WVN Node:
-```shell
-python wild_visual_navigation_ros/scripts/wild_visual_navigation_node.py _mode:=debug
-```
-There are multiple parameters you can change via the ros-parameter server.
-Optionally the node offers services to store the created graph/trained network to the disk.
+After successfully building the ros workspace you can run the full pipeline by either using the launch file (this requires all packages to be installed into your system python installation), or by running the nodes from the virtual environment as plain python scripts.
 
-- (optionally) RVIZ:
+
+- Run wild_visual_navigation
+```shell
+roslaunch wild_visual_navigation_ros wild_visual_navigation.launch
+```
+
+- (ANYmal replay only) Load ANYmal description for RViZ
+```shell
+roslaunch anymal_d_simple_description load.launch
+```
+
+- (ANYmal replay only) Replay Rosbag:
+```shell
+robag play --clock path_to_mission/*.bag
+```
+
+- RVIZ:
 ```shell
 roslaunch wild_visual_navigation_ros view.launch
 ```
 
-- (replay only) Run Debayer:
+
+Degugging (sometimes it is desirable to run the nodes seperate):
 ```shell
-roslaunch image_proc_cuda_ros image_proc_cuda_node.launch cam0:=false cam1:=false cam2:=false cam3:=false cam4:=true cam5:=false cam6:=false run_gamma_correction:=false run_white_balance:=true run_vignetting_correction:=false run_color_enhancer:=false run_color_calibration:=false run_undistortion:=true run_clahe:=false dump_images:=false needs_rotation_cam4:=true debayer_option:=bayer_gbrg8
+python wild_visual_navigation_ros/scripts/wvn_feature_extractor_node.py
 ```
-
-- (replay only) Replay Rosbag:
 ```shell
-rosbag play --clock path_to_mission/*.bag
+python wild_visual_navigation_ros/scripts/wvn_learning_node.py
 ```
 
-### Replay Usage [Online]
-We provide a launch file to start all required nodes for close-loop integration.
-```shell
-roslaunch wild_visual_navigation_ros replay_launch.launch
-```
-The launch file allows to toggle the individual modules on and off.
-```xml
-  <arg name="anymal_converter"  default="True"/>
-  <arg name="anymal_rsl_launch" default="True"/>
-  <arg name="debayer"           default="True"/>
-  <arg name="rviz"              default="True"/>
-  <arg name="elevation_mapping" default="True"/>
-  <arg name="local_planner"     default="True"/>
-```
 
-- Run WVN Node:
-```shell
-python wild_visual_navigation_ros/scripts/wild_visual_navigation_node.py _mode:=default
-```
+- The general configuration files can be found under: `wild_visual_navigation/cfg/experiment_params.py`
+- This configuration is used in the `offline-model-training` and in the `online-ros` mode.
+- When running the `online-ros` mode additional configurations for the individual nodes are defined in `wild_visual_navigation/cfg/ros_params.py`.
+- These configuration file is filled based on the rosparameter-server during runtime.
+- The default values for this configuration can be found under `wild_visual_navigation/wild_visual_navigation_ros/config/wild_visual_navigation`.
+- We set an environment variable to automatically load the correct global paths and trigger some special behavior e.g. when training on a cluster.
 
-- Replay Rosbag:
-```shell
-rosbag play --clock path_to_mission/*.bag
-```
-
-### Learning Usage [Offline]
-#### Dataset Generation
-
-Sometimes it`s useful to just analyze the network training therefore we provide the tools to extract a dataset useful for learning from a given rosbag. 
-In the following we explain how you can generate the dataset with the following structure: 
-```
-dataset_name
-  split
-    forest_train.txt
-    forest_val.txt
-    forest_test.txt
-  day3
-    date_time_mission_0_day_3
-      features
-        slic100_dino224_16
-          center
-            time_stamp.pt
-            ...
-          graph
-            time_stamp.pt
-            ...
-          seg
-            time_stamp.pt
-            ...
-        slic_sift
-          ...
-        ...
-      image
-        time_stamp.pt
-        ...
-      supervision_mask
-        time_stamp.pt
-        ...
-```
-
-1. Dataset is configured in **wild_visual_navigation/utils/dataset_info.py**
-2. Run extract_images_and_labels.py (can be also done for multiple missions with **extract_all.py**)
-   - Will at first merge all bags within the provided folders from dataset_info into bags containing the `_tf.bag` and other useful data `_wvn.bag`.
-   - Steps blocking through the bag
-   - Currently, this is done by storing a binary mask and images as .pt files (maybe change to png for storage)
-3. Validate if images and labels are generated correctly with **validate_extract_images_and_labels.py**
-   - This script will remove images if no label is available and the other way around
-   - The stopping early times should be quite small within the seconds
-4. Create lists with the training and train/val/test images: **create_train_val_test_lists.py**
-5. Convert the correct `.pt` files to `.png` such that you can upload them for the test set to segments.ai **convert_test_images_for_labelling.py**
-6. Label them online
-7. Fetch the results using **download_bitmaps_from_segments_ai.py**
-8. Extract the features segments and graph from the image **extract_features_for_dataset.py**
-
-
-#### Training the Network
-##### Training  
-We provide scripts for training the network for a single run where a parameter configuration yaml-file can be passed to override the parameters configured within `cfg/experiments_params.py`.
-Training from the final dataset.
-
-`python3 scripts/train_gnn.py --exp=exp_forest.yaml`
-
-##### Hyperparameter  
-We also provide scripts to use optuna for hyperparameter-searching: 
-
-`python3 scripts/train_optuna.py --exp=exp_forest.yaml`
-
-Within the objective function you can easily adjust the trail parameter suggestions. 
-
-##### Ablations
-Finally, we categorize our ablations into `loss`, `network`, `feature`, `time_adaptation` and `knn_evaluation`.
-
-##### `loss`, `network`, and `feature`
-For `loss`, `network`, and `feature` we can simply run a training script and pass the correct keyword.
-We provide the configurations for those experiments within the `cfg/exp/ablation` folder.
-```
-python3 scripts/ablation/training_ablation.py --ablation_type=network
-```
-After running the training the results are stored respectively in `scripts/ablations/<ablation_type>_ablation` as a pickle file. 
-For each training run the trained network is evaluate on all testing scenes and the AUROC and ROC values are stored with respect to the hand labeled gt-labels and self-supervised proprioceptive-labels. 
-We provide a jupyter notebook to interpret the training results. 
-```
-python3 scripts/ablation/training_ablation_visu.ipynb
-```
-
-##### `time_adaptation`
-For the `time_adaptation` run simply run:
-```
-python3 scripts/ablation/time_adaptation.py
-```
-and for visualization:
-```
-python3 scripts/ablation/time_adaptation_visu.py
-```
-done.
 
 <img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
-## Contributing
+## Development
 
 ### Code formatting
 ```shell
@@ -241,12 +205,29 @@ Code format is checked on push.
 
 ### Testing
 Introduction to [pytest](https://github.com/pluralsight/intro-to-pytest).
-
 ```shell
 pytest
 ```
-Pytest is not checked on push.
 
-<img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
+### Open-Sourcing
+Generating headers
+```shell
+pip3 install adheader
 
-## Credits
+# If your are using zsh otherwise remove \
+addheader wild_visual_navigation -t header.txt -p \*.py --sep-len 79 --comment='#' --sep=' '
+addheader wild_visual_navigation_ros -t header.txt -p \*.py -sep-len 79 --comment='#' --sep=' '
+addheader wild_visual_navigation_anymal -t header.txt -p \*.py --sep-len 79 --comment='#' --sep=' '
+
+addheader wild_visual_navigation_ros -t header.txt -p \*CMakeLists.txt --sep-len 79 --comment='#' --sep=' '
+addheader wild_visual_navigation_anymal -t header.txt -p \*.py -p \*CMakeLists.txt --sep-len 79 --comment='#' --sep=' '
+```
+
+### Releasing ANYmal data
+```shell
+rosrun procman_ros sheriff -l ~/git/wild_visual_navigation/wild_visual_navigation_anymal/config/procman/record_rosbags.pmd --start-roscore 
+```
+
+```shell
+rosbag_play --tf --sem --flp --wvn  mission/*.bag
+```

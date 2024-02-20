@@ -1,0 +1,1272 @@
+Panels:
+  - Class: rviz/Displays
+    Help Height: 0
+    Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /Global Options1
+        - /TF1/Tree1
+        - /Robot Info1
+        - /Wild Visual Navigation1
+        - /Wild Visual Navigation1/Self Supervision1
+        - /Wild Visual Navigation1/Prediction1
+        - /GridMaps1
+        - /GridMaps1/Visual Traversability1
+      Splitter Ratio: 0.6433260440826416
+    Tree Height: 1310
+  - Class: rviz/Selection
+    Name: Selection
+  - Class: rviz/Tool Properties
+    Expanded:
+      - /2D Pose Estimate1
+      - /2D Nav Goal1
+      - /Publish Point1
+    Name: Tool Properties
+    Splitter Ratio: 0.5886790156364441
+  - Class: rviz/Views
+    Expanded:
+      - /Current View1
+      - /ThirdPersonFollower1
+    Name: Views
+    Splitter Ratio: 0.5
+  - Class: rviz/Time
+    Name: Time
+    SyncMode: 0
+    SyncSource: AB Wide Rear Front
+Preferences:
+  PromptSaveOnExit: true
+Toolbars:
+  toolButtonStyle: 2
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Alpha: 0.5
+      Cell Size: 1
+      Class: rviz/Grid
+      Color: 160; 160; 164
+      Enabled: false
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 20
+      Reference Frame: <Fixed Frame>
+      Value: false
+    - Class: rviz/TF
+      Enabled: false
+      Frame Timeout: 1000
+      Frames:
+        All Enabled: false
+      Marker Alpha: 1
+      Marker Scale: 0.5
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Tree:
+        {}
+      Update Interval: 0
+      Value: false
+    - Class: rviz/Group
+      Displays:
+        - Angle Tolerance: 0.10000000149011612
+          Class: rviz/Odometry
+          Covariance:
+            Orientation:
+              Alpha: 0.5
+              Color: 255; 255; 127
+              Color Style: Unique
+              Frame: Local
+              Offset: 1
+              Scale: 1
+              Value: true
+            Position:
+              Alpha: 0.30000001192092896
+              Color: 204; 51; 204
+              Scale: 1
+              Value: true
+            Value: true
+          Enabled: false
+          Keep: 200
+          Name: Odometry
+          Position Tolerance: 1
+          Queue Size: 10
+          Shape:
+            Alpha: 1
+            Axes Length: 1
+            Axes Radius: 0.10000000149011612
+            Color: 255; 25; 0
+            Head Length: 0.30000001192092896
+            Head Radius: 0.10000000149011612
+            Shaft Length: 1
+            Shaft Radius: 0.05000000074505806
+            Value: Arrow
+          Topic: /loam/odometry
+          Unreliable: false
+          Value: false
+        - Alpha: 1
+          Class: rviz/RobotModel
+          Collision Enabled: false
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            LF_FOOT:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            LF_HAA_drive:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            LF_HFE_drive:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            LF_HFE_output:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            LF_HIP:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            LF_KFE_drive:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            LF_SHANK:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            LF_THIGH:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            LF_hip_fixed:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            LF_shank_fixed:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            LF_thigh_fixed:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            LH_FOOT:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            LH_HAA_drive:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            LH_HFE_drive:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            LH_HFE_output:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            LH_HIP:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            LH_KFE_drive:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            LH_SHANK:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            LH_THIGH:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            LH_hip_fixed:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            LH_shank_fixed:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            LH_thigh_fixed:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            Link Tree Style: Links in Alphabetic Order
+            RF_FOOT:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            RF_HAA_drive:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            RF_HFE_drive:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            RF_HFE_output:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            RF_HIP:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            RF_KFE_drive:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            RF_SHANK:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            RF_THIGH:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            RF_hip_fixed:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            RF_shank_fixed:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            RF_thigh_fixed:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            RH_FOOT:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            RH_HAA_drive:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            RH_HFE_drive:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            RH_HFE_output:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            RH_HIP:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            RH_KFE_drive:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            RH_SHANK:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            RH_THIGH:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            RH_hip_fixed:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            RH_shank_fixed:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            RH_thigh_fixed:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            base:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            base_inertia:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            battery:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            body_top:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            bottom_shell:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            depth_camera_front_lower_camera:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            depth_camera_front_lower_camera_parent:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            depth_camera_front_upper_camera:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            depth_camera_front_upper_camera_parent:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            depth_camera_left_camera:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            depth_camera_left_camera_parent:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            depth_camera_rear_lower_camera:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            depth_camera_rear_lower_camera_parent:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            depth_camera_rear_upper_camera:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            depth_camera_rear_upper_camera_parent:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            depth_camera_right_camera:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            depth_camera_right_camera_parent:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            docking_socket:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            face_front:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            face_rear:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            face_shell_front:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            face_shell_rear:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            hatch_shell:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            hbc_receiver:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            imu_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            lidar:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            lidar_parent:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            top_shell:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            wide_angle_camera_front_camera:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            wide_angle_camera_front_camera_parent:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            wide_angle_camera_rear_camera:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            wide_angle_camera_rear_camera_parent:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+          Name: RobotModel
+          Robot Description: anymal_description
+          TF Prefix: ""
+          Update Interval: 0
+          Value: true
+          Visual Enabled: true
+      Enabled: true
+      Name: Robot Info
+    - Class: rviz/Group
+      Displays:
+        - Class: rviz/Group
+          Displays:
+            - Class: rviz/Marker
+              Enabled: true
+              Marker Topic: /wild_visual_navigation_node/graph_footprints
+              Name: Footprint
+              Namespaces:
+                footprints: true
+              Queue Size: 100
+              Value: true
+            - Alpha: 1
+              Buffer Length: 1
+              Class: rviz/Path
+              Color: 67; 110; 176
+              Enabled: true
+              Head Diameter: 0.30000001192092896
+              Head Length: 0.20000000298023224
+              Length: 0.30000001192092896
+              Line Style: Billboards
+              Line Width: 0.029999999329447746
+              Name: Supervision Graph
+              Offset:
+                X: 0
+                Y: 0
+                Z: 0
+              Pose Color: 255; 85; 255
+              Pose Style: None
+              Queue Size: 10
+              Radius: 0.029999999329447746
+              Shaft Diameter: 0.10000000149011612
+              Shaft Length: 0.10000000149011612
+              Topic: /wild_visual_navigation_node/supervision_graph
+              Unreliable: false
+              Value: true
+            - Alpha: 1
+              Buffer Length: 1
+              Class: rviz/Path
+              Color: 25; 255; 0
+              Enabled: true
+              Head Diameter: 0.30000001192092896
+              Head Length: 0.20000000298023224
+              Length: 0.30000001192092896
+              Line Style: Billboards
+              Line Width: 0.029999999329447746
+              Name: Mission Graph
+              Offset:
+                X: 0
+                Y: 0
+                Z: 0
+              Pose Color: 255; 85; 255
+              Pose Style: Axes
+              Queue Size: 10
+              Radius: 0.029999999329447746
+              Shaft Diameter: 0.10000000149011612
+              Shaft Length: 0.10000000149011612
+              Topic: /wild_visual_navigation_node/mission_graph
+              Unreliable: false
+              Value: true
+          Enabled: true
+          Name: Self Supervision
+        - Class: rviz/Group
+          Displays:
+            - Class: rviz/Image
+              Enabled: true
+              Image Topic: /wild_visual_navigation_node/front/debug/last_image_traversability
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: Traversability
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: true
+            - Class: rviz/Image
+              Enabled: true
+              Image Topic: /wild_visual_navigation_node/front/debug/last_image_confidence
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: Uncertainty
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: true
+            - Alpha: 1
+              Buffer Length: 1
+              Class: rviz/Path
+              Color: 136; 138; 133
+              Enabled: true
+              Head Diameter: 0.30000001192092896
+              Head Length: 0.20000000298023224
+              Length: 0.10000000149011612
+              Line Style: Billboards
+              Line Width: 0.05000000074505806
+              Name: Mission Graph
+              Offset:
+                X: 0
+                Y: 0
+                Z: 0
+              Pose Color: 255; 85; 255
+              Pose Style: Axes
+              Queue Size: 10
+              Radius: 0.009999999776482582
+              Shaft Diameter: 0.10000000149011612
+              Shaft Length: 0.10000000149011612
+              Topic: /wild_visual_navigation_node/mission_graph
+              Unreliable: false
+              Value: true
+            - Class: rviz/Image
+              Enabled: true
+              Image Topic: /wild_visual_navigation_node/front/debug/last_node_image_mask
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: Reprojected Path
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: true
+            - Class: rviz/Image
+              Enabled: true
+              Image Topic: /wild_visual_navigation_node/front/debug/last_node_image_labeled
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: Supervision Signal
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: true
+            - Class: rviz/Image
+              Enabled: true
+              Image Topic: ""
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: Placeholder
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: true
+          Enabled: false
+          Name: Self Supervision (Debug)
+        - Class: rviz/Group
+          Displays:
+            - Class: rviz/Image
+              Enabled: true
+              Image Topic: /wide_angle_camera_front/image_color_rect
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: AB Wide Angle Front
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: true
+            - Class: rviz/Image
+              Enabled: true
+              Image Topic: /wide_angle_camera_rear/image_color_rect
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: AB Wide Rear Front
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: true
+          Enabled: true
+          Name: Cameras
+        - Class: rviz/Group
+          Displays:
+            - Alpha: 1
+              Autocompute Intensity Bounds: true
+              Autocompute Value Bounds:
+                Max Value: 21.55472183227539
+                Min Value: -7.581119537353516
+                Value: true
+              Axis: Z
+              Channel Name: intensity
+              Class: rviz/PointCloud2
+              Color: 239; 41; 41
+              Color Transformer: FlatColor
+              Decay Time: 0
+              Enabled: true
+              Invert Rainbow: false
+              Max Color: 255; 255; 255
+              Min Color: 0; 0; 0
+              Name: realsense-front
+              Position Transformer: XYZ
+              Queue Size: 10
+              Selectable: true
+              Size (Pixels): 3
+              Size (m): 0.009999999776482582
+              Style: Squares
+              Topic: /depth_camera_front_upper/point_cloud_self_filtered
+              Unreliable: false
+              Use Fixed Frame: true
+              Use rainbow: true
+              Value: true
+            - Alpha: 1
+              Autocompute Intensity Bounds: true
+              Autocompute Value Bounds:
+                Max Value: 21.55472183227539
+                Min Value: -7.581119537353516
+                Value: true
+              Axis: Z
+              Channel Name: intensity
+              Class: rviz/PointCloud2
+              Color: 239; 41; 41
+              Color Transformer: FlatColor
+              Decay Time: 0
+              Enabled: true
+              Invert Rainbow: false
+              Max Color: 255; 255; 255
+              Min Color: 0; 0; 0
+              Name: realsense-rear
+              Position Transformer: XYZ
+              Queue Size: 10
+              Selectable: true
+              Size (Pixels): 3
+              Size (m): 0.009999999776482582
+              Style: Squares
+              Topic: /depth_camera_rear_upper/point_cloud_self_filtered
+              Unreliable: false
+              Use Fixed Frame: true
+              Use rainbow: true
+              Value: true
+            - Alpha: 1
+              Autocompute Intensity Bounds: true
+              Autocompute Value Bounds:
+                Max Value: 21.55472183227539
+                Min Value: -7.581119537353516
+                Value: true
+              Axis: Z
+              Channel Name: intensity
+              Class: rviz/PointCloud2
+              Color: 239; 41; 41
+              Color Transformer: FlatColor
+              Decay Time: 0
+              Enabled: true
+              Invert Rainbow: false
+              Max Color: 255; 255; 255
+              Min Color: 0; 0; 0
+              Name: realsense-left
+              Position Transformer: XYZ
+              Queue Size: 10
+              Selectable: true
+              Size (Pixels): 3
+              Size (m): 0.009999999776482582
+              Style: Squares
+              Topic: /depth_camera_left/point_cloud_self_filtered
+              Unreliable: false
+              Use Fixed Frame: true
+              Use rainbow: true
+              Value: true
+            - Alpha: 1
+              Autocompute Intensity Bounds: true
+              Autocompute Value Bounds:
+                Max Value: 21.55472183227539
+                Min Value: -7.581119537353516
+                Value: true
+              Axis: Z
+              Channel Name: intensity
+              Class: rviz/PointCloud2
+              Color: 239; 41; 41
+              Color Transformer: FlatColor
+              Decay Time: 0
+              Enabled: true
+              Invert Rainbow: false
+              Max Color: 255; 255; 255
+              Min Color: 0; 0; 0
+              Name: realsense-right
+              Position Transformer: XYZ
+              Queue Size: 10
+              Selectable: true
+              Size (Pixels): 3
+              Size (m): 0.009999999776482582
+              Style: Squares
+              Topic: /depth_camera_right/point_cloud_self_filtered
+              Unreliable: false
+              Use Fixed Frame: true
+              Use rainbow: true
+              Value: true
+            - Alpha: 1
+              Autocompute Intensity Bounds: true
+              Autocompute Value Bounds:
+                Max Value: 7.054330825805664
+                Min Value: -0.766709566116333
+                Value: true
+              Axis: Z
+              Channel Name: intensity
+              Class: rviz/PointCloud2
+              Color: 239; 41; 41
+              Color Transformer: AxisColor
+              Decay Time: 0
+              Enabled: true
+              Invert Rainbow: false
+              Max Color: 255; 255; 255
+              Min Color: 0; 0; 0
+              Name: velodyne
+              Position Transformer: XYZ
+              Queue Size: 10
+              Selectable: true
+              Size (Pixels): 3
+              Size (m): 0.019999999552965164
+              Style: Squares
+              Topic: /point_cloud_filter/lidar/point_cloud_filtered
+              Unreliable: false
+              Use Fixed Frame: true
+              Use rainbow: true
+              Value: true
+          Enabled: false
+          Name: Depth Sensors
+        - Class: rviz/Group
+          Displays:
+            - Class: rviz/Image
+              Enabled: false
+              Image Topic: /wild_visual_navigation_node/front/image_input
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: Input Image
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: false
+            - Class: rviz/Image
+              Enabled: false
+              Image Topic: /wild_visual_navigation_node/front/traversability
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: Traversability Raw
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: false
+            - Class: rviz/Image
+              Enabled: false
+              Image Topic: /wild_visual_navigation_node/front/debug/last_node_image_overlay
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: Learning Mask
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: false
+            - Class: rviz/Image
+              Enabled: true
+              Image Topic: /wild_visual_navigation_visu_front_trav/traversability
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: F Traversability Overlay
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: true
+            - Class: rviz/Image
+              Enabled: true
+              Image Topic: /wild_visual_navigation_visu_rear_trav/traversability
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: R Traversability Overlay
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: true
+          Enabled: true
+          Name: Prediction
+        - Class: rviz/Group
+          Displays:
+            - Class: rviz/Marker
+              Enabled: true
+              Marker Topic: /field_local_planner/real_carrot
+              Name: Goal (carrot)
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: true
+            - Alpha: 1
+              Axes Length: 1
+              Axes Radius: 0.10000000149011612
+              Class: rviz/PoseWithCovariance
+              Color: 255; 25; 0
+              Covariance:
+                Orientation:
+                  Alpha: 0.5
+                  Color: 255; 255; 127
+                  Color Style: Unique
+                  Frame: Local
+                  Offset: 1
+                  Scale: 1
+                  Value: true
+                Position:
+                  Alpha: 0.30000001192092896
+                  Color: 204; 51; 204
+                  Scale: 1
+                  Value: true
+                Value: true
+              Enabled: true
+              Head Length: 0.30000001192092896
+              Head Radius: 0.10000000149011612
+              Name: Goal (pose)
+              Queue Size: 10
+              Shaft Length: 1
+              Shaft Radius: 0.05000000074505806
+              Shape: Arrow
+              Topic: /field_local_planner/current_goal
+              Unreliable: false
+              Value: true
+            - Alpha: 1
+              Autocompute Intensity Bounds: false
+              Class: grid_map_rviz_plugin/GridMap
+              Color: 200; 200; 200
+              Color Layer: geodesic
+              Color Transformer: IntensityLayer
+              ColorMap: plasma
+              Enabled: false
+              Grid Cell Decimation: 1
+              Grid Line Thickness: 0.10000000149011612
+              Height Layer: elevation_inpainted
+              Height Transformer: ""
+              History Length: 1
+              Invert ColorMap: true
+              Max Color: 255; 255; 255
+              Max Intensity: 5
+              Min Color: 0; 0; 0
+              Min Intensity: 0
+              Name: Geodesic Field (GDF)
+              Show Grid Lines: true
+              Topic: /elevation_mapping/elevation_map_wifi
+              Unreliable: false
+              Use ColorMap: true
+              Value: false
+          Enabled: true
+          Name: Local planner
+        - Class: rviz/Group
+          Displays:
+            - Class: rviz/Image
+              Enabled: true
+              Image Topic: /wild_visual_navigation_node/left/image_input
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: L Input Image
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: true
+            - Class: rviz/Image
+              Enabled: true
+              Image Topic: /wild_visual_navigation_node/left/traversability
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: L Traversability Raw
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: true
+            - Class: rviz/Image
+              Enabled: true
+              Image Topic: /wild_visual_navigation_node/left/confidence
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: L Confidence Raw
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: true
+            - Class: rviz/Image
+              Enabled: true
+              Image Topic: /wild_visual_navigation_node/right/image_input
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: R Input Image
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: true
+            - Class: rviz/Image
+              Enabled: true
+              Image Topic: /wild_visual_navigation_node/right/traversability
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: R Traversability Raw
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: true
+            - Class: rviz/Image
+              Enabled: true
+              Image Topic: /wild_visual_navigation_node/right/confidence
+              Max Value: 1
+              Median window: 5
+              Min Value: 0
+              Name: R Confidence Raw
+              Normalize Range: true
+              Queue Size: 2
+              Transport Hint: raw
+              Unreliable: false
+              Value: true
+          Enabled: false
+          Name: LR Prediction
+      Enabled: true
+      Name: Wild Visual Navigation
+    - Class: rviz/Group
+      Displays:
+        - Alpha: 1
+          Autocompute Intensity Bounds: true
+          Class: grid_map_rviz_plugin/GridMap
+          Color: 200; 200; 200
+          Color Layer: elevation
+          Color Transformer: GridMapLayer
+          ColorMap: terrain
+          Enabled: false
+          Grid Cell Decimation: 1
+          Grid Line Thickness: 0.10000000149011612
+          Height Layer: elevation
+          Height Transformer: GridMapLayer
+          History Length: 1
+          Invert ColorMap: false
+          Max Color: 255; 255; 255
+          Max Intensity: 10
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: Elevation
+          Show Grid Lines: true
+          Topic: /elevation_mapping/semantic_map
+          Unreliable: false
+          Use ColorMap: true
+          Value: false
+        - Alpha: 1
+          Autocompute Intensity Bounds: false
+          Class: grid_map_rviz_plugin/GridMap
+          Color: 200; 200; 200
+          Color Layer: geodesic
+          Color Transformer: IntensityLayer
+          ColorMap: plasma
+          Enabled: false
+          Grid Cell Decimation: 1
+          Grid Line Thickness: 0.10000000149011612
+          Height Layer: elevation_inpainted
+          Height Transformer: ""
+          History Length: 1
+          Invert ColorMap: true
+          Max Color: 255; 255; 255
+          Max Intensity: 5
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: Local Planner (GDF)
+          Show Grid Lines: true
+          Topic: /elevation_mapping/elevation_map_wifi
+          Unreliable: false
+          Use ColorMap: true
+          Value: false
+        - Alpha: 1
+          Autocompute Intensity Bounds: false
+          Class: grid_map_rviz_plugin/GridMap
+          Color: 200; 200; 200
+          Color Layer: sdf
+          Color Transformer: IntensityLayer
+          ColorMap: turbo
+          Enabled: false
+          Grid Cell Decimation: 1
+          Grid Line Thickness: 0.10000000149011612
+          Height Layer: elevation
+          Height Transformer: Layer
+          History Length: 1
+          Invert ColorMap: true
+          Max Color: 255; 255; 255
+          Max Intensity: 2
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: Local Planner (SDF)
+          Show Grid Lines: true
+          Topic: /elevation_mapping/elevation_map_wifi
+          Unreliable: false
+          Use ColorMap: true
+          Value: false
+        - Alpha: 1
+          Autocompute Intensity Bounds: true
+          Class: grid_map_rviz_plugin/GridMap
+          Color: 200; 200; 200
+          Color Layer: rgb
+          Color Transformer: ColorLayer
+          ColorMap: terrain
+          Enabled: false
+          Grid Cell Decimation: 1
+          Grid Line Thickness: 0.10000000149011612
+          Height Layer: elevation_with_semantics
+          Height Transformer: ""
+          History Length: 1
+          Invert ColorMap: true
+          Max Color: 255; 255; 255
+          Max Intensity: 1
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: RGB
+          Show Grid Lines: true
+          Topic: /elevation_mapping/semantic_map
+          Unreliable: false
+          Use ColorMap: true
+          Value: false
+        - Alpha: 1
+          Autocompute Intensity Bounds: false
+          Class: grid_map_rviz_plugin/GridMap
+          Color: 200; 200; 200
+          Color Layer: visual_traversability
+          Color Transformer: ""
+          ColorMap: coolwarm
+          Enabled: true
+          Grid Cell Decimation: 1
+          Grid Line Thickness: 0.10000000149011612
+          Height Layer: elevation_with_semantics
+          Height Transformer: GridMapLayer
+          History Length: 1
+          Invert ColorMap: true
+          Max Color: 255; 255; 255
+          Max Intensity: 1
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: Visual Traversability
+          Show Grid Lines: false
+          Topic: /elevation_mapping/semantic_map
+          Unreliable: false
+          Use ColorMap: true
+          Value: true
+        - Alpha: 1
+          Autocompute Intensity Bounds: false
+          Class: grid_map_rviz_plugin/GridMap
+          Color: 200; 200; 200
+          Color Layer: traversability
+          Color Transformer: ""
+          ColorMap: coolwarm
+          Enabled: false
+          Grid Cell Decimation: 1
+          Grid Line Thickness: 0.10000000149011612
+          Height Layer: elevation
+          Height Transformer: GridMapLayer
+          History Length: 1
+          Invert ColorMap: true
+          Max Color: 255; 255; 255
+          Max Intensity: 1
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: Geom Traversability
+          Show Grid Lines: true
+          Topic: /elevation_mapping/semantic_map
+          Unreliable: false
+          Use ColorMap: true
+          Value: false
+      Enabled: true
+      Name: GridMaps
+  Enabled: true
+  Global Options:
+    Background Color: 255; 255; 255
+    Default Light: true
+    Fixed Frame: base
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz/Interact
+      Hide Inactive Objects: true
+    - Class: rviz/MoveCamera
+    - Class: rviz/Select
+    - Class: rviz/FocusCamera
+    - Class: rviz/Measure
+    - Class: rviz/SetInitialPose
+      Theta std deviation: 0.2617993950843811
+      Topic: /initialpose
+      X std deviation: 0.5
+      Y std deviation: 0.5
+    - Class: rviz/SetGoal
+      Topic: /move_base_simple/goal
+    - Class: rviz/PublishPoint
+      Single click: true
+      Topic: /clicked_point
+  Value: true
+  Views:
+    Current:
+      Class: rviz/XYOrbit
+      Distance: 12.523152351379395
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
+      Field of View: 0.7853981852531433
+      Focal Point:
+        X: -2.2413411140441895
+        Y: -0.2522427439689636
+        Z: 0
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
+      Name: Current View
+      Near Clip Distance: 0.009999999776482582
+      Pitch: 1.5697963237762451
+      Target Frame: base
+      Yaw: 3.1414999961853027
+    Saved:
+      - Class: rviz/ThirdPersonFollower
+        Distance: 22.303850173950195
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Field of View: 0.7853981852531433
+        Focal Point:
+          X: 3.3520777225494385
+          Y: 3.0211095809936523
+          Z: -5.593323707580566
+        Focal Shape Fixed Size: false
+        Focal Shape Size: 0.05000000074505806
+        Invert Z Axis: false
+        Name: ThirdPersonFollower
+        Near Clip Distance: 0.009999999776482582
+        Pitch: 1.5697963237762451
+        Target Frame: base
+        Yaw: 0.0003485679626464844
+Window Geometry:
+  AB Wide Angle Front:
+    collapsed: false
+  AB Wide Rear Front:
+    collapsed: false
+  Displays:
+    collapsed: false
+  F Traversability Overlay:
+    collapsed: false
+  Height: 2096
+  Hide Left Dock: false
+  Hide Right Dock: false
+  Input Image:
+    collapsed: false
+  L Confidence Raw:
+    collapsed: false
+  L Input Image:
+    collapsed: false
+  L Traversability Raw:
+    collapsed: false
+  Learning Mask:
+    collapsed: false
+  Placeholder:
+    collapsed: false
+  QMainWindow State: 000000ff00000000fd0000000400000000000001cb0000055bfc0200000011fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000005fb000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c00610079007301000002b80000055b000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000c00430061006d00650072006100000002ea000000c80000000000000000fb00000036005300750070006500720076006900730069006f006e0020002d00200049006d0061006700650020004c006100620065006c006500640000000259000000520000000000000000fb00000024005300750070006500720076006900730069006f006e0020002d0020004d00610073006b000000027e000000b80000000000000000fb0000000a0049006d00610067006500000002eb000001280000000000000000fb000000140043006f006e0066006900640065006e0063006500000003b3000000c60000000000000000fb00000028004600200043006f006e0066006900640065006e006300650020004f007600650072006c0061007900000002be000000160000000000000000fb0000003e004600200054007200610076006500720073006100620069006c0069007400790020004f007600650072006c006100790020005200650070006c0061007900000004a40000009f0000000000000000fb00000028004600200054007200610076006500720073006100620069006c00690074007900200052006100770000000482000000c10000000000000000fb00000028004600200054007200610076006500720073006100620069006c00690074007900200052006100770000000482000000c10000000000000000000000010000010f0000055bfc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007301000002b80000055b000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000eb800000275fc010000000ffb0000001c0049006d00610067006500200046006500610074007500720065007300000000bf000003690000000000000000fb00000024004100420020005700690064006500200052006500610072002000460072006f006e00740100000000000003d5000000ba00fffffffc0000012a0000010c0000000000fffffffa000000000200000003fb0000000a0049006d0061006700650000000000ffffffff0000000000000000fb0000002400460072006f006e0074002000280063006f006d007000720065007300730065006400290000000000ffffffff0000000000000000fb0000001e00410053002000460072006f006e00740020002800630061006d00340029000000003d0000010c0000000000000000fb00000030005200200054007200610076006500720073006100620069006c0069007400790020004f007600650072006c0061007901000003db00000330000000d500fffffffb00000026004100420020005700690064006500200041006e0067006c0065002000460072006f006e00740100000711000003ca000000c200fffffffc0000049b000001670000000000fffffffaffffffff0200000003fb000000160049006e00700075007400200049006d006100670065000000003d000001ac0000001600fffffffb0000001a005200200049006e00700075007400200049006d0061006700650000000000ffffffff0000001600fffffffb0000001a004c00200049006e00700075007400200049006d0061006700650000000000ffffffff0000001600fffffffb0000000a0049006d00610067006501000003240000018a0000000000000000fb0000002c0054007200610076006500720073006100620069006c0069007400790020004f007600650072006c0061007900000004ae0000010c0000000000000000fc00000ae1000003d7000000d400fffffffa000000000200000007fb00000030004600200054007200610076006500720073006100620069006c0069007400790020004f007600650072006c006100790100000000ffffffff0000001600fffffffb000000160046002000540072006100760020004f0076006500720000000000ffffffff0000000000000000fb0000003e004600200054007200610076006500720073006100620069006c0069007400790020004f007600650072006c006100790020005200650070006c006100790100000000ffffffff0000000000000000fb000000240054007200610076006500720073006100620069006c0069007400790020005200610077000000003d0000012b0000001600fffffffb00000028005200200054007200610076006500720073006100620069006c00690074007900200052006100770000000000ffffffff0000001600fffffffb00000028004c00200054007200610076006500720073006100620069006c00690074007900200052006100770000000000ffffffff0000001600fffffffb00000030004600200054007200610076006500720073006100620069006c0069007400790020004f007600650072006c006100790000000000ffffffff0000000000000000fc000006cf000000b10000000000fffffffa000000000200000005fb00000036004600200043006f006e0066006900640065006e006300650020004f007600650072006c006100790020005200650070006c006100790100000000ffffffff0000000000000000fb0000001a004c006500610072006e0069006e00670020004d00610073006b000000003d0000012b0000001600fffffffb00000020005200200043006f006e0066006900640065006e0063006500200052006100770000000000ffffffff0000001600fffffffb00000020004c00200043006f006e0066006900640065006e0063006500200052006100770000000000ffffffff0000001600fffffffb00000028004600200043006f006e0066006900640065006e006300650020004f007600650072006c006100790000000000ffffffff0000000000000000fb000000160050006c0061006300650068006f006c00640065007200000006630000011d0000008500fffffffb000000160049006e00700075007400200049006d006100670065010000031e000001790000000000000000fb00000036005300750070006500720076006900730069006f006e0020002d00200049006d0061006700650020004c006100620065006c006500640100000659000001af0000000000000000fb00000024005300750070006500720076006900730069006f006e0020002d0020004d00610073006b010000080e000001aa0000000000000000fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000078000000061fc010000000dfb000000200052006500700072006f006a00650063007400650064002000500061007400680000000000000000ab000000ab00fffffffb00000024005300750070006500720076006900730069006f006e0020005300690067006e0061006c00000000b100000592000000b000fffffffb0000001c0054007200610076006500720073006100620069006c0069007400790000000649000000ac0000009100fffffffb000000160055006e006300650072007400610069006e0074007900000006fb000000850000008500fffffffb000000160050006c0061006300650068006f006c006400650072000000000000000eb80000000000000000fb0000001c0054007200610076006500720073006100620069006c006900740079010000031f0000017d0000000000000000fb000000160055006e006300650072007400610069006e0074007901000004a2000002960000000000000000fb000000140043006f006e0066006900640065006e006300650000000000000003d40000000000000000fb0000001c0054007200610076006500720073006100620069006c0069007400790000000231000001f20000000000000000fb0000001c004100530020004c0065006600740020002800630061006d003300290000000000000007380000000000000000fb0000001e004100530020005200690067006800740020002800630061006d0035002900000003f0000003480000000000000000fb0000000800540069006d00650000000000000007800000041800fffffffb0000000800540069006d0065010000000000000450000000000000000000000bd20000055b00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  R Confidence Raw:
+    collapsed: false
+  R Input Image:
+    collapsed: false
+  R Traversability Overlay:
+    collapsed: false
+  R Traversability Raw:
+    collapsed: false
+  Reprojected Path:
+    collapsed: false
+  Selection:
+    collapsed: false
+  Supervision Signal:
+    collapsed: false
+  Time:
+    collapsed: false
+  Tool Properties:
+    collapsed: false
+  Traversability:
+    collapsed: false
+  Traversability Raw:
+    collapsed: false
+  Uncertainty:
+    collapsed: false
+  Views:
+    collapsed: false
+  Width: 3768
+  X: 1992
+  Y: 27

@@ -1,6 +1,10 @@
+#
+# Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
+# All rights reserved. Licensed under the MIT license.
+# See LICENSE file in the project root for details.
+#
 import torch
 import os
-import numpy as np
 import pandas as pd
 from functools import wraps
 
@@ -27,7 +31,6 @@ def pynvml_gpu_memory_query(device, pid):
 
 
 def jtop_gpu_memory_query(device, pid):
-    from jtop import jtop
     import psutil
 
     process = psutil.Process(pid)
@@ -181,7 +184,15 @@ class SystemLevelContextGpuMonitor:
 
 
 class SystemLevelGpuMonitor:
-    def __init__(self, objects, names, enabled=True, device=None, store_samples=False, skip_n_samples=1) -> None:
+    def __init__(
+        self,
+        objects,
+        names,
+        enabled=True,
+        device=None,
+        store_samples=False,
+        skip_n_samples=1,
+    ) -> None:
         self.objects = objects
         self.names = names
 
@@ -211,7 +222,7 @@ class SystemLevelGpuMonitor:
             if hasattr(o, "slg_memory_samples"):
                 # Each object has a slg_memory_samples dict
                 # Each entry of the dict is a numpy array with samples
-                for (k, v) in o.slg_memory_samples.items():
+                for k, v in o.slg_memory_samples.items():
                     out_filename = f"{base_folder}/{n}_{k}.csv"
                     print(f"   {out_filename}")
                     df = pd.DataFrame(v)
@@ -219,7 +230,6 @@ class SystemLevelGpuMonitor:
 
 
 if __name__ == "__main__":
-
     print("GPU memory measuring using context manager")
 
     tensors = []
@@ -263,7 +273,12 @@ if __name__ == "__main__":
     t = 0.1
     my_test = MyTest()
     gpu_monitor = SystemLevelGpuMonitor(
-        objects=[my_test], names=["test"], enabled=True, device="cuda", store_samples=True, skip_n_samples=1
+        objects=[my_test],
+        names=["test"],
+        enabled=True,
+        device="cuda",
+        store_samples=True,
+        skip_n_samples=1,
     )
     for n in range(400):
         step = n

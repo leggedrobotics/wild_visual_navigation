@@ -1,3 +1,8 @@
+#
+# Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
+# All rights reserved. Licensed under the MIT license.
+# See LICENSE file in the project root for details.
+#
 from wild_visual_navigation import WVN_ROOT_DIR
 from os.path import join
 from omegaconf import DictConfig
@@ -55,7 +60,9 @@ class TrtModel:
 
 class DinoTrtInterface:
     def __init__(
-        self, trt_model_path: str = os.path.join(WVN_ROOT_DIR, "assets/dino/dino_exported.trt"), device: str = "cuda"
+        self,
+        trt_model_path: str = os.path.join(WVN_ROOT_DIR, "assets/dino/dino_exported.trt"),
+        device: str = "cuda",
     ):
         self.device = device
         self.dim = 90
@@ -122,24 +129,22 @@ def run_dino_trt_interfacer():
     """Performance inference using stego and stores result as an image."""
 
     from wild_visual_navigation.visu import get_img_from_fig
+    from wild_visual_navigation.testing import load_test_image, get_dino_transform
+    from wild_visual_navigation.utils.testing import make_results_folder
     import matplotlib.pyplot as plt
     from stego.src import remove_axes
-    import cv2
 
     # Create test directory
-    os.makedirs(join(WVN_ROOT_DIR, "results", "test_dino_trt_interfacer"), exist_ok=True)
+    outpath = make_results_folder("test_dino_trt_interfacer")
 
     # Inference model
     device = "cuda" if torch.cuda.is_available() else "cpu"
     di = DinoTrtInterface(device=device)
-    p = join(WVN_ROOT_DIR, "assets/images/forest_clean.png")
-    np_img = cv2.imread(p)
-    img = torch.from_numpy(cv2.cvtColor(np_img, cv2.COLOR_BGR2RGB)).to(device)
-    img = img.permute(2, 0, 1)
-    img = (img.type(torch.float32) / 255)[None]
+    img = load_test_image().to(device)
+    transform = get_dino_transform()
 
     # Inference with DINO
-    feat_dino = di.inference(di.transform(img), interpolate=False)
+    feat_dino = di.inference(transform(img), interpolate=False)
 
     # Fix size of DINO features to match input image's size
     B, D, H, W = img.shape
@@ -169,7 +174,7 @@ def run_dino_trt_interfacer():
 
     # Store results to test directory
     img = get_img_from_fig(fig)
-    img.save(join(WVN_ROOT_DIR, "results", "test_dino_trt_interfacer", "forest_clean_dino.png"))
+    img.save(join(outpath, "forest_clean_dino.png"))
 
 
 if __name__ == "__main__":

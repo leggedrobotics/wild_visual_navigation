@@ -1,3 +1,8 @@
+#
+# Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
+# All rights reserved. Licensed under the MIT license.
+# See LICENSE file in the project root for details.
+#
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from PIL import Image
 import numpy as np

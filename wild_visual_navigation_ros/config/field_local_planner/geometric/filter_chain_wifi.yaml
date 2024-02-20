@@ -1,6 +1,0 @@
-grid_map_filters:
-
-  - name: delete
-    type: gridMapFiltersDrs/DeleteAllButFilter
-    params:
-      layers: [elevation, elevation_inpainted, geometric_traversability, geodesic, sdf] # List of layers.

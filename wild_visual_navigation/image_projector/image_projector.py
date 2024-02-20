@@ -1,6 +1,9 @@
-from wild_visual_navigation import WVN_ROOT_DIR
-from wild_visual_navigation.utils import Timer
-import os
+#
+# Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
+# All rights reserved. Licensed under the MIT license.
+# See LICENSE file in the project root for details.
+#
+from pytictac import Timer
 from os.path import join
 import torch
 from torchvision import transforms as T
@@ -147,7 +150,11 @@ class ImageProjector:
         return projected_points, valid_points, valid_z
 
     def project_and_render(
-        self, pose_camera_in_world: torch.tensor, points: torch.tensor, colors: torch.tensor, image: torch.tensor = None
+        self,
+        pose_camera_in_world: torch.tensor,
+        points: torch.tensor,
+        colors: torch.tensor,
+        image: torch.tensor = None,
     ):
         """Projects the points and returns an image with the projection
 
@@ -197,19 +204,17 @@ def run_image_projector():
     """Projects 3D points to example images and returns an image with the projection"""
 
     from wild_visual_navigation.visu import get_img_from_fig
-    from wild_visual_navigation.utils import Timer
-    from wild_visual_navigation.utils import make_plane, make_box, make_dense_plane, make_polygon_from_points
-    from PIL import Image
+    from wild_visual_navigation.utils import (
+        make_polygon_from_points,
+    )
+    from wild_visual_navigation.utils.testing import load_test_image, make_results_folder
     import matplotlib.pyplot as plt
     import torch
-    import torchvision.transforms as transforms
     from kornia.utils import tensor_to_image
-    from stego.src import remove_axes
-
-    to_tensor = transforms.ToTensor()
+    from stego.utils import remove_axes
 
     # Create test directory
-    os.makedirs(join(WVN_ROOT_DIR, "results", "test_image_projector"), exist_ok=True)
+    outpath = make_results_folder("test_image_projector")
 
     # Define number of cameras (batch)
     B = 10
@@ -229,17 +234,14 @@ def run_image_projector():
         R_WC = SO3.from_rpy(phi)  # Rotation matrix from roll-pitch-yaw
         pose_camera_in_world[i] = SE3(R_WC, rho).as_matrix()  # Pose matrix of camera in world frame
     # Image size
-    H = 1080
-    W = 1440
+    H = torch.tensor(1080)
+    W = torch.tensor(1440)
 
     # Create projector
     im = ImageProjector(K, H, W)
 
     # Load image
-    pil_img = Image.open(join(WVN_ROOT_DIR, "assets/images/forest_clean.png"))
-
-    # Convert to torch
-    k_img = to_tensor(pil_img)
+    k_img = load_test_image()
     k_img = k_img.expand(B, 3, H, W)
     k_img = im.resize_image(k_img)
 
@@ -269,7 +271,7 @@ def run_image_projector():
                 for x in range(-3, 3, 1):
                     try:
                         k_points_overlay[:, idx[1].item() + y, idx[0].item() + x] = torch.tensor([0, 255, 0])
-                    except Exception as e:
+                    except Exception:
                         continue
 
         ax[i, 0].imshow(tensor_to_image(k_img[i]))
@@ -285,7 +287,12 @@ def run_image_projector():
 
     # Store results to test directory
     img = get_img_from_fig(fig)
-    img.save(join(WVN_ROOT_DIR, "results", "test_image_projector", "forest_clean_image_projector.png"))
+    img.save(
+        join(
+            outpath,
+            "forest_clean_image_projector.png",
+        )
+    )
 
 
 if __name__ == "__main__":

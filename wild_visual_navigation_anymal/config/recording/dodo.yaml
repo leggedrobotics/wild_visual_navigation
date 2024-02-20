@@ -1,0 +1,157 @@
+lpc:
+  generic:
+    - /anymal_low_level_controller/actuator_readings
+    - /anymal_low_level_controller/actuator_readings_extended_throttled
+    - /chrony_monitor_lpc/status
+    - /cpu_loupe_lpc/cpu_loupe
+    - /cpu_monitor_lpc/status
+    - /anyjoy/rcu
+    - /motion_reference/command_pose
+    - /motion_reference/command_twist
+    - /debug_info
+    - /twist_mux/rcu
+    - /twist_mux/twist
+    - /disk_monitor_lpc/status
+    - /distance_tracker/total_distance
+    - /distance_tracker/display
+    - /foot_scan
+    - /memory_monitor_lpc/status
+    - /path_logger/logged_path
+    - /path_logger/reverse_path
+    - /ping_monitor_anymal/markers
+    - /pdb/battery_state
+    - /pdb/intrinsic_state
+    - /pdb/power_state
+    - /resource_database/reports
+    - /sensors/battery_voltage
+    - /soft_emcy_stop
+
+  depth_cameras_front_back:
+    - /depth_camera_front_upper/point_cloud_self_filtered
+    - /depth_camera_front_lower/point_cloud_self_filtered
+    - /depth_camera_rear_upper/point_cloud_self_filtered
+    - /depth_camera_rear_lower/point_cloud_self_filtered
+    # Front Upper
+    # - /depth_camera_front_upper/depth/camera_info
+    # - /depth_camera_front_upper/depth/image_rect_raw
+    # - /depth_camera_front_upper/infra1/image_rect_raw
+    # Front Lower
+    # - /depth_camera_front_lower/depth/camera_info
+    # - /depth_camera_front_lower/depth/image_rect_raw
+    # - /depth_camera_front_lower/infra1/image_rect_raw
+    # Rear Lower
+    # - /depth_camera_rear_lower/depth/camera_info
+    # - /depth_camera_rear_lower/depth/image_rect_raw
+    # - /depth_camera_rear_lower/infra1/image_rect_raw
+    # Rear Upper
+    # - /depth_camera_rear_upper/depth/camera_info
+    # - /depth_camera_rear_upper/depth/image_rect_raw
+    # - /depth_camera_rear_upper/infra1/image_rect_raw
+
+  imu:
+    - /sensors/imu
+  state_estimator:
+    - /state_estimator/actuator_readings
+    - /state_estimator/anymal_state
+    - /state_estimator/contact_force_lf_foot
+    - /state_estimator/contact_force_lh_foot
+    - /state_estimator/contact_force_rf_foot
+    - /state_estimator/contact_force_rh_foot
+    - /state_estimator/disable_change_notification
+    - /state_estimator/enable_change_notification
+    - /state_estimator/force_calibrator_commands
+    - /state_estimator/imu
+    - /state_estimator/imu_angular_velocity_bias
+    - /state_estimator/imu_linear_acceleration_bias
+    - /state_estimator/init_change_notification
+    - /state_estimator/joint_states
+    - /state_estimator/odometry
+    - /state_estimator/pose_in_odom
+    - /state_estimator/reset_notification
+    - /state_estimator/twist
+    - /state_estimator/twist_throttle
+    - /state_estimator/zero_velocity_update_notification
+  tf:
+    - /tf
+    - /tf_static
+  clock:
+    - /clock
+npc:
+  lidar:
+    - /lidar/packets
+    - /point_cloud_filter/lidar/point_cloud_filtered
+  # - /point_cloud_filter/lidar/point_cloud_filtered
+  wide_angle_camera:
+    - /wide_angle_camera_front/image_color_rect/compressed
+    - /wide_angle_camera_front/camera_info
+    - /wide_angle_camera_rear/image_color_rect/compressed
+    - /wide_angle_camera_rear/camera_info
+  compslam:
+    - /compslam_lio/full_path
+    - /compslam_lio/odometry
+    - /compslam_lio/map
+    - /compslam_lio/map_optimized
+  depth_cameras_side:
+    # Right
+    # - /depth_camera_right/depth/camera_info
+    # - /depth_camera_right/depth/image_rect_raw
+    #- /depth_camera_right/infra1/image_rect_raw
+    # Left
+    # - /depth_camera_left/depth/camera_info
+    # - /depth_camera_left/depth/image_rect_raw
+    # - /depth_camera_left/infra1/image_rect_raw
+    - /depth_camera_left/point_cloud_self_filtered
+    - /depth_camera_right/point_cloud_self_filtered
+  generic:
+    - /anymal/absolute_reference
+    - /behavior_engine/status
+    - /chrony_monitor_npc/status
+    - /clicked_point
+    - /colorless_uniform_mapper/local_point_cloud
+    - /transform_aft_mapped_to_init_CORRECTED
+    - /disk_monitor_npc/status
+    - /integrated_to_init_CORRECTED
+    - /local_guidance_path_follower/controller_reference_marker
+    - /local_guidance_path_manager/received_global_path
+    - /memory_monitor_npc/status
+    - /msf_compslam_lio_body_imu/msf_core/odometry
+    - /network_monitor_npc/status
+    - /pinger_npc_to_jetson/ping
+    - /pinger_npc_to_lpc/ping
+    - /cpu_monitor_npc/status
+    - /cpu_loupe_npc/cpu_loupe
+    - /resource_database/reports
+jetson:
+  elevation_mapping:
+    - /elevation_mapping/elevation_map_raw
+    - /elevation_mapping/semantic_map
+  generic:
+    - /chrony_monitor_jetson/status
+    - /cpu_loupe_jetson/cpu_loupe
+    - /disk_monitor_jetson/status
+    - /gpu_monitor_jetson
+    - /memory_monitor_jetson/status
+    - /network_monitor_jetson/status
+    - /safety_checker/traversabiliy_safety_status
+    - /safety_checker/footprint_polygon
+    - /safety_checker/untraversable_polygon
+    - /pinger_jetson_to_lpc/ping
+    - /pinger_jetson_to_npc/ping
+    - /pinger_jetson_to_apc/ping
+  hdr_camera:
+    - /hdr_camera/image_raw/compressed
+    - /hdr_camera/camera_info
+  wvn:
+    - /wild_visual_navigation_node/front/camera_info
+    - /wild_visual_navigation_node/front/confidence
+    - /wild_visual_navigation_node/front/feat
+    - /wild_visual_navigation_node/front/image_input
+    - /wild_visual_navigation_node/front/traversability
+    - /wild_visual_navigation_node/graph_footprints
+    - /wild_visual_navigation_node/graph_footprints_array
+    - /wild_visual_navigation_node/rear/camera_info
+    - /wild_visual_navigation_node/rear/confidence
+    - /wild_visual_navigation_node/rear/image_input
+    - /wild_visual_navigation_node/rear/traversability
+    - /wild_visual_navigation_node/robot_state
+    - /wild_visual_navigation_node/supervision_graph

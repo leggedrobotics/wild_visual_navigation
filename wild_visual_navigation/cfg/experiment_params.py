@@ -1,10 +1,19 @@
+#
+# Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
+# All rights reserved. Licensed under the MIT license.
+# See LICENSE file in the project root for details.
+#
 from dataclasses import dataclass, field
-from typing import Tuple, Dict, List, Optional
-from simple_parsing.helpers import Serializable
+from typing import List, Optional
+from typing import Any
+import os
+from wild_visual_navigation.cfg import get_global_env_params, GlobalEnvironmentParams
 
 
 @dataclass
-class ExperimentParams(Serializable):
+class ExperimentParams:
+    env: GlobalEnvironmentParams = get_global_env_params(os.environ.get("ENV_WORKSTATION_NAME", "default"))
+
     @dataclass
     class GeneralParams:
         name: str = "debug/debug"
@@ -42,14 +51,22 @@ class ExperimentParams(Serializable):
         w_trav: float = 0.03
         w_reco: float = 0.5
         w_temp: float = 0.0  # 0.75
-        method: str = "latest_measurment"
-        confidence_std_factor: float = 1.0
+        method: str = "latest_measurement"
+        confidence_std_factor: float = 0.5
         trav_cross_entropy: bool = False
 
     loss: LossParams = LossParams()
 
     @dataclass
+    class LossAnomalyParams:
+        method: str = "latest_measurement"
+        confidence_std_factor: float = 0.5
+
+    loss_anomaly: LossAnomalyParams = LossAnomalyParams()
+
+    @dataclass
     class TrainerParams:
+        default_root_dir: Optional[str] = None
         precision: int = 32
         accumulate_grad_batches: int = 1
         fast_dev_run: bool = False
@@ -57,7 +74,7 @@ class ExperimentParams(Serializable):
         limit_val_batches: float = 1.0
         limit_test_batches: float = 1.0
         max_epochs: Optional[int] = None
-        profiler: bool = False
+        profiler: Any = False
         num_sanity_val_steps: int = 0
         check_val_every_n_epoch: int = 1
         enable_checkpointing: bool = True
@@ -65,6 +82,7 @@ class ExperimentParams(Serializable):
         enable_progress_bar: bool = True
         weights_summary: Optional[str] = "top"
         progress_bar_refresh_rate: Optional[int] = None
+        gpus: int = -1
 
     trainer: TrainerParams = TrainerParams()
 
@@ -84,12 +102,12 @@ class ExperimentParams(Serializable):
 
     @dataclass
     class ModelParams:
-        name: str = "SimpleMLP"
+        name: str = "SimpleMLP"  # LinearRnvp, SimpleMLP, SimpleGCN, DoubleMLP
         load_ckpt: Optional[str] = None
 
         @dataclass
         class SimpleMlpCfgParams:
-            input_size: int = 90
+            input_size: int = 90  # 90 for stego, 384 for dino
             hidden_sizes: List[int] = field(default_factory=lambda: [256, 32, 1])
             reconstruction: bool = True
 
@@ -97,18 +115,29 @@ class ExperimentParams(Serializable):
 
         @dataclass
         class DoubleMlpCfgParams:
-            input_size: int = 90
+            input_size: int = 384
             hidden_sizes: List[int] = field(default_factory=lambda: [64, 32, 1])
 
         double_mlp_cfg: DoubleMlpCfgParams = DoubleMlpCfgParams()
 
         @dataclass
         class SimpleGcnCfgParams:
-            input_size: int = 90
+            input_size: int = 384
             reconstruction: bool = True
             hidden_sizes: List[int] = field(default_factory=lambda: [256, 128, 1])
 
         simple_gcn_cfg: SimpleGcnCfgParams = SimpleGcnCfgParams()
+
+        @dataclass
+        class LinearRnvpCfgParams:
+            input_size: int = 384
+            coupling_topology: List[int] = field(default_factory=lambda: [200])
+            mask_type: str = "odds"
+            conditioning_size: int = 0
+            use_permutation: bool = True
+            single_function: bool = False
+
+        linear_rnvp_cfg: LinearRnvpCfgParams = LinearRnvpCfgParams()
 
     model: ModelParams = ModelParams()
 
@@ -142,20 +171,10 @@ class ExperimentParams(Serializable):
 
         @dataclass
         class LearningVisuParams:
-            p_visu: Optional[bool] = None
+            p_visu: Optional[str] = None
             store: bool = True
             log: bool = True
 
         learning_visu: LearningVisuParams = LearningVisuParams()
 
     visu: VisuParams = VisuParams()
-
-    def verify_params(self):
-        if not self.general.log_to_disk:
-            assert self.trainer.profiler != "advanced", "Should not be advanced if not logging to disk"
-            assert self.cb_checkpoint.active == False, "Should be False if not logging to disk"
-
-        if self.loss.trav_cross_entropy:
-            self.model.simple_mlp_cfg.hidden_sizes[-1] = 2
-            self.model.double_mlp_cfg.hidden_sizes[-1] = 2
-            self.model.simple_gcn_cfg.hidden_sizes[-1] = 2

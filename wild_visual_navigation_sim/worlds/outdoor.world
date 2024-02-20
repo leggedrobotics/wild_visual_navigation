@@ -1,0 +1,314 @@
+<?xml version="1.0"?>
+<sdf version='1.6'>
+  <world name='small_outdoor'>
+    <scene>
+      <ambient>0.2 0.2 0.2 1</ambient>
+      <shadows>1</shadows>
+      <grid>0</grid>
+    </scene>
+    <gravity>0 0 -9.81</gravity>
+    <light name='sun' type='directional'>
+      <cast_shadows>1</cast_shadows>
+      <pose frame=''>0 0 100 0 -0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.9 0.9 0.9 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.1</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>0.2 0.2 -0.9</direction>
+    </light>
+    <model name='heightmap_terrain'>
+      <static>1</static>
+      <link name='link'>
+        <collision name='collision'>
+          <geometry>
+            <heightmap>
+              <uri>
+                file://heightmap.png</uri>
+              <size>30 30 12</size>
+              <pos>0 0 -1</pos>
+              <texture>
+                <size>10</size>
+                <diffuse>__default__</diffuse>
+                <normal>__default__</normal>
+              </texture>
+              <blend>
+                <min_height>0</min_height>
+                <fade_dist>0</fade_dist>
+              </blend>
+            </heightmap>
+          </geometry>
+          <max_contacts>10</max_contacts>
+          <surface>
+            <contact>
+              <ode />
+            </contact>
+            <bounce />
+            <friction>
+              <torsional>
+                <ode />
+              </torsional>
+              <ode />
+            </friction>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <geometry>
+            <heightmap>
+              <texture>
+                <diffuse>file://media/materials/textures/dirt_diffusespecular.png</diffuse>
+                <normal>file://media/materials/textures/flat_normal.png</normal>
+                <size>7</size>
+              </texture>
+              <texture>
+                <diffuse>file://media/materials/textures/grass_diffusespecular.png</diffuse>
+                <normal>file://media/materials/textures/flat_normal.png</normal>
+                <size>3</size>
+              </texture>
+              <texture>
+                <diffuse>file://media/materials/textures/fungus_diffusespecular.png</diffuse>
+                <normal>file://media/materials/textures/flat_normal.png</normal>
+                <size>4</size>
+              </texture>
+              <blend>
+                <min_height>0</min_height>
+                <fade_dist>0.05</fade_dist>
+              </blend>
+              <blend>
+                <min_height>-1</min_height>
+                <fade_dist>7</fade_dist>
+              </blend>
+              <uri>
+                file://heightmap.png</uri>
+              <size>30 30 12</size>
+              <pos>0 0 -1</pos>
+            </heightmap>
+          </geometry>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+    </model>
+
+    <!-- Trees!!! -->
+		<model name="tree1">
+			<static>true</static>
+			<link name="tree1_link">
+				<pose>3 3 -1 0 0 0</pose>
+				<collision name="tree1_collision">
+					<geometry>
+						<mesh>
+							<uri>file://OliveTree1.dae</uri>
+							<scale>1 1 1</scale>
+						</mesh>
+					</geometry>
+				</collision>
+				<visual name="tree1_visual">
+					<geometry>
+						<mesh>
+							<uri>file://OliveTree1.dae</uri>
+							<scale>1 1 1</scale>
+						</mesh>
+					</geometry>
+					<cast_shadows>false</cast_shadows>
+				</visual>
+			</link>
+		</model>
+
+		<model name="tree2">
+			<static>true</static>
+			<link name="tree2_link">
+				<pose>5 6 -1.0 0.0 0 0.3</pose>
+				<collision name="tree2_collision">
+					<geometry>
+						<mesh>
+							<uri>file://OliveTree1.dae</uri>
+							<scale>1 1 1</scale>
+						</mesh>
+					</geometry>
+				</collision>
+				<visual name="tree2_visual">
+					<geometry>
+						<mesh>
+							<uri>file://OliveTree1.dae</uri>
+							<scale>1 1 1</scale>
+						</mesh>
+					</geometry>
+					<cast_shadows>false</cast_shadows>
+				</visual>
+			</link>
+		</model>
+
+		<model name="tree3">
+			<static>true</static>
+			<link name="tree3_link">
+				<pose>1 8 -0.2 0.0 0 0</pose>
+				<collision name="tree3_collision">
+					<geometry>
+						<mesh>
+							<uri>file://OliveTree2.dae</uri>
+							<scale>1 1 1</scale>
+						</mesh>
+					</geometry>
+				</collision>
+				<visual name="tree3_visual">
+					<geometry>
+						<mesh>
+							<uri>file://OliveTree2.dae</uri>
+							<scale>1 1 1</scale>
+						</mesh>
+					</geometry>
+					<cast_shadows>false</cast_shadows>
+				</visual>
+			</link>
+		</model>
+
+		<model name="tree4">
+			<static>true</static>
+			<link name="tree4_link">
+				<pose>-5 4 -1.0 0 0.1</pose>
+				<collision name="tree4_collision">
+					<geometry>
+						<mesh>
+							<uri>file://OliveTree1.dae</uri>
+							<scale>1 1 1</scale>
+						</mesh>
+					</geometry>
+				</collision>
+				<visual name="tree4_visual">
+					<geometry>
+						<mesh>
+							<uri>file://OliveTree1.dae</uri>
+							<scale>1 1 1</scale>
+						</mesh>
+					</geometry>
+					<cast_shadows>false</cast_shadows>
+				</visual>
+			</link>
+		</model>
+
+		<model name="tree5">
+			<static>true</static>
+			<link name="tree5_link">
+				<pose>-10 -3 -1.0 0 0 0.3</pose>
+				<collision name="tree5_collision">
+					<geometry>
+						<mesh>
+							<uri>file://OliveTree1.dae</uri>
+							<scale>1 1 1</scale>
+						</mesh>
+					</geometry>
+				</collision>
+				<visual name="tree5_visual">
+					<geometry>
+						<mesh>
+							<uri>file://OliveTree1.dae</uri>
+							<scale>1 1 1</scale>
+						</mesh>
+					</geometry>
+					<cast_shadows>false</cast_shadows>
+				</visual>
+			</link>
+		</model>
+
+		<model name="tree6">
+			<static>true</static>
+			<link name="tree6_link">
+				<pose>-6 -1 -0.8 0 0 0.5</pose>
+				<collision name="tree6_collision">
+					<geometry>
+						<mesh>
+							<uri>file://OliveTree1.dae</uri>
+							<scale>1 1 1</scale>
+						</mesh>
+					</geometry>
+				</collision>
+				<visual name="tree6_visual">
+					<geometry>
+						<mesh>
+							<uri>file://OliveTree1.dae</uri>
+							<scale>1 1 1</scale>
+						</mesh>
+					</geometry>
+					<cast_shadows>false</cast_shadows>
+				</visual>
+			</link>
+		</model>
+
+		<model name="tree7">
+			<static>true</static>
+			<link name="tree7_link">
+				<pose>-1 1 -1.0 0.0 0 0.2</pose>
+				<collision name="tree7_collision">
+					<geometry>
+						<mesh>
+							<uri>file://OliveTree2.dae</uri>
+							<scale>1 1 1</scale>
+						</mesh>
+					</geometry>
+				</collision>
+				<visual name="tree7_visual">
+					<geometry>
+						<mesh>
+							<uri>file://OliveTree2.dae</uri>
+							<scale>1 1 1</scale>
+						</mesh>
+					</geometry>
+					<cast_shadows>false</cast_shadows>
+				</visual>
+			</link>
+		</model>
+
+		<model name="tree8">
+			<static>true</static>
+			<link name="tree8_link">
+				<pose>9 -4 -0.5 0 0 0.5</pose>
+				<collision name="tree8_collision">
+					<geometry>
+						<mesh>
+							<uri>file://OliveTree1.dae</uri>
+							<scale>1 1 1</scale>
+						</mesh>
+					</geometry>
+				</collision>
+				<visual name="tree8_visual">
+					<geometry>
+						<mesh>
+							<uri>file://OliveTree1.dae</uri>
+							<scale>1 1 1</scale>
+						</mesh>
+					</geometry>
+					<cast_shadows>false</cast_shadows>
+				</visual>
+			</link>
+		</model>
+
+		<model name="tree9">
+			<static>true</static>
+			<link name="tree9_link">
+				<pose>6 -0.5 -1.0 0 0 0.5</pose>
+				<collision name="tree9_collision">
+					<geometry>
+						<mesh>
+							<uri>file://OliveTree1.dae</uri>
+							<scale>1 1 1</scale>
+						</mesh>
+					</geometry>
+				</collision>
+				<visual name="tree9_visual">
+					<geometry>
+						<mesh>
+							<uri>file://OliveTree1.dae</uri>
+							<scale>1 1 1</scale>
+						</mesh>
+					</geometry>
+					<cast_shadows>false</cast_shadows>
+				</visual>
+			</link>
+		</model>
+  </world>
+</sdf>

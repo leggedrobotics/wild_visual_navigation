@@ -1,0 +1,12 @@
+<launch>
+  <!-- Launch the image_proc nodelet -->
+  <node pkg="nodelet" type="nodelet" name="standalone_nodelet_rear" args="manager"/>
+  <node pkg="nodelet" type="nodelet" name="image_proc_nodelet_wide_angle_rear" args="load image_proc/resize standalone_nodelet_rear">
+    <remap from="camera_info" to="/wide_angle_camera_rear/camera_info" />
+    <remap from="~camera_info" to="/wide_angle_camera_rear_resize/camera_info" />
+    <remap from="image" to="/wide_angle_camera_rear/image_color_rect" />
+    <remap from="~image" to="/wide_angle_camera_rear/image_color_rect_resize" />
+    <param name="scale_width" value="0.2074077" />
+    <param name="scale_height" value="0.2074077" />
+  </node>
+</launch>

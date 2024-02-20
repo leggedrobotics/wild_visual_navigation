@@ -1,0 +1,10 @@
+<launch>
+  <!-- Arguments -->
+  <arg name="camera"            default="wide_angle_dual_resize"/> <!-- alphasense, wide_angle_front, realsense_front, realsense_rear -->
+
+  <include if="$(eval arg('camera') == 'wide_angle_front_resize')" file="$(find wild_visual_navigation_anymal)/launch/resize_images_wide_angle_front.launch"/>
+  <include if="$(eval arg('camera') == 'wide_angle_dual_resize')" file="$(find wild_visual_navigation_anymal)/launch/resize_images_wide_angle_dual.launch"/>
+
+  <node name="anymal_msg_converter_node" pkg="wild_visual_navigation_anymal" type="anymal_msg_converter_node.py"/>
+
+</launch>

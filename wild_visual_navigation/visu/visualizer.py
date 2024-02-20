@@ -1,3 +1,8 @@
+#
+# Copyright (c) 2022-2024, ETH Zurich, Jonas Frey, Matias Mattamala.
+# All rights reserved. Licensed under the MIT license.
+# See LICENSE file in the project root for details.
+#
 # TODO: Jonas doc strings, rework visualiation functions
 
 import os
@@ -15,11 +20,10 @@ import matplotlib
 matplotlib.use("Agg")
 
 from wild_visual_navigation.visu import image_functionality
-from wild_visual_navigation.learning.utils import get_confidence
+from wild_visual_navigation.utils import get_confidence
 from wild_visual_navigation.visu import get_img_from_fig
-from wild_visual_navigation.visu import paper_colors_rgb_u8, paper_colors_rgba_u8
-from wild_visual_navigation.visu import paper_colors_rgb_f, paper_colors_rgba_f
-from wild_visual_navigation.utils import Timer, accumulate_time
+from wild_visual_navigation.visu import paper_colors_rgb_f
+from pytictac import Timer, accumulate_time
 
 __all__ = ["LearningVisualizer"]
 
@@ -85,7 +89,7 @@ class LearningVisualizer:
 
         sns.set_style("darkgrid")
         fig, ax = plt.subplots(figsize=(3, 3))
-        l = len(x)
+        l = len(x)  # noqa: E741
         assert len(y) == l
         assert len(y_lower) == l
         assert len(y_upper) == l
@@ -99,7 +103,13 @@ class LearningVisualizer:
             if not (_y_lower is None):
                 ax.plot(_x, _y_lower, color=paper_colors_rgb_f[k + "_light"], alpha=0.1)
                 ax.plot(_x, _y_upper, color=paper_colors_rgb_f[k + "_light"], alpha=0.1)
-                ax.fill_between(_x, _y_lower, _y_upper, color=paper_colors_rgb_f[k + "_light"], alpha=0.2)
+                ax.fill_between(
+                    _x,
+                    _y_lower,
+                    _y_upper,
+                    color=paper_colors_rgb_f[k + "_light"],
+                    alpha=0.2,
+                )
 
         ax.plot(np.linspace(0, 1, 100), np.linspace(0, 1, 100), linestyle="--", color="gray")
         ax.set_xlabel("False positive rate")
@@ -221,7 +231,7 @@ class LearningVisualizer:
             boundary_seg=seg,
             draw_bound=False,
         )
-        i2 = (torch.from_numpy(i1).type(torch.float32) / 255).permute(2, 0, 1)
+        i2 = (torch.from_numpy(i1).type(torch.float32) / 255).permute(2, 0, 1)  # noqa: F841
 
         # Plot Graph on Image
         return i1
@@ -239,7 +249,15 @@ class LearningVisualizer:
     @accumulate_time
     @image_functionality
     def plot_traversability_graph(
-        self, prediction, graph, center, img, max_val=1.0, colormap="RdYlBu", colorize_invalid_centers=False, **kwargs
+        self,
+        prediction,
+        graph,
+        center,
+        img,
+        max_val=1.0,
+        colormap="RdYlBu",
+        colorize_invalid_centers=False,
+        **kwargs,
     ):
         """Plot prediction on graph
 
@@ -355,14 +373,34 @@ class LearningVisualizer:
         overlay_mask=None,
         **kwargs,
     ):
-        cmap = cm.get_cmap("RdYlBu", 256)
-        cmap = np.concatenate([cmap(np.linspace(0, 0.3, 128)), cmap(np.linspace(0.7, 1.0, 128))])
-        cmap = torch.from_numpy(cmap).to(seg)[:, :3]
+        if kwargs.get("cmap", None):
+            cmap = kwargs["cmap"]
+        else:
+            s = 0.3  # If bigger, get more fine-grained green, if smaller get more fine-grained red
+            cmap = cm.get_cmap("RdYlBu", 256)  # or RdYlGn
+            cmap = np.concatenate(
+                [cmap(np.linspace(0, s, 128)), cmap(np.linspace(1 - s, 1.0, 128))]
+            )  # Stretch the colormap
+            cmap = torch.from_numpy(cmap).to(seg)[:, :3]
 
         img = self.plot_image(img, not_log=True)
         seg_img = self.plot_segmentation(
-            (seg * 255).type(torch.long).clip(0, 255), max_seg=256, colormap=cmap, store=False, not_log=True
+            (seg * 255).type(torch.long).clip(0, 255),
+            max_seg=256,
+            colormap=cmap,
+            store=False,
+            not_log=True,
         )
+
+        # plt.hist(seg_img.ravel(), bins=500)
+        # # Get current ros time
+        # now = rospy.Time.now()
+        # # Create a unique filename
+        # filename = f"{now.secs}_{now.nsecs}.png"
+        # # Save the figure
+        # plt.savefig(f"/home/rschmid/overlays/{filename}")
+        # # Close the figure
+        # plt.close()
 
         H, W = img.shape[:2]
         back = np.zeros((H, W, 4))
@@ -527,14 +565,19 @@ class LearningVisualizer:
                 dv = (flow[1, u, v] + i2.shape[1]).item()
                 try:
                     draw.line([(v, u), (v + dv, u + du)], fill=col, width=2)
-                except:
+                except Exception:
                     pass
         return np.array(pil_img).astype(np.uint8)
 
     @accumulate_time
     @image_functionality
     def plot_sparse_optical_flow(
-        self, pre_pos: torch.Tensor, cur_pos: torch.Tensor, img1: torch.Tensor, img2: torch.Tensor, **kwargs
+        self,
+        pre_pos: torch.Tensor,
+        cur_pos: torch.Tensor,
+        img1: torch.Tensor,
+        img2: torch.Tensor,
+        **kwargs,
     ):
         """Draws line connection between to images based on estimated flow
 
@@ -557,8 +600,15 @@ class LearningVisualizer:
         col = (0, 255, 0)
         for p, c in zip(pre_pos, cur_pos):
             try:
-                draw.line([(p[0].item(), p[1].item()), ((i2.shape[1] + c[0]).item(), c[1].item())], fill=col, width=2)
-            except:
+                draw.line(
+                    [
+                        (p[0].item(), p[1].item()),
+                        ((i2.shape[1] + c[0]).item(), c[1].item()),
+                    ],
+                    fill=col,
+                    width=2,
+                )
+            except Exception:
                 pass
         return np.array(pil_img).astype(np.uint8)
 
@@ -685,7 +735,13 @@ if __name__ == "__main__":
     with Timer("plot_detectron_quick"):
         for i in range(N):
             visu.plot_detectron(
-                img=img, seg=seg, store=store, max_seg=ele, tag="5_quick", not_log=not_log, draw_bound=False
+                img=img,
+                seg=seg,
+                store=store,
+                max_seg=ele,
+                tag="5_quick",
+                not_log=not_log,
+                draw_bound=False,
             )
 
     print("Start seg")

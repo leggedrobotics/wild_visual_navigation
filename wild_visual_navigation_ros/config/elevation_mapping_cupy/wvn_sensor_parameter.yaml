@@ -1,0 +1,67 @@
+#### Subscribers ########
+subscribers:
+  front_upper_depth:
+    topic_name: /depth_camera_front_upper/point_cloud_self_filtered
+    data_type: pointcloud
+
+  front_lower_depth:
+    topic_name: /depth_camera_front_lower/point_cloud_self_filtered
+    data_type: pointcloud
+
+  rear_upper_depth:
+    topic_name: /depth_camera_rear_upper/point_cloud_self_filtered
+    data_type: pointcloud
+
+  rear_lower_depth:
+    topic_name: /depth_camera_rear_lower/point_cloud_self_filtered
+    data_type: pointcloud
+
+  left_depth:
+    topic_name: /depth_camera_left/point_cloud_self_filtered
+    data_type: pointcloud
+
+  right_depth:
+    topic_name: /depth_camera_right/point_cloud_self_filtered
+    data_type: pointcloud
+
+  velodyne:
+    topic_name: /point_cloud_filter/lidar/point_cloud_filtered
+    data_type: pointcloud
+    
+  # Semantics
+  front_wide_angle:
+    topic_name: /wide_angle_camera_front/image_color_rect/compressed
+    camera_info_topic_name: /wide_angle_camera_front/camera_info
+    data_type: image
+
+  rear_wide_angle:
+    topic_name: /wide_angle_camera_rear/image_color_rect/compressed
+    camera_info_topic_name: /wide_angle_camera_rear/camera_info
+    data_type: image
+
+
+  # Traversability
+  # channels: ["visual_traversability"]
+  sem_wvn_front_traversability:
+    topic_name: '/wild_visual_navigation_node/front/traversability'
+    camera_info_topic_name: '/wild_visual_navigation_node/front/camera_info'
+    channels: ['visual_traversability']
+    data_type: image
+
+  sem_wvn_left_traversability:
+    topic_name: '/wild_visual_navigation_node/left/traversability'
+    camera_info_topic_name: '/wild_visual_navigation_node/left/camera_info'
+    channels: ['visual_traversability']
+    data_type: image
+
+  sem_wvn_right_traversability:
+    topic_name: '/wild_visual_navigation_node/right/traversability'
+    camera_info_topic_name: '/wild_visual_navigation_node/right/camera_info'
+    channels: ['visual_traversability']
+    data_type: image
+
+  # sem_wvn_front_confidence:
+  #   topic_name: '/wild_visual_navigation_node/front/confidence'
+  #   camera_info_topic_name: '/wild_visual_navigation_node/front/camera_info'
+  #   channels: ['visual_traversability']
+  #   data_type: image

@@ -1,0 +1,139 @@
+group "0.npc" {
+    cmd "0.0.alphasense_ptp" {
+        exec = "sudo service phc2sys restart";
+        host = "npc-digiforest";
+    }
+    cmd "0.1.anymal_msg_converter" {
+        exec = "rosrun wild_visual_navigation_anymal anymal_msg_converter_node.py";
+        host = "npc-digiforest";
+    }
+    cmd "0.2.local_planner_visual" {
+        exec = "roslaunch wild_visual_navigation_ros field_local_planner.launch traversability:=visual base_inverted:=false";
+        host = "npc-digiforest";
+    }
+    cmd "0.2.local_planner_visual_inverted" {
+        exec = "roslaunch wild_visual_navigation_ros field_local_planner.launch traversability:=visual base_inverted:=true";
+        host = "npc-digiforest";
+    }
+    cmd "0.2.local_planner_geometric" {
+        exec = "roslaunch wild_visual_navigation_ros field_local_planner.launch traversability:=geometric base_inverted:=false";
+        host = "npc-digiforest";
+    }
+    cmd "0.2.local_planner_geometric_inverted" {
+        exec = "roslaunch wild_visual_navigation_ros field_local_planner.launch traversability:=geometric base_inverted:=true";
+        host = "npc-digiforest";
+    }
+    cmd "0.3.local_planner_debug_on_robot" {
+        exec = "roslaunch wild_visual_navigation_ros field_local_planner.launch traversability:=geometric base_inverted:=true output_twist_topic:=/dummy_twist";
+        host = "npc-digiforest";
+    }
+    cmd "0.4.smart_carrot" {
+        exec = "rosrun wild_visual_navigation_ros smart_carrot.py";
+        host = "npc-digiforest";
+    }
+}
+
+group "1.xavier" {
+    cmd "elevation_mapping" {
+        exec = "roslaunch wild_visual_navigation_ros elevation_mapping_cupy.launch";
+        host = "anymal_coyote_xavier";
+    }
+}
+
+group "2.orin" {
+    cmd "wild_visual_navigation" {
+        exec = "roslaunch wild_visual_navigation_ros robot.launch";
+        host = "anymal_coyote_orin";
+    }
+    
+    cmd "kill_wvn" {
+        exec = "rosnode kill /wild_visual_navigation_node";
+        host = "localhost";
+    }
+}
+
+group "3.visualization" {
+    cmd "rviz" {
+        exec = "roslaunch wild_visual_navigation_ros view.launch";
+        host = "localhost";
+    }
+}
+
+group "4.recording" {
+    cmd "4.1.rosbag_record" {
+        exec = "rosservice call /rosbag_record_robot_coordinator/record_bag {}";
+        host = "localhost";
+    }
+    cmd "4.2.rosbag_stop" {
+        exec = "rosservice call /rosbag_record_robot_coordinator/stop_bag {}";
+        host = "localhost";
+    }
+    cmd "4.3.fetch_bags" {
+        exec = "/home/ori/git/anymal_rsl/anymal_rsl/anymal_rsl_utils/anymal_rsl_recording/anymal_rsl_recording/bin/copy_mission_data_from_robot.sh digiforest coyote /home/ori/logs";
+        host = "localhost";
+    }
+    cmd "4.4.delete_bags" {
+        exec = "/home/ori/git/anymal_rsl/anymal_rsl/anymal_rsl_utils/anymal_rsl_recording/anymal_rsl_recording/bin/remove_mission_data_from_robot.sh digiforest coyote";
+        host = "localhost";
+    }
+}
+
+group "5.monitoring" {
+    cmd "lpc_disk" {
+        exec = "rostopic echo /disk_monitor_lpc/status/disks[1]";
+        host = "localhost";
+    }
+    cmd "npc_disk" {
+        exec = "rostopic echo /disk_monitor_npc/status/disks[1]";
+        host = "localhost";
+    }
+    cmd "rqt_learning" {
+        exec = "roslaunch wild_visual_navigation_ros rqt_learning.launch";
+        host = "localhost";
+    }
+    cmd "rqt_images" {
+        exec = "roslaunch wild_visual_navigation_ros rqt_images.launch";
+        host = "localhost";
+    }
+}
+
+group "6.configuration" {
+    cmd "6.1.dynamic_reconfigure" {
+        exec = "rosrun rqt_reconfigure rqt_reconfigure";
+        host = "localhost";
+    }
+}
+
+group "7.white_balance" {
+    cmd "7.1.white_balance_front_reset" {
+        exec = "rosservice call /alphasense_raw_image_pipeline_front/reset_white_balance";
+        host = "localhost";
+    }
+    cmd "7.2.white_balance_left_reset" {
+        exec = "rosservice call /alphasense_raw_image_pipeline_left/reset_white_balance";
+        host = "localhost";
+    }
+    cmd "7.3.white_balance_right_reset" {
+        exec = "rosservice call /alphasense_raw_image_pipeline_right/reset_white_balance";
+        host = "localhost";
+    }
+}
+
+group "x.learning_utils" {
+    cmd "x.1.pause_training" {
+        exec = "rosservice call /wild_visual_navigation_node/pause_learning 'data: true'";
+        host = "npc-digiforest";
+    }
+    cmd "x.2.resume_training" {
+        exec = "rosservice call /wild_visual_navigation_node/pause_learning 'data: false'";
+        host = "npc-digiforest";
+    }
+    cmd "x.3.save_checkpoint" {
+        exec = "rosservice call /wild_visual_navigation_node/save_checkpoint ''";
+        host = "anymal_coyote_orin";
+    }
+    cmd "x.4.load_checkpoint" {
+        exec = "rosservice call /wild_visual_navigation_node/load_checkpoint 'path: 'absolute_path_in_robot_filesystem'";
+        host = "npc-digiforest";
+    }
+}

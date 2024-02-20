@@ -1,15 +1,22 @@
-from pytorch_pwc.network import PwcFlowEstimator
-from pytorch_pwc import PWC_ROOT_DIR
-import torch
-from wild_visual_navigation import WVN_ROOT_DIR
-from wild_visual_navigation.visu import LearningVisualizer
-import numpy as np
-import PIL
-import os
-from wild_visual_navigation.utils import Timer
+import pytest
+import sys
 
-if __name__ == "__main__":
+try:
+    from pytorch_pwc.network import PwcFlowEstimator
+    from pytorch_pwc import PWC_ROOT_DIR
+except ImportError:
+    pass
+
+
+@pytest.mark.skipif("pytorch_pwc" not in sys.modules, reason="requires the pytorch_pwc library")
+def pytorch_pwc_test():
     import os
+    import torch
+    from wild_visual_navigation import WVN_ROOT_DIR
+    from wild_visual_navigation.visu import LearningVisualizer
+    import numpy as np
+    import PIL
+    from pytictac import Timer
 
     tenOne = torch.FloatTensor(
         np.ascontiguousarray(
@@ -39,3 +46,7 @@ if __name__ == "__main__":
     visu = LearningVisualizer(p_visu=os.path.join(WVN_ROOT_DIR, "results/test_visu"), store=True)
     visu.plot_optical_flow(res, tenOne, tenTwo)
     print("done")
+
+
+if __name__ == "__main__":
+    pytorch_pwc_test()

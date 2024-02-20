@@ -1,6 +1,5 @@
-from wild_visual_navigation import WVN_ROOT_DIR
 from wild_visual_navigation.visu import get_img_from_fig
-import os
+from wild_visual_navigation.utils.testing import make_results_folder
 from os.path import join
 import matplotlib.pyplot as plt
 import torch
@@ -47,8 +46,8 @@ def test_draw_polygon():
     # Draw
     k_out = draw_convex_polygon(img, poly, color)
     # Show
-    os.makedirs(join(WVN_ROOT_DIR, "results", "test_kornia"), exist_ok=True)
+    outpath = make_results_folder("test_kornia")
     fig, ax = plt.subplots(1, 1, figsize=(5, 5))
     ax.imshow(tensor_to_image(k_out))
     out_img = get_img_from_fig(fig)
-    out_img.save(join(WVN_ROOT_DIR, "results", "test_kornia", "polygon_test.png"))
+    out_img.save(join(outpath, "polygon_test.png"))

@@ -7,6 +7,8 @@ assets/stego/cocostuff27_vit_base_5.ckpt
 .pytest_cache/**
 .vscode/**
 notebooks/**
+*.code-workspace
+
 # DrawIO
 **.dtmp
 **.bkp 
@@ -143,3 +145,5 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+assets/virtual_env/*
+

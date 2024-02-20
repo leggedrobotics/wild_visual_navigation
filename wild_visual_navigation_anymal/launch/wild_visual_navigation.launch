@@ -1,0 +1,27 @@
+<launch>
+  <!-- Arguments -->
+  <arg name="camera"            default="wide_angle_dual_resize"/> <!-- alphasense, wide_angle_front, realsense_front, realsense_rear -->
+  <arg name="stack"             default="anybotics"/> <!-- rsl or anybotics  $(eval arg('camera') == 'wide_angle_front_resize')  $(eval arg('camera') == 'alphasense_resize') -->  
+  <arg name="params_file"       default="$(find wild_visual_navigation_ros)/config/wild_visual_navigation/default.yaml"/>
+  <arg name="reload_default_params"    default="False"/>
+
+  <!-- Load parameters -->
+  <rosparam command="load" file="$(arg params_file)" ns="wvn_learning_node"/>
+  <rosparam command="load" file="$(find wild_visual_navigation_anymal)/config/wild_visual_navigation/inputs/$(arg camera).yaml" ns="wvn_learning_node"/>
+  <rosparam command="load" file="$(arg params_file)" ns="wvn_feature_extractor_node"/>
+  <rosparam command="load" file="$(find wild_visual_navigation_anymal)/config/wild_visual_navigation/inputs/$(arg camera).yaml" ns="wvn_feature_extractor_node"/>
+
+  <!-- Launch node -->
+  <node name="wvn_learning_node" pkg="wild_visual_navigation_ros" type="wvn_learning_node.py" output="screen">
+    <param if="$(eval arg('stack') == 'rsl')" name="desired_twist_topic" value="/log/state/desiredRobotTwist"/>
+    <param if="$(eval arg('stack') == 'anybotics')" name="desired_twist_topic" value="/motion_reference/command_twist"/>
+    <param name="reload_default_params" value="$(arg reload_default_params)" />
+  </node>
+
+  <node name="wvn_feature_extractor_node" pkg="wild_visual_navigation_ros" type="wvn_feature_extractor_node.py" output="screen">
+    <param if="$(eval arg('stack') == 'rsl')" name="desired_twist_topic" value="/log/state/desiredRobotTwist"/>
+    <param if="$(eval arg('stack') == 'anybotics')" name="desired_twist_topic" value="/motion_reference/command_twist"/>
+    <param name="reload_default_params" value="$(arg reload_default_params)" />
+  </node>
+
+</launch>

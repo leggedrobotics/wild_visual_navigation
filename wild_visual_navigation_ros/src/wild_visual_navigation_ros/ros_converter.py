@@ -1,3 +1,8 @@
+#                                                                               
+# Copyright (c) 2022-2024, ETH Zurich, Matias Mattamala, Jonas Frey.
+# All rights reserved. Licensed under the MIT license.
+# See LICENSE file in the project root for details.
+#                                                                               
 import cv2
 from geometry_msgs.msg import Pose
 from nav_msgs.msg import Odometry
@@ -8,7 +13,7 @@ from liegroups.torch import SO3, SE3
 import numpy as np
 import torch
 import torchvision.transforms as transforms
-
+from pytictac import Timer
 CV_BRIDGE = CvBridge()
 TO_TENSOR = transforms.ToTensor()
 TO_PIL_IMAGE = transforms.ToPILImage()
@@ -106,15 +111,18 @@ def ros_tf_to_torch(tf_pose, device="cpu"):
 
 
 def ros_image_to_torch(ros_img, desired_encoding="rgb8", device="cpu"):
-    if isinstance(ros_img, Image):
+    if type(ros_img).__name__ == "_sensor_msgs__Image" or isinstance(ros_img, Image):
         np_image = CV_BRIDGE.imgmsg_to_cv2(ros_img, desired_encoding=desired_encoding)
 
-    elif isinstance(ros_img, CompressedImage):
+    elif type(ros_img).__name__ == "_sensor_msgs__CompressedImage" or isinstance(ros_img, CompressedImage):
         np_arr = np.fromstring(ros_img.data, np.uint8)
         np_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
         if "bgr" in ros_img.format:
             np_image = cv2.cvtColor(np_image, cv2.COLOR_BGR2RGB)
-    
+
+    else:
+        raise ValueError("Image message type is not implemented.")
+        
     return TO_TENSOR(np_image).to(device)
 
 
