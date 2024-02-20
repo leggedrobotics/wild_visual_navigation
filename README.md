@@ -110,10 +110,18 @@ What we provide:
 
 ### Online adaptation [Rosbag]
 
-<img align="left" width="120" height="120" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/mpi_outdoor_trav.png" alt="MPI Outdoor"> 
-<img align="left" width="120" height="120" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/mpi_indoor_trav.png" alt="MPI Indoor"> 
-<img align="left" width="120" height="120" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/bahnhofstrasse_trav.png" alt="Bahnhofstrasse"> 
-<img align="left" width="120" height="120" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/mountain_bike_train_trav.png" alt="Mountain Bike"> 
+<p align="center">
+
+
+
+
+</p>
+
+
+| MPI Outdoor | MPI Indoor | Bahnhofstrasse | Bike Trail |
+|----------------|------------|-------------|---------------------|
+| <img align="center" width="120" height="120" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/mpi_outdoor_trav.png" alt="MPI Outdoor">                |     <img align="center" width="120" height="120" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/mpi_indoor_trav.png" alt="MPI Indoor">        |   <img align="center" width="120" height="120" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/bahnhofstrasse_trav.png" alt="Bahnhofstrasse">           |        <img align="center" width="120" height="120" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/mountain_bike_trail_trav.png" alt="Mountain Bike">              |
+| <img align="center" width="120" height="120" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/mpi_outdoor_raw.png" alt="MPI Outdoor">                |     <img align="center" width="120" height="120" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/mpi_indoor_raw.png" alt="MPI Indoor">        |   <img align="center" width="120" height="120" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/bahnhofstrasse_raw.png" alt="Bahnhofstrasse">           |        <img align="center" width="120" height="120" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/mountain_bike_trail_raw.png" alt="Mountain Bike">              |
 
 
 #### Setup
