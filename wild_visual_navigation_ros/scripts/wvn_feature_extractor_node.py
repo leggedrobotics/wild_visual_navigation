@@ -44,7 +44,6 @@ class WvnFeatureExtractor:
         self._load_model_counter = 0
 
         # Timers to control the rate of the subscriber
-        self._last_image_ts = rospy.get_time()
         self._last_checkpoint_ts = rospy.get_time()
 
         # Setup modules
@@ -127,7 +126,11 @@ class WvnFeatureExtractor:
             self._log_data[f"time_last_model"] = -1
             self._log_data[f"nr_model_updates"] = -1
 
+        self._last_image_ts = {}
+        
+        
         for cam in self._ros_params.camera_topics:
+            self._last_image_ts[cam] = rospy.get_time()
             if self._ros_params.verbose:
                 # DEBUG Logging
                 self._log_data[f"nr_images_{cam}"] = 0
@@ -276,11 +279,10 @@ class WvnFeatureExtractor:
             image_msg (sensor_msgs/Image): Incoming image
             info_msg (sensor_msgs/CameraInfo): Camera info message associated to the image
             cam (str): Camera name
-        """
-
+        """    
         # Check the rate
         ts = image_msg.header.stamp.to_sec()
-        if abs(ts - self._last_image_ts) < 1.0 / self._ros_params.image_callback_rate:
+        if abs(ts - self._last_image_ts[cam]) < 1.0 / self._ros_params.image_callback_rate:
             return
 
         # Check the scheduler
@@ -290,7 +292,7 @@ class WvnFeatureExtractor:
             if self._ros_params.verbose:
                 rospy.loginfo(f"[{self._node_name}] Image callback: {cam} -> Process")
 
-        self._last_image_ts = ts
+        self._last_image_ts[cam] = ts
 
         # If all the checks are passed, process the image
         try:

@@ -1,0 +1,23 @@
+ge76:
+  open_source:
+    - /tf
+    - /tf_static
+    - /clock
+    - /motion_reference/command_twist
+    - /debug_info
+    - /twist_mux/twist
+    - /depth_camera_front_upper/point_cloud_self_filtered
+    - /depth_camera_front_lower/point_cloud_self_filtered
+    - /depth_camera_rear_upper/point_cloud_self_filtered
+    - /depth_camera_rear_lower/point_cloud_self_filtered
+    - /depth_camera_left/point_cloud_self_filtered
+    - /depth_camera_right/point_cloud_self_filtered
+    - /state_estimator/pose_in_odom
+    - /point_cloud_filter/lidar/point_cloud_filtered
+    - /wide_angle_camera_front/image_color_rect_resize
+    - /wide_angle_camera_front_resize/camera_info
+    - /wide_angle_camera_rear/image_color_rect_resize
+    - /wide_angle_camera_rear_resize/camera_info
+    - /wild_visual_navigation_node/robot_state
+    - /hdr_camera_resize/image_raw
+    - /hdr_camera_resize/camera_info

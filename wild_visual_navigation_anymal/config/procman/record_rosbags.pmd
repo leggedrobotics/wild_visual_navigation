@@ -1,0 +1,61 @@
+group "0 - Setup" {
+    cmd "0.0 - anymal_rsl_replay" {
+        exec = "rosrun anymal_rsl_launch replay.py d /Data/2024_02_06_Dodo_MPI_WVN/dodo_mission_2024_02_06/2024-02-06-14-39-01_Small_MPI_Indoor/2024-02-06-14-39-01_lpc.yaml";
+        host = "localhost";
+    }
+    cmd "0.1 - anymal_msg_converter" {
+        exec = "rosrun wild_visual_navigation_anymal anymal_msg_converter_node.py";
+        host = "localhost";
+    }
+    cmd "0.2 - resize_images_wide_angle_dual" {
+        exec = "roslaunch wild_visual_navigation_anymal resize_images_wide_angle_dual.launch";
+        host = "localhost";
+    }
+    cmd "0.3 - resize_hdr" {
+        exec = "roslaunch wild_visual_navigation_anymal resize_hdr.launch";
+        host = "localhost";
+    }
+    cmd "0.4 - uncompress_front" {
+        exec = "rosrun image_transport republish compressed in:=/wide_angle_camera_front/image_color_rect  raw out:=/wide_angle_camera_front/image_color_rect";
+        host = "localhost";
+    }
+    cmd "0.5 - uncompress_rear" {
+        exec = "rosrun image_transport republish compressed in:=/wide_angle_camera_rear/image_color_rect  raw out:=/wide_angle_camera_rear/image_color_rect";
+        host = "localhost";
+    }
+    cmd "0.6 - uncompress_hdr" {
+        exec = "rosrun image_transport republish compressed in:=/hdr_camera/image_raw  raw out:=/hdr_camera/image_raw";
+        host = "localhost";
+    }
+    cmd "0.7 - record_coordinate" {
+        exec = "rosrun anymal_rsl_recording rosbag_record_coordinator.py";
+        host = "localhost";
+    }
+    cmd "0.8 - record_node" {
+        exec = "rosrun anymal_rsl_recording rosbag_record_node.py __name:=rosbag_record_node_ge76";
+        host = "localhost";
+    }
+    cmd "0.9 - rviz" {
+        exec = "roslaunch wild_visual_navigation_anymal view.launch";
+        host = "localhost";
+    }
+}
+
+
+group "1 - Recording" {
+    cmd "1.1 - start recording" {
+        exec = "rosservice call /rosbag_record_robot_coordinator/start_recording \"yaml_file: '/home/jonfrey/workspaces/catkin_ws/src/wild_visual_navigation/wild_visual_navigation_anymal/config/recording/create_open_source_rosbags.yaml'\"";
+        host = "localhost";
+    }    
+    cmd "1.2 - stop recording" {
+        exec = "rosservice call /rosbag_record_robot_coordinator/stop_recording \"verbose: false\"";
+        host = "localhost";
+    }
+}
+
+group "2 - bag play" {
+    cmd "2.0 - rosbag play" {
+        exec = "rosbag_play --sem --tf --flp --wvn --sem  /Data/2024_02_06_Dodo_MPI_WVN/dodo_mission_2024_02_06/2024-02-06-14-39-01_Small_MPI_Indoor/*.bag -r 0.5 -l ";
+        host = "localhost";
+    }
+}

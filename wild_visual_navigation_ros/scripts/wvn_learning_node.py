@@ -46,8 +46,7 @@ import time
 
 
 def time_func():
-    return time.time()
-    # return rospy.get_time()
+    return rospy.get_time()
 
 
 class WvnLearning:

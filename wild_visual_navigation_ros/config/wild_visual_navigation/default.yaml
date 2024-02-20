@@ -1,6 +1,6 @@
 # Input topics
 robot_state_topic: "/wild_visual_navigation_node/robot_state"
-desired_twist_topic: "/twist_mux/twist"
+desired_twist_topic: "/motion_reference/command_twist"
 
 # Relevant frames
 fixed_frame: odom
@@ -55,22 +55,3 @@ log_time: false
 log_confidence: false
 verbose: true
 extraction_store_folder:  "nan"
-
-# TODO: What do we add here for sim or for rosbags? 
-# camera_topics:
-#   front:
-#     image_topic: "/wide_angle_camera_front/image_color_resize"
-#     info_topic: "/wide_angle_camera_front_resize/camera_info"
-#     use_for_training: true
-#     publish_confidence: true
-#     publish_input_image: true
-#     scheduler_weight: 1
-#   rear:
-#     image_topic: "/wide_angle_camera_rear/image_color_resize"
-#     info_topic: "/wide_angle_camera_rear_resize/camera_info"
-#     use_for_training: false
-#     publish_confidence: true
-#     publish_input_image: true
-#     scheduler_weight: 1
-
-# Provides 1080 (height) x 1920 (width) images
