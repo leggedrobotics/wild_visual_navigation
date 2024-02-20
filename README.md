@@ -2,10 +2,10 @@
 
 <p align="center">
   <a href="#citation">Citation</a> •
-  <a href="#setup">Setup</a> •
+  <a href="#instalation">Installation</a> •
+  <a href="#overview">Overview</a> •
   <a href="#experiments">Experiments</a> •
-  <a href="#contributing">Contributing</a> •
-  <a href="#credits">Credits</a>
+  <a href="#development">Development</a>
   
   ![Formatting](https://github.com/leggedrobotics/wild_visual_navigation/actions/workflows/formatting.yml/badge.svg)
 </p>
@@ -53,7 +53,6 @@ Checkout out also our other works.
 
 <img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
-
 ## Installation
 
 1. Clone the WVN and our STEGO reimplementation.
@@ -85,10 +84,6 @@ The paths can be specified by modifying `wild_visual_navigation/wild_visual_navi
 Add your desired global paths. 
 Per default, all results are stored in `wild_visual_navigation/results`.
 
-<img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
-
-## Overview
-
 
 
 <img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
@@ -106,7 +101,21 @@ What we provide:
 <img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
 ## Experiments
-### [Online] Ros-Mode
+
+### Inference pre-trained model
+
+
+### Online adaptation [Simulation]
+
+
+### Online adaptation [Rosbag]
+
+<img align="left" width="120" height="120" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/mpi_outdoor_trav.png" alt="MPI Outdoor"> 
+<img align="left" width="120" height="120" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/mpi_indoor_trav.png" alt="MPI Indoor"> 
+<img align="left" width="120" height="120" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/bahnhofstrasse_trav.png" alt="Bahnhofstrasse"> 
+<img align="left" width="120" height="120" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/mountain_bike_train_trav.png" alt="Mountain Bike"> 
+
+
 #### Setup
 Let`s set up a new catkin_ws:
 ```shell
@@ -118,8 +127,7 @@ catkin config --extend /opt/ros/noetic
 catkin config --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
 # Clone Repos
-git clone git@github.com:ANYbotics/anymal_c_simple_description.git
-git clone git@github.com:IFL-CAMP/tf_bag.git
+git clone git@github.com:ANYbotics/anymal_d_simple_description.git
 git clone git@github.com:ori-drs/procman_ros.git
 
 # Symlink WVN
@@ -130,8 +138,7 @@ rosdep install -ryi --from-paths . --ignore-src
 
 # Build
 cd ~/catkin_ws
-catkin build anymal_c_simple_description
-catkin build tf_bag
+catkin build anymal_d_simple_description
 catkin build procman_ros
 catkin build wild_visual_navigation_ros
 
@@ -142,24 +149,35 @@ source ~/catkin_ws/devel/setup.bash
 
 After successfully building the ros workspace you can run the full pipeline by either using the launch file (this requires all packages to be installed into your system python installation), or by running the nodes from the virtual environment as plain python scripts.
 
-- Run WVN Nodes:
+
+- Run wild_visual_navigation
+```shell
+roslaunch wild_visual_navigation_ros wild_visual_navigation.launch
+```
+
+- (ANYmal replay only) Load ANYmal description for RViZ
+```shell
+roslaunch anymal_d_simple_description load.launch
+```
+
+- (ANYmal replay only) Replay Rosbag:
+```shell
+robag play --clock path_to_mission/*.bag
+```
+
+- RVIZ:
+```shell
+roslaunch wild_visual_navigation_ros view.launch
+```
+
+
+Degugging (sometimes it is desirable to run the nodes seperate):
 ```shell
 python wild_visual_navigation_ros/scripts/wvn_feature_extractor_node.py
 ```
 ```shell
 python wild_visual_navigation_ros/scripts/wvn_learning_node.py
 ```
-
-- (optionally) RVIZ:
-```shell
-roslaunch wild_visual_navigation_ros view.launch
-```
-
-- (replay only) Replay Rosbag:
-```shell
-rosrun  play --clock path_to_mission/*.bag
-```
-
 
 
 - The general configuration files can be found under: `wild_visual_navigation/cfg/experiment_params.py`
@@ -170,6 +188,9 @@ rosrun  play --clock path_to_mission/*.bag
 - We set an environment variable to automatically load the correct global paths and trigger some special behavior e.g. when training on a cluster.
 
 
+<img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
+
+## Development
 
 ### Code formatting
 ```shell
@@ -188,7 +209,6 @@ Introduction to [pytest](https://github.com/pluralsight/intro-to-pytest).
 pytest
 ```
 
-
 ### Open-Sourcing
 Generating headers
 ```shell
@@ -201,4 +221,13 @@ addheader wild_visual_navigation_anymal -t header.txt -p \*.py --sep-len 79 --co
 
 addheader wild_visual_navigation_ros -t header.txt -p \*CMakeLists.txt --sep-len 79 --comment='#' --sep=' '
 addheader wild_visual_navigation_anymal -t header.txt -p \*.py -p \*CMakeLists.txt --sep-len 79 --comment='#' --sep=' '
+```
+
+### Releasing ANYmal data
+```shell
+rosrun procman_ros sheriff -l ~/git/wild_visual_navigation/wild_visual_navigation_anymal/config/procman/record_rosbags.pmd --start-roscore 
+```
+
+```shell
+rosbag_play --tf --sem --flp --wvn  mission/*.bag
 ```
