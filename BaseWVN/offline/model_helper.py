@@ -3,6 +3,8 @@ import numpy as np
 import os
 import cv2
 import matplotlib.pyplot as plt
+plt.rcParams["font.family"] = "Arial"
+plt.rcParams['font.size'] = 7
 import datetime
 from .. import WVN_ROOT_DIR
 from ..GraphManager import MainNode
@@ -19,6 +21,7 @@ from torchvision.transforms.functional import to_tensor
 from segment_anything import SamPredictor, sam_model_registry
 from seem_base import inference,init_model
 from torchvision import transforms
+import seaborn as sns
 # Define the transformations
 transform_pipeline = transforms.Compose([
     transforms.RandomApply([transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5)], p=0.5),
@@ -421,7 +424,97 @@ def conf_mask_generate(param:ParamCollection,
             "loss_fric_mean+std":(fric_mean,fric_std),
             "loss_stiff_mean+std":(stiff_mean,stiff_std),}
 
-def calculate_uncertainty_plot(all_losses:torch.Tensor,all_conf_masks:torch.Tensor,all_reproj_masks:torch.Tensor=None,save_path=None):
+def phy_mask_total_accuracy(param:ParamCollection,
+                      nodes:List[MainNode],
+                      feat_extractor:FeatureExtractor,
+                      model:pl.LightningModule,
+                      ):
+    """ 
+    Here we load the white_board masks and ground masks to calculate the accuracy of the phy mask.
+    We'll hard code the GT values for the regions according to the digital twin result.
+    
+    Attention: only friction is handled here. Only having the GT white/ground masks for env:vowhite_1st
+    """
+   
+    reproj_masks=[]
+    ori_imgs=[]
+    white_board_masks=torch.load(os.path.join(WVN_ROOT_DIR,param.offline.data_folder,'train',param.offline.env,param.offline.white_board_gt_masks))
+    ground_masks=torch.load(os.path.join(WVN_ROOT_DIR,param.offline.data_folder,'train',param.offline.env,param.offline.ground_gt_masks))
+    folder_path=os.path.join(WVN_ROOT_DIR,param.offline.ckpt_parent_folder,model.time)
+    # gt values from digital twin experiments
+    white_gt_val=param.offline.white_gt_val
+    ground_gt_val=param.offline.ground_gt_val
+    
+    white_error_nodes=[]
+    ground_error_nodes=[]
+    
+    for i,node in enumerate( nodes):
+        img=node.image.to(param.run.device)
+        reproj_mask=node.supervision_signal_valid[0].unsqueeze(0).unsqueeze(0).to(param.run.device)
+        reproj_masks.append(reproj_mask)
+        ori_imgs.append(img)
+        B,C,H,W=img.shape
+        feat_extractor.set_original_size(W,H)
+        res_dict=compute_phy_mask(img,feat_extractor,
+                                model.model,
+                                model.loss_fn,
+                                param.loss.confidence_threshold,
+                                param.loss.confidence_mode,
+                                False,
+                                i,
+                                time=model.time,
+                                image_name="node"+str(node.timestamp),
+                                param=param,
+                                label_mask=node._supervision_mask,)
+        pred_phy_mask=res_dict['output_phy'] #(2,H,W)
+        white_board_masks[i][0]=torch.clip(white_board_masks[i][0],0,1)
+        white_pred=pred_phy_mask[0][white_board_masks[i][0]]
+        ground_pred=pred_phy_mask[0][ground_masks[i][0]]
+        
+        white_pred_mean = torch.nanmean(white_pred)
+        ground_pred_mean = torch.nanmean(ground_pred)
+        print(f"Node {i} White board Friction Mean: {round(white_pred_mean.item(),2)}, Ground Mean: {round(ground_pred_mean.item(),2)}")
+        
+        mask_gt = white_pred > white_gt_val[1]
+        mask_between = (white_pred >= white_gt_val[0]) & (white_pred <= white_gt_val[1])
+        mask_lt = white_pred < white_gt_val[0]
+
+        # Apply conditions
+        # Subtract 0.3 from values > 0.3
+        white_pred[mask_gt] -= white_gt_val[1]
+        # Set values in [0.1, 0.3] to 0
+        white_pred[mask_between] = 0
+        # Set values < 0.1 to 0.1
+        white_pred[mask_lt] = white_gt_val[0]-white_pred[mask_lt]
+        
+        error_white=torch.nan_to_num(white_pred)
+        white_error_nodes.append(error_white)
+        mask_gt = ground_pred > ground_gt_val[1]
+        mask_between = (ground_pred >= ground_gt_val[0]) & (ground_pred <= ground_gt_val[1])
+        mask_lt = ground_pred < ground_gt_val[0]
+        
+        ground_pred[mask_gt] -= ground_gt_val[1]
+        ground_pred[mask_between] = 0
+        ground_pred[mask_lt] = ground_gt_val[0]-ground_pred[mask_lt]
+        
+        error_ground=torch.nan_to_num(ground_pred)
+        ground_error_nodes.append(error_ground)
+    
+    file_path=os.path.join(folder_path, 'phy_pred_accuracy(GT_digital_twin).txt')
+    white_error_nodes=torch.cat(white_error_nodes)
+    ground_error_nodes=torch.cat(ground_error_nodes)
+    fric_mean_white=torch.mean(white_error_nodes)
+    fric_mean_ground=torch.mean(ground_error_nodes)
+    fric_std_white=torch.std(white_error_nodes)
+    fric_std_ground=torch.std(ground_error_nodes)
+    with open(file_path, 'a') as file:
+        file.write(f"{param.general.name}\n")
+        file.write(f"Overall White board Friction Error Mean: {round(fric_mean_white.item(),2)}, STD:{round(fric_std_white.item(),2)}\n")
+        file.write(f"Overall Ground Error Mean: {round(fric_mean_ground.item(),2)}, STD: {round(fric_std_ground.item(),2)}\n")
+
+    print("Overall loss statistics saved to phy_pred_accuracy(GT_digital_twin).txt")
+    
+def calculate_uncertainty_plot(all_losses:torch.Tensor,all_conf_masks:torch.Tensor,all_reproj_masks:torch.Tensor=None,save_path=None,colormap='coolwarm'):
     """ 
     Calculate a histogram of the uncertainty values (losses) from reproj_masks(should be very certain)
     and from conf_masks
@@ -461,33 +554,138 @@ def calculate_uncertainty_plot(all_losses:torch.Tensor,all_conf_masks:torch.Tens
     # bins = np.arange(min_loss, max_loss + bin_size, bin_size)
     bins = np.linspace(min_loss, max_loss, num_bins)
     # Plot the histogram
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(2.5, 1.8))
     
-    # Histogram for all losses in grey
-    # plt.hist(flattened_losses, bins, color='grey', alpha=1.0, label='Sampled All Losses',density=False)
-    plt.hist(unconf_mask_losses, bins, color='red', alpha=0.7, label='Un-confident Mask',density=False)
-    # Histogram for conf_mask_losses in orange
-    plt.hist(conf_mask_losses, bins, color='orange', alpha=0.7, label='Confidence Mask',density=False)
+    # # Histogram for all losses in grey
+    # # plt.hist(flattened_losses, bins, color='grey', alpha=1.0, label='Sampled All Losses',density=False)
+    # plt.hist(unconf_mask_losses, bins, color='red', alpha=0.7, label='Un-confident Mask',density=False)
+    # # Histogram for conf_mask_losses in orange
+    # plt.hist(conf_mask_losses, bins, color='orange', alpha=0.7, label='Confidence Mask',density=False)
 
-    if all_reproj_masks is not None:
-        # Histogram for reproj_mask_losses in blue
-        plt.hist(reproj_mask_losses, bins, color='blue', alpha=0.5, label='Reprojection Mask',density=False)
+    # if all_reproj_masks is not None:
+    #     # Histogram for reproj_mask_losses in blue
+    #     plt.hist(reproj_mask_losses, bins, color='blue', alpha=0.5, label='Reprojection Mask',density=False)
 
 
+    # Define custom colors based on the coolwarm palette for conf and unconf masks
+    num_colors = num_bins # Number of colors in the colormap
+    # cmap = plt.get_cmap('coolwarm')
+    cmap=sns.color_palette(colormap, as_cmap=True)
+
+    # Plot histograms. Since you want specific colors for conf and unconf masks, use the calculated colors
+    # For the conf mask losses
+    conf_n, conf_bins, conf_patches = plt.hist(conf_mask_losses, bins, color='orange', label='Confidence Mask', alpha=1.0, density=False)
+
+    # For the unconf mask losses
+    unconf_n, unconf_bins, unconf_patches = plt.hist(unconf_mask_losses, bins, color='red', label='Un-confident Mask', alpha=1.0, density=False)
+    
+    # calculate how many bins is non-zero in conf and unconf, use the number for splitting the colormap
+    conf_bin_num=0
+    for c_i,conf_nn in enumerate(conf_n):
+        if conf_nn>0:
+            conf_bin_num+=1
+        else:
+            if c_i<len(conf_n)-1 and conf_n[c_i+1]>0:
+                conf_bin_num+=1
+    unconf_bin_num=num_bins-conf_bin_num
+    # Split the colormap into two parts
+    conf_color = cmap(np.linspace(1, 0.7, conf_bin_num))
+    unconf_color = cmap(np.linspace(0.3, 0, unconf_bin_num))
+
+    # Set the colors for the patches to make a gradient effect
+    for conf_nn,conf_patch, color in zip(conf_n[:conf_bin_num],conf_patches[:conf_bin_num], conf_color):
+
+        conf_patch.set_facecolor(color)
+
+    for unconf_nn,unconf_patch, color in zip(unconf_n[-unconf_bin_num:],unconf_patches[-unconf_bin_num:], unconf_color):
+
+        unconf_patch.set_facecolor(color)
+
+    colored_loss_img=create_colored_lossimg(all_losses,bins,conf_bin_num,unconf_bin_num,conf_color,unconf_color)
+    
     # Add labels and title
-    plt.xlabel('Loss Value', fontsize=18)
-    plt.ylabel('Frequency', fontsize=18)
-    plt.title('Histogram of Uncertainty', fontsize=18)
-    plt.legend(fontsize=18)
-    plt.grid(True)
-    
+    plt.xlabel('Loss Value', fontsize=7)
+    plt.ylabel('Frequency', fontsize=7)
+    plt.title('Histogram of Uncertainty', fontsize=7)
+    plt.legend(fontsize=7)
+    # plt.grid(True)
+    plt.tight_layout()
+    base = os.path.splitext(save_path)[0]  # This removes the extension
+    save_path = base + '.pdf'  # This adds the .pdf extension
     # Save the plot
     plt.savefig(save_path)
     # plt.show()
     plt.close()
+    
+    plt.imshow(colored_loss_img)
+    plt.axis('off')
+    plt.tight_layout()
+    base = os.path.splitext(save_path)[0]
+    save_path = base + '_colored_mask.pdf'
+    plt.savefig(save_path)
+    plt.close()
+    return colored_loss_img
 
+def create_colored_lossimg(loss_reco_resized:torch.Tensor,bins,conf_bin_num,unconf_bin_num,conf_color,unconf_color):
+    H, W = loss_reco_resized.shape[-2:]
+    # colored_loss_image = np.zeros((H, W, 3))  # Initialize a 3-channel RGB image
 
+    # # Flatten the loss_reco_resized for processing
+    # loss_flat = loss_reco_resized.flatten().cpu().numpy()
 
+    # # Map each loss value to a bin index
+    # bin_indices = np.digitize(loss_flat, bins) - 1  # -1 because np.digitize bins start from 1
+
+    # # Initialize an RGB image based on the colormap
+    # rgb_image = np.zeros((loss_flat.shape[0], 3))
+
+    # # Map each bin index to its corresponding color
+    # for i, bin_idx in enumerate(bin_indices):
+    #     if bin_idx < conf_bin_num:
+    #         # Use conf_color
+    #         rgb_image[i] = conf_color[bin_idx % len(conf_color)][:3]  # Ignore alpha channel
+    #     else:
+    #         # Use unconf_color
+    #         rgb_image[i] = unconf_color[bin_idx % len(unconf_color)][:3]  # Ignore alpha channel
+
+    # # Reshape the RGB image back to its original dimensions [H, W, 3]
+    # colored_loss_image = rgb_image.reshape((H, W, 3))
+    # plt.imshow(colored_loss_image)
+    # plt.title("Loss Visualization")
+    # plt.axis('off')  # Hide axis
+    # plt.savefig('loss_visualization.pdf')
+    # plt.show()
+    # Convert bin edges to bin centers for accurate mapping
+    bin_centers = bins[1:]
+    loss_reco_resized=loss_reco_resized.detach().squeeze(0,1).cpu().numpy()
+    # Create a color map that combines both conf and unconf colors
+    combined_colors = np.vstack((conf_color[:conf_bin_num], unconf_color[:unconf_bin_num]))
+    if combined_colors.shape[0] != len(bin_centers):
+        combined_colors = np.vstack((conf_color[:conf_bin_num], unconf_color[1:unconf_bin_num]))
+    # Initialize an RGB image
+    rgb_image = np.zeros((H, W, 3))
+
+    # For each bin, create a mask and assign the color
+    for i, center in enumerate(bin_centers):
+        # Determine the color for this bin. Note: Ensure bin index does not exceed the color array.
+        color = combined_colors[min(i, len(combined_colors)-1)]
+        
+        # Create a mask for pixels in this bin
+        if i == 0:
+            # First bin
+            bin_mask = loss_reco_resized <= bin_centers[i]
+        else:
+            # Middle bins
+            bin_mask = (loss_reco_resized > bin_centers[i-1]) & (loss_reco_resized <= bin_centers[i])
+        
+        # Apply color to pixels in the current bin
+        rgb_image[bin_mask] = color[:3]  # Ignore alpha channel if present
+
+    # Ensure rgb_image values are valid for display [0-1] for floats or [0-255] for integers
+    rgb_image = np.clip(rgb_image, 0, 1) if np.issubdtype(rgb_image.dtype, np.floating) else np.clip(rgb_image, 0, 255)
+    
+    return rgb_image
+    
 
 def plot_masks_compare(gt_masks:torch.Tensor,conf_masks:torch.Tensor,images:torch.Tensor,file_path,layout_type='side_by_side',param=None):
     """
@@ -511,11 +709,13 @@ def plot_masks_compare(gt_masks:torch.Tensor,conf_masks:torch.Tensor,images:torc
                            overlay_mask=gt_masks[i],
                            channel=0,
                            cmap='coolwarm',
+                           double_norm=True
                            )
         output_conf=plot_overlay_image(images[i].unsqueeze(0),alpha=0.7,
                            overlay_mask=conf_masks[i],
                            channel=0,
-                           cmap='coolwarm'
+                           cmap='coolwarm',
+                           double_norm=True
                            )
         img_list=[img,output_gt,output_conf]
         title_list=['Original Image','GT Mask','Confidence Mask']
@@ -565,11 +765,51 @@ def masks_stats(gt_masks:torch.Tensor,conf_masks:torch.Tensor, output_file='stat
         print(f'Average Under-confidence: {round(under_conf_mean,3)}%, Std. Dev: {round(under_conf_std,3)}%')
         under_conf_stats = f'Average Under-confidence: {round(under_conf_mean, 3)}%, Std. Dev: {round(under_conf_std, 3)}%\n'
         file.write(under_conf_stats)
+        
+        # calculate mask accuracy for each node
+        acc=100.0-deviation-m_deviation
+        acc_mean=acc.mean().item()
+        acc_std=acc.std().item()
+        acc_stats = f'Average Mask Accuracy: {round(acc_mean, 3)}%, Std:{round(acc_std,3)}\n'
+        file.write(acc_stats)
+        for i in range(acc.shape[0]):
+            file.write(f'Node {i} Mask Accuracy: {round(acc[i].item(), 3)}%\n')
+        
     return {"over_conf_mean":over_conf_mean,
             "over_conf_std":over_conf_std,
             "under_conf_mean":under_conf_mean,
             "under_conf_std":under_conf_std,}
-        
+
+def masks_iou_stats(gt_masks: torch.Tensor, pred_masks: torch.Tensor, output_file='iou_stats.txt', name="debug"):
+    """
+    Calculates the Intersection over Union (IoU) metric for each predicted mask against the ground truth.
+    """
+    # Ensure the masks are binary (0 or 1).
+    gt_masks = gt_masks.int()
+    pred_masks = pred_masks.int()
+
+    # Calculate Intersection and Union.
+    intersection = (gt_masks & pred_masks).sum(dim=[2, 3]).float()  # Logical AND for intersection
+    union = (gt_masks | pred_masks).sum(dim=[2, 3]).float()  # Logical OR for union
+
+    # Avoid division by zero.
+    union = union.clamp(min=1)
+
+    # Calculate IoU for each mask.
+    iou = (intersection / union) * 100.0  # Percentage
+    iou_mean = iou.mean().item()
+    iou_std = iou.std().item()
+
+    # Write IoU stats to file.
+    with open(output_file, 'a') as file:
+        file.write(name + "\n")
+        iou_stats = f'Average IoU: {iou_mean:.3f}%, Std. Dev: {iou_std:.3f}%\n'
+        file.write(iou_stats)
+        for i in range(iou.shape[0]):
+            file.write(f'Node {i} IoU: {iou[i].item():.3f}%\n')
+
+    return {"iou_mean": iou_mean, "iou_std": iou_std}
+
 def show_mask(mask, ax, random_color=False):
     if isinstance(mask, torch.Tensor):
         mask = mask.cpu().numpy()
@@ -625,6 +865,8 @@ def overlay_values_on_section(frame, max_val, mean_val, start_x):
         cv2.putText(frame, text, position, font, font_scale, text_color, font_thickness, lineType=cv2.LINE_AA)
 
     return frame
+
+
 
 def add_headers_to_frame(frame, headers, section_width):
     font = cv2.FONT_HERSHEY_SIMPLEX

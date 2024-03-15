@@ -37,11 +37,14 @@ class ParamCollection(Serializable):
         # camera_info_topic: str='/hdr_camera/camera_info'
         # camera_topic: str='/v4l2_camera/image_raw_throttle/compressed'
         # camera_info_topic: str='/v4l2_camera/camera_info_throttle'
-        # camera_topic: str='/wide_angle_camera_rear/image_color_rect/compressed'
-        # camera_info_topic: str='/wide_angle_camera_rear/camera_info'
-        camera_topic: str='/wide_angle_camera_front/image_color_rect/compressed'
-        camera_info_topic: str='/wide_angle_camera_front/camera_info'
+        camera_topic: str='/wide_angle_camera_rear/image_color_rect/compressed'
+        camera_info_topic: str='/wide_angle_camera_rear/camera_info'
+        # camera_topic: str='/wide_angle_camera_front/image_color_rect/compressed'
+        # camera_info_topic: str='/wide_angle_camera_front/camera_info'
 
+        use_vo: bool=False
+        visual_odom_topic: str='/open3d_slam/scan2map_odometry'
+        
         fixed_frame: str='odom'
         base_frame: str='base'
         footprint_frame: str='footprint'
@@ -51,6 +54,8 @@ class ParamCollection(Serializable):
         robot_width: float=0.530
         robot_max_velocity: float=1.2
         foot_radius: float=0.03269
+        
+        # {child}_in_{parent}
         front_hdr_camera_in_base= np.array([[-3.63509055e-06 , 1.43680318e-01 , 9.89624154e-01  ,3.53700000e-01],
                                             [ 1.00000000e+00, -1.34923184e-11 , 3.67320510e-06  ,0.00000000e+00],
                                             [ 5.27780629e-07 , 9.89624154e-01 ,-1.43680318e-01 , 1.63400000e-01],
@@ -68,6 +73,12 @@ class ParamCollection(Serializable):
                                             [-1.00000000e+00, -2.22044605e-16,  1.11022302e-16,  0.00000000e+00],
                                             [ 0.00000000e+00, -1.00000000e+00,  0.00000000e+00,  2.05000000e-02],
                                             [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  1.00000000e+00]])
+        
+        lidar_in_base=np.array([[-1.    ,  0.    ,  0.    , -0.31  ],
+                                [ 0.    , -1.    ,  0.    ,  0.    ],
+                                [ 0.    ,  0.    ,  1.    ,  0.1585],
+                                [ 0.    ,  0.    ,  0.    ,  1.    ]])
+        
         pass
     roscfg: RosParams=RosParams()
     
@@ -105,7 +116,7 @@ class ParamCollection(Serializable):
     class OptimizerParams:
         name: str = "ADAM"
         lr: float = 0.001 #0.0001 ,0.001
-        weight_decay: float = 0 #0.001 ,0
+        weight_decay: float = 0.001 #0.001 ,0
 
     optimizer: OptimizerParams = OptimizerParams()
 
@@ -130,6 +141,8 @@ class ParamCollection(Serializable):
         confidence_std_factor: float = 1.0
         confidence_threshold: float = 0.5
         confidence_mode: str = "gmm_1d" # gmm_1d,gmm_all,fixed
+        init_precision: List[float] = field(default_factory=lambda: [0.1, 10.0])
+        init_mean: List[float] = field(default_factory=lambda: [0.0, 2.0])
         log_enabled: bool = False
         log_folder: str = "/tmp"
         verbose: bool = True
@@ -143,14 +156,14 @@ class ParamCollection(Serializable):
         """Parameters for the graph."""
         update_range_main_graph: float=5
         cut_threshold: float=5.0
-        edge_dist_thr_main_graph: float=1
+        edge_dist_thr_main_graph: float=0.2
         
         use_sub_graph: bool=False  # only use when the robot is walking reversely
-        edge_dist_thr_sub_graph: float=0.2
+        edge_dist_thr_sub_graph: float=0.05
         max_distance_sub_graph: float=5
         update_range_sub_graph: float=5
         
-        min_samples_for_training: int=6
+        min_samples_for_training: int=1
         random_sample_num: int=100
         
         vis_node_index: int=10
@@ -211,7 +224,7 @@ class ParamCollection(Serializable):
     @dataclass
     class OfflineParams:
         mode:str='train'
-        env:str='snow'
+        env:str='hiking' # vowhite_both
         reload_model:bool=False
         use_online_ckpt:bool=False
         ckpt_parent_folder:str='results/overlay'
@@ -219,35 +232,47 @@ class ParamCollection(Serializable):
         train_datafile:str='train_data.pt'
         nodes_datafile:str='train_nodes.pt'
         image_file:str='image_buffer.pt'
-        img_bag_path:str='/media/chen/UDisk1/vis_rosbag/snow/2022-12-10-15-40-10_anymal-d020-npc_mission_0.bag'
+        # img_bag_path:str='/media/chen/UDisk1/vis_rosbag/snow/2022-12-10-15-40-10_anymal-d020-npc_mission_0.bag'
+        # img_bag_path:str='/media/chen/Chen/20240211_Dodo_MPI/2024_02_11_Dodo_MPI_Vicon/2024-02-11-14-28-25/mission_data/2024-02-11-14-28-25_npc_wide_angle_camera_0.bag'
+        img_bag_path:str='/media/chen/Chen/2024-01-25-white-board/2nd/2024-01-25-19-38-19_anymal-d020-npc_0.bag'
+        # img_bag_path:str='/media/chen/Chen/2024-01-25-white-board/1st/2024-01-25-19-36-11_anymal-d020-npc_0.bag'        
+        # img_bag_path:str='/media/chen/Chen/rosbag_white/2nd/2024-01-16-21-45-48_anymal-d020-npc_0-003.bag'
         # img_bag_path:str='/media/chen/Chen/rosbag_lee/2023-12-03-11-57-12_anymal-d020-npc_1-004.bag'
-        traindata_option:str= 'each_full' # 'each_full' or 'each_partial' or 'all_full' or 'all_partial'
+        traindata_option:str= 'each_partial' # 'each_full' or 'each_partial' or 'all_full' or 'all_partial'
         
         test_images:bool=False # output vis for image_buffer
-        test_nodes:bool=False # output vis for node data
-        test_video:bool=True # output dense pred video
-        process_option:str='first_half' # 'all' or 'first_half' or 'first_100
+        test_nodes:bool=True # output vis for node data
+        test_video:bool=False # output dense pred video
+        process_option:str='all' # 'all' or 'first_half' or 'first_100
         
         random_datasample:Tuple[bool,int]=(False,40)
         upload_error_stats_in_training:bool=False
         
         gt_model:str='SAM' # 'SEEM' or 'SAM'
         SAM_type:str='vit_h'
-        SAM_ckpt:str='/media/chen/UDisk1/sam_vit_h_4b8939.pth'
+        SAM_ckpt:str='/media/chen/Chen/sam_vit_h_4b8939.pth'
         # SAM_ckpt='/media/chen/UDisk1/sam_hq_vit_h.pth'
         
         # vis options
-        plot_hist:bool=False
+        plot_hist:bool=True
+        hist_colormap:str='plasma'
+        colored_mask_alpha:float=0.7
+        
         plot_tsne:bool=False
         plot_overlay:bool=True
-        plot_nodes:bool=True
-        plot_masks_compare:bool=False
+        plot_nodes:bool=False
+        plot_masks_compare:bool=True
         
         fake_phy:bool=False
         augment:bool=True
         
         analyze_path:str='results/analyze'
-    
+        white_board_gt_masks:str='white_masks.pt'
+        ground_gt_masks:str='ground_masks.pt'
+        
+        white_gt_val=(0.0,0.2)
+        ground_gt_val=(0.3,1.0)
+        
     offline: OfflineParams = OfflineParams()
     
     

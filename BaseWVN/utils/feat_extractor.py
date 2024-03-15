@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from .dinov2_interface import Dinov2Interface
 from .focal_interface import FocalInterface
-from .visualizer import plot_overlay_image,plot_tsne,add_color_bar_and_save,plot_image
+from .visualizer import plot_overlay_image,plot_tsne,add_color_bar_and_save,plot_image,plot_overlay_image_binary
 from ..config import save_to_yaml
 import PIL.Image
 from .loss import PhyLoss
@@ -14,6 +14,8 @@ from sklearn.mixture import GaussianMixture
 import os
 from sklearn.manifold import TSNE
 import time as ttt
+from scipy.stats import norm
+from scipy.optimize import fsolve
 class FeatureExtractor:
     def __init__(
         self, device: str, segmentation_type: str = "pixel", feature_type: str = "dinov2", input_size: int = 448, **kwargs
@@ -369,7 +371,10 @@ def compute_phy_mask(img:torch.Tensor,
                 # use 1d GMM with k=2 to segment the phy_mask
                 # Flatten the loss_reco to fit the GMM
                 loss_reco_flat = loss_reco.flatten().detach().cpu().numpy().reshape(-1, 1)
-                
+                loss_values_sorted = np.sort(loss_reco.flatten().detach().cpu().numpy())
+
+                # Split your data around a percentile that effectively separates confident and unconfident areas
+                split_index = int(len(loss_values_sorted) * 0.25)
                 # start_time = ttt.time()
                 # fit a 1D GMM with k=1
                 # gmm_k1 = GaussianMixture(n_components=1, random_state=0)
@@ -379,27 +384,43 @@ def compute_phy_mask(img:torch.Tensor,
 
                 # start_time = ttt.time()
                 # Fit a 1D GMM with k=2
-                gmm_k2 = GaussianMixture(n_components=2, random_state=0)
+                # init_precision=np.expand_dims(np.array([5,30]),axis=[1,2])
+                # init_mean=np.expand_dims(np.array([0,2]),axis=1)
+                # init_mean_l=np.percentile(loss_reco_flat,25)
+                # init_mean_r=np.percentile(loss_reco_flat,75)
+                init_mean_l=np.min(loss_reco_flat)
+                init_mean_r=np.max(loss_reco_flat)
+                init_mean=np.expand_dims(np.array([init_mean_l,init_mean_r]),axis=1)
+
+                gmm_k2 = GaussianMixture(n_components=2, random_state=42)
                 gmm_k2.fit(loss_reco_flat)
                 # end_time = ttt.time()
                 # print(f"Execution time for GMM with k=2: {end_time - start_time:.2f} seconds")
-
+                
                 # Compare the losses
-                # if abs(gmm_k1.lower_bound_ - gmm_k2.lower_bound_)<0.1:
-                #     # k=3, observing that there are 3 clusters when not clearly seperated into 2
-                #     gmm_k3 = GaussianMixture(n_components=3, random_state=0)
-                #     gmm_k3.fit(loss_reco_flat)
-                #     # Determine the cluster to use (e.g., based on some criteria like the smallest mean)
-                #     selected_cluster = gmm_k3.means_.argmin()
-                #     # Create a mask from GMM predictions for the selected cluster
-                #     gmm_labels_k3 = gmm_k3.predict(loss_reco_flat)
-                #     conf_mask = (gmm_labels_k3 == selected_cluster).reshape(H, W)
-                #     unconf_mask=torch.from_numpy(~conf_mask).to(img.device)
-                #     # (discarded)single gaussian distribution, use the confidence threshold
-                #     # std factor need tuning
-                #     # ss=gmm_k3.lower_bound_
+                # if abs(gmm_k1.lower_bound_ - gmm_k2.lower_bound_)<0.05:
+                    # k=3, observing that there are 3 clusters when not clearly seperated into 2
+                    # gmm_k3 = GaussianMixture(n_components=3, random_state=0)
+                    # gmm_k3.fit(loss_reco_flat)
+                    # # Determine the cluster to use (e.g., based on some criteria like the smallest mean)
+                    # selected_cluster = gmm_k3.means_.argmin()
+                    # # Create a mask from GMM predictions for the selected cluster
+                    # gmm_labels_k3 = gmm_k3.predict(loss_reco_flat)
+                    # conf_mask = (gmm_labels_k3 == selected_cluster).reshape(H, W)
+                    # unconf_mask=torch.from_numpy(~conf_mask).to(img.device)
+                    # # (discarded)single gaussian distribution, use the confidence threshold
+                    # # std factor need tuning
+                    # # ss=gmm_k3.lower_bound_
+                    # # unconf_mask=confidence<preserved
+                    # # unconf_mask=unconf_mask.to(img.device)
+                    # mean1, std1 = gmm_k3.means_[0][0], np.sqrt(gmm_k3.covariances_[0][0][0])
+                    # mean2, std2 = gmm_k3.means_[1][0], np.sqrt(gmm_k3.covariances_[1][0][0])
+                #     mean1=gmm_k1.means_[0][0]
+                #     # thresholds = find_gmm_thresholds(mean1, std1, mean2, std2)
                 #     # unconf_mask=confidence<preserved
-                #     # unconf_mask=unconf_mask.to(img.device)
+                #     # conf_mask=~unconf_mask
+                #     unconf_mask=torch.ones_like(confidence).to(img.device).type(torch.bool)
+                #     conf_mask=~unconf_mask
                 # else:
                     # Predict the clusters for each data point (loss value)
                 gmm_labels = gmm_k2.predict(loss_reco_flat)
@@ -409,6 +430,12 @@ def compute_phy_mask(img:torch.Tensor,
                 # Create a mask from GMM predictions
                 unconf_mask = (gmm_labels == unconfident_cluster).reshape(H, W)
                 unconf_mask=torch.from_numpy(unconf_mask).to(img.device)
+                
+                mean1, std1 = gmm_k2.means_[0, 0], np.sqrt(gmm_k2.covariances_[0, 0])
+                mean2, std2 = gmm_k2.means_[1, 0], np.sqrt(gmm_k2.covariances_[1, 0])
+
+                thresholds = find_gmm_thresholds(mean1, std1, mean2, std2)
+                    
             elif mode=="gmm_all":
                 data=loss_reco_raw.detach().cpu().numpy()
                 data_reduced = data[:,:10]
@@ -437,15 +464,20 @@ def compute_phy_mask(img:torch.Tensor,
         unconf_mask=torch.zeros_like(confidence).to(img.device).type(torch.bool)
     
     mask = unconf_mask.unsqueeze(0).repeat(output_phy.shape[0], 1, 1)
+    output_phy_ori=output_phy.clone()
     output_phy[mask] = torch.nan
     if output_phy.shape[-2]!=trans_img.shape[-2] or output_phy.shape[-1]!=trans_img.shape[-1]:
         # upsample the output
         output_phy=F.interpolate(
             output_phy.unsqueeze(0).type(torch.float32), size=trans_img.shape[-2:]
         ).squeeze(0)
+        output_phy_ori=F.interpolate(
+            output_phy_ori.unsqueeze(0).type(torch.float32), size=trans_img.shape[-2:]
+        ).squeeze(0)
     conf_mask=~unconf_mask
     conf_mask_resized=F.interpolate(conf_mask.type(torch.float32).unsqueeze(0).unsqueeze(0),size=trans_img.shape[-2:])>0
     loss_reco_resized=F.interpolate(loss_reco.unsqueeze(0).unsqueeze(0),size=trans_img.shape[-2:])
+    # loss_threshold=thresholds[0]
     torch.cuda.empty_cache()
     if plot_and_save:
         time=kwargs.get("time","online")
@@ -465,9 +497,15 @@ def compute_phy_mask(img:torch.Tensor,
             
         for i in range(channel_num):
             output_phy=output_phy.detach()
-            overlay_img=plot_overlay_image(trans_img, overlay_mask=output_phy, channel=i,alpha=0.7)
+            output_phy_ori=output_phy_ori.detach()
+            overlay_img=plot_overlay_image(trans_img, overlay_mask=output_phy, channel=i,alpha=1.0)
+            overlay_img_raw=plot_overlay_image(trans_img, overlay_mask=output_phy_ori, channel=i,alpha=1.0)
+            # ---debug for paper plotting, conf mask section---
+            # overlay_img=plot_overlay_image_binary(trans_img, overlay_mask=output_phy, channel=i,alpha=0.7)
             out_image = PIL.Image.fromarray(overlay_img)
+            out_image_raw = PIL.Image.fromarray(overlay_img_raw)
             rotated_image=rot_or_not(out_image,param)
+            rotated_image_raw=rot_or_not(out_image_raw,param)
         
             # process possible label_mask for plotting if given
             if label_mask is not None:
@@ -488,6 +526,7 @@ def compute_phy_mask(img:torch.Tensor,
             vis_imgs=[trans_img_pil]
             if label_mask is not None:
                 vis_imgs.append(overlay_label_img)
+            vis_imgs.append(rotated_image_raw)
             vis_imgs.append(rotated_image)
             # add colorbar to overlay image and then save
             add_color_bar_and_save(vis_imgs,i, file_path)
@@ -512,6 +551,17 @@ def rot_or_not(img,param):
             # Rotate the image by 180 degrees
             img = img.rotate(180)
     return img
+
+
+def find_gmm_thresholds(mean1, std1, mean2, std2):
+    def equations(x):
+        return norm.pdf(x, mean1, std1) - norm.pdf(x, mean2, std2)
+
+    # Initial guess for the intersection point is the midpoint between the means
+    x0 = np.mean([mean1, mean2])
+    solution = fsolve(equations, x0)
+    
+    return solution
 
 def compute_pred_phy_loss(img:torch.Tensor,
                           conf_mask:torch.Tensor,
