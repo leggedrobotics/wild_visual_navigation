@@ -13,8 +13,8 @@
     <node name="load_config_node" pkg="anymal_d" type="load_config.py" output="screen" />
 
     <!-- Include anymal_tf_publisher.launch, if no tf is published -->
-    <include file="$(find anymal_tf_publisher)/launch/anymal_tf_publisher.launch"/>
-
+    <!-- <include file="$(find anymal_tf_publisher)/launch/anymal_tf_publisher.launch"/> -->
+    <node name="plotjuggler" pkg="plotjuggler" type="plotjuggler" />
 
 </launch>
 

@@ -109,7 +109,7 @@ class ConfidenceGenerator(torch.nn.Module):
             x = x.to(self.mean.device)
   
         confidence = torch.exp(-(((x - self.mean) / (self.std * self.std_factor)) ** 2) * 0.5)
-
+        confidence[x < self.mean] = 1.0 #debug, I think it fit the paper
         return confidence.type(torch.float32)
 
 if __name__ == "__main__":

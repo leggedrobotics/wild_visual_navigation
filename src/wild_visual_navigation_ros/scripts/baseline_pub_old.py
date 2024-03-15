@@ -2,6 +2,7 @@
 
 import rospy
 import rospkg
+import rosbag
 import numpy as np
 import torch
 import torch.nn as nn
@@ -17,7 +18,9 @@ import os
 import fnmatch
 # from Decoder import BeliefDecoderLightning
 from Phy_Decoder import RNNInputBuffer,initialize_models,prepare_padded_input
-
+from real_time_plotter import RealTimePlotter
+from PyQt5 import QtWidgets,QtCore
+from PyQt5.QtCore import QTimer
 colors = {
         'nord0': np.array([46, 52, 64]),
         'nord1': np.array([59, 66, 82]),
@@ -82,7 +85,7 @@ class HiddenVisualizerNode(object):
         rospy.Subscriber(self.hidden_topic,
                          Float32MultiArray,
                          self.hidden_callback,
-                         queue_size=10)
+                         queue_size=1)
         rospy.Subscriber(self.foot_scan_topic,
                          Marker,
                          self.foot_scan_callback,
@@ -128,7 +131,8 @@ class HiddenVisualizerNode(object):
     def load_rosparam(self):
         self.hidden_topic = rospy.get_param('~hidden_topic', '/debug_info')
         self.foot_scan_topic = rospy.get_param('~foot_scan_topic', '/foot_scan')
-        self.decoder_name = rospy.get_param('~decoder_name', '/lib/gru_gate_new_decoder_5000_100.pt')
+        # self.decoder_name = rospy.get_param('~decoder_name', '/lib/gru_gate_new_decoder_5000_100.pt')
+        self.decoder_name = rospy.get_param('~decoder_name', '/lib/decoder_10000.pt')
 
     def load_model(self):
         rospack = rospkg.RosPack()
@@ -232,6 +236,9 @@ class HiddenVisualizerNode(object):
         # print('obs ', obs.shape)
         # print('hidden ', hidden.shape)
         with torch.no_grad():
+            if "decoder_10000.pt" in self.decoder_name:
+                obs=obs.to('cuda:0')
+                hidden=hidden.to('cuda:0')
             recons = self.model(obs, hidden)
             # Predict using the friction predictor
             fric_pred, self.fric_hidden = self.fric_predictor.get_unnormalized_recon(padded_input, self.fric_hidden)
@@ -258,20 +265,10 @@ class HiddenVisualizerNode(object):
 
         # print("new_priv shape:",new_priv[:,-1,:].squeeze(0).cpu().shape)
         priv = recons[0]
-        scan = recons[1]
-        scans = recons[3]
-        scan = scan.squeeze(0).numpy()
-        scans = scans.numpy()
-        scan_min = np.min(scans, axis=1)[0]
-        scan_max = np.max(scans, axis=1)[0]
-        msg=Float32()
-        msg.data=1.0
-        self.freq_pub.publish(msg)
-        # print('scan_min ', scan_min.shape)
-        self.foot_scan = self.transform_scan(scan)
-        # self.foot_scan_min = self.transform_scan(scan_min)
-        # self.foot_scan_max = self.transform_scan(scan_max)
-        self.priv_to_marker(priv.squeeze(0).numpy(),new_priv[:,-1,:].squeeze(0).cpu().numpy())
+        if "decoder_10000.pt" in self.decoder_name:
+            self.priv_to_marker(priv.cpu().numpy(),new_priv[:,-1,:].squeeze(0).cpu().numpy())
+        else:
+            self.priv_to_marker(priv.squeeze(0).numpy(),new_priv[:,-1,:].squeeze(0).cpu().numpy())
         
 
     def transform_scan(self, scan):
@@ -283,31 +280,34 @@ class HiddenVisualizerNode(object):
         return foot_scan
 
     def priv_to_marker(self, priv,new_priv):
-        priv_scan = priv[:36]
-        contact_state = priv[36:40]
-        contact_force = priv[40:52]
-        contact_normal = priv[52:64]
-        self.friction = priv[64:68]
-        ori_pred = {
-        "fric": self.friction.reshape(1, 4),
-        "stiff": np.ones((1, 4))
-        }
+        if "decoder_10000.pt" in self.decoder_name:
+            self.friction=priv[0,28:32]
+        else:
+            priv_scan = priv[:36]
+            contact_state = priv[36:40]
+            contact_force = priv[40:52]
+            contact_normal = priv[52:64]
+            self.friction = priv[64:68]
+        # ori_pred = {
+        # "fric": self.friction.reshape(1, 4),
+        # "stiff": np.ones((1, 4))
+        # }
         # self.plotter.update_plot(ori_pred)
         # print('friction ', self.friction)
         # print('Shape of self.friction:', self.friction.shape)
 
         self.new_friction=new_priv[:4]
         self.new_stiffness=new_priv[4:8]
-        new_pred = {
-        "fric": self.new_friction.reshape(1, 4),
-        "stiff": self.new_stiffness.reshape(1, 4)
-        }
-        thigh_shank_contact = priv[68:76]
-        external_force = priv[76:79]
-        external_torque = priv[79:82]
-        air_time = priv[82:86]
-        self.contact_marker(contact_state, contact_force, contact_normal)
-        self.external_wrench_marker(external_force, external_torque)
+        # new_pred = {
+        # "fric": self.new_friction.reshape(1, 4),
+        # "stiff": self.new_stiffness.reshape(1, 4)
+        # }
+        # thigh_shank_contact = priv[68:76]
+        # external_force = priv[76:79]
+        # external_torque = priv[79:82]
+        # air_time = priv[82:86]
+        # self.contact_marker(contact_state, contact_force, contact_normal)
+        # self.external_wrench_marker(external_force, external_torque)
         self.publish_friction(self.friction,self.new_friction,self.new_stiffness)
 
     def publish_friction(self, friction,new_friction,new_stiffness):
@@ -482,9 +482,220 @@ class HiddenVisualizerNode(object):
         msg.data[0].data = data.flatten()
         self.map_publisher.publish(msg)
 
+def update_rnn_predictions(fric_pred, stiff_pred, fric_preds_list, stiff_preds_list, fric_preds_count, stiff_preds_count, i, batch_size, active_range_length):
+    """
+    Update predictions and compute running average for RNN models.
+
+    Returns:
+    - pred_obs: Observation dictionary with the last prediction
+    - avg_obs: Observation dictionary with the averaged predictions (or None if not required)
+    """
+    middle_only=True
+    # Extract the last prediction from each sequence
+    last_fric_pred = fric_pred[:, -1, :]
+    last_stiff_pred = stiff_pred[:, -1, :]
+    time_offset = 1  # first element in pred_list is pred for timestep 0 but get in timestep 1
+
+    # Append the latest predictions to the lists
+    fric_preds_list.append(last_fric_pred)
+    stiff_preds_list.append(last_stiff_pred)
+    fric_preds_count.append(torch.ones(batch_size, device=last_fric_pred.device))
+    stiff_preds_count.append(torch.ones(batch_size, device=last_stiff_pred.device))
+
+    # Add the other predictions in the sequence to their corresponding timesteps in the list
+    for idx in range(min(len(fric_preds_list), active_range_length)):
+        if idx == 0:
+            continue
+        fric_preds_list[i - idx - time_offset] += fric_pred[:, -idx-1, :]
+        stiff_preds_list[i - idx - time_offset] += stiff_pred[:, -idx-1, :]
+        fric_preds_count[i - idx - time_offset] += 1
+        stiff_preds_count[i - idx - time_offset] += 1
+
+        if middle_only and idx==active_range_length-1:
+            fric_preds_list[i - idx - time_offset] = fric_pred[:, -idx-1, :]
+            stiff_preds_list[i - idx - time_offset] = stiff_pred[:, -idx-1, :]
+            fric_preds_count[i - idx - time_offset] = torch.ones(batch_size, device=last_fric_pred.device)
+            stiff_preds_count[i - idx - time_offset] = torch.ones(batch_size, device=last_stiff_pred.device)
+
+    
+    # Compute the running average for the active timesteps
+    active_timesteps = range(max(time_offset, i - active_range_length + 1), i + 1)
+    avg_fric_preds = [((fric_preds_list[t - time_offset].T / fric_preds_count[t - time_offset]).T).unsqueeze(0) for t in active_timesteps]
+    avg_stiff_preds = [((stiff_preds_list[t - time_offset].T / stiff_preds_count[t - time_offset]).T).unsqueeze(0) for t in active_timesteps]
+
+    pred_obs = {
+        "fric": last_fric_pred.cpu(),
+        "stiff": last_stiff_pred.cpu()
+    }
+    avg_obs = {
+        "fric": torch.cat(avg_fric_preds, dim=0).cpu(),
+        "stiff": torch.cat(avg_stiff_preds, dim=0).cpu()
+    }
+
+    return pred_obs, avg_obs
+
+class OfflineHiddenVisualizerNode(object):
+    def __init__(self,bag_path=None):
+        batch_size=1
+        self.step=0
+        self.desired_duration=5000
+        self.fric_predictor,self.stiff_predictor,self.cfg=initialize_models()
+        self.fric_hidden = self.fric_predictor.init_hidden(batch_size)
+        self.stiff_hidden = self.stiff_predictor.init_hidden(batch_size)
+        self.seq_length = self.cfg["seq_length"]
+        self.input_buffers = {0: RNNInputBuffer()}
+        self.feet_labels = ["FOOT_LF", "FOOT_RF", "FOOT_LH", "FOOT_RH"]
+        
+        # Initialize lists outside the loop
+        self.bag_path=bag_path
+        self.fric_preds_list = []
+        self.stiff_preds_list = []
+        self.fric_preds_count = []
+        self.stiff_preds_count = []
+        self.active_range_length = 25
+        self.feet_labels = ["FOOT_LF", "FOOT_RF", "FOOT_LH", "FOOT_RH"]
+        self.plotter = RealTimePlotter(self.feet_labels,self.desired_duration)
+
+         # Set up a flag and QTimer to check the plotter window's visibility
+        self.plotter_ready = False
+        self.check_plotter_timer = QTimer()
+        self.check_plotter_timer.timeout.connect(self.check_plotter_status)
+        self.check_plotter_timer.start(100)  # Check every 100ms
+
+        # Blocking loop to wait until the plotter window is visible
+        while not self.plotter_ready:
+            QtWidgets.QApplication.processEvents()  # Allow GUI events to be processed
+        self.messages=[]
+        self.load_rosparam()
+        self.load_model()
+        self.record_data()
+        self.friction=[0,0,0,0]
+        
+        # init ros
+        
+        
+        foot_id = ['LF_FOOT', 'RF_FOOT', 'LH_FOOT', 'RH_FOOT']
+        
+        
+       
+        self.recon_scan = np.zeros(300)
+        
+        self.foot_positions = [np.zeros(3) for i in range(4)]
+        self.foot_scan = None
+        self.scan_size = 52
+        self.run_pipeline()
+        
+    def check_plotter_status(self):
+        if self.plotter.win.isVisible():
+            self.plotter_ready = True
+            self.check_plotter_timer.stop()  # Stop the timer once the window is visible
+    def load_rosparam(self):
+        self.hidden_topic =  '/debug_info'
+        # self.decoder_name =  '/lib/gru_gate_new_decoder_5000_100.pt'
+        self.decoder_name =  '/lib/decoder_10000.pt'
+
+    def load_model(self):
+
+        package_path = '/home/chen/catkin_ws/src/anymal_perceptive_inspection'
+        model_path = package_path + self.decoder_name
+        self.model = torch.jit.load(model_path)
+        print('loaded model ', model_path)
+
+    def record_data(self):
+        bag_path = self.bag_path
+        # bag_path ='/home/chen/Downloads/2021-05-03-19-18-21.bag'
+        # Open the rosbag file
+        with rosbag.Bag(bag_path, 'r') as bag:
+            for topic, msg, t in bag.read_messages(topics=[self.hidden_topic]):
+                self.messages.append(msg)
+    
+    def run_pipeline(self):
+        for msg in self.messages:
+            self.hidden_callback(msg)
+        pass
+
+    def hidden_callback(self, msg):
+        data = np.array(msg.data, dtype=np.float32)
+        self.reconstruct(data)
+
+
+    def reconstruct(self, array):
+        self.step+=1
+        torch_array = torch.from_numpy(array).unsqueeze(0)
+        obs, hidden = torch.split(torch_array, [341, 100], dim=1)
+        input_data=obs[:,:341]
+        # print(input_data[0].device)
+        padded_inputs = prepare_padded_input(input_data, self.input_buffers, self.step, 1)    
+        padded_input = torch.stack(padded_inputs, dim=0)
+        if self.cfg['reset_hidden_each_epoch']:
+            self.fric_hidden = self.fric_predictor.init_hidden(1)
+            self.stiff_hidden = self.stiff_predictor.init_hidden(1)
+        # print('obs ', obs.shape)
+        # print('hidden ', hidden.shape)
+        with torch.no_grad():
+            obs=obs.to('cuda:0')
+            hidden=hidden.to('cuda:0')
+            recons = self.model(obs, hidden)
+            # Predict using the friction predictor
+            fric_pred, self.fric_hidden = self.fric_predictor.get_unnormalized_recon(padded_input, self.fric_hidden)
+            
+            # Predict using the stiffness predictor
+            stiff_pred, self.stiff_hidden = self.stiff_predictor.get_unnormalized_recon(padded_input, self.stiff_hidden)
+        
+
+        self.input_buffers[0].add(input_data[0].unsqueeze(0))
+        new_priv=torch.cat([fric_pred,stiff_pred],dim=-1)
+        # print("new_priv shape:",new_priv[:,-1,:].squeeze(0).cpu().shape)
+        priv = recons[0]
+        if "decoder_10000.pt" in self.decoder_name:
+            self.priv_to_marker(priv.cpu().numpy(),new_priv[:,-1,:].squeeze(0).cpu().numpy())
+        else:
+            self.priv_to_marker(priv.squeeze(0).numpy(),new_priv[:,-1,:].squeeze(0).cpu().numpy())
+        # Update the plot with the predictions
+        if self.cfg['use_rnn']:
+            pred_obs, avg_obs = update_rnn_predictions(fric_pred, stiff_pred, self.fric_preds_list, self.stiff_preds_list, self.fric_preds_count, self.stiff_preds_count, self.step, 1, self.active_range_length)    
+            self.plotter.update_predictions(pred_obs, avg_obs,0,True)
+        else: 
+            self.plotter.update_predictions({"fric": fric_pred.cpu(), "stiff": stiff_pred.cpu()},avg_obs,0,False)
+
+
+    def priv_to_marker(self, priv,new_priv):
+        if "decoder_10000.pt" in self.decoder_name:
+            self.friction=priv[0,28:32]
+        else:
+            self.friction = priv[64:68]
+        ori_pred = {
+        "fric": self.friction.reshape(1, 4),
+        "stiff": np.ones((1, 4))
+        }
+        self.plotter.update_plot(ori_pred)
+        # print('friction ', self.friction)
+        # print('Shape of self.friction:', self.friction.shape)
+
+        self.new_friction=new_priv[:4]
+        self.new_stiffness=new_priv[4:8]
+        new_pred = {
+        "fric": self.new_friction.reshape(1, 4),
+        "stiff": self.new_stiffness.reshape(1, 4)
+        }
+
+
+
+    def timer_callback(self, e):
+        QtWidgets.QApplication.processEvents()  # Process PyQt events
+        self.update_base_tf()
+        self.update_foot_tf()
+
+
+
 
 if __name__ == '__main__':
-    try:
-        node = HiddenVisualizerNode()
-    except rospy.ROSInterruptException:
-        pass
+    mode="online"
+    if mode=="online":
+        try:
+            node = HiddenVisualizerNode()
+        except rospy.ROSInterruptException:
+            pass
+    else:
+        node=OfflineHiddenVisualizerNode(bag_path='/media/chen/Chen/2024-01-25-white-board/2nd/2024-01-25-19-38-19_anymal-d020-lpc_0.bag')
+        

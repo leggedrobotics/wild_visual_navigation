@@ -84,7 +84,7 @@ def test(config:dict):
         item['ckpt_parent_folder'] = ckpt_parent_folder
     agenda=config["agenda"]
     
-    aggregate_stats = {scenario['name']: {'fric_mean': [], 'fric_std': [], 'stiffness_mean': [], 'stiffness_std': [], 'over_conf_mean': [], 'over_conf_std': [], 'under_conf_mean': [], 'under_conf_std': []} for scenario in agenda}
+    aggregate_stats = {scenario['name']: {'fric_mean': [], 'fric_std': [], 'stiffness_mean': [], 'stiffness_std': [], 'iou_mean':[],'iou_std':[]} for scenario in agenda}
 
     for _ in range(number):  # Assuming you want to repeat the whole process 5 times
         for scenario in agenda:
@@ -122,5 +122,5 @@ def save_stats_to_file(stats, filename):
 
 if __name__ == "__main__":
     from BaseWVN.offline.ablation_cfg import*
-    test(memory_cfg)
+    test(conf_cfg)
    

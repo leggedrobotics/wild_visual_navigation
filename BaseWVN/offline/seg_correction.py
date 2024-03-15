@@ -11,9 +11,9 @@ from BaseWVN import WVN_ROOT_DIR
 from BaseWVN.config.wvn_cfg import ParamCollection
  # ----Step2. download and automatically replace the flaw masks (uncomment the following lines)----
 # use your own API key
-# api_key = 'd88f310137222d041531b970241e8480ae6e771f'
+# api_key = 'b46510b38a03483c41468f690f1a938552ccc465'
 # client = SegmentsClient(api_key)
-# dataset_identifier = "swsychen25/white1st_gt"
+# dataset_identifier = "swsychenZJW/vowhite_2ndGROUND"
 # name = "v0.1"
 # client.add_release(dataset_identifier, name)
 def save_imperfect_images(image_batch, mask_batch, imperfect_indexes, save_folder):
@@ -58,7 +58,7 @@ def download_and_replace_masks(mask_batch, corrected_mask_paths):
             mask_batch[idx] = corrected_mask_tensor
         else:
             print(f"Index {idx} is out of bounds for the mask batch.")
-    output_path=os.path.join(corrected_mask_paths, 'gt_masks_SAM.pt')
+    output_path=os.path.join(corrected_mask_paths, 'Ground_comp.pt')
     torch.save(mask_batch, output_path)
     print(f"Saved corrected masks to {output_path}")
 
@@ -100,9 +100,10 @@ if __name__ == "__main__":
     # download_and_replace_masks(gt_masks,os.path.join(output_dir, 'imperfect_images'))
     
     # ----Step2 (optional). combine the mask with a complementary mask (uncomment the following lines)----
+    # move the 'gt_masks_SAM.pt' from imperfect image folder to the train/your_env folder, load the complementary mask
     # comp_masks=torch.load(os.path.join(output_dir, 'white_masks.pt'))
-    # seg_union_correction(gt_masks,comp_masks,[6,7],os.path.join(output_dir, 'imperfect_images'))
+    # seg_union_correction(gt_masks,comp_masks,[4],os.path.join(output_dir, 'imperfect_images'))
     
     # ----Step2 (optional). subtract the mask with a complementary mask (uncomment the following lines)----
     comp_masks=torch.load(os.path.join(output_dir, 'white_masks.pt'))
-    seg_subtract_correction(gt_masks,comp_masks,[0,1,2,6,7],os.path.join(output_dir, 'imperfect_images'))
+    seg_subtract_correction(gt_masks,comp_masks,[0,1,2,3,4],os.path.join(output_dir, 'imperfect_images'))

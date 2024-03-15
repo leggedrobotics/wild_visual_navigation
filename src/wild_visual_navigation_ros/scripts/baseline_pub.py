@@ -15,8 +15,9 @@ import tf
 import tf.transformations as tftf
 import os
 import fnmatch
+import time
 # from Decoder import BeliefDecoderLightning
-from Phy_Decoder import RNNInputBuffer,initialize_models,prepare_padded_input
+from Phy_Decoder import RNNInputBuffer,initialize_models,prepare_padded_input,ensemble
 
 colors = {
         'nord0': np.array([46, 52, 64]),
@@ -48,9 +49,14 @@ class HiddenVisualizerNode(object):
         self.step=0
         self.desired_duration=5000
         self.fric_predictor,self.stiff_predictor,self.cfg=initialize_models()
-        self.fric_hidden = self.fric_predictor.model.init_hidden(batch_size)
-        self.stiff_hidden = self.stiff_predictor.model.init_hidden(batch_size)
-        self.seq_length = self.cfg["seq_length"]
+        # self.fric_predictor,self.stiff_predictor,self.cfg=ensemble()
+        if hasattr(self.fric_predictor, 'model'):
+            self.fric_hidden = self.fric_predictor.model.init_hidden(batch_size)
+            self.stiff_hidden = self.stiff_predictor.model.init_hidden(batch_size)
+        else:
+            self.fric_hidden = self.fric_predictor.init_hidden(batch_size)
+            self.stiff_hidden = self.stiff_predictor.init_hidden(batch_size)
+        self.seq_length = self.cfg.model.seq_length
         self.input_buffers = {0: RNNInputBuffer()}
         self.feet_labels = ["FOOT_LF", "FOOT_RF", "FOOT_LH", "FOOT_RH"]
         # self.plotter = RealTimePlotter(self.feet_labels,self.desired_duration)
@@ -128,7 +134,7 @@ class HiddenVisualizerNode(object):
     def load_rosparam(self):
         self.hidden_topic = rospy.get_param('~hidden_topic', '/debug_info')
         self.foot_scan_topic = rospy.get_param('~foot_scan_topic', '/foot_scan')
-        self.decoder_name = rospy.get_param('~decoder_name', '/lib/gru_gate_new_decoder_5000_100.pt')
+        self.decoder_name = rospy.get_param('~decoder_name', '/lib/decoder_10000.pt')
 
     def load_model(self):
         rospack = rospkg.RosPack()
@@ -226,18 +232,29 @@ class HiddenVisualizerNode(object):
         # print(input_data[0].device)
         padded_inputs = prepare_padded_input(input_data, self.input_buffers, self.step, 1)    
         padded_input = torch.stack(padded_inputs, dim=0)
-        if self.cfg['reset_hidden_each_epoch']:
-            self.fric_hidden = self.fric_predictor.model.init_hidden(1)
-            self.stiff_hidden = self.stiff_predictor.model.init_hidden(1)
+        if self.cfg.model.reset_hidden_each_epoch:
+            if hasattr(self.fric_predictor, 'model'):
+                self.fric_hidden = self.fric_predictor.model.init_hidden(1)
+                self.stiff_hidden = self.stiff_predictor.model.init_hidden(1)
+            else:
+                self.fric_hidden = self.fric_predictor.init_hidden(1)
+                self.stiff_hidden = self.stiff_predictor.init_hidden(1)
+            
         # print('obs ', obs.shape)
         # print('hidden ', hidden.shape)
         with torch.no_grad():
+            if "decoder_10000.pt" in self.decoder_name:
+                obs=obs.to('cuda:0')
+                hidden=hidden.to('cuda:0')
             recons = self.model(obs, hidden)
             # Predict using the friction predictor
+            # start_time = time.time()
             fric_pred, self.fric_hidden = self.fric_predictor.get_unnormalized_recon(padded_input, self.fric_hidden)
             
             # Predict using the stiffness predictor
             stiff_pred, self.stiff_hidden = self.stiff_predictor.get_unnormalized_recon(padded_input, self.stiff_hidden)
+            # end_time = time.time()
+            # print('time for both decoders to inference: ', end_time - start_time)
         self.input_buffers[0].add(input_data[0].unsqueeze(0))
         if isinstance(fric_pred, torch.Tensor):
             fric_pred = torch.clamp(fric_pred, min=0, max=1)
@@ -257,20 +274,25 @@ class HiddenVisualizerNode(object):
 
         # print("new_priv shape:",new_priv[:,-1,:].squeeze(0).cpu().shape)
         priv = recons[0]
-        scan = recons[1]
-        scans = recons[3]
-        scan = scan.squeeze(0).numpy()
-        scans = scans.numpy()
-        scan_min = np.min(scans, axis=1)[0]
-        scan_max = np.max(scans, axis=1)[0]
-        msg=Float32()
-        msg.data=1.0
-        self.freq_pub.publish(msg)
+        # scan = recons[1]
+        # scans = recons[3]
+        # scan = scan.squeeze(0).numpy()
+        # scans = scans.numpy()
+        # scan_min = np.min(scans, axis=1)[0]
+        # scan_max = np.max(scans, axis=1)[0]
+        # msg=Float32()
+        # msg.data=1.0
+        # self.freq_pub.publish(msg)
         # print('scan_min ', scan_min.shape)
-        self.foot_scan = self.transform_scan(scan)
+        # self.foot_scan = self.transform_scan(scan)
         # self.foot_scan_min = self.transform_scan(scan_min)
         # self.foot_scan_max = self.transform_scan(scan_max)
-        self.priv_to_marker(priv.squeeze(0).numpy(),new_priv[:,-1,:].squeeze(0).cpu().numpy())
+        
+        priv = recons[0]
+        if "decoder_10000.pt" in self.decoder_name:
+            self.priv_to_marker(priv.cpu().numpy(),new_priv[:,-1,:].squeeze(0).cpu().numpy())
+        else:
+            self.priv_to_marker(priv.squeeze(0).numpy(),new_priv[:,-1,:].squeeze(0).cpu().numpy())
         
 
     def transform_scan(self, scan):
@@ -281,33 +303,38 @@ class HiddenVisualizerNode(object):
             foot_scan[i * n: (i + 1) * n] += self.foot_positions[i][2]
         return foot_scan
 
+    
     def priv_to_marker(self, priv,new_priv):
-        priv_scan = priv[:36]
-        contact_state = priv[36:40]
-        contact_force = priv[40:52]
-        contact_normal = priv[52:64]
-        self.friction = priv[64:68]
-        ori_pred = {
-        "fric": self.friction.reshape(1, 4),
-        "stiff": np.ones((1, 4))
-        }
+        if "decoder_10000.pt" in self.decoder_name:
+            self.friction=priv[0,28:32]
+        else:
+            priv_scan = priv[:36]
+            contact_state = priv[36:40]
+            contact_force = priv[40:52]
+            contact_normal = priv[52:64]
+            self.friction = priv[64:68]
+        # ori_pred = {
+        # "fric": self.friction.reshape(1, 4),
+        # "stiff": np.ones((1, 4))
+        # }
         # self.plotter.update_plot(ori_pred)
         # print('friction ', self.friction)
         # print('Shape of self.friction:', self.friction.shape)
 
         self.new_friction=new_priv[:4]
         self.new_stiffness=new_priv[4:8]
-        new_pred = {
-        "fric": self.new_friction.reshape(1, 4),
-        "stiff": self.new_stiffness.reshape(1, 4)
-        }
-        thigh_shank_contact = priv[68:76]
-        external_force = priv[76:79]
-        external_torque = priv[79:82]
-        air_time = priv[82:86]
-        self.contact_marker(contact_state, contact_force, contact_normal)
-        self.external_wrench_marker(external_force, external_torque)
+        # new_pred = {
+        # "fric": self.new_friction.reshape(1, 4),
+        # "stiff": self.new_stiffness.reshape(1, 4)
+        # }
+        # thigh_shank_contact = priv[68:76]
+        # external_force = priv[76:79]
+        # external_torque = priv[79:82]
+        # air_time = priv[82:86]
+        # self.contact_marker(contact_state, contact_force, contact_normal)
+        # self.external_wrench_marker(external_force, external_torque)
         self.publish_friction(self.friction,self.new_friction,self.new_stiffness)
+    
 
     def publish_friction(self, friction,new_friction,new_stiffness):
         for i in range(4):

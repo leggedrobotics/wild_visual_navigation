@@ -78,29 +78,34 @@ class DecoderLightning(pl.LightningModule):
             self.log('fric_error_std',stats_dict['fric_std'])
             self.log('stiff_error_mean',stats_dict['stiffness_mean'])
             self.log('stiff_error_std',stats_dict['stiffness_std'])
-            self.log('over_conf_mean',stats_dict['over_conf_mean'])
-            self.log('over_conf_std',stats_dict['over_conf_std'])
-            self.log('under_conf_mean',stats_dict['under_conf_mean'])
-            self.log('under_conf_std',stats_dict['under_conf_std'])
-        # if self.params.offline.plot_hist:
-        #     res_dict=compute_phy_mask(self.test_img,
-        #                             self.feat_extractor,
-        #                             self.model,
-        #                             self.loss_fn,
-        #                             self.params.loss.confidence_threshold,
-        #                             self.params.loss.confidence_mode,
-        #                             self.params.offline.plot_overlay,
-        #                             self.step,
-        #                             time=self.time,
-        #                             param=self.params)
-        #     conf_mask=res_dict['conf_mask']
-        #     loss_reco=res_dict['loss_reco']
-        #     loss_reco_raw=res_dict['loss_reco_raw']
-        #     conf_mask_raw=res_dict['conf_mask_raw']
+            self.log('iou_mean',stats_dict['iou_mean'])
+            self.log('iou_std',stats_dict['iou_std'])
+            # self.log('over_conf_mean',stats_dict['over_conf_mean'])
+            # self.log('over_conf_std',stats_dict['over_conf_std'])
+            # self.log('under_conf_mean',stats_dict['under_conf_mean'])
+            # self.log('under_conf_std',stats_dict['under_conf_std'])
+        if self.params.offline.plot_hist or self.step==19:
+            res_dict=compute_phy_mask(self.test_img,
+                                    self.feat_extractor,
+                                    self.model,
+                                    self.loss_fn,
+                                    self.params.loss.confidence_threshold,
+                                    self.params.loss.confidence_mode,
+                                    self.params.offline.plot_overlay,
+                                    self.step,
+                                    time=self.time,
+                                    param=self.params)
+            conf_mask=res_dict['conf_mask']
+            loss_reco=res_dict['loss_reco']
+            loss_reco_raw=res_dict['loss_reco_raw']
+            conf_mask_raw=res_dict['conf_mask_raw']
             
-        #     calculate_uncertainty_plot(loss_reco,conf_mask,all_reproj_masks=None,save_path=os.path.join(WVN_ROOT_DIR,self.params.offline.ckpt_parent_folder,self.time,'hist',f'trainstep_{self.step}_uncertainty_histogram.png'))
-        if batch_idx==0:
-            self.step+=1
+            colored_loss_mask=calculate_uncertainty_plot(loss_reco,conf_mask,all_reproj_masks=None,save_path=os.path.join(WVN_ROOT_DIR,self.params.offline.ckpt_parent_folder,self.time,'hist',f'trainstep_{self.step}_uncertainty_histogram.png'),colormap=self.params.offline.hist_colormap)
+            alpha=self.params.offline.colored_mask_alpha
+            overlay_img=self.test_img.squeeze(0).permute(1,2,0).cpu().numpy()*(1-alpha)+colored_loss_mask*alpha
+            plt.imsave(os.path.join(WVN_ROOT_DIR,self.params.offline.ckpt_parent_folder,self.time,'hist',f'trainstep_{self.step}_overlay.png'),overlay_img)
+        # if batch_idx==0:
+        self.step+=1
         return loss
     def validation_step(self, batch, batch_idx):
         xs, ys = batch
@@ -128,7 +133,10 @@ class DecoderLightning(pl.LightningModule):
             loss_reco_raw=res_dict['loss_reco_raw']
             conf_mask_raw=res_dict['conf_mask_raw']
             
-            calculate_uncertainty_plot(loss_reco,conf_mask,all_reproj_masks=None,save_path=os.path.join(WVN_ROOT_DIR,self.params.offline.ckpt_parent_folder,self.time,'hist',f'step_{self.step}_uncertainty_histogram.png'))
+            colored_loss_mask=calculate_uncertainty_plot(loss_reco,conf_mask,all_reproj_masks=None,save_path=os.path.join(WVN_ROOT_DIR,self.params.offline.ckpt_parent_folder,self.time,'hist',f'step_{self.step}_uncertainty_histogram.png'),colormap=self.params.offline.hist_colormap)
+            alpha=self.params.offline.colored_mask_alpha
+            overlay_img=self.test_img.squeeze(0).permute(1,2,0).cpu().numpy()*(1-alpha)+colored_loss_mask*alpha
+            plt.imsave(os.path.join(WVN_ROOT_DIR,self.params.offline.ckpt_parent_folder,self.time,'hist',f'trainstep_{self.step}_overlay.png'),overlay_img)
             plot_tsne(conf_mask_raw, loss_reco_raw, title=f'step_{self.step}_t-SNE with Confidence Highlighting',path=os.path.join(WVN_ROOT_DIR,self.params.offline.ckpt_parent_folder,self.time,'tsne'))
             pass
         self.log('val_loss', loss)
@@ -178,14 +186,12 @@ def train_and_evaluate(param:ParamCollection):
             tags=["offline",param.offline.env,param.general.name],
         )
         
-        max_epochs=8 #8 ,3 for 2nd , 5 for 1st 
+        max_epochs=3 #8 ,3 for 2nd , 5 for 1st 
         if "partial" in param.offline.traindata_option:
             if "each" in param.offline.traindata_option:
                 # load train and val data from online collected dataset (each batch is 100 samples from six nodes)
                 train_data=load_data(os.path.join(param.offline.data_folder,"train",param.offline.env,param.offline.train_datafile))
-                if param.offline.env=="vowhite_2nd":
-                    additional_data=load_data(os.path.join(param.offline.data_folder,"train","vowhite_1st",param.offline.train_datafile))
-                    train_data+=additional_data
+                
                 try:
                     val_data=load_data(os.path.join(param.offline.data_folder,"val",param.offline.env,param.offline.train_datafile))
                 except FileNotFoundError:
@@ -394,11 +400,11 @@ def train_and_evaluate(param:ParamCollection):
                     section_width = frame.shape[1] // len(headers)
 
                     # Add headers to the concatenated frame
-                    frame = add_headers_to_frame(frame, headers, section_width)
-                    start_x_right_section = 2 * section_width
+                    # frame = add_headers_to_frame(frame, headers, section_width)
+                    # start_x_right_section = 2 * section_width
 
-                    # Overlay these values on the right section of the frame
-                    frame = overlay_values_on_section(frame, max_val, mean_val, start_x_right_section)
+                    # # Overlay these values on the right section of the frame
+                    # frame = overlay_values_on_section(frame, max_val, mean_val, start_x_right_section)
                     out.write(frame)
                     progress_bar.update(1)
                 progress_bar.close()
@@ -441,7 +447,9 @@ class Validator:
     def go(self,model:pl.LightningModule,feat_extractor:FeatureExtractor):
         
         output_dict=conf_mask_generate(self.param,self.nodes,feat_extractor,model,self.gt_masks)
-        phy_mask_total_accuracy(self.param,self.nodes,feat_extractor,model)
+        
+        if "vowhite" in self.param.offline.env:
+            phy_mask_total_accuracy(self.param,self.nodes,feat_extractor,model)
         conf_masks=output_dict['all_conf_masks']
         ori_imgs=output_dict['ori_imgs']
         fric_mean,fric_std=output_dict['loss_fric_mean+std']
@@ -450,11 +458,13 @@ class Validator:
         ori_imgs=ori_imgs.to(self.param.run.device)
         print("conf_masks shape:{}".format(conf_masks.shape))
         
-        stats_outputdict=masks_stats(self.gt_masks,conf_masks,os.path.join(self.ckpt_parent_folder,model.time,"masks_stats.txt"),self.param.general.name)
-        over_conf_mean=stats_outputdict['over_conf_mean']
-        over_conf_std=stats_outputdict['over_conf_std']
-        under_conf_mean=stats_outputdict['under_conf_mean']
-        under_conf_std=stats_outputdict['under_conf_std']
+        # stats_outputdict=masks_stats(self.gt_masks,conf_masks,os.path.join(self.ckpt_parent_folder,model.time,"masks_stats.txt"),self.param.general.name)
+        # over_conf_mean=stats_outputdict['over_conf_mean']
+        # over_conf_std=stats_outputdict['over_conf_std']
+        # under_conf_mean=stats_outputdict['under_conf_mean']
+        # under_conf_std=stats_outputdict['under_conf_std']
+        stats_outputdict=masks_iou_stats(self.gt_masks,conf_masks,os.path.join(self.ckpt_parent_folder,model.time,"masks_stats.txt"),self.param.general.name)
+
         if self.param.offline.plot_masks_compare:
             plot_masks_compare(self.gt_masks,conf_masks,
                             ori_imgs,
@@ -467,10 +477,8 @@ class Validator:
             'fric_std':fric_std,
             'stiffness_mean':stiffness_mean,
             'stiffness_std':stiffness_std,
-            'over_conf_mean':over_conf_mean,
-            'over_conf_std':over_conf_std,
-            'under_conf_mean':under_conf_mean,
-            'under_conf_std':under_conf_std,
+            'iou_mean':stats_outputdict['iou_mean'],
+            'iou_std':stats_outputdict['iou_std'],
         }
 
 

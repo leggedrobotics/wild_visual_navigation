@@ -3,6 +3,7 @@ from PIL import Image
 import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
+import matplotlib.colors as mcolors
 from openTSNE import TSNE
 import os
 import torch
@@ -51,8 +52,9 @@ def plot_tsne(confidence, loss_reco_raw, title='t-SNE with Confidence Highlighti
     plt.xlabel('Component 1')
     plt.ylabel('Component 2')
     # plt.show()
-    plt.savefig(os.path.join(path,title+".png"))
+    plt.savefig(os.path.join(path,title+".pdf"))
     plt.close()
+
 
 def plot_overlay_image(img, alpha=0.5, overlay_mask=None, channel=0, **kwargs):
     """ 
@@ -82,13 +84,15 @@ def plot_overlay_image(img, alpha=0.5, overlay_mask=None, channel=0, **kwargs):
         if channel == 0:  # Friction channel
             min_val, max_val = 0, 1
             mask_channel=np.clip(mask_channel,0,1)
+            cmap=sns.color_palette('Blues', as_cmap=True)
         else:  # Stiffness channel (or others if present)
             min_val, max_val = 1, 10
             mask_channel=np.clip(mask_channel,1,10)
+            cmap=sns.color_palette('Greens', as_cmap=True)
         norm_mask = np.zeros_like(mask_channel)
         norm_mask[valid_mask] = (mask_channel[valid_mask] - min_val) / (max_val - min_val)
         
-        cmap = sns.color_palette(kwargs.get("cmap", "viridis"), as_cmap=True)
+        # cmap = sns.color_palette(kwargs.get("cmap", "viridis"), as_cmap=True)
         colored_mask = plt.cm.ScalarMappable(cmap=cmap).to_rgba(norm_mask,bytes=True,norm=double_norm)[:,:,:3]
 
         fore = np.zeros((H, W, 4), dtype=np.uint8)
@@ -99,6 +103,49 @@ def plot_overlay_image(img, alpha=0.5, overlay_mask=None, channel=0, **kwargs):
         img_new = img_new.convert("RGB")
         
         return np.uint8(img_new)
+    else:
+        return img
+
+def plot_overlay_image_binary(img, alpha=0.5, overlay_mask=None, channel=0, **kwargs):
+    """
+    overlay_mask: (C,H,W) mask with C channels
+    img: (1,C,H,W) image with C channels
+    output: (H,W,3) RGB image with overlay mask
+    """
+    # Apply your existing plot_image function
+    if overlay_mask is not None:
+        overlay_mask = overlay_mask.cpu().numpy()
+    img = plot_image(img.squeeze(0))  # Assuming this function is defined elsewhere
+    H, W = img.shape[:2]
+
+    # Prepare the background
+    back = np.zeros((H, W, 4))
+    back[:, :, :3] = img
+    back[:, :, 3] = 255
+
+    if overlay_mask is not None:
+        mask_channel = overlay_mask[channel, :, :]
+
+        # Handling NaNs
+        valid_mask = ~np.isnan(mask_channel)
+
+        # Matplotlib colors
+        orange_color = mcolors.to_rgba('orange')
+        red_color = mcolors.to_rgba('red')
+
+        # Prepare the foreground mask: orange for valid_mask, red for the rest
+        fore = np.zeros((H, W, 4), dtype=np.uint8)
+
+        # Setting colors for valid and invalid mask areas
+        # Multiply by 255 and set alpha because the colors are in float [0, 1]
+        fore[valid_mask] = [int(orange_color[i] * 255) for i in range(3)] + [int(alpha * 255)]
+        fore[~valid_mask] = [int(red_color[i] * 255) for i in range(3)] + [int(alpha * 255)]
+
+        # Composite the image
+        img_new = Image.alpha_composite(Image.fromarray(np.uint8(back)), Image.fromarray(fore))
+        img_new = img_new.convert("RGB")
+
+        return np.array(img_new)
     else:
         return img
 
@@ -117,11 +164,13 @@ def add_color_bar_and_save(new_img,channel,path,**kwargs):
         ax.axis('off')  # Hide axis
         
         if i==num_images-1:
-            ax.set_title("Dense Prediction")
+            ax.set_title("Dense Prediction w. Mask")
         elif i==0 and num_images>1:
             ax.set_title("Original Image")
-        elif i==1 and num_images==3:
+        elif i==1 and num_images>2:
             ax.set_title("Label Projection")
+        elif i==2 and num_images>3:
+            ax.set_title("Dense Prediction")
         
     # Adjust subplot parameters to reduce space between images
     plt.subplots_adjust(wspace=0.05) 
@@ -134,7 +183,10 @@ def add_color_bar_and_save(new_img,channel,path,**kwargs):
     cbar_ax = fig.add_axes([cbar_ax_left, img_ax_pos.y0, 0.03, img_ax_pos.height])
 
     # Create a color bar
-    cmap = sns.color_palette(kwargs.get("cmap", "viridis"), as_cmap=True)
+    if channel == 0:
+        cmap = sns.color_palette('Blues', as_cmap=True)
+    else:
+        cmap = sns.color_palette('Greens', as_cmap=True)
     norm = Normalize(vmin=min_val, vmax=max_val)
     cb = plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), cax=cbar_ax)
     if channel == 0:
@@ -144,10 +196,11 @@ def add_color_bar_and_save(new_img,channel,path,**kwargs):
 
     # Modify path to add "wcolorbar" before the file extension
     base, ext = os.path.splitext(path)
+    ext='.pdf'
     modified_path = f"{base}_wcolorbar{ext}"
 
     # Save the image with color bar
-    plt.savefig(modified_path, bbox_inches='tight', dpi=200)
+    plt.savefig(modified_path, bbox_inches='tight')
     plt.close(fig)
 
   

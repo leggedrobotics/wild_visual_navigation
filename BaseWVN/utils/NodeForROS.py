@@ -88,6 +88,8 @@ class NodeForROS:
         elif 'hdr' in self.camera_topic:
             self.camera_in_base=self.param.roscfg.front_hdr_camera_in_base
         self.lidar_in_base=self.param.roscfg.lidar_in_base
+        
+        self.use_vo=self.param.roscfg.use_vo
     
     def query_tf(self, parent_frame: str, child_frame: str, stamp: Optional[rospy.Time] = None, from_message: Optional[AnymalState] = None):
         """Helper function to query TFs
