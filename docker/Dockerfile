@@ -1,7 +1,7 @@
 #####################
 # Base image #
 #####################
-FROM nvidia/cuda:11.8.0-runtime-ubuntu20.04 as base
+FROM nvidia/cuda:12.3.2-runtime-ubuntu20.04 as base
 
 # Labels
 LABEL maintainer="Matias Mattamala;Jonas Frey"
@@ -80,7 +80,7 @@ RUN cd /root \
          termcolor \
          pydensecrf@git+https://github.com/lucasb-eyer/pydensecrf.git \
          liegroups@git+https://github.com/mmattamala/liegroups \
-         opencv-python>=4.6
+         opencv-python
 
 # ==
 # Remove cache and extra files

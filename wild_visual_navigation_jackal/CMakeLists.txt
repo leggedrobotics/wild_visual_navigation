@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(wild_visual_navigation_sim)
+project(wild_visual_navigation_jackal)
 
 find_package(catkin REQUIRED COMPONENTS
   rospy
