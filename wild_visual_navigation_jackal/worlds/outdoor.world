@@ -266,7 +266,7 @@
 		<model name="tree8">
 			<static>true</static>
 			<link name="tree8_link">
-				<pose>9 -4 -0.5 0 0 0.5</pose>
+				<pose>9 -4 -1.0 0 0 0.5</pose>
 				<collision name="tree8_collision">
 					<geometry>
 						<mesh>

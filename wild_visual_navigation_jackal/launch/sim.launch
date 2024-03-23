@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
-    <!-- Extras to add required sensors -->
-    <!-- <arg name="extras_file"          default="$(find wild_visual_navigation_sim)/urdf/extras.xacro"/>
-    <env name="JACKAL_URDF_EXTRAS"   value="$(arg extras_file)"/> -->
-
     <!-- Default simulation args -->
     <arg name="use_sim_time" default="true" />
     <arg name="gui" default="true" />
     <arg name="headless" default="false" />
-    <arg name="world_name" default="$(find wild_visual_navigation_sim)/worlds/outdoor.world" />
-    <arg name="jackal_config" value="front_flea3" /> <!-- add camera -->
+    <arg name="world_name" default="$(find wild_visual_navigation_jackal)/worlds/outdoor.world" />
+    
+    <arg name="x" default="0" />
+    <arg name="y" default="0" />
+    <arg name="z" default="1" />
+    <arg name="yaw" default="0" />
   
     <!-- Launch Gazebo with the specified world -->
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -20,15 +20,13 @@
       <arg name="world_name" value="$(arg world_name)" />
     </include>
   
-    <!-- Spawn Jackal -->
-    <include file="$(find jackal_gazebo)/launch/spawn_jackal.launch">
-      <arg name="x" value="0" />
-      <arg name="y" value="0" />
-      <arg name="z" value="1.0" />
-      <arg name="yaw" value="0" />
-      <arg name="config" value="$(arg jackal_config)" />
-      <arg name="joystick" value="false" />
-    </include>
+  <!-- Load Jackal's description, controllers, and spawn-->
+  <param name="robot_description"
+         command="$(find wild_visual_navigation_jackal)/urdf/load_xacro.sh" />
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+  
+  <include file="$(find jackal_control)/launch/control.launch"/>
 
-    
+  <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model"
+	      args="-urdf -model jackal -param robot_description -x $(arg x) -y $(arg y) -z $(arg z) -R 0 -P 0 -Y $(arg yaw)" />   
 </launch>
