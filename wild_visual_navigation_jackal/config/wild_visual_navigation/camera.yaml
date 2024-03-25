@@ -1,0 +1,12 @@
+camera_topics:
+  front:
+    image_topic: "/depth_camera/color/image_raw"
+    info_topic: "/depth_camera/color/camera_info"
+    use_for_training: true
+    publish_confidence: true
+    publish_input_image: true
+    scheduler_weight: 1
+  
+# Provides 1080 (height) x 1920 (width) images
+network_input_image_height: 224 # 448
+network_input_image_width: 224 # 448

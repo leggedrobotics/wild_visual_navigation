@@ -25,3 +25,9 @@ message(${CATKIN_PACKAGE_SHARE_DESTINATION})
 install(DIRECTORY launch Media worlds
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
+
+############
+## Python ##
+############
+catkin_install_python(PROGRAMS scripts/jackal_state_converter_node.py
+                      DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

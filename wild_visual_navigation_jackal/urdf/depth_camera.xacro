@@ -18,7 +18,7 @@
             <parent link="${parent}" />
             <child link="${name}_link" />
         </joint>
-
+        
         <!-- Create camera -->
         <link name="${name}_link">
             <collision>
@@ -44,6 +44,14 @@
                 <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
             </inertial>
         </link>
+
+        <link name="optical_${name}_link"/>
+        <joint name="${name}_to_optical_${name}_link" type="fixed">
+            <origin xyz="0.0 0.0 0.0" rpy="${-90/180*pi} 0.0 ${-90/180*pi}" />
+            <parent link="${name}_link" />
+            <child link="optical_${name}_link" />
+        </joint>
+
 
         <gazebo reference="${name}_link">
             <turnGravityOff>true</turnGravityOff>
@@ -76,7 +84,7 @@
                     <depthImageTopicName>/${name}/depth/image_rect_raw</depthImageTopicName>
                     <depthImageInfoTopicName>/${name}/depth/camera_info</depthImageInfoTopicName>
                     <pointCloudTopicName>/${name}/depth/color/points</pointCloudTopicName>
-                    <frameName>${name}_link</frameName>
+                    <frameName>optical_${name}_link</frameName>
                     <pointCloudCutoff>0.105</pointCloudCutoff>
                     <pointCloudCutoffMax>8.0</pointCloudCutoffMax>
                     <distortionK1>0.00000001</distortionK1>

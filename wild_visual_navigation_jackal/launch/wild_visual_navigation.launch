@@ -1,0 +1,17 @@
+<launch>
+    <!-- Arguments -->
+    <arg name="camera_file"       default="$(find wild_visual_navigation_jackal)/config/wild_visual_navigation/camera.yaml"/>
+    <arg name="params_file"       default="$(find wild_visual_navigation_jackal)/config/wild_visual_navigation/jackal.yaml"/>
+    <arg name="overlay_images"    default="True"/>
+
+    <include file="$(find wild_visual_navigation_ros)/launch/wild_visual_navigation.launch">
+        <arg name="camera_file"    value="$(arg camera_file)"/>
+        <arg name="params_file"    value="$(arg params_file)"/>
+        <arg name="overlay_images" value="$(arg overlay_images)"/>
+    </include>
+
+      <!-- Jackal state converter required by WVN -->
+  <node name="jackal_state_converter_node" pkg="wild_visual_navigation_jackal" type="jackal_state_converter_node.py"/>
+
+  </launch>
+  

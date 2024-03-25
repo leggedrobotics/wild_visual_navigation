@@ -2,13 +2,13 @@
 <launch>
     <!-- Default simulation args -->
     <arg name="use_sim_time" default="true" />
-    <arg name="gui" default="true" />
+    <arg name="gui" default="false" />
     <arg name="headless" default="false" />
     <arg name="world_name" default="$(find wild_visual_navigation_jackal)/worlds/outdoor.world" />
     
-    <arg name="x" default="0" />
-    <arg name="y" default="0" />
-    <arg name="z" default="1" />
+    <arg name="x" default="0.0" />
+    <arg name="y" default="5.0" />
+    <arg name="z" default="1.0" />
     <arg name="yaw" default="0" />
   
     <!-- Launch Gazebo with the specified world -->
@@ -28,5 +28,5 @@
   <include file="$(find jackal_control)/launch/control.launch"/>
 
   <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model"
-	      args="-urdf -model jackal -param robot_description -x $(arg x) -y $(arg y) -z $(arg z) -R 0 -P 0 -Y $(arg yaw)" />   
+	      args="-urdf -model jackal -param robot_description -x $(arg x) -y $(arg y) -z $(arg z) -R 0 -P 0 -Y $(arg yaw)" />
 </launch>

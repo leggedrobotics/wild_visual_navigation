@@ -42,7 +42,6 @@ from typing import Optional
 import traceback
 import signal
 import sys
-import time
 
 
 def time_func():
@@ -296,10 +295,16 @@ class WvnLearning:
             # Wait for features message to determine the input size of the model
             cam = list(self._ros_params.camera_topics.keys())[0]
 
+            exists_camera_used_for_training = False
             for cam in self._ros_params.camera_topics:
                 rospy.loginfo(f"[{self._node_name}] Waiting for feat topic {cam}...")
                 if self._ros_params.camera_topics[cam]["use_for_training"]:
                     feat_msg = rospy.wait_for_message(f"/wild_visual_navigation_node/{cam}/feat", ImageFeatures)
+                    exists_camera_used_for_training = True
+
+            if not exists_camera_used_for_training:
+                rospy.logerror("No camera selected for training")
+                sys.exit(-1)
 
             feature_dim = int(feat_msg.features.layout.dim[1].size)
             # Modify the parameters
@@ -379,7 +384,6 @@ class WvnLearning:
             # Check the rate
             ts = time_func()
             if abs(ts - self._last_checkpoint_ts) > 1.0 / self._ros_params.load_save_checkpoint_rate:
-
                 cg = self._traversability_estimator._traversability_loss._confidence_generator
                 new_model_state_dict["confidence_generator"] = cg.get_dict()
 

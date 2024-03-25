@@ -97,7 +97,7 @@ ARG DEBIAN_FRONTEND=dialog
 # Run bash
 # ==
 CMD ["/bin/bash"]
-WORKDIR /root
+WORKDIR /root/catkin_ws
 
 
 ###############################################################
@@ -109,7 +109,7 @@ FROM base as dev
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN mkdir -p catkin_ws/src \
+RUN mkdir -p /root/catkin_ws/src \
     && source /opt/ros/noetic/setup.bash \
     && source "/root/.bashrc" \
     && cd /root/catkin_ws && catkin build \
