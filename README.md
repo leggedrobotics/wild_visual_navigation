@@ -200,6 +200,13 @@ python wild_visual_navigation_ros/scripts/wvn_learning_node.py
 
 ## Development
 
+### Install pre-commit
+```shell
+pip3 install pre-commit
+cd wild_visual_navigation && python3 -m pre_commit install
+cd wild_visual_navigation && python3 -m pre_commit run
+```
+
 ### Code formatting
 ```shell
 # for formatting
