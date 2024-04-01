@@ -1,7 +1,7 @@
 #####################
 # Base image #
 #####################
-FROM nvidia/cuda:11.8.0-runtime-ubuntu20.04 as base
+FROM nvidia/cuda:12.3.2-runtime-ubuntu20.04 as base
 
 # Labels
 LABEL maintainer="Matias Mattamala;Jonas Frey"
@@ -80,7 +80,7 @@ RUN cd /root \
          termcolor \
          pydensecrf@git+https://github.com/lucasb-eyer/pydensecrf.git \
          liegroups@git+https://github.com/mmattamala/liegroups \
-         opencv-python>=4.6
+         opencv-python
 
 # ==
 # Remove cache and extra files
@@ -97,7 +97,7 @@ ARG DEBIAN_FRONTEND=dialog
 # Run bash
 # ==
 CMD ["/bin/bash"]
-WORKDIR /root
+WORKDIR /root/catkin_ws
 
 
 ###############################################################
@@ -109,7 +109,7 @@ FROM base as dev
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN mkdir -p catkin_ws/src \
+RUN mkdir -p /root/catkin_ws/src \
     && source /opt/ros/noetic/setup.bash \
     && source "/root/.bashrc" \
     && cd /root/catkin_ws && catkin build \

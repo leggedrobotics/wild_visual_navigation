@@ -1,0 +1,7 @@
+<launch>
+  <arg name="rviz_config"       default="open_source.rviz" />
+  <arg name="name"              default="wild_visual_navigation_rviz" />
+
+  <!-- Use RViz-->
+    <node name="$(arg name)" pkg="rviz" type="rviz" args="-d $(find wild_visual_navigation_jackal)/config/rviz/$(arg rviz_config)"/>
+</launch>

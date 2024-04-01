@@ -1,0 +1,10 @@
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <!-- Add camera -->
+    <xacro:include filename="$(find wild_visual_navigation_jackal)/urdf/depth_camera.xacro" />
+    <xacro:depth_camera name="depth_camera"
+                       parent="front_mount"
+                       x="0.1"
+                       y="0.0"
+                       z="0.02"
+                       pitch="${pi/180 * 20}"/>
+</robot>

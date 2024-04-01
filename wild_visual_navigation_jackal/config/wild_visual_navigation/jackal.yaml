@@ -1,0 +1,57 @@
+# Input topics
+robot_state_topic: "/wild_visual_navigation_node/robot_state"
+desired_twist_topic: "/wild_visual_navigation_node/reference_twist"
+
+# Relevant frames
+fixed_frame: odom
+base_frame: base_link
+footprint_frame: base_link
+
+# Robot size used to project the footprint
+robot_length: 0.5
+robot_width: 0.3
+robot_height: 0.3
+
+
+# Traversability estimation parameters
+traversability_radius: 3.0          # Maximum distance in meters of the supervision graph
+image_graph_dist_thr: 0.2           # Minimum distance between mission nodes being added
+supervision_graph_dist_thr: 0.1     # Minimum distance between supervision nodes being added
+network_input_image_height: 224     # Unput image height
+network_input_image_width: 224      # Input image width
+segmentation_type: "stego"          # Options: slic, grid, random, stego
+feature_type: "stego"               # Options: dino, dinov2, stego
+dino_patch_size: 8                  # Options: 8, 16; We found 8 is sufficient and faster
+dino_backbone: vit_small            # Options: vit_small
+slic_num_components: 100            # Number of segments for slic
+confidence_std_factor: 1.0          # Tuning parameter to change the confidence computation / explained in confidence_generator.py
+min_samples_for_training: 5         # Minimum number of mission nodes with successfull reprojection before start training
+prediction_per_pixel: True          # If true, trained network is inferenced for each pixel, otherwise per segment
+vis_node_index: 10                  # Defines node which is used for visualization, can help to debug the projected footprint
+                                    # 1 -> indicates latest added mission node; 10 -> indicates the node added 10 steps in the past
+
+# Supervision Generator
+untraversable_thr: 0.0              # Threshold for untraversable area -> this threshold is used to spawn special "collision walls" -> not used in the paper
+mission_name: "test"                # Name of the mission_folder used for logging
+mission_timestamp: True             # If true current timestamp is used as a prefix for the mission_folder
+
+# Threads
+image_callback_rate: 10             # Maximum rate at which images are processed in hertz
+supervision_callback_rate: 10       # Maximum rate at which supervision_signals are processed in hertz
+learning_thread_rate: 10            # Gradient steps per second in hertz
+logging_thread_rate: 2              # Logging of learning_node in hertz
+status_thread_rate: 0.5             # Status of feature_extractor_node in hertz
+load_save_checkpoint_rate: 1.0      # Rate at which checkpoints are saved / loaded between learning and feature extraction
+
+
+# Runtime options
+device: "cuda"
+mode: "online"                      # Options: "online", "debug", "extract_labels"; Sets operation mode of both nodes
+colormap: "RdYlBu"
+
+print_image_callback_time: false
+print_supervision_callback_time: false
+log_time: false
+log_confidence: false
+verbose: true
+extraction_store_folder:  "nan"

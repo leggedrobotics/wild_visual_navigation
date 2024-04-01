@@ -1,0 +1,104 @@
+<?xml version="1.0"?>
+<robot name="depth_camera" xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <xacro:macro name="depth_camera"
+        params="name parent x:=0.0
+                            y:=0.0
+                            z:=0.0
+                            roll:=0.0
+                            pitch:=0.0
+                            yaw:=0.0">
+        <!-- param name: Name of the camera -->
+        <!-- param parent: Parent link for camera joint -->
+        <xacro:property name="camera_size" value="0.02" />
+
+        <!--create
+        link from parent -->
+        <joint name="${parent}_to_${name}" type="fixed">
+            <origin xyz="${x} ${y} ${z}" rpy="${roll} ${pitch} ${yaw}" />
+            <parent link="${parent}" />
+            <child link="${name}_link" />
+        </joint>
+        
+        <!-- Create camera -->
+        <link name="${name}_link">
+            <collision>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <cylinder length="${camera_size}" radius="${camera_size}" />
+                </geometry>
+            </collision>
+
+            <visual>
+                <origin xyz="0 0 0" rpy="0 ${pi/2} 0" />
+                <geometry>
+                    <cylinder length="${camera_size}" radius="${camera_size}" />
+                </geometry>
+                <material name="blue">
+                    <color rgba="0 0 .8 1" />
+                </material>
+            </visual>
+
+            <inertial>
+                <mass value="1e-5" />
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+            </inertial>
+        </link>
+
+        <link name="optical_${name}_link"/>
+        <joint name="${name}_to_optical_${name}_link" type="fixed">
+            <origin xyz="0.0 0.0 0.0" rpy="${-90/180*pi} 0.0 ${-90/180*pi}" />
+            <parent link="${name}_link" />
+            <child link="optical_${name}_link" />
+        </joint>
+
+
+        <gazebo reference="${name}_link">
+            <turnGravityOff>true</turnGravityOff>
+            <sensor type="depth" name="${name}">
+                <update_rate>30</update_rate>
+                <camera>
+                    <!-- 75x65 degree FOV for the depth sensor -->
+                    <horizontal_fov>1.518</horizontal_fov>
+                    <vertical_fov>1.012</vertical_fov>
+                    <image>
+                        <width>640</width>
+                        <height>480</height>
+                        <format>R8G8B8</format>
+                    </image>
+                    <clip>
+                        <!-- give the color sensor a maximum range of 50m so that the simulation
+                        renders nicely -->
+                        <near>0.01</near>
+                        <far>50.0</far>
+                    </clip>
+                </camera>
+                <plugin name="${name}_controller" filename="libgazebo_ros_openni_kinect.so">
+                    <robotNamespace>/</robotNamespace>
+                    <baseline>0.2</baseline>
+                    <alwaysOn>true</alwaysOn>
+                    <updateRate>0.0</updateRate>
+                    <cameraName>${name}</cameraName>
+                    <imageTopicName>/${name}/color/image_raw</imageTopicName>
+                    <cameraInfoTopicName>/${name}/color/camera_info</cameraInfoTopicName>
+                    <depthImageTopicName>/${name}/depth/image_rect_raw</depthImageTopicName>
+                    <depthImageInfoTopicName>/${name}/depth/camera_info</depthImageInfoTopicName>
+                    <pointCloudTopicName>/${name}/depth/color/points</pointCloudTopicName>
+                    <frameName>optical_${name}_link</frameName>
+                    <pointCloudCutoff>0.105</pointCloudCutoff>
+                    <pointCloudCutoffMax>8.0</pointCloudCutoffMax>
+                    <distortionK1>0.00000001</distortionK1>
+                    <distortionK2>0.00000001</distortionK2>
+                    <distortionK3>0.00000001</distortionK3>
+                    <distortionT1>0.00000001</distortionT1>
+                    <distortionT2>0.00000001</distortionT2>
+                    <CxPrime>0</CxPrime>
+                    <Cx>0</Cx>
+                    <Cy>0</Cy>
+                    <focalLength>0</focalLength>
+                    <hackBaseline>0</hackBaseline>
+                </plugin>
+            </sensor>
+        </gazebo>
+    </xacro:macro>
+</robot>
