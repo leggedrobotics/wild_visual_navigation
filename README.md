@@ -1,14 +1,25 @@
-<h1 style="text-align: center;">Fast Traversability Estimation for Wild Visual Navigation</h1>
 
+<h1 align="center">
+  <br>
+  Wild Visual Navigation
+  <br>
+</h1>
 <p align="center">
-  <a href="#instalation">Installation</a> •
+  <a href="#installation">Installation</a> •
   <a href="#overview">Overview</a> •
   <a href="#experiments">Experiments</a> •
   <a href="#development">Development</a> •
   <a href="#citation">Citation</a>
-  
-  ![Formatting](https://github.com/leggedrobotics/wild_visual_navigation/actions/workflows/formatting.yml/badge.svg)
 </p>
+
+
+<!-- [START BADGES] -->
+<!-- Please keep comment here to allow auto update -->
+<p align="center">
+  <a href="[https://github.com/wow-actions/add-badges/blob/master/LICENSE"><img src="https://img.shields.io/github/license/wow-actions/add-badges?style=flat-square" alt="MIT License" /></a>
+  <a href="https://github.com/leggedrobotics/wild_visual_navigation/actions/workflows/formatting.yml/badge.svg)"><img src="https://github.com/leggedrobotics/wild_visual_navigation/actions/workflows/formatting.yml/badge.svg" alt="formatting" /></a>
+</p>
+<!-- [END BADGES] -->
 
 ![Overview](./assets/drawings/header.jpg)
 
