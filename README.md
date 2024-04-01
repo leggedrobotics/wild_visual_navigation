@@ -36,7 +36,7 @@ git clone git@github.com:leggedrobotics/wild_visual_navigation.git
 git clone git@github.com:leggedrobotics/self_supervised_segmentation.git
 ```
 
-(Recommended) Install the virtual environment.
+(Recommended) Create new virtual environment.
 ```shell
 mkdir ~/.venv
 python -m venv ~/venv/wvn
