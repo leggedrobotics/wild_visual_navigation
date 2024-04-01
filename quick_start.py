@@ -56,17 +56,17 @@ if __name__ == "__main__":
     parser.add_argument(
         "--input_image_folder",
         default="demo_data",
-        help="If not gloabl will search for the folde name within the assests folder",
+        help="Gloabl path or folder name within the assests directory",
     )
     parser.add_argument(
         "--output_folder_name",
         default="demo_data",
-        help="If not global will create the folder within the results folder",
+        help="Gloabl path or folder name within the results directory",
     )
 
     # Fixed values
-    parser.add_argument("--network_input_image_height", type=int, default=224)
-    parser.add_argument("--network_input_image_width", type=int, default=224)
+    parser.add_argument("--network_input_image_height", type=int, default=224, help="Height of the input image")
+    parser.add_argument("--network_input_image_width", type=int, default=224, help="Width of the input image")
     parser.add_argument(
         "--segmentation_type",
         default="stego",
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     parser.set_defaults(compute_confidence=True)
 
     parser.add_argument(
-        "--prediction_per_pixel", action="store_true", help="Description of prediction per pixel argument"
+        "--prediction_per_pixel", action="store_true", help="Inference traversability per-pixel or per-segment"
     )
     parser.add_argument("--no-prediction_per_pixel", dest="prediction_per_pixel", action="store_false")
     parser.set_defaults(prediction_per_pixel=True)
