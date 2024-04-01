@@ -47,6 +47,7 @@ Install the wild_visual_navigation package.
 ```shell
 cd ~/git
 pip3 install -e ./wild_visual_navigation
+pip3 install -e ./self_supervised_segmentation
 ```
 
 <img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
