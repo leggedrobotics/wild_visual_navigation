@@ -51,7 +51,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
 
     # Define command line arguments
-    parser.add_argument("--prediction_per_pixel", default=True, help="Description of prediction per pixel argument")
+
     parser.add_argument("--model_name", default="indoor_mpi", help="Description of model name argument")
     parser.add_argument(
         "--input_image_folder",
@@ -82,6 +82,18 @@ if __name__ == "__main__":
         "--slic_num_components", type=int, default=100, help="Number of components for SLIC segmentation"
     )
 
+    parser.add_argument(
+        "--compute_confidence", action="store_true", help="Compute confidence for the traversability prediction"
+    )
+    parser.add_argument("--no-compute_confidence", dest="compute_confidence", action="store_false")
+    parser.set_defaults(compute_confidence=True)
+
+    parser.add_argument(
+        "--prediction_per_pixel", action="store_true", help="Description of prediction per pixel argument"
+    )
+    parser.add_argument("--no-prediction_per_pixel", dest="prediction_per_pixel", action="store_false")
+    parser.set_defaults(prediction_per_pixel=True)
+
     # Parse the command line arguments
     args = parser.parse_args()
 
@@ -93,7 +105,7 @@ if __name__ == "__main__":
     # Update model from file if possible
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    visualizer = LearningVisualizer()
+    visualizer = LearningVisualizer(p_visu=output_folder, store=True)
 
     if anomaly_detection:
         confidence_generator = ConfidenceGenerator(
@@ -124,32 +136,42 @@ if __name__ == "__main__":
     # Load traversability model
     model = get_model(params.model).to(device)
     model.eval()
+    torch.set_grad_enabled(False)
+
     p = join(WVN_ROOT_DIR, "assets", "checkpoints", f"{args.model_name}.pt")
     model_state_dict = torch.load(p)
     model.load_state_dict(model_state_dict, strict=False)
-    print(f"Model {args.model_name} successfully loaded!")
+    print(f"\nLoaded model `{args.model_name}` successfully!")
 
     cg = model_state_dict["confidence_generator"]
+    # Only mean and std are needed
     confidence_generator.var = cg["var"]
     confidence_generator.mean = cg["mean"]
     confidence_generator.std = cg["std"]
 
     images = [str(s) for s in Path(input_image_folder).rglob("*.png" or "*.jpg")]
-    print(f"Found {len(images)} images in the folder!")
+    print(f"Found {len(images)} images in the folder! \n")
 
+    H, W = args.network_input_image_height, args.network_input_image_width
     for i, img_p in enumerate(images):
-        torch_image = torch.from_numpy(np.array(Image.open(img_p))).to(device).permute(2, 0, 1).float() / 255.0
-        C, H, W = torch_image.shape
+        print(f"Processing image {i+1}/{len(images)}: {img_p}")
+        img = Image.open(img_p)
+        img = img.convert("RGB")
+        torch_image = torch.from_numpy(np.array(img))
+        torch_image = torch_image.to(device).permute(2, 0, 1).float() / 255.0
+
+        C, H_in, W_in = torch_image.shape
+
         # K can be ignored given that no reprojection is performed
         image_projector = ImageProjector(
             K=torch.eye(4, device=device)[None],
-            h=H,
-            w=W,
-            new_h=args.network_input_image_height,
-            new_w=args.network_input_image_width,
+            h=H_in,
+            w=W_in,
+            new_h=H,
+            new_w=W,
         )
+
         torch_image = image_projector.resize_image(torch_image)
-        print(torch_image.shape, "post")
         # Extract features
         _, feat, seg, center, dense_feat = feature_extractor.extract(
             img=torch_image[None],
@@ -168,9 +190,10 @@ if __name__ == "__main__":
             input_feat = feat[seg.reshape(-1)]
             data = Data(x=input_feat)
 
-        # Predict traversability per feature
+        # Inference model
         prediction = model.forward(data)
 
+        # Calculate traversability
         if not anomaly_detection:
             out_trav = prediction.reshape(H, W, -1)[:, :, 0]
         else:
@@ -179,11 +202,20 @@ if __name__ == "__main__":
             trav = confidence
             out_trav = trav.reshape(H, W, -1)[:, :, 0]
 
-        # Publish traversability
-        out_trav.cpu().numpy()
+        original_img = visualizer.plot_image(torch_image, store=False)
+        img_ls = [original_img]
 
-        # Store confidence
-        loss_reco = F.mse_loss(prediction[:, 1:], data.x, reduction="none").mean(dim=1)
-        confidence = confidence_generator.inference_without_update(x=loss_reco)
-        out_confidence = confidence.reshape(H, W)
-        out_confidence.cpu().numpy()
+        if args.compute_confidence:
+            # Calculate confidence
+            loss_reco = F.mse_loss(prediction[:, 1:], data.x, reduction="none").mean(dim=1)
+            confidence = confidence_generator.inference_without_update(x=loss_reco)
+            out_confidence = confidence.reshape(H, W)
+            conf_img = visualizer.plot_detectron_classification(torch_image, out_confidence, store=False)
+            img_ls.append(conf_img)
+
+        name = img_p.split("/")[-1].split(".")[0]
+        trav_img = visualizer.plot_detectron_classification(torch_image, out_trav, store=False)
+        print(out_trav.sum(), out_trav.max(), torch_image.sum(), data.x.sum(), dense_feat.sum(), torch_image.sum())
+
+        img_ls.append(trav_img)
+        visualizer.plot_list(img_ls, tag=f"{name}_original_conf_trav", store=True)
