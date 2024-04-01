@@ -97,7 +97,7 @@ Instructions can be found within [wild_visual_navigation_jackal/README.md](wild_
 
 ### Online adaptation [Rosbag]
 #### Download Rosbags:
-To quickly test out online training and adaption we provide some [example rosbags](some/wild/GDRIVELink/wild_visual_navigation_jackal/README.md), collected with our ANYmal D robot.
+To quickly test out online training and adaption we provide some example rosbags ( ![GDrive](https://drive.google.com/drive/folders/1Rf2TRPT6auFxOpnV9-ZfVMjmsvdsrSD3?usp=sharing) ), collected with our ANYmal D robot.
 
 #### Example Result:
 <div align="center">
