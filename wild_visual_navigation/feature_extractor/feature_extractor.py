@@ -36,6 +36,7 @@ class FeatureExtractor:
         self._segmentation_type = segmentation_type
         self._feature_type = feature_type
         self._input_size = input_size
+        self._stego_features_already_computed_in_segmentation = False
 
         # Prepare segment extractor
         self.segment_extractor = SegmentExtractor().to(self._device)
@@ -243,6 +244,8 @@ class FeatureExtractor:
         # Change the segment indices by numbers from 0 to N
         for i, k in enumerate(seg.unique()):
             seg[seg == k.item()] = i
+
+        self._stego_features_already_computed_in_segmentation = True
         return seg
 
     def compute_features(self, img: torch.tensor, seg: torch.tensor, center: torch.tensor, **kwargs):
@@ -296,10 +299,12 @@ class FeatureExtractor:
 
     @torch.no_grad()
     def compute_stego(self, img: torch.tensor, seg: torch.tensor, center: torch.tensor, **kwargs):
-        try:
+        if self._stego_features_already_computed_in_segmentation:
+            self._stego_features_already_computed_in_segmentation = False
             return self._extractor.features
-        except Exception:
-            self.segment_stego(img, **kwargs)
+        else:
+            img_internal = img.clone()
+            self._extractor.inference(img_internal)
             return self._extractor.features
 
     def sparsify_features(self, dense_features: torch.tensor, seg: torch.tensor, cumsum_trick=False):

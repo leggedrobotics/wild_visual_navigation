@@ -185,7 +185,7 @@ class ConfidenceGenerator(torch.nn.Module):
             return torch.zeros_like(x)
         shifted_mean = self.mean + self.std * self.std_factor
         std_fac = 1
-        interval_min = max(shifted_mean - std_fac * self.std, 0)
+        interval_min = max(shifted_mean - std_fac * self.std, torch.zeros_like(self.std))
         interval_max = shifted_mean + std_fac * self.std
         x = torch.clip(x, interval_min, interval_max)
         confidence = 1 - ((x - interval_min) / (interval_max - interval_min))
