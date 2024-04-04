@@ -22,3 +22,8 @@ repos:
         stages: [commit]
         language: system
         entry: jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0 # Use the version you want
+    hooks:
+      - id: check-added-large-files
+        args: ["--maxkb=2000"]
