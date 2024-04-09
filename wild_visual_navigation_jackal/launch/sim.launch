@@ -29,4 +29,7 @@
 
   <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model"
 	      args="-urdf -model jackal -param robot_description -x $(arg x) -y $(arg y) -z $(arg z) -R 0 -P 0 -Y $(arg yaw)" />
+
+  <node name="gazebo_world_publisher" pkg="wild_visual_navigation_jackal" type="gazebo_world_publisher.py"/>
+  
 </launch>
