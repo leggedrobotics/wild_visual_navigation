@@ -15,9 +15,7 @@ sudo apt-get update
 sudo apt update 
 sudo apt install -y \
         ros-noetic-jackal-simulator \
-        ros-noetic-jackal-desktop \
-        ros-noetic-teleop-twist-keyboard \
-        ros-noetic-rqt-robot-steering \
+        ros-noetic-jackal-desktop
 ```
 
 ## Running

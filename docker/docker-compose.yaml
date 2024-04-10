@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   wvn:
     build:
@@ -14,9 +13,3 @@ services:
     environment:
       - ROS_IP=127.0.0.1
     command: "/bin/bash"
-    # command: >
-    #   /bin/bash -c "pip3 install -e /root/catkin_ws/src/wild_visual_navigation
-    #           && pip3 install -e /root/catkin_ws/src/self_supervised_segmentation
-    #           && cd /root/catkin_ws && catkin build
-    #           && cd /root
-    #           && source /root/catkin_ws/devel/setup.bash"

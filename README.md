@@ -26,9 +26,14 @@
 
 <img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
-## Installation
+## Setup
 
-### Minimal
+### Quick simulation demo
+We prepared a quick-start simulation with a Jackal robot using Docker. Please check the instructions [here](docker/README.md)
+
+![Overview](./assets/images/sim_demo.jpg)
+
+### Minimal setup
 Clone the WVN and our STEGO reimplementation.
 ```shell
 mkdir ~/git && cd ~/git 
@@ -73,8 +78,8 @@ pip3 install -e ./self_supervised_segmentation
  ┣ 📂wild_visual_navigation_msgs              # ROS1 message definitions
  ┣ 📂wild_visual_navigation_ros               # ROS1 nodes for running WVN 
     ┗ 📂scripts                               
-       ┗ 📜 wvn_feature_extractor_node.py     
-       ┗ 📜 wvn_learning_node.py    
+       ┗ 📜 wvn_feature_extractor_node.py     # Main process for feature extraction and inference
+       ┗ 📜 wvn_learning_node.py              # Main process that generates supervision signals and the online training loop
  ┗ 📜 quick_start.py                          # Inferencing demo_data from pre-trained checkpoints
 ```
 ### Features
@@ -87,7 +92,7 @@ pip3 install -e ./self_supervised_segmentation
 
 <img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
-## Experiments
+## Demos
 
 ### Inference of pre-trained model
 
@@ -105,11 +110,11 @@ python3 quick_start.py
 ```
 
 ### Online adaptation [Simulation]
-Instructions can be found within [wild_visual_navigation_jackal/README.md](wild_visual_navigation_jackal/README.md).
+We prepared a Docker image to run a simulation with a Jackal robot, check the instructions [here](docker/README.md).
 
 ### Online adaptation [Rosbag]
-#### Download Rosbags:
-To quickly test out online training and adaption we provide some example rosbags ( [GDrive](https://drive.google.com/drive/folders/1Rf2TRPT6auFxOpnV9-ZfVMjmsvdsrSD3?usp=sharing) ), collected with our ANYmal D robot.
+#### Download rosbags:
+To quickly test out online training and adaption we provide some example rosbags ([GDrive](https://drive.google.com/drive/folders/1Rf2TRPT6auFxOpnV9-ZfVMjmsvdsrSD3?usp=sharing)), collected with our ANYmal D robot.
 
 #### Example Result:
 <div align="center">
@@ -121,7 +126,7 @@ To quickly test out online training and adaption we provide some example rosbags
 
 </div>
 
-#### ROS-Setup:
+#### ROS Setup:
 ```shell
 # Create new catkin workspace
 source /opt/ros/noetic/setup.bash
@@ -150,7 +155,7 @@ source /opt/ros/noetic/setup.bash
 source ~/catkin_ws/devel/setup.bash
 ```
 
-After successfully building the ros workspace, you can run the entire pipeline by either using the launch file or by running the nodes individually.
+After successfully building the ROS workspace, you can run the entire pipeline by either using the launch file or by running the nodes individually.
 Open multiple terminals and run the following commands:
 
 - Run wild_visual_navigation
@@ -184,13 +189,15 @@ python wild_visual_navigation_ros/scripts/wvn_learning_node.py
 - The general configuration files can be found under: `wild_visual_navigation/cfg/experiment_params.py`
 - This configuration is used in the `offline-model-training` and in the `online-ros` mode.
 - When running the `online-ros` mode, additional configurations for the individual nodes are defined in `wild_visual_navigation/cfg/ros_params.py`.
-- These configuration file is filled based on the rosparameter-server during runtime.
+- These configuration file is filled based on the ROS parameter server during runtime.
 - The default values for this configuration can be found under `wild_visual_navigation/wild_visual_navigation_ros/config/wild_visual_navigation`.
 
 
 <img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 
 ## Development
+<details>
+<summary>Here we provide additional details if you want to contribute.</summary>
 
 ### Install pre-commit
 ```shell
@@ -219,7 +226,7 @@ pytest
 ### Open-Sourcing
 Generating headers
 ```shell
-pip3 install adheader
+pip3 install addheader
 
 # If your are using zsh otherwise remove \
 addheader wild_visual_navigation -t header.txt -p \*.py --sep-len 79 --comment='#' --sep=' '
@@ -238,6 +245,7 @@ rosrun procman_ros sheriff -l ~/git/wild_visual_navigation/wild_visual_navigatio
 ```shell
 rosbag_play --tf --sem --flp --wvn  mission/*.bag
 ```
+</details>
 
 <img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
 

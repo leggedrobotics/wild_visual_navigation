@@ -23,7 +23,7 @@ goal_x, goal_y = (None, None)
 MAX_LINEAR_VEL = 0.5
 MAX_ANGULAR_VEL = 0.7
 GAIN_LINEAR = 1.0
-GAIN_ANGULAR = 1.0
+GAIN_ANGULAR = 1.5
 DIST_THR = 0.1  # 10 cms
 
 

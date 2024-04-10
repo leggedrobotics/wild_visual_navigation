@@ -13,60 +13,64 @@ To build the container:
 docker compose -f docker-compose-gui-nvidia.yaml build
 ```
 
-## Run the container
+## Run the simulation environment in the container
 
-To run the container (terminal-based):
+Start the container in detached mode:
 
 ```sh
 docker compose -f docker-compose-gui-nvidia.yaml up -d
 ```
 
-To launch bash on the container:
+Launch a first bash terminal in the container to start the simulation environment:
 
 ```sh
-docker compose exec wvn bash
+docker compose -f docker-compose-gui-nvidia.yaml exec wvn_nvidia /bin/bash
 ```
 
-## Stop the container
-
-To stop the container:
-
+Once in the container, run the `first_run` script to install the WVN package that is mounted automatically when the container starts:
 ```sh
-docker compose -f docker-compose.yaml stop
+source first_run.sh
 ```
 
-## Running Wild Visual Navigation
-
-You can either run the following commands in 4 terminals that initialize a bash terminal in the container, or you can use VS Code with the Docker extension to instantiate terminal in the container directly.
-
-### Launch Jackal sim
+Launch the Gazebo simulation environment and an RViz window as the main interface.
 
 ```sh
 roslaunch wild_visual_navigation_jackal sim.launch 
 ```
+If this doesn't open any window, pelase check the troubleshooting section below.
 
-### Launch WVN
 
+Open a new terminal to launch WVN in the container
+
+```sh
+docker compose -f docker-compose-gui-nvidia.yaml exec wvn_nvidia /bin/bash
+```
+
+And then, once in the container:
 ```sh
 roslaunch wild_visual_navigation_jackal wild_visual_navigation.launch
 ```
 
-### Launch Teleop node
+You can drive the Jackal robot by sending 2D Nav goals using RViz. We implemented a simple [carrot follower](../wild_visual_navigation_jackal/scripts/carrot_follower.py) that was tuned for the demo (not actually used in real experiments)
+
+
+## Stop the example
+
+Kill all the terminal as usual (Ctrl + D). Then, stop the container using:
 
 ```sh
-roslaunch wild_visual_navigation_jackal teleop.launch 
-```
-
-### Launch RViz window
-
-```sh
-roslaunch wild_visual_navigation_jackal view.launch 
+docker compose -f docker-compose-gui-nvidia.yaml down
 ```
 
 
 ## Troubleshooting
 
-If the GUI doesn't work, you might need to allow the X Server to connect before running the container:
+If the GUI doesn't work, you'll see an error like:
+
+> No protocol specified
+> qt.qpa.xcb: could not connect to display :1
+
+To fix it, you might need to allow the X Server to connect before running the container:
 
 ```sh
 xhost +Local:*

@@ -20,6 +20,9 @@ import numpy as np
 import tf.transformations as tr
 
 
+last_stamp = None
+
+
 def msg_to_se3(msg):
     """Conversion from geometric ROS messages into SE(3)
     Based on Jarvis Schultz's: https://answers.ros.org/question/332407/transformstamped-to-transformation-matrix-python/
@@ -54,7 +57,11 @@ def msg_to_se3(msg):
 
 
 def gazebo_callback(msg):
+    global last_stamp
     stamp = rospy.Time.now()
+    if stamp == last_stamp:
+        return
+
     T_world_base = msg_to_se3(msg.pose[1])  # this is the base_link pose in world frame (from gazebo)
     T_base_world = np.linalg.inv(T_world_base)
 
@@ -74,10 +81,12 @@ def gazebo_callback(msg):
     br.sendTransform(t)
 
     pub.publish(marker)
+    last_stamp = stamp
 
 
 if __name__ == "__main__":
     rospy.init_node("gazebo_world_publisher")
+    last_stamp = rospy.Time.now()
 
     # Default variables
     rospack = rospkg.RosPack()
