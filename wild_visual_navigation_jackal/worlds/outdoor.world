@@ -23,7 +23,7 @@
     <model name="terrain">
 		<static>true</static>
 		<link name="terrain_link">
-			<pose>3 3 -1 0 0 0</pose>
+			<pose>0 0 0 0 0 0</pose>
 			<collision name="terrain_collision">
 				<geometry>
 					<mesh>
