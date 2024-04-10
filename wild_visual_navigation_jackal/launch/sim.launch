@@ -32,6 +32,6 @@
   
   <!-- Simulation demo helpers -->
   <node name="gazebo_world_publisher" pkg="wild_visual_navigation_jackal" type="gazebo_world_publisher.py"/>
-  <node name="gazebo_world_publisher" pkg="wild_visual_navigation_jackal" type="carrot_follower.py"/>
+  <node name="jackal_carrot_follower" pkg="wild_visual_navigation_jackal" type="carrot_follower.py"/>
 
 </launch>

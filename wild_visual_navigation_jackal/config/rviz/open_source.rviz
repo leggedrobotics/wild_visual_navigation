@@ -802,22 +802,26 @@ Visualization Manager:
           Value: false
       Enabled: true
       Name: GridMaps
-    - Alpha: 1
-      Axes Length: 1
-      Axes Radius: 0.10000000149011612
-      Class: rviz/Pose
-      Color: 255; 25; 0
+    - Class: rviz/Group
+      Displays:
+        - Alpha: 1
+          Axes Length: 1
+          Axes Radius: 0.10000000149011612
+          Class: rviz/Pose
+          Color: 245; 121; 0
+          Enabled: true
+          Head Length: 0.6000000238418579
+          Head Radius: 0.6000000238418579
+          Name: Carrot
+          Queue Size: 10
+          Shaft Length: 1
+          Shaft Radius: 0.30000001192092896
+          Shape: Arrow
+          Topic: /move_base_simple/goal
+          Unreliable: false
+          Value: true
       Enabled: true
-      Head Length: 0.30000001192092896
-      Head Radius: 0.10000000149011612
-      Name: Pose
-      Queue Size: 10
-      Shaft Length: 1
-      Shaft Radius: 0.05000000074505806
-      Shape: Arrow
-      Topic: /move_base_simple/goal
-      Unreliable: false
-      Value: true
+      Name: Carrot Follower
   Enabled: true
   Global Options:
     Background Color: 255; 255; 255
@@ -846,7 +850,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 47.735103607177734
+      Distance: 12.95793628692627
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -854,17 +858,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 6.462728023529053
-        Y: -0.07755613327026367
-        Z: 9.5367431640625e-07
+        X: 4.059267044067383
+        Y: 0.8467369079589844
+        Z: -4.547028311208123e-06
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7597965598106384
+      Pitch: 1.0497957468032837
       Target Frame: base
-      Yaw: 6.278591632843018
+      Yaw: 1.760424256324768
     Saved: ~
 Window Geometry:
   AB Wide Angle Front:
