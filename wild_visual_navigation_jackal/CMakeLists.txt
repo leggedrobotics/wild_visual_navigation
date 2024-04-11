@@ -13,14 +13,6 @@ catkin_package(
   CATKIN_DEPENDS
 )
 
-# catkin_python_setup()
-# catkin_install_python(PROGRAMS  scripts/wvn_feature_extractor_node.py
-#                                 scripts/wvn_learning_node.py
-#                                 scripts/overlay_images.py
-#                                 scripts/smart_carrot.py
-#                                 scripts/rosbag_play.sh
-#                       DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
-
 message(${CATKIN_PACKAGE_SHARE_DESTINATION})
 install(DIRECTORY launch Media worlds
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
@@ -29,5 +21,7 @@ install(DIRECTORY launch Media worlds
 ############
 ## Python ##
 ############
-catkin_install_python(PROGRAMS scripts/jackal_state_converter_node.py
+catkin_install_python(PROGRAMS scripts/carrot_follower.py
+                               scripts/jackal_state_converter_node.py
+                               scripts/gazebo_world_publisher.py
                       DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

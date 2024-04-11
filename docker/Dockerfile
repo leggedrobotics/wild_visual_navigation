@@ -123,4 +123,6 @@ RUN mkdir -p /root/catkin_ws/src \
 
 RUN echo "source /root/catkin_ws/devel/setup.bash" >> ~/.bashrc
 RUN echo "source /root/env/bin/activate" >> ~/.bashrc
+
+COPY docker/first_run.sh first_run.sh
 ENV DEBIAN_FRONTEND=dialog
