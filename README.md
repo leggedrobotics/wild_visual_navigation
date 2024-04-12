@@ -105,6 +105,7 @@ First clone the WVN and our STEGO reimplementation.
 mkdir ~/git && cd ~/git 
 git clone git@github.com:leggedrobotics/wild_visual_navigation.git
 git clone git@github.com:leggedrobotics/self_supervised_segmentation.git
+./self_supervised_segmentation/models/download_pretrained.sh
 ```
 
 (Recommended) Create new virtual environment.
