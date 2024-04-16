@@ -25,7 +25,7 @@
 ![Overview](./assets/drawings/header.jpg)
 
 
-This package implements the Wild Visual Navigation (WVN) system presented in Frey & Mattamala et al. ["Fast Traversability Estimation for Wild Visual Navigation"](https://www.roboticsproceedings.org/rss19/p054.html) (2023) and later extended in Mattamala & Frey et al. ["Wild Visual Navigation: Fast Traversability Learning via Pre-Trained Models and Online Self-Supervision"]() (2024). It implements a visual, self-supervised traversability estimation system for mobile robots, trained online after a few minutes of human demonstrations in the field.
+This package implements the Wild Visual Navigation (WVN) system presented in Frey & Mattamala et al. ["Fast Traversability Estimation for Wild Visual Navigation"](https://www.roboticsproceedings.org/rss19/p054.html) (2023) and later extended in Mattamala & Frey et al. ["Wild Visual Navigation: Fast Traversability Learning via Pre-Trained Models and Online Self-Supervision"](https://arxiv.org/abs/2404.07110) (2024). It implements a visual, self-supervised traversability estimation system for mobile robots, trained online after a few minutes of human demonstrations in the field.
 
 
 <img align="right" width="40" height="40" src="https://github.com/leggedrobotics/wild_visual_navigation/blob/main/assets/images/dino.png" alt="Dino"> 
