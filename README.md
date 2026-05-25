@@ -209,7 +209,7 @@ python wild_visual_navigation_ros/scripts/wvn_learning_node.py
 ## Demos
 
 ### Inference of pre-trained model
-We provide the [`python3 quick_start.py`](quick_start.py) script to inference traversability from images within the input folder ([`assets/demo_data/*.png`](assets/demo_data)), given a pre-trained model checkpoint (`assets/checkpoints/model_name.pt`, you can obtain them from [Google Drive](https://drive.google.com/drive/folders/1v18a95u_s8s0870o3UZ8T-9xizsIZwSp?usp=share_link)). 
+We provide the [`python3 quick_start.py`](quick_start.py) script to inference traversability from images within the input folder ([`assets/demo_data/*.png`](assets/demo_data)), given a pre-trained model checkpoint (`assets/checkpoints/model_name.pt`, you can obtain them from [Google Drive](https://drive.google.com/drive/folders/1KJQnzJC5gIiu6AStopUI-saTvaDRH0wo?usp=sharing). 
 The script stores the result in the provided output folder (`results/demo_data/*.png`).
 
 ```python
@@ -224,9 +224,10 @@ python3 quick_start.py
 #        [--prediction_per_pixel] [--no-prediction_per_pixel]
 ```
 
+
 ### Online adaptation from rosbags
 
-To quickly test out the online training and adaption we provide some example rosbags ([GDrive](https://drive.google.com/drive/folders/1Rf2TRPT6auFxOpnV9-ZfVMjmsvdsrSD3?usp=sharing)), collected with our ANYmal D robot. These can be tested using the [ROS instructions](#execution)
+To quickly test out the online training and adaption we provide some example rosbags ([Google Drive](https://drive.google.com/drive/folders/1d_G4h5EbDqG7Eu2Frgx1Hd31voAuj5zx?usp=drive_link)), collected with our ANYmal D robot. These can be tested using the [ROS instructions](#execution)
 
 Here we provide some examples for the different sequences:
 <div align="center">
