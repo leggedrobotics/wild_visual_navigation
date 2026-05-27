@@ -831,7 +831,7 @@ class WvnLearning:
         vis_node = self._traversability_estimator.get_mission_node_for_visualization()
 
         # Publish reprojections of last node in graph
-        if vis_node is not None:
+        if vis_node is not None and vis_node.has_debug_data():
             cam = vis_node.camera_name
             torch_image = vis_node._image
             torch_mask = vis_node._supervision_mask
@@ -840,6 +840,9 @@ class WvnLearning:
 
             image_out = self._visualizer.plot_detectron_classification(torch_image, torch_mask, cmap="Blues")
             self._camera_handler[cam]["debug"]["image_overlay"].publish(rc.numpy_to_ros_image(image_out))
+
+        elif vis_node is not None:
+            rospy.logwarn(f"[{self._node_name}] No visualization data available for node")
 
     def pause_learning_callback(self, req):
         """Start and stop the network training"""
