@@ -85,7 +85,7 @@ class DinoInterface:
 
         # resize and interpolate features
         B, D, H, W = img.shape
-        new_features_size = (H, H)
+        new_features_size = (H, W)
         # pad = int((W - H) / 2)
         features = F.interpolate(features, new_features_size, mode="bilinear", align_corners=True)
         # features = F.pad(features, pad=[pad, pad, 0, 0])

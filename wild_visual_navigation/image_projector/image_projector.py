@@ -43,17 +43,18 @@ class ImageProjector:
         self.width = w
 
         new_h = self.height.item() if new_h is None else new_h
+        new_w = self.width.item() if new_w is None else new_w
 
         # Compute scale
         sy = new_h / h
-        sx = (new_w / w) if (new_w is not None) else sy
+        sx = new_w / w
 
         # Compute scaled parameters
         sh = new_h
-        sw = new_w if new_w is not None else sh
+        sw = new_w
 
         # Prepare image cropper
-        if new_w is None or new_w == new_h:
+        if new_w == new_h:
             self.image_crop = T.Compose([T.Resize(new_h, T.InterpolationMode.NEAREST), T.CenterCrop(new_h)])
         else:
             self.image_crop = T.Resize([new_h, new_w], T.InterpolationMode.NEAREST)
@@ -61,7 +62,7 @@ class ImageProjector:
         # Adjust camera matrix
         # Fill values
         sK = K.clone()
-        if new_w is None or new_w == new_h:
+        if new_w == new_h:
             sK[:, 0, 0] = K[:, 1, 1] * sy
             sK[:, 0, 2] = K[:, 1, 2] * sy
             sK[:, 1, 1] = K[:, 1, 1] * sy

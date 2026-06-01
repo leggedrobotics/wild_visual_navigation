@@ -102,7 +102,7 @@ class StegoInterface:
         # resize and interpolate features
         # with Timer("interpolate output"):
         B, D, H, W = img.shape
-        new_features_size = (H, H)
+        new_features_size = (H, W)
         # pad = int((W - H) / 2)
         self._code = F.interpolate(self._code, new_features_size, mode="bilinear", align_corners=True)
         self._cluster_pred = F.interpolate(self._cluster_pred[None].float(), new_features_size, mode="nearest").int()

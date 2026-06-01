@@ -53,7 +53,7 @@ class WvnFeatureExtractor:
             feature_type=self._ros_params.feature_type,
             patch_size=self._ros_params.dino_patch_size,
             backbone_type=self._ros_params.dino_backbone,
-            input_size=self._ros_params.network_input_image_height,
+            input_size=(self._ros_params.network_input_image_height, self._ros_params.network_input_image_width),
             slic_num_components=self._ros_params.slic_num_components,
         )
 
@@ -339,8 +339,8 @@ class WvnFeatureExtractor:
 
             msg = rc.numpy_to_ros_image(out_trav.cpu().numpy(), "passthrough")
             msg.header = image_msg.header
-            msg.width = out_trav.shape[0]
-            msg.height = out_trav.shape[1]
+            msg.width = out_trav.shape[1]
+            msg.height = out_trav.shape[0]
             self._camera_handler[cam]["trav_pub"].publish(msg)
 
             msg = self._camera_handler[cam]["camera_info_msg_out"]
@@ -354,8 +354,8 @@ class WvnFeatureExtractor:
                     "rgb8",
                 )
                 msg.header = image_msg.header
-                msg.width = torch_image.shape[1]
-                msg.height = torch_image.shape[2]
+                msg.width = torch_image.shape[2]
+                msg.height = torch_image.shape[1]
                 self._camera_handler[cam]["input_pub"].publish(msg)
 
             # Publish confidence
@@ -365,8 +365,8 @@ class WvnFeatureExtractor:
                 out_confidence = confidence.reshape(H, W)
                 msg = rc.numpy_to_ros_image(out_confidence.cpu().numpy(), "passthrough")
                 msg.header = image_msg.header
-                msg.width = out_confidence.shape[0]
-                msg.height = out_confidence.shape[1]
+                msg.width = out_confidence.shape[1]
+                msg.height = out_confidence.shape[0]
                 self._camera_handler[cam]["conf_pub"].publish(msg)
 
             # Publish features and feature_segments
